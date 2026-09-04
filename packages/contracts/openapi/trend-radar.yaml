@@ -1,0 +1,421 @@
+openapi: 3.1.0
+info:
+  title: Trend Radar Agent API (Maistro adapter contract)
+  description: >
+    Contract for the Trend Radar (kymah.com) endpoints consumed by Maistro.
+    Read-only by policy (ADR D9): Maistro never triggers collection.
+    Data-honesty rule: null means NOT MEASURED — never treat as zero.
+    Shapes verified against source 2026-09-04.
+  version: 1.0.0
+servers:
+  - url: https://kymah.com
+    description: Production
+  - url: "{staging}"
+    description: Staging (set per environment)
+    variables:
+      staging:
+        default: http://localhost:3000
+
+security:
+  - bearerAuth: []
+  - agentKey: []
+
+paths:
+  /api/agent/trends:
+    get:
+      operationId: listTrends
+      summary: List live trends (agent projection)
+      parameters:
+        - name: onBrand
+          in: query
+          schema: { type: boolean }
+        - name: kind
+          in: query
+          schema: { type: string, enum: [trend, category, moment] }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: q
+          in: query
+          description: Case-insensitive substring search over name, why, tags.
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+        - name: id
+          in: query
+          description: Return one trend raw (full warm-store object).
+          schema: { type: string }
+      responses:
+        "200":
+          description: Trend list (or single trend when ?id= is used).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/TrendListResponse"
+                  - $ref: "#/components/schemas/SingleTrendResponse"
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Auth" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/ReadFailed" }
+        "503": { $ref: "#/components/responses/Config" }
+
+  /api/agent/feed/{kind}:
+    get:
+      operationId: getFeed
+      summary: Sounds or terms feed
+      parameters:
+        - name: kind
+          in: path
+          required: true
+          schema: { type: string, enum: [sounds, terms] }
+        - name: limit
+          in: query
+          description: "sounds: default 25, cap 100. terms: default 40, cap 200."
+          schema: { type: integer, minimum: 1, maximum: 200 }
+      responses:
+        "200":
+          description: Feed payload.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/SoundsFeedResponse"
+                  - $ref: "#/components/schemas/TermsFeedResponse"
+        "401": { $ref: "#/components/responses/Auth" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/ReadFailed" }
+
+  /api/agent/brief:
+    post:
+      operationId: authorBrief
+      summary: Author a generative media chain for a trend
+      description: >
+        Returns a GENERATIVE chain (image/video prompts), not an editorial
+        brief; editorial content lives on AgentTrend.brief. Rate-limited by
+        TR at 4/min and 30/hour per key — Maistro's adapter budgets <= 20/hr.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AuthorBriefRequest" }
+      responses:
+        "200":
+          description: Authored chain.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthorBriefResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Auth" }
+        "422":
+          description: No eligible trends.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TRError" }
+        "429":
+          description: Rate limited.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/TRError"
+                  - type: object
+                    properties:
+                      retryAfterSeconds: { type: number }
+        "502": { $ref: "#/components/responses/ReadFailed" }
+        "503": { $ref: "#/components/responses/Config" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: AGENT_API_KEY as bearer token.
+    agentKey:
+      type: apiKey
+      in: header
+      name: x-agent-key
+
+  responses:
+    BadRequest:
+      description: Malformed request.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/TRError" }
+    Auth:
+      description: Missing/invalid agent key.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/TRError" }
+    NotFound:
+      description: Unknown trend id or feed kind.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/TRError" }
+    ReadFailed:
+      description: Upstream read/generation failure.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/TRError" }
+    Config:
+      description: Server-side key/model not configured.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/TRError" }
+
+  schemas:
+    TRError:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        message: { type: string }
+      additionalProperties: true
+
+    TrendListResponse:
+      type: object
+      required: [generatedAt, live, total, trends]
+      properties:
+        generatedAt: { type: [string, "null"] }
+        live:
+          type: boolean
+          description: false = DB unreachable; payload is a build-time snapshot.
+        total: { type: integer }
+        trends:
+          type: array
+          items: { $ref: "#/components/schemas/AgentTrend" }
+      additionalProperties: true
+
+    SingleTrendResponse:
+      type: object
+      required: [live, trend]
+      properties:
+        live: { type: boolean }
+        trend:
+          oneOf:
+            - $ref: "#/components/schemas/AgentTrend"
+            - type: "null"
+      additionalProperties: true
+
+    AgentTrend:
+      type: object
+      required: [id, name, kind, stage, growth, onBrand, why, tags, products]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        kind: { type: string, enum: [trend, category, moment] }
+        stage: { type: string }
+        growth:
+          type: string
+          description: Display string; em-dash means only one observation.
+        category: { type: [string, "null"] }
+        scope: { type: string, enum: [global, local] }
+        lang: { type: [string, "null"], enum: [en, ar, mixed, null] }
+        onBrand: { type: boolean }
+        fit:
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [strength]
+              properties:
+                strength:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                  description: Composite 0-100; pass bar is 50.
+                beat: { type: [string, "null"] }
+                reason: { type: [string, "null"] }
+              additionalProperties: true
+        signalStrength:
+          type: [number, "null"]
+          description: Hand-weighted composite 0-100. NOT a probability.
+        durabilityClass:
+          type: [string, "null"]
+          enum: [flash, seasonal, ongoing, null]
+        viewsWk: { type: [string, "null"] }
+        eng: { type: [number, "null"] }
+        sound:
+          oneOf:
+            - type: "null"
+            - type: object
+              properties:
+                title: { type: [string, "null"] }
+                author: { type: [string, "null"] }
+                cue:
+                  type: [string, "null"]
+                  description: Entry moment (inferred, not measured).
+              additionalProperties: true
+        format:
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [mechanic, payoff, props, basis]
+              properties:
+                mechanic: { type: string }
+                payoff: { type: string }
+                props:
+                  type: array
+                  items: { type: string }
+                secondsToPayoff: { type: [number, "null"] }
+                basis: { type: string, enum: [observed, asserted] }
+              additionalProperties: true
+        why: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+        firstSeen: { type: [string, "null"] }
+        runsSeen: { type: [number, "null"] }
+        brief:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/EditorialBrief"
+        products:
+          type: array
+          items: { $ref: "#/components/schemas/ProductMatch" }
+      additionalProperties: true
+
+    EditorialBrief:
+      type: object
+      description: TR's pre-authored editorial brief — Maistro's Brief composition source.
+      required: [microTrend, mechanic, adaptations, onBrand]
+      properties:
+        microTrend: { type: string }
+        mechanic: { type: string }
+        adaptations:
+          type: array
+          items: { $ref: "#/components/schemas/Adaptation" }
+        onBrand:
+          type: array
+          items: { type: string }
+      additionalProperties: true
+
+    Adaptation:
+      type: object
+      required: [product, line, idea, hook]
+      properties:
+        product: { type: string }
+        line: { type: string }
+        idea: { type: string }
+        hook: { type: string }
+        samsungify: { type: string }
+        insight: { type: string }
+        execution: { type: string }
+        featureMoment: { type: string }
+        onScreenText: { type: string }
+        soundUse: { type: string }
+        cta: { type: string }
+        dos:
+          type: array
+          items: { type: string }
+        donts:
+          type: array
+          items: { type: string }
+      additionalProperties: true
+
+    ProductMatch:
+      type: object
+      required: [product, line, reason, score]
+      properties:
+        product: { type: string }
+        line: { type: string }
+        reason: { type: string }
+        score: { type: number, minimum: 0, maximum: 100 }
+      additionalProperties: true
+
+    SoundsFeedResponse:
+      type: object
+      required: [generatedAt, live, sounds]
+      properties:
+        generatedAt: { type: [string, "null"] }
+        live: { type: boolean }
+        sounds:
+          type: array
+          items: { $ref: "#/components/schemas/SoundItem" }
+      additionalProperties: true
+
+    SoundItem:
+      type: object
+      required: [musicId, name, verdict, chart, rank, measuredStage]
+      properties:
+        musicId: { type: string }
+        name: { type: string }
+        verdict: { type: string, enum: [format, dance] }
+        recipe: { type: string }
+        soundCue: { type: [string, "null"] }
+        onScreenText:
+          type: array
+          items: { type: string }
+        soundTitle: { type: string }
+        soundAuthor: { type: string }
+        chart: { type: string, enum: [top, viral] }
+        rank: { type: integer }
+        measuredStage: { type: string }
+        accelerating: { type: boolean }
+        confidence: { type: number }
+        commerciallyCleared:
+          type: [boolean, "null"]
+          description: TikTok's strict-commercial flag only. NOT legal clearance.
+      additionalProperties: true
+
+    TermsFeedResponse:
+      type: object
+      required: [generatedAt, live, terms]
+      properties:
+        generatedAt: { type: [string, "null"] }
+        live: { type: boolean }
+        summary: { type: [string, "null"] }
+        terms:
+          type: array
+          description: Loosely shaped; carries rank/term/type/growth/lang + optional measurement fields.
+          items:
+            type: object
+            properties:
+              rank: { type: integer }
+              term: { type: string }
+              type: { type: string }
+              growth: { type: string }
+              lang: { type: string }
+            additionalProperties: true
+      additionalProperties: true
+
+    AuthorBriefRequest:
+      type: object
+      required: [ask]
+      properties:
+        ask: { type: string, minLength: 1, maxLength: 2000 }
+        trendId: { type: string, maxLength: 120 }
+        product: { type: string, maxLength: 120 }
+        showProduct: { type: boolean }
+        language: { type: string, enum: [en, ar, auto], default: auto }
+        aspect: { type: string, default: "9:16" }
+        durationCapSec: { type: integer, minimum: 1, maximum: 60, default: 15 }
+      additionalProperties: false
+
+    AuthorBriefResponse:
+      type: object
+      required: [brief, runnable, errors]
+      properties:
+        brief:
+          type: object
+          required: [chain]
+          properties:
+            chain:
+              type: array
+              items:
+                type: object
+                required: [type, prompt]
+                properties:
+                  type: { type: string, enum: [image, image-edit, video] }
+                  prompt: { type: string }
+                  inputs: { type: object, additionalProperties: true }
+                  notes: { type: string }
+                additionalProperties: true
+          additionalProperties: true
+        runnable: { type: boolean }
+        errors:
+          type: array
+          items: { type: string }
+        usage: { type: object, additionalProperties: true }
+        boardLive: { type: boolean }
+      additionalProperties: true

@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+
+# Node (dashboard, M5)
+node_modules/
+.next/
+
+# Environment / secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Local artifacts
+*.log
+.tmp/
+tmp/
+
+# OS
+Thumbs.db
+.DS_Store

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maistro.local/schemas/publish-result.json",
+  "title": "PublishResult",
+  "$comment": "v1.0.0 — 'skipped_duplicate' means the idempotency check found a completed record (a resumed checkpoint re-ran the publish node); it is a SUCCESS outcome for the graph. Platform-side ambiguity (timeout after send) is recorded as status 'unknown' on the publish_records row and reconciled via platform lookup before any retry — it never surfaces here until resolved.",
+  "type": "object",
+  "required": ["publish_record_id", "status"],
+  "properties": {
+    "publish_record_id": { "type": "string", "format": "uuid" },
+    "status": { "type": "string", "enum": ["published", "failed", "skipped_duplicate"] },
+    "platform_post_id": { "type": ["string", "null"] },
+    "post_url": { "type": ["string", "null"] },
+    "published_at": { "type": ["string", "null"], "format": "date-time" },
+    "error": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "problem.json" }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

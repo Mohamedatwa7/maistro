@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maistro.local/schemas/content-version.json",
+  "title": "ContentVersion",
+  "$comment": "v1.0.0 — one creator submission (iteration) of a campaign. analysis_result is a FROZEN snapshot of the F1X8 response (openapi/f1x8.yaml AnalysisResult); f1x8_job_id is null for synchronous image analysis.",
+  "type": "object",
+  "required": [
+    "content_version_id",
+    "campaign_id",
+    "iteration",
+    "asset_ref",
+    "media_type",
+    "submitted_by",
+    "submitted_at"
+  ],
+  "properties": {
+    "content_version_id": { "type": "string", "format": "uuid" },
+    "campaign_id": { "type": "string", "format": "uuid" },
+    "iteration": { "type": "integer", "minimum": 1 },
+    "asset_ref": {
+      "type": "string",
+      "$comment": "Object-storage key: {campaign_id}/{iteration}/{filename}."
+    },
+    "media_type": { "type": "string", "enum": ["image", "video"] },
+    "submitted_by": { "type": "string" },
+    "submitted_at": { "type": "string", "format": "date-time" },
+    "creator_notes": { "type": ["string", "null"] },
+    "f1x8_job_id": { "type": ["string", "null"] },
+    "analysis_result": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

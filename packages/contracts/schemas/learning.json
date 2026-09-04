@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maistro.local/schemas/learning.json",
+  "title": "Learning",
+  "$comment": "v1.0.0 — the predicted-vs-actual record; raw material of the accuracy loop (ACCURACY.md §2). Insights are 'candidate' until human-confirmed in the weekly review; only 'confirmed' insights are injected into future briefs; 'retired' when they stop holding.",
+  "type": "object",
+  "required": [
+    "learning_id",
+    "campaign_id",
+    "predicted_score",
+    "actual_metrics",
+    "insight",
+    "insight_status",
+    "created_at"
+  ],
+  "properties": {
+    "learning_id": { "type": "string", "format": "uuid" },
+    "campaign_id": { "type": "string", "format": "uuid" },
+    "predicted_score": { "type": "number", "minimum": 0, "maximum": 10 },
+    "predicted_percentile": { "type": ["number", "null"], "minimum": 0, "maximum": 100 },
+    "actual_metrics": {
+      "type": "object",
+      "required": ["views", "engagement_rate", "comment_count"],
+      "properties": {
+        "views": { "type": "number" },
+        "engagement_rate": { "type": "number" },
+        "sentiment_mean": {
+          "type": ["number", "null"],
+          "$comment": "Mean LLM sentimentScore over the post's comments; null if unanalyzed."
+        },
+        "comment_count": { "type": "number" }
+      },
+      "additionalProperties": true
+    },
+    "actual_percentile": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 100,
+      "$comment": "vs. our own campaign history + channel baseline; null while n is too small."
+    },
+    "delta": { "type": ["number", "null"] },
+    "insight": { "type": "string", "minLength": 1 },
+    "insight_status": {
+      "type": "string",
+      "enum": ["candidate", "confirmed", "retired"],
+      "default": "candidate"
+    },
+    "created_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}
