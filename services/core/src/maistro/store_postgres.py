@@ -237,7 +237,7 @@ class PostgresStore:
             await conn.execute(
                 "update content_versions set "
                 "f1x8_job_id = coalesce(%s, f1x8_job_id), "
-                "analysis_result = coalesce(%s, analysis_result) "
+                "analysis_result = coalesce(%s::jsonb, analysis_result) "
                 "where content_version_id = %s",
                 (job_id, _jsonb(analysis), content_version_id),
             )
