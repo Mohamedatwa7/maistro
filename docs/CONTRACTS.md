@@ -240,14 +240,31 @@ project's duration.
 ### `get_brief` `(brief_id)` → `Brief` (§3.2)
 
 ### `submit_draft` `(brief_id, asset, notes?)`
-`asset`: file upload (image/video) or URL. Resumes the paused graph run.
-→ `{draft_id, campaign_id, iteration, status: "scoring"}`
-Errors: `409 already_submitted`, `410 campaign_closed`, `422 asset_invalid`
-(video ≤ 500 MB mp4/mov; image ≤ 30 MB png/jpg).
+`asset`: URL (primary — server-side download) or direct upload via
+`request_upload_url`. Runs the **postability gate** (docs/POSTABILITY.md)
+*before* the graph resumes: ingest → integrity probe → platform+brief rules →
+normalization if needed. A rejected file never becomes a content version and
+never consumes an iteration.
+→ `{draft_id, campaign_id, iteration, status: "normalizing" | "scoring",
+    validation: ValidationReport}`
+Errors: `409 already_submitted`, `410 campaign_closed`,
+`422 asset_invalid` (body carries the full ValidationReport with per-issue
+`fix_hint`s — blockers are creator-actionable by design).
+
+### `check_asset` `(brief_id, asset)` → `ValidationReport`
+Pre-flight: probe + rules only (no normalization, no storage, no graph
+interaction). Lets the creator verify an export in seconds before formally
+submitting. Unlimited use.
+
+### `request_upload_url` `(brief_id, filename)` → `{upload_url, asset_ref, expires_at}`
+Pre-signed direct upload for large files (MCP tool calls are JSON — a 300 MB
+video doesn't travel through the chat). Upload, then `submit_draft` with the
+returned `asset_ref`.
 
 ### `get_feedback` `(draft_id)` →
 ```jsonc
-{ "draft_id": "uuid", "status": "scoring | scored",
+{ "draft_id": "uuid", "status": "normalizing | scoring | scored",
+  "validation": "ValidationReport",          // incl. warnings + applied fixes
   "score": "number|null", "summary": "string|null",
   "strengths": ["string"], 
   "risks": [{ "rank": 1, "issue": "…", "suggested_fix": "…",
@@ -316,7 +333,10 @@ learnings + logistics. Field set finalized with the creator in M1-W3.
   "submitted_by": "string", "submitted_at": "timestamp",
   "creator_notes": "string|null",
   "f1x8_job_id": "string|null",          // null for sync image analysis
-  "analysis_result": "AnalysisResult|null" }   // frozen F1X8 snapshot (§1.2)
+  "analysis_result": "AnalysisResult|null",    // frozen F1X8 snapshot (§1.2)
+  "validation_report": "ValidationReport|null" }  // postability gate output
+// asset_ref is content-addressed ({campaign_id}/{iteration}/{sha256}.{ext});
+// the sealed artifact is immutable — score-what-you-post (POSTABILITY.md).
 ```
 
 ### 3.4 Learning — `schemas/learning.json`

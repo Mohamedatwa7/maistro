@@ -46,6 +46,8 @@ create table content_versions (
   creator_notes text,
   f1x8_job_id   text,                       -- null for synchronous image analysis
   analysis_result jsonb,                    -- frozen F1X8 AnalysisResult
+  validation_report jsonb,                  -- postability gate output (docs/POSTABILITY.md)
+  asset_sha256  text,                       -- sealed-artifact identity (score-what-you-post)
   unique (campaign_id, iteration)
 );
 

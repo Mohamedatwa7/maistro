@@ -29,6 +29,11 @@
     "analysis_result": {
       "type": ["object", "null"],
       "additionalProperties": true
+    },
+    "validation_report": {
+      "type": ["object", "null"],
+      "$comment": "ValidationReport (validation-report.json) — postability gate output; its final.sha256 is the sealed artifact identity.",
+      "additionalProperties": true
     }
   },
   "additionalProperties": false

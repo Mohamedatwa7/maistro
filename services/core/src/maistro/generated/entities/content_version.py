@@ -29,3 +29,4 @@ class ContentVersion(BaseModel):
     creator_notes: str | None = None
     f1x8_job_id: str | None = None
     analysis_result: dict[str, Any] | None = None
+    validation_report: dict[str, Any] | None = None
