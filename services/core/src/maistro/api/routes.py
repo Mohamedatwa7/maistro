@@ -121,6 +121,30 @@ async def get_campaign(
     }
 
 
+@router.get("/api/campaigns/{campaign_id}/state")
+async def get_campaign_state(
+    campaign_id: UUID, request: Request, x_operator_key: OperatorKey = None
+) -> dict[str, Any]:
+    """Live orchestration view: the graph's current state, the interrupt it
+    is parked on (if any), and the legal next events."""
+    operator = _operator(request, x_operator_key)
+    campaign = await operator.store.get_campaign(campaign_id)
+    if campaign is None:
+        raise HTTPException(status_code=404, detail="not found")
+    from maistro.graph.transitions import legal_events
+
+    runtime = request.app.state.runtime
+    state = await runtime.get_state(campaign_id)
+    interrupt = await runtime.pending_interrupt(campaign_id)
+    return {
+        "campaign_id": str(campaign_id),
+        "status": campaign.status.value,
+        "legal_events": sorted(legal_events(campaign.status)),
+        "pending_interrupt": interrupt,
+        "graph_state": state.model_dump(mode="json") if state else None,
+    }
+
+
 class DecisionRequest(BaseModel):
     approver_id: str
     note: str | None = None

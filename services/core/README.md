@@ -37,6 +37,24 @@ src/maistro/
 tests/             # unit tests; tests/contract/ (live staging) lands M1-W4
 ```
 
+## Watching the orchestration live
+
+Three levels (see the answer they came from in docs/GRAPH.md):
+
+1. **Static map** — [docs/GRAPH.md](../../docs/GRAPH.md), the mermaid render
+   of the real compiled topology. Regenerate: `python scripts/draw_graph.py`.
+2. **Live campaign state** — `GET /api/campaigns/{id}/state`: current
+   status, the interrupt the graph is parked on (with its payload), legal
+   next events, and the full graph state. Plus the per-campaign audit
+   timeline on `GET /api/campaigns/{id}`.
+3. **LangGraph Studio (visual step-through)** — from the repo root:
+   `langgraph dev` (needs `pip install "langgraph-cli[inmem]"`). Opens
+   Studio against the demo-deps harness (`graph/studio.py`) — watch state
+   flow node-to-node, inspect checkpoints, resume interrupts by hand.
+4. **LangSmith (production tracing)** — set `LANGSMITH_TRACING=true` +
+   `LANGSMITH_API_KEY`; every graph run of the real app is then traced at
+   smith.langchain.com (node timings, inputs/outputs, interrupt waits).
+
 ## Rules of the road
 
 - **Never edit `generated/`** — change the spec in `packages/contracts/`,

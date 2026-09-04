@@ -1,0 +1,7 @@
+{
+  "dependencies": ["./services/core"],
+  "graphs": {
+    "campaign": "./services/core/src/maistro/graph/studio.py:graph"
+  },
+  "env": ".env"
+}
