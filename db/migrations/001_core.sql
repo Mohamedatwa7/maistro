@@ -19,6 +19,7 @@ create table campaigns (
   current_version  int  not null default 0,
   max_iterations   int  not null default 4,
   score_threshold  numeric(3,1) not null default 7.0,
+  publish_targets  text[] not null default '{tiktok}',
   state_version    int  not null default 1,
   created_at       timestamptz not null default now(),
   closed_at        timestamptz

@@ -13,9 +13,10 @@ dependencies = [
     "tenacity>=9.0",
     "pyyaml>=6.0",
     "langgraph>=1.2",
+    "langgraph-checkpoint-postgres>=2.0",
     "mcp>=2.1",
-    # Postgres durability (when MAISTRO_DATABASE_URL is provisioned):
-    # langgraph-checkpoint-postgres, psycopg[binary]
+    "psycopg[binary]>=3.2",
+    "psycopg-pool>=3.2",
 ]
 
 [project.optional-dependencies]

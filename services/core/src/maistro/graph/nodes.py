@@ -258,7 +258,9 @@ def make_nodes(deps: GraphDeps) -> dict[str, Node]:
             }
         )
         publications = [
-            p for p in (await _publications(state)) if p.post_url is not None
+            p
+            for p in await store.list_publications(state.campaign_id)
+            if p.post_url is not None
         ]
         snapshots = await deps.metrics_source.snapshot(
             state.campaign_id, publications, payload["day"]
@@ -267,17 +269,9 @@ def make_nodes(deps: GraphDeps) -> dict[str, Node]:
             await store.add_metrics(snapshot)
         return {"monitoring_ticks_remaining": (state.monitoring_ticks_remaining or 1) - 1}
 
-    async def _publications(state: CampaignState) -> list[Any]:
-        # Manual-mode publications were stored by the service at record time.
-        memory = getattr(store, "publications", None)
-        if memory is None:  # pragma: no cover - Postgres store adds a query
-            return []
-        return [p for p in memory if p.campaign_id == state.campaign_id]
-
     async def write_learnings(state: CampaignState) -> dict[str, Any]:
         assert state.analysis_result is not None
-        metrics = getattr(store, "metrics", [])
-        campaign_metrics = [m for m in metrics if m.campaign_id == state.campaign_id]
+        campaign_metrics = await store.list_metrics(state.campaign_id)
         actual: dict[str, Any] = {
             "snapshots": len(campaign_metrics),
             "views": max((m.views or 0 for m in campaign_metrics), default=0),

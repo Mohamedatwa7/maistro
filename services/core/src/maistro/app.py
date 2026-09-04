@@ -22,11 +22,13 @@ from maistro import __version__
 from maistro.adapters import F1X8Adapter, SentimentAdapter
 from maistro.api import router
 from maistro.config import Settings, get_settings
+from maistro.gate.normalize import FfmpegNormalizer, ffmpeg_available
 from maistro.gate.rules import RulesEngine
 from maistro.graph.deps import GraphDeps
 from maistro.graph.runtime import CampaignRuntime
 from maistro.integrations import F1X8Scorer, MemoryAssetStore, SentimentMetricsSource
 from maistro.mcp_server import build_mcp_server, current_creator_id
+from maistro.scheduler import MonitoringScheduler
 from maistro.services import CreatorService, OperatorService
 from maistro.store import CampaignStore, MemoryStore
 from maistro.telemetry import configure_logging
@@ -77,7 +79,42 @@ class CreatorAuthMiddleware:
 
 
 def build_state(settings: Settings) -> dict[str, Any]:
-    store = MemoryStore()
+    """Construct the object graph. With MAISTRO_DATABASE_URL set, campaigns
+    and checkpoints are durable (PostgresStore + AsyncPostgresSaver);
+    otherwise in-memory (local dev/tests). This is the only place that
+    knows which."""
+    state: dict[str, Any] = {}
+    store: CampaignStore
+    checkpointer: Any = None
+    if settings.database_url:
+        from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+        from psycopg.rows import dict_row
+        from psycopg_pool import AsyncConnectionPool
+
+        from maistro.store_postgres import PostgresStore
+
+        pool = AsyncConnectionPool(settings.database_url, open=False)
+        saver_pool = AsyncConnectionPool(
+            settings.database_url,
+            open=False,
+            kwargs={"autocommit": True, "prepare_threshold": 0, "row_factory": dict_row},
+        )
+        store = PostgresStore(pool)
+        checkpointer = AsyncPostgresSaver(saver_pool)  # type: ignore[arg-type]
+
+        async def init() -> None:
+            await pool.open()
+            await saver_pool.open()
+            await checkpointer.setup()
+
+        async def shutdown() -> None:
+            await pool.close()
+            await saver_pool.close()
+
+        state["init"], state["shutdown"] = init, shutdown
+    else:
+        store = MemoryStore()
+
     assets = MemoryAssetStore()
     f1x8 = F1X8Adapter(settings.f1x8_base_url, settings.f1x8_api_key)
     sentiment = SentimentAdapter(
@@ -89,15 +126,25 @@ def build_state(settings: Settings) -> dict[str, Any]:
         scorer=F1X8Scorer(f1x8, assets),
         metrics_source=SentimentMetricsSource(sentiment),
     )
-    runtime = CampaignRuntime(deps)
-    rules = RulesEngine()
-    return {
-        "store": store,
-        "assets": assets,
-        "runtime": runtime,
-        "operator_service": OperatorService(store, runtime),
-        "creator_service": CreatorService(store, runtime, rules),
-    }
+    runtime = CampaignRuntime(deps, checkpointer=checkpointer)
+    normalizer = FfmpegNormalizer() if ffmpeg_available() else None
+    rules = RulesEngine(normalizer=normalizer)
+    operator = OperatorService(store, runtime)
+    state.update(
+        {
+            "store": store,
+            "assets": assets,
+            "runtime": runtime,
+            "operator_service": operator,
+            "creator_service": CreatorService(
+                store, runtime, rules, assets=assets, normalizer=normalizer
+            ),
+            "scheduler": MonitoringScheduler(
+                operator, hour_utc=settings.monitoring_tick_hour_utc
+            ),
+        }
+    )
+    return state
 
 
 def create_app(settings: Settings | None = None, state: dict[str, Any] | None = None) -> FastAPI:
@@ -119,8 +166,19 @@ def create_app(settings: Settings | None = None, state: dict[str, Any] | None = 
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-        async with mcp_server.session_manager.run():
-            yield
+        if "init" in state:
+            await state["init"]()
+        scheduler: MonitoringScheduler | None = state.get("scheduler")
+        if scheduler is not None and settings.scheduler_enabled:
+            scheduler.start()
+        try:
+            async with mcp_server.session_manager.run():
+                yield
+        finally:
+            if scheduler is not None:
+                await scheduler.stop()
+            if "shutdown" in state:
+                await state["shutdown"]()
 
     application = FastAPI(title="Maistro Core", version=__version__, lifespan=lifespan)
     for key, value in state.items():
