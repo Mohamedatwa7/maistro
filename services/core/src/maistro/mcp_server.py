@@ -7,15 +7,13 @@ REST API uses."""
 
 from __future__ import annotations
 
-import contextlib
 import contextvars
 from typing import Any
 from uuid import UUID
 
 from mcp.server.mcpserver import MCPServer
 
-from maistro.gate.rules import GateProbe
-from maistro.ingest import download, probe_bytes
+from maistro.ingest import download
 from maistro.integrations import MemoryAssetStore
 from maistro.services import CreatorService, ServiceError
 
@@ -38,12 +36,6 @@ def _err(exc: ServiceError) -> dict[str, Any]:
         "error": {"code": exc.code, "status": exc.status_code, "detail": exc.detail},
         **({"validation": exc.extra} if exc.extra else {}),
     }
-
-
-async def _ingest(asset_url: str) -> tuple[bytes, str, GateProbe]:
-    data, filename = await download(asset_url)
-    probe = await probe_bytes(data, filename)
-    return data, filename, probe
 
 
 def build_mcp_server(creator_service: CreatorService, assets: MemoryAssetStore) -> MCPServer:
@@ -69,9 +61,13 @@ def build_mcp_server(creator_service: CreatorService, assets: MemoryAssetStore) 
     )
     async def check_asset(brief_id: str, asset_url: str, media_type: str) -> dict[str, Any]:
         try:
-            _, _, probe = await _ingest(asset_url)
-            report = await creator_service.check_asset(
-                current_creator_id.get(), UUID(brief_id), probe, media_type
+            data, filename = await download(asset_url)
+            report = await creator_service.check_asset_bytes(
+                current_creator_id.get(),
+                UUID(brief_id),
+                data=data,
+                filename=filename,
+                media_type=media_type,
             )
             return report.model_dump(by_alias=True, mode="json")
         except ServiceError as exc:
@@ -79,24 +75,20 @@ def build_mcp_server(creator_service: CreatorService, assets: MemoryAssetStore) 
 
     @server.tool(
         description="Submit a draft for a brief. The file at asset_url is downloaded, "
-        "validated (postability gate), sealed, and scored. media_type: image|video."
+        "validated (postability gate, incl. auto-normalization of fixable issues), "
+        "sealed, and scored. media_type: image|video."
     )
     async def submit_draft(
         brief_id: str, asset_url: str, media_type: str, notes: str | None = None
     ) -> dict[str, Any]:
-        creator_id = current_creator_id.get()
         try:
-            data, filename, probe = await _ingest(asset_url)
-            ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
-            asset_ref = f"{brief_id}/{probe.sha256}.{ext}"
-            with contextlib.suppress(ValueError):
-                assets.put(asset_ref, data)  # ValueError = already sealed (dedup)
-            return await creator_service.submit_draft(
-                creator_id,
+            data, filename = await download(asset_url)
+            return await creator_service.submit_draft_bytes(
+                current_creator_id.get(),
                 UUID(brief_id),
-                probe=probe,
+                data=data,
+                filename=filename,
                 media_type=media_type,
-                asset_ref=asset_ref,
                 notes=notes,
             )
         except ServiceError as exc:

@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     # public hostname in staging/prod, e.g. ["maistro.example.com"].
     mcp_allowed_hosts: list[str] = ["localhost:8100", "127.0.0.1:8100"]
 
+    # Built-in monitoring scheduler (daily tick for monitoring campaigns).
+    scheduler_enabled: bool = True
+    monitoring_tick_hour_utc: int = 6
+
 
 @lru_cache
 def get_settings() -> Settings:

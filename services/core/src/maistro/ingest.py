@@ -17,8 +17,8 @@ from typing import Any
 
 import httpx
 
+from maistro.errors import ServiceError
 from maistro.gate.rules import GateProbe
-from maistro.services import ServiceError
 
 MAX_DOWNLOAD_BYTES = 600 * 1024 * 1024  # hard ingest cap; platform caps are stricter
 

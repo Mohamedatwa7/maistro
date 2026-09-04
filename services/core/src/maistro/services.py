@@ -9,15 +9,20 @@ internal events."""
 
 from __future__ import annotations
 
+import contextlib
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
+from maistro.errors import ServiceError
+from maistro.gate.normalize import FfmpegNormalizer
+from maistro.gate.pipeline import run_gate
 from maistro.gate.rules import BriefConstraints, GateProbe, RulesEngine
 from maistro.generated.entities.validation_report import Status, ValidationReport
 from maistro.graph.runtime import CampaignRuntime
 from maistro.graph.state import CampaignState, CampaignStatus, Platform
 from maistro.graph.transitions import CANCEL_EVENT, IllegalTransition
+from maistro.integrations import MemoryAssetStore
 from maistro.store import (
     ApprovalRecord,
     CampaignRecord,
@@ -28,14 +33,7 @@ from maistro.store import (
 
 SUBMITTABLE = {CampaignStatus.AWAITING_DRAFT, CampaignStatus.REVISING}
 
-
-class ServiceError(Exception):
-    def __init__(self, status_code: int, code: str, detail: str, extra: Any = None) -> None:
-        super().__init__(detail)
-        self.status_code = status_code
-        self.code = code
-        self.detail = detail
-        self.extra = extra
+__all__ = ["CreatorService", "OperatorService", "ServiceError"]
 
 
 class OperatorService:
@@ -239,11 +237,18 @@ class OperatorService:
 
 class CreatorService:
     def __init__(
-        self, store: CampaignStore, runtime: CampaignRuntime, rules: RulesEngine
+        self,
+        store: CampaignStore,
+        runtime: CampaignRuntime,
+        rules: RulesEngine,
+        assets: MemoryAssetStore | None = None,
+        normalizer: FfmpegNormalizer | None = None,
     ) -> None:
         self.store = store
         self.runtime = runtime
         self.rules = rules
+        self.assets = assets
+        self.normalizer = normalizer
 
     async def _own_campaign(self, creator_id: str, campaign_id: UUID) -> CampaignRecord:
         campaign = await self.store.get_campaign(campaign_id)
@@ -308,16 +313,30 @@ class CreatorService:
             brief_id=brief_id,
         )
 
-    async def submit_draft(
-        self,
-        creator_id: str,
-        brief_id: UUID,
-        *,
-        probe: GateProbe,
-        media_type: str,
-        asset_ref: str,
-        notes: str | None = None,
-    ) -> dict[str, Any]:
+    async def check_asset_bytes(
+        self, creator_id: str, brief_id: UUID, *, data: bytes, filename: str, media_type: str
+    ) -> ValidationReport:
+        """Pre-flight (CONTRACTS.md §2): probe + rules only — no
+        normalization, no storage, no graph interaction."""
+        brief = await self.store.get_brief(brief_id)
+        if brief is None:
+            raise ServiceError(404, "not_found", "no such brief")
+        campaign = await self._own_campaign(creator_id, brief.campaign_id)
+        result = await run_gate(
+            data,
+            filename,
+            media_type,
+            [p.value for p in campaign.publish_targets],
+            self._brief_constraints(brief.body),
+            self.rules,
+            None,  # explicitly no normalization on pre-flight
+            brief_id=brief_id,
+        )
+        return result.report
+
+    async def _submittable_campaign(
+        self, creator_id: str, brief_id: UUID
+    ) -> tuple[CampaignRecord, Any]:
         brief = await self.store.get_brief(brief_id)
         if brief is None:
             raise ServiceError(404, "not_found", "no such brief")
@@ -327,19 +346,80 @@ class CreatorService:
         if campaign.status in (CampaignStatus.CLOSED, CampaignStatus.CANCELLED):
             raise ServiceError(410, "campaign_closed", "campaign is closed")
         if campaign.status not in SUBMITTABLE:
-            raise ServiceError(
-                409, "wrong_status", f"campaign is {campaign.status.value}"
-            )
+            raise ServiceError(409, "wrong_status", f"campaign is {campaign.status.value}")
+        return campaign, brief
 
-        # Postability gate (docs/POSTABILITY.md) — a rejected file never
-        # becomes a content version and never wakes the graph.
-        report = self.rules.evaluate(
-            probe,
+    async def submit_draft_bytes(
+        self,
+        creator_id: str,
+        brief_id: UUID,
+        *,
+        data: bytes,
+        filename: str,
+        media_type: str,
+        notes: str | None = None,
+    ) -> dict[str, Any]:
+        """Full gate pipeline (probe -> rules -> normalize -> re-verify),
+        seal the final artifact, then submit. This is the MCP path."""
+        if self.assets is None:
+            raise ServiceError(503, "assets_unavailable", "asset store not configured")
+        campaign, brief = await self._submittable_campaign(creator_id, brief_id)
+        result = await run_gate(
+            data,
+            filename,
             media_type,
             [p.value for p in campaign.publish_targets],
-            brief=self._brief_constraints(brief.body),
+            self._brief_constraints(brief.body),
+            self.rules,
+            self.normalizer,
             brief_id=brief_id,
         )
+        if result.report.status == Status.rejected:
+            raise ServiceError(
+                422,
+                "asset_invalid",
+                "asset failed the postability gate",
+                extra=result.report.model_dump(by_alias=True, mode="json"),
+            )
+        ext = "mp4" if media_type == "video" else (filename.rsplit(".", 1)[-1] or "bin")
+        asset_ref = f"{campaign.campaign_id}/{result.probe.sha256}.{ext}"
+        with contextlib.suppress(ValueError):
+            self.assets.put(asset_ref, result.data)  # ValueError = already sealed (dedup)
+        return await self.submit_draft(
+            creator_id,
+            brief_id,
+            probe=result.probe,
+            media_type=media_type,
+            asset_ref=asset_ref,
+            notes=notes,
+            report=result.report,
+        )
+
+    async def submit_draft(
+        self,
+        creator_id: str,
+        brief_id: UUID,
+        *,
+        probe: GateProbe,
+        media_type: str,
+        asset_ref: str,
+        notes: str | None = None,
+        report: ValidationReport | None = None,
+    ) -> dict[str, Any]:
+        campaign, brief = await self._submittable_campaign(creator_id, brief_id)
+
+        # Postability gate (docs/POSTABILITY.md) — a rejected file never
+        # becomes a content version and never wakes the graph. `report` is
+        # pre-computed by the byte pipeline (includes normalization record);
+        # otherwise evaluate here.
+        if report is None:
+            report = self.rules.evaluate(
+                probe,
+                media_type,
+                [p.value for p in campaign.publish_targets],
+                brief=self._brief_constraints(brief.body),
+                brief_id=brief_id,
+            )
         if report.status == Status.rejected:
             raise ServiceError(
                 422,
