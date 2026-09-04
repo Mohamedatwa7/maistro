@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maistro.local/schemas/campaign.json",
+  "title": "Campaign",
+  "$comment": "v1.0.0 — Maistro-owned. The trend snapshot is FROZEN at selection time (TR's live data keeps moving; the campaign records what was true at decision time). score_threshold default 7.0 is a placeholder until M3 calibration (ACCURACY.md J2).",
+  "type": "object",
+  "required": [
+    "campaign_id",
+    "trend_ref",
+    "status",
+    "creator_id",
+    "current_version",
+    "max_iterations",
+    "score_threshold",
+    "created_at",
+    "state_version"
+  ],
+  "properties": {
+    "campaign_id": { "type": "string", "format": "uuid" },
+    "trend_ref": {
+      "type": "object",
+      "required": ["trend_id", "snapshot"],
+      "properties": {
+        "trend_id": { "type": "string" },
+        "snapshot": {
+          "type": "object",
+          "$comment": "Frozen AgentTrend as defined in openapi/trend-radar.yaml#/components/schemas/AgentTrend",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "brief_id": { "type": ["string", "null"], "format": "uuid" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "trend_selected",
+        "brief_generated",
+        "awaiting_draft",
+        "scoring",
+        "score_evaluated",
+        "revising",
+        "awaiting_approval",
+        "approved",
+        "publishing",
+        "published",
+        "monitoring",
+        "learnings_written",
+        "closed",
+        "cancelled",
+        "escalated"
+      ]
+    },
+    "creator_id": { "type": "string", "minLength": 1 },
+    "current_version": { "type": "integer", "minimum": 0 },
+    "max_iterations": { "type": "integer", "minimum": 1, "default": 4 },
+    "score_threshold": { "type": "number", "minimum": 0, "maximum": 10, "default": 7.0 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "closed_at": { "type": ["string", "null"], "format": "date-time" },
+    "state_version": { "type": "integer", "minimum": 1 }
+  },
+  "additionalProperties": false
+}

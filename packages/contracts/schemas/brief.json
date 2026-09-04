@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maistro.local/schemas/brief.json",
+  "title": "Brief",
+  "$comment": "v1.0.0-draft — the creator's working document. COMPOSED, not fetched: TR's embedded editorial brief (AgentTrend.brief) + the selected adaptation + Maistro learnings + logistics. Field set to be finalized WITH the content creator in M1-W3; changes before that session are expected. Append-only once the creator is onboarded (CONTRACTS.md §2 stability promise).",
+  "type": "object",
+  "required": [
+    "brief_id",
+    "campaign_id",
+    "trend",
+    "angle",
+    "product",
+    "format",
+    "hooks",
+    "dos",
+    "donts",
+    "kpi_focus",
+    "deadline",
+    "learnings_applied"
+  ],
+  "properties": {
+    "brief_id": { "type": "string", "format": "uuid" },
+    "campaign_id": { "type": "string", "format": "uuid" },
+    "trend": {
+      "type": "object",
+      "required": ["name", "why_now"],
+      "properties": {
+        "name": { "type": "string" },
+        "why_now": { "type": "string", "$comment": "from AgentTrend.why" },
+        "stage": { "type": "string" },
+        "sound": {
+          "type": ["object", "null"],
+          "properties": {
+            "title": { "type": ["string", "null"] },
+            "author": { "type": ["string", "null"] },
+            "cue": { "type": ["string", "null"] }
+          },
+          "additionalProperties": true
+        },
+        "format": {
+          "type": ["object", "null"],
+          "properties": {
+            "mechanic": { "type": "string" },
+            "payoff": { "type": "string" },
+            "props": { "type": "array", "items": { "type": "string" } },
+            "secondsToPayoff": { "type": ["number", "null"] }
+          },
+          "additionalProperties": true
+        },
+        "evidence_tags": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "angle": {
+      "type": "string",
+      "$comment": "The Samsung-relevant take — from chosen adaptation.idea/samsungify."
+    },
+    "product": {
+      "type": "object",
+      "required": ["product", "line"],
+      "properties": {
+        "product": { "type": "string" },
+        "line": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "format": {
+      "type": "string",
+      "$comment": "Deliverable format, e.g. '15s vertical video, sound-led'."
+    },
+    "hooks": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "$comment": "First-3-seconds options — adaptation.hook + variants."
+    },
+    "on_screen_text": { "type": ["string", "null"] },
+    "sound_use": { "type": ["string", "null"] },
+    "cta": { "type": ["string", "null"] },
+    "dos": { "type": "array", "items": { "type": "string" } },
+    "donts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "$comment": "Adaptation don'ts + brand-safety hard rules. Never empty in practice."
+    },
+    "kpi_focus": {
+      "type": "string",
+      "$comment": "Intended funnel stage — drives F1X8's KPI weighting expectation."
+    },
+    "references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": { "type": "string" },
+          "note": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "generative_starters": {
+      "type": ["object", "null"],
+      "$comment": "Optional TR POST /api/agent/brief output (generative chain).",
+      "properties": {
+        "chain": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "prompt"],
+            "properties": {
+              "type": { "type": "string", "enum": ["image", "image-edit", "video"] },
+              "prompt": { "type": "string" },
+              "inputs": { "type": "object", "additionalProperties": true },
+              "notes": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "deadline": { "type": "string", "format": "date-time" },
+    "learnings_applied": {
+      "type": "array",
+      "items": { "type": "string", "format": "uuid" },
+      "$comment": "Confirmed learnings injected at generation time (top-K, K=5)."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maistro.local/schemas/approval.json",
+  "title": "Approval",
+  "$comment": "v1.0.0 — approves EXACTLY one content version; approving v3 does not authorize publishing v4. The brief_fit_rubric feeds J4 (ACCURACY.md). Revocation blocks publishing (publisher verifies revoked_at is null).",
+  "type": "object",
+  "required": [
+    "approval_id",
+    "campaign_id",
+    "content_version_id",
+    "decision",
+    "approver_id",
+    "decided_at"
+  ],
+  "properties": {
+    "approval_id": { "type": "string", "format": "uuid" },
+    "campaign_id": { "type": "string", "format": "uuid" },
+    "content_version_id": { "type": "string", "format": "uuid" },
+    "decision": { "type": "string", "enum": ["approved", "rejected"] },
+    "approver_id": { "type": "string", "minLength": 1 },
+    "note": { "type": ["string", "null"] },
+    "brief_fit_rubric": {
+      "type": ["object", "null"],
+      "properties": {
+        "hook_present": { "type": "boolean" },
+        "format_followed": { "type": "boolean" },
+        "donts_respected": { "type": "boolean" },
+        "angle_preserved": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "decided_at": { "type": "string", "format": "date-time" },
+    "revoked_at": { "type": ["string", "null"], "format": "date-time" }
+  },
+  "additionalProperties": false
+}

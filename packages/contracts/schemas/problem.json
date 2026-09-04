@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maistro.local/schemas/problem.json",
+  "title": "Problem",
+  "$comment": "v1.0.0 — RFC 9457 problem details + Maistro's 'retryable' extension. All Maistro-owned surfaces (REST, MCP errors, internal adapter normalization) use this shape; upstream tool errors are normalized into it by the adapters.",
+  "type": "object",
+  "required": ["type", "title", "status", "retryable"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "$comment": "URI reference identifying the problem class, e.g. 'https://maistro.local/problems/asset-invalid'."
+    },
+    "title": { "type": "string" },
+    "status": { "type": "integer", "minimum": 100, "maximum": 599 },
+    "detail": { "type": "string" },
+    "instance": { "type": "string" },
+    "retryable": { "type": "boolean" },
+    "campaign_id": { "type": "string", "format": "uuid" },
+    "upstream": {
+      "type": ["object", "null"],
+      "$comment": "Original upstream error payload, preserved for forensics.",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maistro.local/schemas/publish-request.json",
+  "title": "PublishRequest",
+  "$comment": "v1.0.0 — normalized over TikTok Content Posting API / Meta Graph / X API v2 drivers. The idempotency_key IN the contract is what makes double-posting structurally impossible (ADR D8): drivers must check publish_records for a completed row with this key before any platform call. Note: Maistro uses 'x'; SamsungSentiment data uses 'twitter' — the sentiment adapter maps at the boundary.",
+  "type": "object",
+  "required": [
+    "idempotency_key",
+    "campaign_id",
+    "content_version_id",
+    "approval_id",
+    "platform",
+    "asset_ref",
+    "caption"
+  ],
+  "properties": {
+    "idempotency_key": {
+      "type": "string",
+      "$comment": "Deterministic: {campaign_id}:{platform}:{content_version_id}."
+    },
+    "campaign_id": { "type": "string", "format": "uuid" },
+    "content_version_id": { "type": "string", "format": "uuid" },
+    "approval_id": {
+      "type": "string",
+      "format": "uuid",
+      "$comment": "Hard precondition — must reference an unrevoked 'approved' decision for content_version_id."
+    },
+    "platform": { "type": "string", "enum": ["tiktok", "instagram", "facebook", "x"] },
+    "asset_ref": { "type": "string" },
+    "caption": { "type": "string", "maxLength": 4000 },
+    "hashtags": { "type": "array", "items": { "type": "string" } },
+    "scheduled_at": { "type": ["string", "null"], "format": "date-time" }
+  },
+  "additionalProperties": false
+}

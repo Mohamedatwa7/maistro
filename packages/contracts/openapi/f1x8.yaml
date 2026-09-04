@@ -1,0 +1,293 @@
+openapi: 3.1.0
+info:
+  title: F1X8 Analysis API (Maistro adapter contract)
+  description: >
+    Contract for the F1X8 Modal FastAPI backend endpoints consumed by Maistro.
+    Image analysis is SYNCHRONOUS (blocks ~10-30s). Video analysis is async
+    (submit -> poll /api/job/{job_id}). Errors from the backend are returned
+    with HTTP 200 and an {error, trace} body — the adapter maps these to
+    failures. Shapes verified against modal_app.py 2026-09-04.
+    Adapter policy: always send the Maistro Brief as `description` so the
+    response includes context_score (brief-fit signal, feeds J4).
+  version: 1.0.0
+servers:
+  - url: https://mohamedymay7--fixation-api-fastapi-app.modal.run
+    description: Production (Modal)
+
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: Health check.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, const: ok }
+
+  /api/analyze/image:
+    post:
+      operationId: analyzeImage
+      summary: Synchronous image analysis
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title: { type: string }
+                description:
+                  type: string
+                  description: Advertiser context / the Maistro Brief. Unlocks context_score.
+                format_type:
+                  type: string
+                  enum: [social, banner, kv, digital, print, ooh]
+                  default: kv
+                role: { type: string, default: creative_director }
+                lite:
+                  type: string
+                  description: Truthy if present — lighter analysis path.
+      responses:
+        "200":
+          description: Analysis result, or a 200-bodied error.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ImageAnalysisResult"
+                  - $ref: "#/components/schemas/F1X8Error"
+
+  /api/analyze/video/submit:
+    post:
+      operationId: submitVideo
+      summary: Submit a video file for async analysis
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                role: { type: string, default: creative_director }
+                title: { type: string }
+                description: { type: string }
+      responses:
+        "200":
+          description: Job accepted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobSubmitted" }
+
+  /api/analyze/video-url/submit:
+    post:
+      operationId: submitVideoUrl
+      summary: Submit a social video URL for async analysis
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  description: YouTube / Instagram / TikTok etc. video URL.
+                role: { type: string, default: creative_director }
+                title: { type: string }
+                description: { type: string }
+      responses:
+        "200":
+          description: Job accepted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobSubmitted" }
+
+  /api/job/{job_id}:
+    get:
+      operationId: getJob
+      summary: Poll async job status
+      description: >
+        Adapter polling policy — up to 30 minutes, then treat as failed;
+        one automatic resubmit; then escalate to a human.
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Job status. Unknown ids return status=not_found.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/JobStatus" }
+
+components:
+  schemas:
+    F1X8Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        trace:
+          type: string
+          description: Last ~800 chars of the stack trace.
+      additionalProperties: true
+
+    JobSubmitted:
+      type: object
+      required: [job_id]
+      properties:
+        job_id: { type: string }
+      additionalProperties: true
+
+    JobStatus:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [fetching, analyzing, done, error, not_found]
+        result:
+          $ref: "#/components/schemas/VideoAnalysisResult"
+        error: { type: string }
+        trace: { type: string }
+      additionalProperties: true
+
+    Kpi:
+      type: object
+      required: [score, label, methodology]
+      properties:
+        score: { type: number, minimum: 0, maximum: 10 }
+        label: { type: string }
+        methodology:
+          type: string
+          description: CV-measurement blend description or LLM judgment reasoning.
+      additionalProperties: true
+
+    Risk:
+      type: object
+      required: [rank, issue, suggested_fix]
+      properties:
+        rank: { type: integer }
+        issue: { type: string }
+        evidence: { type: string }
+        impact: { type: string }
+        suggested_fix: { type: string }
+        score_lever:
+          type: string
+          description: KPI the fix targets, e.g. "emotional_pull (weight 0.26)".
+        confidence: { type: string, enum: [high, medium, low] }
+      additionalProperties: true
+
+    RevisionBrief:
+      type: object
+      description: Structured remake plan — the revise loop's primary input.
+      required: [objective]
+      properties:
+        objective: { type: string }
+        focal_hierarchy: { type: string }
+        headline_copy: { type: string }
+        color_type: { type: string }
+        offer_cta: { type: string }
+        imagery: { type: string }
+        measurement: { type: string }
+      additionalProperties: true
+
+    Verdict:
+      type: object
+      description: The diagnosis object (report.diagnosis).
+      required: [summary, strengths, risks, revision_brief]
+      properties:
+        summary: { type: string }
+        strengths:
+          type: array
+          items: { type: string }
+        risks:
+          type: array
+          items: { $ref: "#/components/schemas/Risk" }
+        hierarchy_analysis: { type: string }
+        brand_visibility: { type: string }
+        benchmark_context: { type: string }
+        diagnostic_caveats: { type: string }
+        revision_brief: { $ref: "#/components/schemas/RevisionBrief" }
+      additionalProperties: true
+
+    AnalysisResultCore:
+      type: object
+      required: [score, engagement_potential, funnel_stage, kpis, verdict]
+      properties:
+        score:
+          type: number
+          minimum: 0
+          maximum: 10
+          description: Alias of engagement_potential, one decimal.
+        engagement_potential: { type: number, minimum: 0, maximum: 10 }
+        organic_engagement: { type: number }
+        organic_source: { type: string, enum: [ranker, weights] }
+        organic_weights_score: { type: number }
+        kpis_overall: { type: number }
+        funnel_stage: { type: string, enum: [upper, mid, lower] }
+        product_tier:
+          type: [string, "null"]
+          enum: [mass, mid, premium, luxury, null]
+        kpis:
+          type: object
+          description: >
+            Exactly 5 funnel-dependent keys drawn from — attention_capture,
+            message_clarity, emotional_pull, brand_strength, distinctiveness,
+            talkability, hook_strength, watch_pull, persuasive_power,
+            trust_credibility.
+          additionalProperties:
+            $ref: "#/components/schemas/Kpi"
+        verdict: { $ref: "#/components/schemas/Verdict" }
+        heatmap:
+          type: [string, "null"]
+          description: Base64-encoded PNG (image) or MP4 (video).
+        heatmap_type: { type: string, enum: [image/png, video/mp4] }
+        context_score:
+          type: number
+          minimum: 0
+          maximum: 10
+          description: Present iff `description` was sent. Brief-fit signal (J4).
+        context_reasoning: { type: string }
+        localization:
+          type: [object, "null"]
+          additionalProperties: true
+      additionalProperties: true
+
+    ImageAnalysisResult:
+      allOf:
+        - $ref: "#/components/schemas/AnalysisResultCore"
+
+    VideoAnalysisResult:
+      allOf:
+        - $ref: "#/components/schemas/AnalysisResultCore"
+        - type: object
+          properties:
+            benchmarkPercentile:
+              type: integer
+              minimum: 0
+              maximum: 100
+              description: Percentile vs. reels organic cohort.
+            timelines:
+              type: object
+              properties:
+                attention:
+                  type: array
+                  items: { type: number }
+                audio_energy:
+                  type: array
+                  items: { type: number }
+              additionalProperties: true

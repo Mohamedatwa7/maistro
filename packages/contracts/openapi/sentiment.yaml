@@ -1,0 +1,213 @@
+openapi: 3.1.0
+info:
+  title: SamsungSentiment API (Maistro adapter contract)
+  description: >
+    Contract for the SamsungSentiment endpoints consumed by Maistro's
+    monitoring stage. Shapes verified against source 2026-09-04.
+    Notes — /api/comments takes NO query parameters and returns the full
+    corpus (gzip-encoded, ~2MB, edge-cached s-maxage=300); the adapter
+    filters client-side by postUrl/date and fetches once per monitoring
+    tick, not per campaign. Platform enum uses "twitter" (Maistro maps
+    twitter -> x at the boundary). sentimentScore=null means keyword-fallback
+    classification, not LLM — J1 metrics count LLM-analyzed rows only.
+    /api/dashboard/data is intentionally OUT of contract (regex-based
+    sentiment path; weaker signal). No auth today — service-key middleware
+    is an M1-W3 deliverable.
+  version: 1.0.0
+servers:
+  - url: "{base}"
+    variables:
+      base:
+        default: http://localhost:3000
+        description: Vercel deployment URL per environment.
+
+paths:
+  /api/comments:
+    get:
+      operationId: getCorpus
+      summary: Full posts + comments corpus with LLM sentiment
+      responses:
+        "200":
+          description: Gzip-encoded corpus (transparent to HTTP clients).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CorpusResponse" }
+
+  /api/apify/trigger:
+    get:
+      operationId: listScrapers
+      summary: Available scraper actors and configuration state
+      responses:
+        "200":
+          description: Scraper map.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScrapersInfo" }
+    post:
+      operationId: triggerScrape
+      summary: Trigger an Apify scraper run
+      description: >
+        Maistro rate contract — at most 1 trigger per campaign per day
+        (early comment sync on a just-published post).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [platform]
+              properties:
+                platform:
+                  type: string
+                  enum: [instagram, tiktok, facebook, twitter]
+                type:
+                  type: string
+                  enum: [posts, comments]
+                  default: posts
+                targetUsername:
+                  type: string
+                  default: samsunggulf
+              additionalProperties: false
+      responses:
+        "200":
+          description: Scraper started.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TriggerResponse" }
+        "400":
+          description: No scraper for platform/type.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SentimentError" }
+        "500":
+          description: Token missing or Apify API error.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SentimentError" }
+
+components:
+  schemas:
+    ScrapersInfo:
+      type: object
+      required: [scrapers, configured]
+      properties:
+        scrapers:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: { type: string }
+        configured: { type: boolean }
+      additionalProperties: true
+
+    TriggerResponse:
+      type: object
+      required: [success, runId, actorId, status]
+      properties:
+        success: { type: boolean, const: true }
+        message: { type: string }
+        runId: { type: string }
+        actorId: { type: string }
+        status:
+          type: string
+          description: Apify run status (READY/RUNNING/SUCCEEDED/FAILED).
+      additionalProperties: true
+
+    SentimentError:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+      additionalProperties: true
+
+    CorpusResponse:
+      type: object
+      required: [posts, comments, meta]
+      properties:
+        posts:
+          type: array
+          items: { $ref: "#/components/schemas/Post" }
+        comments:
+          type: array
+          items: { $ref: "#/components/schemas/Comment" }
+        meta:
+          type: object
+          required: [totalPosts, totalComments, analyzedComments, unanalyzedComments]
+          properties:
+            totalPosts: { type: integer }
+            totalComments: { type: integer }
+            analyzedComments:
+              type: integer
+              description: Comments with LLM sentiment (the J1-countable set).
+            unanalyzedComments:
+              type: integer
+              description: Comments on keyword-fallback classification.
+          additionalProperties: true
+      additionalProperties: true
+
+    Post:
+      type: object
+      required: [id, platform, url, caption, timestamp, likes]
+      properties:
+        id: { type: string }
+        platform:
+          type: string
+          enum: [instagram, tiktok, facebook, twitter]
+        url: { type: string }
+        caption: { type: string }
+        owner: { type: string }
+        timestamp: { type: string }
+        likes: { type: integer }
+        views:
+          type: integer
+          description: 0 if the platform does not track views for this type.
+        department: { type: string, enum: [MX, VD, DA, Brand] }
+        productCategory: { type: string }
+        productModel: { type: string }
+        features:
+          type: array
+          items: { type: string }
+        source: { type: string }
+      additionalProperties: true
+
+    Comment:
+      type: object
+      required: [id, postId, platform, text, createdAt, sentiment]
+      properties:
+        id: { type: string }
+        postId: { type: string }
+        postUrl:
+          type: string
+          description: Resolved parent post URL; empty string if unresolved.
+        platform:
+          type: string
+          enum: [instagram, tiktok, facebook, twitter]
+        text: { type: string }
+        username: { type: string }
+        createdAt: { type: string }
+        sentiment:
+          type: string
+          enum: [positive, negative, neutral]
+        sentimentScore:
+          type: [number, "null"]
+          description: LLM score; null = keyword fallback only.
+        sentimentFlags:
+          type: array
+          items:
+            type: string
+            enum:
+              - SARCASM
+              - COMPETITOR_MENTION
+              - MIXED
+              - SAFETY_ISSUE
+              - PRICE_COMPLAINT
+              - PURCHASE_INTENT
+        likes: { type: integer }
+        features:
+          type: array
+          items: { type: string }
+        productModel: { type: [string, "null"] }
+        department:
+          type: [string, "null"]
+          enum: [MX, VD, DA, Brand, null]
+        source: { type: string }
+      additionalProperties: true

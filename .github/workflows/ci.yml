@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  contracts:
+    name: Contracts (validate + codegen drift)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install validators + codegen
+        run: pip install pyyaml jsonschema openapi-spec-validator "datamodel-code-generator"
+      - name: Validate OpenAPI specs
+        run: |
+          python -c "
+          import glob, yaml
+          from openapi_spec_validator import validate
+          for f in glob.glob('packages/contracts/openapi/*.yaml'):
+              validate(yaml.safe_load(open(f, encoding='utf-8')))
+              print('valid:', f)
+          "
+      - name: Validate JSON Schemas (2020-12 metaschema)
+        run: |
+          python -c "
+          import glob, json
+          from jsonschema import Draft202012Validator
+          for f in glob.glob('packages/contracts/schemas/*.json'):
+              Draft202012Validator.check_schema(json.load(open(f, encoding='utf-8')))
+              print('valid:', f)
+          "
+      - name: Codegen drift check
+        run: python packages/contracts/codegen.py --check
+
+  core:
+    name: Core service (lint + typecheck + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Typecheck (mypy strict)
+        run: mypy
+      - name: Tests
+        run: pytest -q
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Nightly contract tests against live staging endpoints land in M1-W4
+  # (services/core/tests/contract/ + a scheduled workflow with staging
+  # URLs/keys from GitHub Environments).

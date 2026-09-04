@@ -1,0 +1,217 @@
+openapi: 3.1.0
+info:
+  title: Lenceus banner-monitor API (Maistro adapter contract)
+  description: >
+    Contract for the Lenceus banner-monitor Express API endpoints consumed by
+    Maistro's monitoring stage. Shapes verified against webapi.js/server.js
+    2026-09-04. Maistro is read-only here — it consumes /api/sites and
+    /api/log and never calls POST /api/run (Lenceus runs on its own daily
+    schedule). Share-percentage fields are nullable: null means NOT MEASURED,
+    never zero. No auth today — service-key middleware is an M1-W3
+    deliverable (the open POST /api/run is a real exposure to close).
+  version: 1.0.0
+servers:
+  - url: "{base}"
+    variables:
+      base:
+        default: http://localhost:4000
+
+paths:
+  /api/health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: Health + storage backend.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthResponse" }
+
+  /api/sites:
+    get:
+      operationId: listSites
+      summary: Latest state + 60-run history per monitored site
+      responses:
+        "200":
+          description: All monitored sites.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SitesResponse" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+  /api/log:
+    get:
+      operationId: getLog
+      summary: Recent run events
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        "200":
+          description: Run events, newest first.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LogResponse" }
+        "500": { $ref: "#/components/responses/ServerError" }
+
+components:
+  responses:
+    ServerError:
+      description: Server error.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error: { type: string }
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [ok, backend]
+      properties:
+        ok: { type: boolean, const: true }
+        backend: { type: string, enum: [sqlite, supabase] }
+      additionalProperties: true
+
+    SitesResponse:
+      type: object
+      required: [sites]
+      properties:
+        sites:
+          type: array
+          items: { $ref: "#/components/schemas/Site" }
+      additionalProperties: true
+
+    LogResponse:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          items: { $ref: "#/components/schemas/LogEvent" }
+      additionalProperties: true
+
+    Match:
+      type: object
+      required: [key, src, pos, section]
+      properties:
+        key: { type: string }
+        src: { type: string }
+        alt: { type: string }
+        href: { type: string }
+        pos:
+          type: integer
+          description: 1-based position within its section.
+        section: { type: string, enum: [hero, promo, tile] }
+      additionalProperties: true
+
+    ShareBreakdown:
+      type: object
+      required: [total, samsung]
+      properties:
+        kind: { type: string, enum: [grid, facet] }
+        url: { type: string }
+        term: { type: string }
+        total: { type: integer }
+        samsung: { type: integer }
+        positions:
+          type: array
+          items: { type: integer }
+        brands:
+          type: object
+          additionalProperties: { type: integer }
+        sharePct:
+          type: [number, "null"]
+          description: Rounded to 1 decimal; null = not measured.
+        grandTotal: { type: integer }
+      additionalProperties: true
+
+    HistoryEntry:
+      type: object
+      required: [run_at, count]
+      properties:
+        run_at: { type: string }
+        count: { type: integer }
+        bannerSharePct: { type: [number, "null"] }
+        promoCount: { type: [integer, "null"] }
+        promoSharePct: { type: [number, "null"] }
+        tileCount: { type: [integer, "null"] }
+        tileSharePct: { type: [number, "null"] }
+        deviceSharePct: { type: [number, "null"] }
+        searchSharePct: { type: [number, "null"] }
+        placementBrands:
+          type: [object, "null"]
+          additionalProperties: { type: integer }
+        catalogBrands:
+          type: [object, "null"]
+          additionalProperties: { type: integer }
+      additionalProperties: true
+
+    Site:
+      type: object
+      required: [id, name, url, region, type, count, lastRunAt, matches, history]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        url: { type: string }
+        region: { type: string }
+        type: { type: string, enum: [operator, retailer] }
+        count: { type: [integer, "null"] }
+        bannerTotal: { type: [integer, "null"] }
+        promoCount: { type: [integer, "null"] }
+        promoTotal: { type: [integer, "null"] }
+        tileCount: { type: [integer, "null"] }
+        tileTotal: { type: [integer, "null"] }
+        lastRunAt: { type: [string, "null"] }
+        screenshotPath: { type: [string, "null"] }
+        matches:
+          type: array
+          items: { $ref: "#/components/schemas/Match" }
+        assets:
+          type: object
+          properties:
+            hero:
+              type: array
+              items: { $ref: "#/components/schemas/Match" }
+            promo:
+              type: array
+              items: { $ref: "#/components/schemas/Match" }
+            tiles:
+              type: array
+              items: { $ref: "#/components/schemas/Match" }
+          additionalProperties: true
+        deviceShare:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/ShareBreakdown"
+        searchShare:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/ShareBreakdown"
+        competition:
+          type: [object, "null"]
+          description: Per-run competitive breakdown (brand count maps + rival placements).
+          additionalProperties: true
+        history:
+          type: array
+          description: Last 60 runs, oldest last.
+          items: { $ref: "#/components/schemas/HistoryEntry" }
+      additionalProperties: true
+
+    LogEvent:
+      type: object
+      required: [id, site_id, run_at, count]
+      properties:
+        id: { type: integer }
+        site_id: { type: string }
+        site:
+          type: string
+          description: Site display name (falls back to site_id).
+        run_at: { type: string }
+        count: { type: integer }
+        deviceSharePct: { type: [number, "null"] }
+        searchSharePct: { type: [number, "null"] }
+      additionalProperties: true

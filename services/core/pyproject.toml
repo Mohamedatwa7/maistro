@@ -1,0 +1,59 @@
+[project]
+name = "maistro-core"
+version = "0.1.0"
+description = "Maistro core service: orchestration engine, MCP server, adapters, publisher"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.8",
+    "pydantic-settings>=2.4",
+    "httpx>=0.27",
+    "structlog>=24.1",
+    "tenacity>=9.0",
+    # Orchestration (M2): langgraph, langgraph-checkpoint-postgres, psycopg[binary]
+    # Creator interface (M2): mcp
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "respx>=0.21",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "datamodel-code-generator>=0.25",
+    "jsonschema>=4.22",
+    "openapi-spec-validator>=0.7",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["src/maistro/generated"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["maistro"]
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = "maistro.generated.*"
+# Generated code is governed by the codegen drift check, not strict typing
+# (datamodel-codegen emits enum/field patterns mypy strict rejects).
+ignore_errors = true
