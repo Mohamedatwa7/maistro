@@ -18,6 +18,7 @@ class MediaType(StrEnum):
 class ContentVersion(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     content_version_id: UUID
     campaign_id: UUID

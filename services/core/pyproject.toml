@@ -11,8 +11,11 @@ dependencies = [
     "httpx>=0.27",
     "structlog>=24.1",
     "tenacity>=9.0",
-    # Orchestration (M2): langgraph, langgraph-checkpoint-postgres, psycopg[binary]
-    # Creator interface (M2): mcp
+    "pyyaml>=6.0",
+    "langgraph>=1.2",
+    "mcp>=2.1",
+    # Postgres durability (when MAISTRO_DATABASE_URL is provisioned):
+    # langgraph-checkpoint-postgres, psycopg[binary]
 ]
 
 [project.optional-dependencies]
@@ -22,6 +25,7 @@ dev = [
     "respx>=0.21",
     "ruff>=0.5",
     "mypy>=1.10",
+    "types-PyYAML",
     "datamodel-code-generator>=0.25",
     "jsonschema>=4.22",
     "openapi-spec-validator>=0.7",

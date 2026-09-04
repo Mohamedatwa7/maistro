@@ -18,6 +18,7 @@ class Decision(StrEnum):
 class BriefFitRubric(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     hook_present: bool | None = None
     format_followed: bool | None = None
@@ -28,6 +29,7 @@ class BriefFitRubric(BaseModel):
 class Approval(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     approval_id: UUID
     campaign_id: UUID

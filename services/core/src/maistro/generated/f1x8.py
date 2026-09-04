@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class F1X8Error(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     error: str
     trace: Annotated[
@@ -22,6 +23,7 @@ class F1X8Error(BaseModel):
 class JobSubmitted(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     job_id: str
 
@@ -37,6 +39,7 @@ class Status(StrEnum):
 class Kpi(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     score: Annotated[float, Field(ge=0.0, le=10.0)]
     label: str
@@ -57,6 +60,7 @@ class Confidence(StrEnum):
 class Risk(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     rank: int
     issue: str
@@ -77,6 +81,7 @@ class RevisionBrief(BaseModel):
 
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     objective: str
     focal_hierarchy: str | None = None
@@ -94,6 +99,7 @@ class Verdict(BaseModel):
 
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     summary: str
     strengths: list[str]
@@ -132,6 +138,7 @@ class HeatmapType(StrEnum):
 class AnalysisResultCore(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     score: Annotated[
         float,
@@ -170,18 +177,24 @@ class AnalysisResultCore(BaseModel):
 
 
 class ImageAnalysisResult(AnalysisResultCore):
-    pass
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
 
 
 class Timelines(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     attention: list[float] | None = None
     audio_energy: list[float] | None = None
 
 
 class VideoAnalysisResult(AnalysisResultCore):
+    model_config = ConfigDict(
+        populate_by_name=True,
+    )
     benchmarkPercentile: Annotated[
         int | None,
         Field(description="Percentile vs. reels organic cohort.", ge=0, le=100),
@@ -192,6 +205,7 @@ class VideoAnalysisResult(AnalysisResultCore):
 class JobStatus(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     status: Status
     result: VideoAnalysisResult | None = None

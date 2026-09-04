@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class ScrapersInfo(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     scrapers: dict[str, dict[str, str]]
     configured: bool
@@ -20,6 +21,7 @@ class ScrapersInfo(BaseModel):
 class TriggerResponse(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     success: Literal[True]
     message: str | None = None
@@ -33,6 +35,7 @@ class TriggerResponse(BaseModel):
 class SentimentError(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     error: str
 
@@ -40,6 +43,7 @@ class SentimentError(BaseModel):
 class Meta(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     totalPosts: int
     totalComments: int
@@ -68,6 +72,7 @@ class Department(StrEnum):
 class Post(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     id: str
     platform: Platform
@@ -113,6 +118,7 @@ class Department1(Enum):
 class Comment(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     id: str
     postId: str
@@ -139,6 +145,7 @@ class Comment(BaseModel):
 class CorpusResponse(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     posts: list[Post]
     comments: list[Comment]

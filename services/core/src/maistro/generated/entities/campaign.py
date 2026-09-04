@@ -13,6 +13,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 class TrendRef(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     trend_id: str
     snapshot: dict[str, Any]
@@ -39,6 +40,7 @@ class Status(StrEnum):
 class Campaign(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     campaign_id: UUID
     trend_ref: TrendRef

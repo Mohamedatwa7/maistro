@@ -13,6 +13,7 @@ the same PR that introduces or retires a secret.
 | MAISTRO_F1X8_API_KEY | F1X8 service key (enforcement lands M1-W3) | M1 |
 | MAISTRO_SENTIMENT_BASE_URL / _API_KEY | SamsungSentiment deployment + service key (M1-W3) | M1 |
 | MAISTRO_LENCEUS_BASE_URL / _API_KEY | Lenceus API + service key (M1-W3) | M1 |
+| MAISTRO_OPERATOR_API_KEY | Operator/approver REST auth (X-Operator-Key) | M2 |
 
 ## Arriving later (placeholders — do not create early)
 

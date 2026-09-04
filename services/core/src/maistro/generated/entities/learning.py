@@ -13,6 +13,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 class ActualMetrics(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     views: float
     engagement_rate: float
@@ -29,6 +30,7 @@ class InsightStatus(StrEnum):
 class Learning(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     learning_id: UUID
     campaign_id: UUID
