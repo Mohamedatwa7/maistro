@@ -26,6 +26,7 @@ class Platform(StrEnum):
 class CheckedAgainst(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     platforms: Annotated[list[Platform], Field(min_length=1)]
     rules_version: str
@@ -35,6 +36,7 @@ class CheckedAgainst(BaseModel):
 class Probe(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     container: str
     video_codec: str | None = None
@@ -61,6 +63,7 @@ class Class(StrEnum):
 class Issue(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     code: Annotated[
         str,
@@ -78,6 +81,7 @@ class Issue(BaseModel):
 class Normalization(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     applied: list[str]
     output_sha256: Annotated[str, Field(pattern="^[a-f0-9]{64}$")]
@@ -88,6 +92,7 @@ class Normalization(BaseModel):
 class ValidationReport(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     status: Status
     checked_against: CheckedAgainst

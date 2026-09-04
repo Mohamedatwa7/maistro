@@ -85,6 +85,7 @@ class CampaignState(BaseModel):
 
     current_draft: DraftRef | None = None
     f1x8_job_id: str | None = None
+    poll_attempts: int = 0
     analysis_result: AnalysisResult | None = None
     loop_exhausted: bool = False
     final_submitted: bool = False
@@ -94,6 +95,7 @@ class CampaignState(BaseModel):
     publish_results: list[PublishOutcome] = Field(default_factory=list)
 
     monitoring_until: date | None = None
+    monitoring_ticks_remaining: int | None = None
     learnings_context: list[str] = Field(default_factory=list)
 
     last_error: Problem | None = None

@@ -20,6 +20,7 @@ class Status(StrEnum):
 class PublishResult(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     publish_record_id: UUID
     status: Status

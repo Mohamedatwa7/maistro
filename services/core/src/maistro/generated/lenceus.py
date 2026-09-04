@@ -17,6 +17,7 @@ class Backend(StrEnum):
 class HealthResponse(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     ok: Literal[True]
     backend: Backend
@@ -31,6 +32,7 @@ class Section(StrEnum):
 class Match(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     key: str
     src: str
@@ -48,6 +50,7 @@ class Kind(StrEnum):
 class ShareBreakdown(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     kind: Kind | None = None
     url: str | None = None
@@ -65,6 +68,7 @@ class ShareBreakdown(BaseModel):
 class HistoryEntry(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     run_at: str
     count: int
@@ -87,6 +91,7 @@ class Type(StrEnum):
 class Assets(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     hero: list[Match] | None = None
     promo: list[Match] | None = None
@@ -96,6 +101,7 @@ class Assets(BaseModel):
 class Site(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     id: str
     name: str
@@ -128,6 +134,7 @@ class Site(BaseModel):
 class LogEvent(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     id: int
     site_id: str
@@ -143,6 +150,7 @@ class LogEvent(BaseModel):
 class SitesResponse(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     sites: list[Site]
 
@@ -150,5 +158,6 @@ class SitesResponse(BaseModel):
 class LogResponse(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     events: list[LogEvent]

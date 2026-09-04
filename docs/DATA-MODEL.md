@@ -34,6 +34,7 @@ legal, each is triggered by a named event, and every transition writes an
                  │  & iter < max      │ submit_final, or loop_exhausted
                  │        ▼           ▼
                  └──── revising ⏸   awaiting_approval ⏸
+                        │ creator.final_submitted ──────► awaiting_approval
                         (creator)     │            │
                                       │ approved   │ rejected → revising
                                       ▼

@@ -22,6 +22,7 @@ TRANSITIONS: dict[tuple[CampaignStatus, str], CampaignStatus] = {
     (CampaignStatus.SCORE_EVALUATED, "score.loop_exhausted"): CampaignStatus.AWAITING_APPROVAL,
     (CampaignStatus.SCORE_EVALUATED, "creator.final_submitted"): CampaignStatus.AWAITING_APPROVAL,
     (CampaignStatus.REVISING, "draft.submitted"): CampaignStatus.SCORING,
+    (CampaignStatus.REVISING, "creator.final_submitted"): CampaignStatus.AWAITING_APPROVAL,
     (CampaignStatus.AWAITING_APPROVAL, "approval.approved"): CampaignStatus.APPROVED,
     (CampaignStatus.AWAITING_APPROVAL, "approval.rejected"): CampaignStatus.REVISING,
     (CampaignStatus.APPROVED, "publish.requested"): CampaignStatus.PUBLISHING,

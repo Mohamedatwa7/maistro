@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class TRError(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     error: str
     message: str | None = None
@@ -38,6 +39,7 @@ class Lang(Enum):
 class Fit(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     strength: Annotated[
         float, Field(description="Composite 0-100; pass bar is 50.", ge=0.0, le=100.0)
@@ -56,6 +58,7 @@ class DurabilityClass(Enum):
 class Sound(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     title: str | None = None
     author: str | None = None
@@ -72,6 +75,7 @@ class Basis(StrEnum):
 class Format(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     mechanic: str
     payoff: str
@@ -83,6 +87,7 @@ class Format(BaseModel):
 class Adaptation(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     product: str
     line: str
@@ -102,6 +107,7 @@ class Adaptation(BaseModel):
 class ProductMatch(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     product: str
     line: str
@@ -122,6 +128,7 @@ class Chart(StrEnum):
 class SoundItem(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     musicId: str
     name: str
@@ -145,6 +152,7 @@ class SoundItem(BaseModel):
 class Term(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     rank: int | None = None
     term: str | None = None
@@ -156,6 +164,7 @@ class Term(BaseModel):
 class TermsFeedResponse(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     generatedAt: str | None
     live: bool
@@ -177,6 +186,7 @@ class Language(StrEnum):
 class AuthorBriefRequest(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     ask: Annotated[str, Field(max_length=2000, min_length=1)]
     trendId: Annotated[str | None, Field(max_length=120)] = None
@@ -196,6 +206,7 @@ class Type(StrEnum):
 class ChainItem(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     type: Type
     prompt: str
@@ -206,6 +217,7 @@ class ChainItem(BaseModel):
 class Brief(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     chain: list[ChainItem]
 
@@ -213,6 +225,7 @@ class Brief(BaseModel):
 class AuthorBriefResponse(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     brief: Brief
     runnable: bool
@@ -228,6 +241,7 @@ class EditorialBrief(BaseModel):
 
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     microTrend: str
     mechanic: str
@@ -238,6 +252,7 @@ class EditorialBrief(BaseModel):
 class SoundsFeedResponse(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     generatedAt: str | None
     live: bool
@@ -247,6 +262,7 @@ class SoundsFeedResponse(BaseModel):
 class AgentTrend(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     id: str
     name: str
@@ -280,6 +296,7 @@ class AgentTrend(BaseModel):
 class TrendListResponse(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     generatedAt: str | None
     live: Annotated[
@@ -293,6 +310,7 @@ class TrendListResponse(BaseModel):
 class SingleTrendResponse(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     live: bool
     trend: AgentTrend | None

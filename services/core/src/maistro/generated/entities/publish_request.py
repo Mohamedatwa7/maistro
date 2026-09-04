@@ -20,6 +20,7 @@ class Platform(StrEnum):
 class PublishRequest(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     idempotency_key: str
     campaign_id: UUID

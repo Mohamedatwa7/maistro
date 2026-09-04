@@ -41,6 +41,7 @@ COMMON_ARGS = [
     "--disable-timestamp",
     "--use-standard-collections",
     "--use-union-operator",
+    "--allow-population-by-field-name",
 ]
 
 

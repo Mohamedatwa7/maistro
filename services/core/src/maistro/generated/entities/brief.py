@@ -13,6 +13,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 class Sound(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     title: str | None = None
     author: str | None = None
@@ -22,6 +23,7 @@ class Sound(BaseModel):
 class Format(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     mechanic: str | None = None
     payoff: str | None = None
@@ -32,6 +34,7 @@ class Format(BaseModel):
 class Trend(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     name: str
     why_now: str
@@ -44,6 +47,7 @@ class Trend(BaseModel):
 class Product(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     product: str
     line: str
@@ -52,6 +56,7 @@ class Product(BaseModel):
 class Reference(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     url: str
     note: str | None = None
@@ -66,6 +71,7 @@ class Type(StrEnum):
 class ChainItem(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     type: Type
     prompt: str
@@ -76,6 +82,7 @@ class ChainItem(BaseModel):
 class GenerativeStarters(BaseModel):
     model_config = ConfigDict(
         extra="allow",
+        populate_by_name=True,
     )
     chain: list[ChainItem] | None = None
 
@@ -83,6 +90,7 @@ class GenerativeStarters(BaseModel):
 class Brief(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
+        populate_by_name=True,
     )
     brief_id: UUID
     campaign_id: UUID

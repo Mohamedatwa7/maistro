@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # Publishing is dry-run everywhere except prod, permanently (CONTRACTS.md §5).
     publish_dry_run: bool = True
 
+    # Operator REST auth (X-Operator-Key). Unset = open, local dev only.
+    operator_api_key: str | None = None
+
+    # Hosts the MCP transport accepts (DNS-rebinding protection). Set to the
+    # public hostname in staging/prod, e.g. ["maistro.example.com"].
+    mcp_allowed_hosts: list[str] = ["localhost:8100", "127.0.0.1:8100"]
+
 
 @lru_cache
 def get_settings() -> Settings:
