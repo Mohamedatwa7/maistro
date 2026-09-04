@@ -66,6 +66,14 @@ def test_rest_campaign_lifecycle_endpoints() -> None:
         events = [e["event"] for e in detail.json()["timeline"]]
         assert events == ["brief.generated", "brief.assigned"]
 
+        # Live orchestration view: parked at the await_draft interrupt.
+        live = client.get(f"/api/campaigns/{body['campaign_id']}/state")
+        assert live.status_code == 200
+        view = live.json()
+        assert view["pending_interrupt"]["kind"] == "await_draft"
+        assert "draft.submitted" in view["legal_events"]
+        assert view["graph_state"]["status"] == "awaiting_draft"
+
         # Approval on a campaign that isn't awaiting approval -> clean 409.
         wrong = client.post(
             f"/api/campaigns/{body['campaign_id']}/approve",

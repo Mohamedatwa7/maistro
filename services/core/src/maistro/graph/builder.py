@@ -75,14 +75,28 @@ def build_graph(deps: GraphDeps, checkpointer: Any = None) -> CompiledCampaignGr
     graph.add_edge("pick_trend", "generate_brief")
     graph.add_edge("generate_brief", "await_draft")
     graph.add_edge("await_draft", "score_asset")
-    graph.add_conditional_edges("score_asset", route_after_score)
-    graph.add_conditional_edges("poll_f1x8", route_after_poll)
-    graph.add_conditional_edges("evaluate_score", route_after_evaluate)
-    graph.add_conditional_edges("request_revision", route_after_revision)
-    graph.add_conditional_edges("approval_gate", route_after_approval)
+    # Path maps declare every legal routing target — typos fail at compile
+    # time and the graph renders fully in Studio/mermaid.
+    graph.add_conditional_edges(
+        "score_asset", route_after_score, ["escalate", "evaluate_score", "poll_f1x8"]
+    )
+    graph.add_conditional_edges(
+        "poll_f1x8", route_after_poll, ["escalate", "evaluate_score", "poll_f1x8"]
+    )
+    graph.add_conditional_edges(
+        "evaluate_score", route_after_evaluate, ["request_revision", "approval_gate"]
+    )
+    graph.add_conditional_edges(
+        "request_revision", route_after_revision, ["approval_gate", "score_asset"]
+    )
+    graph.add_conditional_edges(
+        "approval_gate", route_after_approval, ["record_publication", "request_revision", END]
+    )
     graph.add_edge("record_publication", "monitor")
-    graph.add_conditional_edges("monitor", route_after_monitor)
+    graph.add_conditional_edges("monitor", route_after_monitor, ["write_learnings", "monitor"])
     graph.add_edge("write_learnings", END)
-    graph.add_conditional_edges("escalate", route_after_escalate)
+    graph.add_conditional_edges(
+        "escalate", route_after_escalate, ["score_asset", "approval_gate", END]
+    )
 
     return graph.compile(checkpointer=checkpointer)
