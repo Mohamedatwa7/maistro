@@ -10,10 +10,12 @@ written and validated (4 OpenAPI adapter specs with shapes extracted from
 the real codebases + 8 JSON Schemas). **Service scaffold running** —
 `services/core` (FastAPI + typed adapters for all four tools + campaign
 state machine), codegen pipeline with CI drift check, `db/migrations/001`,
-GitHub Actions CI. Local checks green: ruff, mypy strict, 18 tests, drift
-check. Next: `git init` + first push (CI needs GitHub), platform API
-applications (M1-W1), staging environment + service-auth middleware on
-Sentiment/Lenceus (M1-W3).
+live contract-test suite + nightly drift workflow. Repo:
+[Mohamedatwa7/maistro](https://github.com/Mohamedatwa7/maistro) (private) —
+CI green (contracts + core + secret scan). The `staging` GitHub environment
+exists but needs its vars/secrets filled (see SECRETS.md) before the nightly
+contract tests do anything. Next: platform API applications (M1-W1),
+service-auth middleware on Sentiment/Lenceus + staging deploys (M1-W3).
 
 ## Read this first
 
