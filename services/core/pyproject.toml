@@ -37,6 +37,9 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "contract: live contract tests against staging endpoints (skip without MAISTRO_* env)",
+]
 
 [tool.ruff]
 line-length = 100
