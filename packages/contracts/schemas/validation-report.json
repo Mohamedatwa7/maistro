@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maistro.local/schemas/validation-report.json",
+  "title": "ValidationReport",
+  "$comment": "v1.0.0 — output of the postability gate (docs/POSTABILITY.md). Stored on content_versions.validation_report; returned by submit_draft / get_feedback / check_asset; shown in the approval queue. Issue codes are a stable documented enum family: codec.*, duration.*, size.*, aspect.*, resolution.*, audio.*, integrity.*, brief.*",
+  "type": "object",
+  "required": ["status", "checked_against", "probe", "issues"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["postable", "postable_after_fixes", "rejected"]
+    },
+    "checked_against": {
+      "type": "object",
+      "required": ["platforms", "rules_version"],
+      "properties": {
+        "platforms": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "enum": ["tiktok", "instagram", "facebook", "x"] }
+        },
+        "rules_version": { "type": "string" },
+        "brief_id": { "type": ["string", "null"], "format": "uuid" }
+      },
+      "additionalProperties": false
+    },
+    "probe": {
+      "type": "object",
+      "required": ["sha256", "size_bytes", "container"],
+      "properties": {
+        "container": { "type": "string" },
+        "video_codec": { "type": ["string", "null"] },
+        "audio_codec": { "type": ["string", "null"] },
+        "duration_s": { "type": ["number", "null"] },
+        "width": { "type": ["integer", "null"] },
+        "height": { "type": ["integer", "null"] },
+        "fps": { "type": ["number", "null"] },
+        "vfr": { "type": ["boolean", "null"] },
+        "rotation": { "type": ["integer", "null"] },
+        "hdr": { "type": ["boolean", "null"] },
+        "bitrate_kbps": { "type": ["number", "null"] },
+        "audio_sample_rate": { "type": ["integer", "null"] },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "size_bytes": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "class", "detail"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^(codec|duration|size|aspect|resolution|audio|integrity|brief)\\.[a-z0-9_]+$"
+          },
+          "class": { "type": "string", "enum": ["blocker", "fixable", "warning"] },
+          "detail": { "type": "string" },
+          "fix_hint": {
+            "type": ["string", "null"],
+            "$comment": "Creator-actionable guidance; required in practice for blockers."
+          },
+          "platforms": {
+            "type": "array",
+            "items": { "type": "string" },
+            "$comment": "Which target platforms this issue applies to."
+          },
+          "auto_fixed": { "type": "boolean", "default": false }
+        },
+        "additionalProperties": false
+      }
+    },
+    "normalization": {
+      "type": ["object", "null"],
+      "$comment": "Present iff fixable issues were remediated. ffmpeg version pinned for determinism.",
+      "required": ["applied", "output_sha256"],
+      "properties": {
+        "applied": { "type": "array", "items": { "type": "string" } },
+        "output_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "output_size_bytes": { "type": "integer" },
+        "ffmpeg_version": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "final": {
+      "type": ["object", "null"],
+      "$comment": "Probe of the sealed artifact (== probe when no normalization ran). Its sha256 is THE content-version identity: score-what-you-post invariant.",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
