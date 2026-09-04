@@ -1,0 +1,54 @@
+name: Nightly contract tests
+
+on:
+  schedule:
+    - cron: "17 2 * * *"   # 02:17 UTC daily
+  workflow_dispatch:
+
+jobs:
+  contract-tests:
+    name: Live contract tests (staging)
+    runs-on: ubuntu-latest
+    environment: staging
+    defaults:
+      run:
+        working-directory: services/core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Run contract tests
+        env:
+          MAISTRO_TREND_RADAR_BASE_URL: ${{ vars.MAISTRO_TREND_RADAR_BASE_URL }}
+          MAISTRO_TREND_RADAR_AGENT_KEY: ${{ secrets.MAISTRO_TREND_RADAR_AGENT_KEY }}
+          MAISTRO_F1X8_BASE_URL: ${{ vars.MAISTRO_F1X8_BASE_URL }}
+          MAISTRO_F1X8_API_KEY: ${{ secrets.MAISTRO_F1X8_API_KEY }}
+          MAISTRO_SENTIMENT_BASE_URL: ${{ vars.MAISTRO_SENTIMENT_BASE_URL }}
+          MAISTRO_SENTIMENT_API_KEY: ${{ secrets.MAISTRO_SENTIMENT_API_KEY }}
+          MAISTRO_LENCEUS_BASE_URL: ${{ vars.MAISTRO_LENCEUS_BASE_URL }}
+          MAISTRO_LENCEUS_API_KEY: ${{ secrets.MAISTRO_LENCEUS_API_KEY }}
+        run: pytest tests/contract -q -rs
+      - name: Open issue on drift
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Contract drift detected (nightly ${new Date().toISOString().slice(0, 10)})`,
+              labels: ["contract-drift"],
+              body: [
+                "The nightly contract tests failed — an upstream tool's API no",
+                "longer matches packages/contracts/, or staging is down.",
+                "",
+                `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+                "",
+                "Triage (packages/contracts/README.md): read the",
+                "BoundaryValidationError for endpoint + field, decide which side",
+                "changed, update the spec or notify the tool's owner.",
+              ].join("\n"),
+            });
