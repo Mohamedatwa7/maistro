@@ -35,6 +35,7 @@
 const { insertRow } = require('./_supabase.js');
 
 const DAYS_MAX = 90;
+const FALLBACK_DAYS = 14; // cron snapshot window when the full read fails or is partial
 const PAGE = 1000;
 
 // ── sentiment lexicon, ported 1:1 from samsungtrack's dashboard route ──
@@ -230,8 +231,9 @@ module.exports = async (req, res) => {
     throw new Error(`${path.split('?')[0]} query failed: ${last}`);
   };
 
-  try {
-    const days = Math.min(DAYS_MAX, Math.max(1, parseInt(isCron ? 60 : q.days, 10) || 60));
+  // One window read: posts + comments + matching. Throws when a posts query
+  // fails for good; a failed comments page only marks the result partial.
+  const readWindow = async (days) => {
     const since = new Date(Date.now() - days * 864e5).toISOString();
 
     // Samsung posts of the window per platform, newest first, keyset-paged
@@ -315,6 +317,29 @@ module.exports = async (req, res) => {
         comments: cmts,
       };
     });
+    return { out, commentsSeen, commentsMatched, commentsPartial };
+  };
+
+  try {
+    let days = Math.min(DAYS_MAX, Math.max(1, parseInt(isCron ? 60 : q.days, 10) || 60));
+    let R;
+    try {
+      R = await readWindow(days);
+    } catch (e) {
+      if (!isCron || days <= FALLBACK_DAYS) throw e;
+      console.error(`[track] ${days}-day cron read failed (${e.message}) — retrying with ${FALLBACK_DAYS} days`);
+      R = null;
+    }
+    // The 60-day cron read pages through ~14k comments; one statement
+    // timeout marks it partial and a partial run is never stored, which left
+    // the snapshot stale for days. A 14-day read is ~20x cheaper and covers
+    // the Performance page's default week, so store that instead.
+    if (isCron && (!R || R.commentsPartial) && days > FALLBACK_DAYS) {
+      if (R) console.error('[track] 60-day cron read was partial — re-reading 14 days for the snapshot');
+      days = FALLBACK_DAYS;
+      R = await readWindow(days);
+    }
+    const { out, commentsSeen, commentsMatched, commentsPartial } = R;
 
     // Daily snapshot into Maistro's own sentiment_posts (append-only; the
     // /api/sentiment reader keeps the newest row per post).

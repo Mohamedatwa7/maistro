@@ -1936,40 +1936,63 @@ loadExternalProjects();
 setInterval(loadExternalProjects,15000);
 
 /* ---------- live post performance — Consumer Sentiment Tracker via /api/sentiment ---------- */
-const SENTI={posts:[]};
-function postToggle(id){STATE.openPost=STATE.openPost||{};STATE.openPost[id]=!STATE.openPost[id];
- if(location.hash.replace(/^#\//,'').split('/')[0]==='performance'){$('#view').innerHTML=rPerformance();reveal()}}
-async function loadSentiment(){
- try{
-  /* primary: read the samsungtrack DB directly (/api/track) — same data the
-     tracker's daily Apify schedule already pulls, zero duplicate scraping.
-     MERGE with the bridge-pushed /api/sentiment snapshots: the tracker's
-     comment ingestion can lag, so where a track post has no comments but a
-     pushed snapshot of the same post does, the snapshot's analyzed comments
-     fill the gap (no new pulls — that data is already stored). */
-  let track=null,snap=null;
-  try{const r=await fetch('/api/track?days=60');if(r.ok){const j=await r.json();if(j.posts&&j.posts.length)track=j}}catch(e){}
-  try{const r=await fetch('/api/sentiment');if(r.ok){const j=await r.json();if(j.posts&&j.posts.length)snap=j}}catch(e){}
-  let d=track||snap;
-  if(track&&snap){
-   const sid=p=>String(p.postId).replace(/^(tiktok|instagram|facebook|x)-/,'');
-   const byId=new Map(track.posts.map(p=>[sid(p),p]));
-   for(const p of snap.posts){
-    const t=byId.get(sid(p));
-    if(t){if((!t.comments||!t.comments.length)&&p.comments&&p.comments.length)t.comments=p.comments;
-     if(!t.metrics.thumb&&p.metrics&&p.metrics.thumb)t.metrics.thumb=p.metrics.thumb}
-    else track.posts.push(p);
-   }
-   d=track;
+const SENTI={posts:[],track:null,snap:null,win:0,busy:false};
+/* Performance data — two sources, merged:
+   · /api/track?days=N  live read of the samsungtrack DB (rides the tracker's own
+     daily Apify schedule, zero duplicate pulls). A 14-day window answers in ~3 s;
+     the 60-day window the 30/60-day filters need takes 60-80 s on a cold edge
+     cache and occasionally 502s on the tracker DB's statement timeout — so it is
+     fetched AFTER the page already has data, never on the critical path.
+   · /api/sentiment     yesterday's stored snapshot (daily cron + bridge pushes).
+     Paints instantly; its analyzed comments fill posts the tracker has none for. */
+const SENTI_WIN={fast:14,full:60};
+async function fetchPosts(url,tries=2){
+ for(let i=0;i<tries;i++){
+  try{const r=await fetch(url);if(r.ok){const j=await r.json();if(j&&j.posts&&j.posts.length)return j}}catch(e){}
+  if(i<tries-1)await new Promise(ok=>setTimeout(ok,1500));
+ }
+ return null;
+}
+const sentiId=p=>String(p.postId).replace(/^(tiktok|instagram|facebook|x)-/,'');
+function sentiCompose(){
+ const track=SENTI.track,snap=SENTI.snap;
+ let posts;
+ if(track&&snap){
+  const byId=new Map(track.posts.map(p=>[sentiId(p),p]));
+  posts=track.posts.slice();
+  for(const p of snap.posts){
+   const t=byId.get(sentiId(p));
+   if(t){
+    if((!t.comments||!t.comments.length)&&p.comments&&p.comments.length)t.comments=p.comments;
+    if(t.metrics&&!t.metrics.thumb&&p.metrics&&p.metrics.thumb)t.metrics.thumb=p.metrics.thumb;
+   }else posts.push(p);
   }
-  if(!d||!d.posts)return;
-  const sig=d.posts.length+':'+d.posts.map(p=>p.postId).join(',');
-  const changed=sig!==SENTI.sig;
-  SENTI.sig=sig;SENTI.posts=d.posts;SENTI.src=d.source||'sentiment tracker';
-  if(changed&&location.hash.replace(/^#\//,'').split('/')[0]==='performance'&&!document.body.classList.contains('locked')){
-   $('#view').innerHTML=rPerformance();reveal();
+ }else posts=((track||snap)||{posts:[]}).posts.slice();
+ const sig=posts.length+':'+posts.map(p=>p.postId).join(',');
+ const changed=sig!==SENTI.sig;
+ SENTI.sig=sig;SENTI.posts=posts;SENTI.src=((track||snap)||{}).source||'sentiment tracker';
+ if(changed&&location.hash.replace(/^#\//,'').split('/')[0]==='performance'&&!document.body.classList.contains('locked')){
+  $('#view').innerHTML=rPerformance();reveal();
+ }
+}
+async function loadSentiment(){
+ if(SENTI.busy)return;
+ SENTI.busy=true;
+ try{
+  /* 1 · snapshot + fast window in parallel; whichever lands first paints */
+  const [,fast]=await Promise.all([
+   fetchPosts('/api/sentiment').then(j=>{if(j){SENTI.snap=j;sentiCompose()}return j}),
+   fetchPosts('/api/track?days='+SENTI_WIN.fast).then(j=>{if(j&&SENTI.win<=SENTI_WIN.fast){SENTI.track=j;SENTI.win=SENTI_WIN.fast;sentiCompose()}return j}),
+  ]);
+  /* 2 · tracker DB struggling? a one-week read is the cheapest query there is */
+  if(!fast&&!SENTI.track){const j=await fetchPosts('/api/track?days=7',1);if(j){SENTI.track=j;SENTI.win=7;sentiCompose()}}
+  /* 3 · widen to the full window for the 30/60-day filters, off the critical path */
+  if(SENTI.win<SENTI_WIN.full){
+   const full=await fetchPosts('/api/track?days='+SENTI_WIN.full,1);
+   if(full&&full.posts.length>=(SENTI.track?SENTI.track.posts.length:0)){SENTI.track=full;SENTI.win=SENTI_WIN.full;sentiCompose()}
   }
  }catch(e){/* tracker not wired yet — section simply hidden */}
+ finally{SENTI.busy=false}
 }
 loadSentiment();
 setInterval(loadSentiment,60000);
