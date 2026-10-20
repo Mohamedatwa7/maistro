@@ -1,0 +1,1 @@
+The Maistro demo is a single-file vanilla-JS site (index.html) — no React/Tailwind build. dashboard-sidebar.tsx is the original shadcn-style component this site's sidebar was recreated from; drop it into /components/ui when the site migrates to Next.js + Tailwind + shadcn (npx shadcn@latest init, npm i lucide-react).

@@ -1,0 +1,16 @@
+{
+  "functions": {
+    "api/hermes.js": {
+      "maxDuration": 120
+    },
+    "api/track.js": {
+      "maxDuration": 300
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/track",
+      "schedule": "30 6 * * *"
+    }
+  ]
+}

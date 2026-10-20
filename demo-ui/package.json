@@ -1,0 +1,8 @@
+{
+  "name": "maistro-demo",
+  "private": true,
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.70.0",
+    "@higgsfield/client": "^0.2.6"
+  }
+}
