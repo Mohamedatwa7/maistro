@@ -177,21 +177,28 @@ function resolvePost(index, c) {
   return null;
 }
 
-// samsungtrack's Instagram sync has two actor paths that key the same
-// comment differently (a synthetic shortcode_user_timestamp id vs the real
-// numeric id), so one comment is stored twice, scraped on different days
-// with different likes and only one copy sentiment-analyzed. Collapse rows
-// that share author, text and publish second; keep the analyzed copy, then
-// the one with more likes. Same-user repeats at different seconds are real
-// (giveaway spam) and are kept.
+// Twin comments. Different actors key the same comment differently (a
+// synthetic shortcode_user_timestamp id vs the real numeric id) and stamp it
+// with different times (one gives the exact second, the other a minute-
+// rounded or scrape-relative time), so one comment is stored several times
+// with different likes and only one copy sentiment-analyzed. In the 60-day
+// window 22% of all comments were such twins — Instagram alone 1.4k — and
+// keying on the publish second (the previous rule) caught almost none of
+// them: the copies sit a median 60 s apart. So collapse on author + text
+// within a post regardless of time. A real same-user repeat ("giveaway spam"
+// posted twice) is collapsed too; for a sentiment dashboard that is the
+// right call — one voice, one comment. Keep the analyzed copy, then the one
+// with more likes, then the earliest.
+const normText = (t) => String(t || '').replace(/\s+/g, ' ').trim();
 function dedupeTwins(rows) {
   const best = new Map();
   for (const c of rows) {
-    const k = `${c.author_username || ''}|${String(c.text || '').trim()}|${String(c.published_at || '').slice(0, 19)}`;
+    const k = `${String(c.author_username || '').trim().toLowerCase()}|${normText(c.text)}`;
     const cur = best.get(k);
     if (!cur) { best.set(k, c); continue; }
     const curA = !!SENT_MAP[cur.sentiment], cA = !!SENT_MAP[c.sentiment];
-    if ((cA && !curA) || (cA === curA && (+c.likes_count || 0) > (+cur.likes_count || 0))) best.set(k, c);
+    const curL = +cur.likes_count || 0, cL = +c.likes_count || 0;
+    if ((cA && !curA) || (cA === curA && (cL > curL || (cL === curL && String(c.published_at || '') < String(cur.published_at || ''))))) best.set(k, c);
   }
   return [...best.values()];
 }
@@ -381,3 +388,5 @@ module.exports = async (req, res) => {
     return res.status(502).json({ error: e.message || 'tracker read failed', timings });
   }
 };
+
+module.exports.dedupeTwins = dedupeTwins; // exposed for tests

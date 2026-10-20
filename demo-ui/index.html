@@ -1954,6 +1954,20 @@ async function fetchPosts(url,tries=2){
  return null;
 }
 const sentiId=p=>String(p.postId).replace(/^(tiktok|instagram|facebook|x)-/,'');
+/* collapse twin comments (same author + text on one post) — the server does
+   this for /api/track, but older bridge-pushed snapshots never went through it */
+function sentiDedupe(cmts){
+ if(!Array.isArray(cmts)||cmts.length<2)return cmts;
+ const best=new Map();
+ for(const c of cmts){
+  const k=String(c.author||'').trim().toLowerCase()+'|'+String(c.text||'').replace(/\s+/g,' ').trim();
+  const cur=best.get(k);
+  if(!cur){best.set(k,c);continue}
+  const curA=/^(pos|neu|neg)$/.test(cur.sentiment),cA=/^(pos|neu|neg)$/.test(c.sentiment);
+  if((cA&&!curA)||(cA===curA&&(+c.likes||0)>(+cur.likes||0)))best.set(k,c);
+ }
+ return [...best.values()];
+}
 function sentiCompose(){
  const track=SENTI.track,snap=SENTI.snap;
  let posts;
@@ -1968,6 +1982,7 @@ function sentiCompose(){
    }else posts.push(p);
   }
  }else posts=((track||snap)||{posts:[]}).posts.slice();
+ for(const p of posts)p.comments=sentiDedupe(p.comments);
  const sig=posts.length+':'+posts.map(p=>p.postId).join(',');
  const changed=sig!==SENTI.sig;
  SENTI.sig=sig;SENTI.posts=posts;SENTI.src=((track||snap)||{}).source||'sentiment tracker';
