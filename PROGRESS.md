@@ -126,6 +126,15 @@ Status: **PASSED** by checker for the two criteria in scope.
 - Production: `GET /api/trends` 200, source "TrendRadar agent API", live true, boardGeneratedAt 2026-10-21T08:25:58Z, boardTotal 38, curatedBy claude, count 10; every trend keeps id, name, samsungFit, sound, clips and the other UI fields (external agent contract unchanged) and gains the additive trendId, onBrand, brief, products; fit scores 60-82, 8 of 10 sounds cleared, clips on all 10. `?all=1` returns 38.
 - Feed shows age: the Trends header pill renders "LIVE · TRENDRADAR · BOARD 21 Oct 2026, 12:25 GST" (Asia/Dubai per ADR-011) with no STALE pill while the board is under 36 h old. Headless render check: all 11 cards present in the DOM with the right names; they paint only after the scroll-reveal observer fires, which headless Chrome skipped this run, so the screenshot shows the KPI deck and header but not the grid. Not a product issue.
 
+## Phase 4, milestone M6 early items: Gulf time and Arabic rendering (commit c0f4b17, production live, main at tip 49ec084)
+
+Status: **PASSED** by checker.
+
+- Every date label on the live pages is Asia/Dubai with a GST suffix (ADR-011); comments, captions and drill-down snippets render with `dir="auto"` and `unicode-bidi: plaintext`.
+- Local: `npm test` 64/64, including the three new tests (Performance DATA AS OF and week labels in Gulf time independent of viewer locale; trends header board time in GST; comments and captions with `dir="auto"`). Served `index.html` is byte-identical to the branch file and contains `BIZ_TZ='Asia/Dubai'`, 5 `dir="auto"` spans, 5 `unicode-bidi:plaintext` rules and the DATA AS OF label.
+- Full render with production data embedded (login-bypassed copy of the served page, `/api/track?days=14`, `/api/sentiment`, `/api/projects` and `/api/trends` stubbed from live responses): Performance header "DATA AS OF 20 Oct 2026, 22:46 GST"; week-on-week bars labelled 2 Sept through 21 Oct in Gulf time; KPI deck 48 posts, 87K views, 5.1% engagement, 231 comments, 66% positive, 5 critical alerts, platform split TT 19 / IG 16 / X 7 / FB 6. Trends pill "BOARD 21 Oct 2026, 12:25 GST" verified under M4.
+- Observation handed to the builder (not blocking): the Critical Alerts list shows the same complaint twice ("Dear Samsung Pakistan Management…" by the same author), so the twin collapse does not reach that list, or the two copies differ in a field the collapse keys on.
+
 ## [GATE] Owner items blocking M2 part 2 (only the user can provide these)
 
 1. **Supabase connection string and anon key** (REBUILD_LOG Q-006): set `MAISTRO_DATABASE_URL` (direct Postgres connection string of Maistro's Supabase project) so `db/migrate.mjs` can apply migrations 001-006, and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for the browser client. Give them to either session or add them to Vercel env; neither session can read them from Vercel.
