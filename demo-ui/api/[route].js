@@ -23,6 +23,7 @@ const ROUTES = {
   health: 'health',
   pieces: 'pieces',
   decisions: 'decisions',
+  members: 'members',
 };
 
 module.exports = async (req, res) => {

@@ -11,7 +11,7 @@ test('login: GET reports configured/authenticated; POST sets an HttpOnly Secure 
   const h = api('login.js', ENV);
   try {
     let r = res(); await h.handler(req({ session: false }), r);
-    assert.deepEqual(r.body, { configured: true, authenticated: false });
+    assert.equal(r.body.configured, true); assert.equal(r.body.authenticated, false); assert.equal(r.body.member, null);
     r = res(); await h.handler(req({ method: 'POST', body: { password: 'nope' }, session: false }), r);
     assert.equal(r.statusCode, 401);
     r = res(); await h.handler(req({ method: 'POST', body: { password: 'open-sesame' } }), r);
@@ -20,7 +20,7 @@ test('login: GET reports configured/authenticated; POST sets an HttpOnly Secure 
     assert.match(setCookie, /^maistro_session=\d+\.[A-Za-z0-9_-]+; Path=\/; Max-Age=2592000; HttpOnly; Secure; SameSite=Lax$/);
     const cookie = setCookie.split(';')[0];
     r = res(); await h.handler(req({ headers: { cookie } }), r);
-    assert.deepEqual(r.body, { configured: true, authenticated: true });
+    assert.equal(r.body.configured, true); assert.equal(r.body.authenticated, true); assert.equal(r.body.member, null, 'a password session carries no member');
     r = res(); await h.handler(req({ method: 'DELETE' }), r);
     assert.equal(r.statusCode, 204); assert.match(r.headers['set-cookie'], /Max-Age=0/);
     assert.equal(r.headers['cache-control'], 'no-store');
@@ -31,7 +31,7 @@ test('login: unconfigured server → 503 on POST, configured:false on GET', asyn
   const h = api('login.js', { MAISTRO_SESSION_SECRET: undefined, MAISTRO_APP_PASSWORD: undefined });
   try {
     let r = res(); await h.handler(req({ method: 'POST', body: { password: 'x' } }), r); assert.equal(r.statusCode, 503);
-    r = res(); await h.handler(req({ session: false }), r); assert.deepEqual(r.body, { configured: false, authenticated: false });
+    r = res(); await h.handler(req({ session: false }), r); assert.equal(r.body.configured, false); assert.equal(r.body.authenticated, false);
   } finally { h.restore(); }
 });
 

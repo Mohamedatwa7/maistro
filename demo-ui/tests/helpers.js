@@ -121,7 +121,7 @@ function loadPage({ fetchImpl, hash = '#/', now = FROZEN_NOW } = {}) {
     head: { appendChild: noop },
   });
   set('window', g);
-  set('location', { hash, href: '' });
+  set('location', { hash, href: '', origin: 'https://www.ma1stro.com', pathname: '/', search: '' });
   set('history', { replaceState: noop });
   set('addEventListener', noop); set('removeEventListener', noop);
   set('requestAnimationFrame', () => 0); set('cancelAnimationFrame', noop);
@@ -131,7 +131,7 @@ function loadPage({ fetchImpl, hash = '#/', now = FROZEN_NOW } = {}) {
   set('innerHeight', 800); set('scrollY', 0); set('scrollTo', noop);
   set('setInterval', () => 0); set('clearInterval', noop);
   set('fetch', fetchImpl || (() => new Promise(() => {})));
-  const exportsList = 'CAL,rHome,rCalendar,rTrends,rStudio,rPerformance,rCopilot,STATE,TRENDS,PROJECTS,DELIVS,STAGES,SENTI,loadSentiment,sentiCompose,sentiDedupe,sentiFoldAcross,allComments,docLabel,pfPosts,pfStats,pfState,attachTo,delivTitle,syncStage,applyServerPieces,storeProducer,storeMeta,storeArtifact,SYNC,recordDecision,qcFixes,genCtx,radarToTrend,cpTrendPayload,cpPayloadFromText,esc,fmt,pct,stageArtifact,BOT_STAGE_IDX,GEN,QCRUN';
+  const exportsList = 'CAL,rHome,rCalendar,rTrends,rStudio,rPerformance,rCopilot,STATE,TRENDS,PROJECTS,DELIVS,STAGES,SENTI,loadSentiment,sentiCompose,sentiDedupe,sentiFoldAcross,allComments,docLabel,pfPosts,pfStats,pfState,attachTo,delivTitle,syncStage,applyServerPieces,storeProducer,storeMeta,storeArtifact,SYNC,recordDecision,AUTH,authFromHash,requestMagicLink,exchangeToken,qcFixes,genCtx,radarToTrend,cpTrendPayload,cpPayloadFromText,esc,fmt,pct,stageArtifact,BOT_STAGE_IDX,GEN,QCRUN';
   let X;
   try {
     X = eval(m[1] + `\n;({${exportsList}})`); // eslint-disable-line no-eval

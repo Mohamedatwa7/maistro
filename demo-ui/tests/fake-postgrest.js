@@ -9,6 +9,7 @@ const UNIQUE = {
   stages: [['piece_id', 'kind']],
   artifact_versions: [['stage_id', 'version']],
   adlcp_documents: [['artifact_version_id', 'kind']],
+  members: [['id'], ['email']],
 };
 
 function fakePostgrest(base = 'https://sb.test') {
@@ -44,6 +45,7 @@ function fakePostgrest(base = 'https://sb.test') {
     if (table === 'artifact_versions') r.created_at = now();
     if (table === 'approvals') r.decided_at = now();
     if (table === 'adlcp_documents') r.uploaded_at = now();
+    if (table === 'members') { r.active = r.active !== undefined ? r.active : true; r.created_at = r.created_at || now(); r.updated_at = now(); }
     return r;
   }
 

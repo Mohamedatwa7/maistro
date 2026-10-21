@@ -709,6 +709,7 @@ footer b{letter-spacing:.25em;font-weight:600}
             <input class="inp-l" id="l-pass" type="password" placeholder="••••••••">
           </div>
           <button class="btn btn-ai" type="submit" style="width:100%">Login</button>
+          <button class="btn btn-ghost" type="button" id="login-magic" style="width:100%">Email me a sign-in link</button>
           <div class="sep">Or continue with</div>
           <button class="btn btn-samsung" type="button" id="login-samsung" style="width:100%" aria-label="Login with Samsung Account">
             <span style="text-transform:none;letter-spacing:.02em;font-weight:500;font-size:12.5px">Login with</span>
@@ -781,6 +782,9 @@ footer b{letter-spacing:.25em;font-weight:600}
     <div class="sb-item" onclick="toast('<span style=&quot;font-size:12.5px&quot;>Settings are managed per subsidiary — demo build.</span>')">
       <span class="left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span>Settings</span></span>
       <span class="kbd">⌘,</span>
+    </div>
+    <div class="sb-item" id="sb-members" style="display:none" onclick="openMembers()">
+      <span class="left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Members</span></span>
     </div>
     <div class="sb-item" onclick="logout()">
       <span class="left"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg><span>Log out</span></span>
@@ -931,9 +935,49 @@ function reveal(){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIn
 })();
 
 /* ================= login flow ================= */
+const ROLE_LABELS={admin:'Admin',creator:'Creator',reviewer:'Reviewer',line_manager:'Line manager',adlcp_approver:'ADLCP approver',viewer:'Viewer'};
+async function openMembers(){
+ $('#modal').innerHTML=`<h3>Members</h3><p class="msub">Who may sign in, and with which role. Invitations arrive by e-mail as a sign-in link.</p><div id="mem-list" class="dim" style="font-size:12.5px">Loading…</div>
+  <div class="grid-2f" style="margin-top:14px"><div class="f-field"><label>E-mail</label><input class="inp-l" id="mem-email" type="email" placeholder="name@samsung.com"></div>
+   <div class="f-field"><label>Role</label><select class="inp-l" id="mem-role">${Object.entries(ROLE_LABELS).map(([v,l])=>`<option value="${v}"${v==='reviewer'?' selected':''}>${l}</option>`).join('')}</select></div></div>
+  <div class="f-field" style="margin-top:10px"><label>Name (optional)</label><input class="inp-l" id="mem-name" placeholder="Full name"></div>
+  <div id="mem-err" style="font-size:12px;color:#fda4af;margin-top:8px"></div>
+  <div class="mrow"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button><button class="btn btn-go btn-sm" id="mem-go" onclick="inviteMember()">Send invitation</button></div>`;
+ $('#modal-back').classList.add('open');
+ renderMembers();
+}
+function memberRow(m){
+ const me=AUTH.member&&AUTH.member.email===m.email;
+ return `<div class="qc-run-row" style="align-items:center"><div style="flex:1;min-width:0"><b style="font-size:12.5px">${esc(m.name||m.email)}</b>${m.name?` <span class="dim">${esc(m.email)}</span>`:''}${me?' <span class="mono dim" style="font-size:9px">YOU</span>':''}</div>
+  <select class="inp-l" style="width:auto;padding:4px 8px;font-size:11.5px" onchange="patchMember('${esc(m.id)}',{role:this.value})"${me?' disabled':''}>${Object.entries(ROLE_LABELS).map(([v,l])=>`<option value="${v}"${v===m.role?' selected':''}>${l}</option>`).join('')}</select>
+  ${me?'':`<button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="patchMember('${esc(m.id)}',{active:${m.active?'false':'true'}})">${m.active?'Deactivate':'Reactivate'}</button>`}</div>`;
+}
+async function renderMembers(){
+ const el=$('#mem-list');if(!el)return;
+ try{const r=await authFetch('/api/members');const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+  el.innerHTML=d.members.length?d.members.map(memberRow).join(''):'<p class="dim">No members yet.</p>';
+ }catch(e){el.innerHTML='<span style="color:#fda4af">'+esc(e.message)+'</span>'}
+}
+async function inviteMember(){
+ const email=(($('#mem-email')||{}).value||'').trim(),role=($('#mem-role')||{}).value,name=(($('#mem-name')||{}).value||'').trim();
+ const err=$('#mem-err'),go=$('#mem-go');if(err)err.textContent='';
+ if(!email){if(err)err.textContent='E-mail is required.';return}
+ if(go){go.disabled=true;go.textContent='Sending…'}
+ try{const r=await authFetch('/api/members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,role,name})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+  if($('#mem-email'))$('#mem-email').value='';if($('#mem-name'))$('#mem-name').value='';renderMembers();
+  toast(`<span style="font-size:12.5px"><b style="color:#6ee7b9">Invitation sent</b> to ${esc(email)} as ${esc(ROLE_LABELS[role]||role)}.</span>`);
+ }catch(e){if(err)err.textContent=e.message}
+ finally{if(go){go.disabled=false;go.textContent='Send invitation'}}
+}
+async function patchMember(id,patch){
+ try{const r=await authFetch('/api/members',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,...patch})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('HTTP '+r.status))}
+ catch(e){toast(`<b style="color:#fb7185">Members:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
+ renderMembers();
+}
 function doLogin(){
  $('#login').classList.add('out');
  document.body.classList.remove('locked');
+ const sm=$('#sb-members');if(sm)sm.style.display=AUTH.member&&AUTH.member.role==='admin'?'':'none';
  loadPieces();
  if(!location.hash||location.hash==='#')location.hash='#/';
  route();
@@ -946,9 +990,40 @@ function loginError(msg){
  if(!el){el=document.createElement('div');el.id='login-err';el.style.cssText='font-size:12px;color:#fda4af;margin-top:-6px';const f=$('#login-form');if(f)f.insertBefore(el,f.querySelector('button'))}
  el.textContent=msg;
 }
+/* Member sign-in (M2 part 2 c, ADR-003): the page asks Supabase Auth for a
+   magic link; the link returns here with #access_token=…, which is exchanged
+   at POST /api/login for the Maistro session cookie carrying id + role. */
+const AUTH={url:null,anonKey:null,magicLink:false,password:true,member:null};
+function authFromHash(hash){
+ const h=String(hash||'');
+ if(!/(^#|&)access_token=/.test(h))return null;
+ const ps=new URLSearchParams(h.replace(/^#/,''));
+ const t=ps.get('access_token');
+ return t?{access_token:t,type:ps.get('type')||null,error:ps.get('error_description')||null}:null;
+}
+async function requestMagicLink(email){
+ if(!AUTH.magicLink)throw new Error('Sign-in links are not configured on the server.');
+ const r=await fetch(AUTH.url+'/auth/v1/otp',{method:'POST',headers:{'Content-Type':'application/json',apikey:AUTH.anonKey},
+  body:JSON.stringify({email,create_user:true,options:{email_redirect_to:location.origin+'/'}})});
+ if(r.ok)return true;
+ const d=await r.json().catch(()=>({}));
+ throw new Error(d.msg||d.message||d.error_description||('Could not send the link ('+r.status+')'));
+}
+async function exchangeToken(tok){
+ const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({access_token:tok})});
+ const d=await r.json().catch(()=>({}));
+ if(r.ok){AUTH.member=d.member||null;return true}
+ throw new Error(r.status===403?(d.error||'You are not a Maistro member yet — ask an admin to invite you.'):r.status===401?'That sign-in link is invalid or has expired — request a new one.':(d.error||('Sign-in failed ('+r.status+')')));
+}
+async function submitMagic(){
+ const email=(($('#l-email')||{}).value||'').trim();
+ if(!/^[^\s@]+@[^\s@]+$/.test(email)){loginError('Enter your e-mail address first.');const i=$('#l-email');if(i&&i.focus)i.focus();return}
+ try{await requestMagicLink(email);loginError('');const b=$('#login-magic');if(b){b.textContent='Link sent — check '+email;b.disabled=true}}
+ catch(e){loginError(e.message)}
+}
 async function submitLogin(){
  const pw=($('#l-pass')||{}).value||'';
- if(!pw){loginError('Enter the workspace password.');const i=$('#l-pass');if(i&&i.focus)i.focus();return}
+ if(!pw){loginError(AUTH.magicLink?'Enter the workspace password, or request a sign-in link.':'Enter the workspace password.');const i=$('#l-pass');if(i&&i.focus)i.focus();return}
  try{
   const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
   if(r.status===204){doLogin();return}
@@ -958,8 +1033,22 @@ async function submitLogin(){
 }
 $('#login-form').addEventListener('submit',e=>{e.preventDefault();submitLogin()});
 $('#login-samsung').addEventListener('click',submitLogin);
-/* a valid session skips the overlay */
-(async()=>{try{const r=await fetch('/api/login');const d=await r.json();if(d&&d.authenticated)doLogin()}catch(e){}})();
+$('#login-magic').addEventListener('click',submitMagic);
+/* boot: a returning magic link is exchanged first; otherwise a valid session skips the overlay */
+(async()=>{
+ try{const r=await fetch('/api/login');const d=await r.json();
+  if(d&&d.auth){Object.assign(AUTH,{url:d.auth.url,anonKey:d.auth.anonKey,magicLink:!!d.auth.magicLink,password:!!d.auth.password});AUTH.member=d.member||null}
+  const mb=$('#login-magic');if(mb&&!AUTH.magicLink)mb.style.display='none';
+  const pf=$('#l-pass');if(pf&&!AUTH.password&&AUTH.magicLink){pf.closest('.f-field').style.display='none'}
+  const tok=authFromHash(location.hash);
+  if(tok){
+   history.replaceState(null,'',location.pathname+location.search);
+   try{await exchangeToken(tok.access_token);doLogin();toast(`<span style="font-size:12.5px"><b style="color:#6ee7b9">Signed in</b> as ${esc(AUTH.member.email)} · ${esc(AUTH.member.role.replace('_',' '))}</span>`);return}
+   catch(e){loginError(e.message);return}
+  }
+  if(d&&d.authenticated)doLogin();
+ }catch(e){}
+})();
 /* fetch for gated endpoints: a 401 means the session expired — back to the login screen */
 async function authFetch(url,init){
  const r=await fetch(url,init);
@@ -1114,6 +1203,7 @@ function wsSelect(n){
 document.addEventListener('click',e=>{const w=$('#ws');if(w&&w.classList.contains('open')&&!w.contains(e.target))w.classList.remove('open')});
 function logout(){
  fetch('/api/login',{method:'DELETE'}).catch(()=>{});
+ AUTH.member=null;const mb=$('#login-magic');if(mb){mb.disabled=false;mb.textContent='Email me a sign-in link'}
  location.hash='';document.body.classList.remove('bare','sb-collapsed');
  document.body.classList.add('locked');
  const l=$('#login');if(l)l.classList.remove('out');
@@ -3051,8 +3141,9 @@ function openApprove(id){
    <label class="upl"><span class="u1">Line manager approval</span><span class="u2">PDF / e-mail export — stored privately with a checksum</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.eml,.msg" onchange="uplOk(this,'line_manager')"></label>
    <label class="upl"><span class="u1">ADLCP approval</span><span class="u2">Signed document — stored privately with a checksum</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.eml,.msg" onchange="uplOk(this,'adlcp')"></label>
   </div>`:''}
-  <div class="f-field" style="margin-top:14px"><label>Your name</label><input class="inp-l" id="ap-name" placeholder="Full name"></div>
-  <div class="f-field" style="margin-top:12px"><label>Your role</label><select class="inp-l" id="ap-role">${(d.stage==='final'?[['line_manager','Line manager'],['adlcp_approver','ADLCP approver'],['admin','Admin']]:[['reviewer','Reviewer'],['line_manager','Line manager'],['adlcp_approver','ADLCP approver'],['admin','Admin']]).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>
+  <div class="f-field" style="margin-top:14px"><label>Your name</label><input class="inp-l" id="ap-name" placeholder="Full name" value="${esc((AUTH.member&&AUTH.member.name)||'')}"></div>
+  ${AUTH.member?`<div class="f-field" style="margin-top:12px"><label>Signed in as</label><div class="mono dim" style="font-size:11px;padding:8px 0">${esc(AUTH.member.email)} · ${esc(AUTH.member.role.replace('_',' '))}</div><input type="hidden" id="ap-role" value="${esc(AUTH.member.role)}"></div>`:
+  `<div class="f-field" style="margin-top:12px"><label>Your role</label><select class="inp-l" id="ap-role">${(d.stage==='final'?[['line_manager','Line manager'],['adlcp_approver','ADLCP approver'],['admin','Admin']]:[['reviewer','Reviewer'],['line_manager','Line manager'],['adlcp_approver','ADLCP approver'],['admin','Admin']]).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>`}
   <div class="f-field" style="margin-top:12px"><label>Team · relevant information</label><input class="inp-l" id="ap-info" placeholder="e.g. Content lead · KSA/UAE · s.almansouri@samsung.com"></div>
   <div id="ap-err" style="font-size:12px;color:#fda4af;margin-top:8px"></div>
   <div class="mrow"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
@@ -3092,7 +3183,7 @@ function openReject(id){
   <h3>Reject — ${esc(pr.title)}</h3>
   <p class="msub">${esc(d.title)}. Your reason is sent back to ${esc(d.by)}, who reworks the deliverable and re-uploads it here.</p>
   <div class="f-field"><label>Reason for rejection</label><textarea id="rj-reason" rows="4" placeholder="What needs to change before this can pass?"></textarea></div>
-  <div class="f-field" style="margin-top:12px"><label>Your name</label><input class="inp-l" id="rj-name" placeholder="Full name"></div>
+  <div class="f-field" style="margin-top:12px"><label>Your name</label><input class="inp-l" id="rj-name" placeholder="Full name" value="${esc((AUTH.member&&AUTH.member.name)||'')}"></div>
   <div id="rj-err" style="font-size:12px;color:#fda4af;margin-top:8px"></div>
   <div class="mrow"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
    <button class="btn btn-alert btn-sm" id="rj-go" onclick="confirmReject('${id}')">Send back</button></div>`;

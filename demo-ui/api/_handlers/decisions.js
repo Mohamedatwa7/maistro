@@ -23,14 +23,19 @@ module.exports = async (req, res) => {
   if (!requireSession(req, res)) return;
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return res.status(503).json({ error: 'storage is not configured' });
   const b = req.body || {};
+  // Under the interim password session the role is the signer's own claim.
+  // A member session always supplies the role itself; MAISTRO_REQUIRE_MEMBER=1
+  // closes the claim path entirely once the team has signed in (ADR-003).
+  if (!req.member && process.env.MAISTRO_REQUIRE_MEMBER === '1') return res.status(403).json({ error: 'a member sign-in is required to record decisions', code: 'member_required' });
   try {
     const actorId = req.member ? req.member.id : null;
-    const role = req.member && req.member.role ? req.member.role : b.role; // a real member's role outranks the claimed one
+    const role = req.member && req.member.role ? req.member.role : b.role;
+    const name = req.member && req.member.name && !b.name ? req.member.name : b.name;
     if (b.action === 'reopen') {
       const out = await reopen(String(b.pieceId || ''), String(b.stage || ''), role);
       return res.status(200).json({ ok: true, ...out });
     }
-    const out = await decide(String(b.pieceId || ''), String(b.stage || ''), { ...b, role, actorId });
+    const out = await decide(String(b.pieceId || ''), String(b.stage || ''), { ...b, name, role, actorId });
     return res.status(200).json({ ok: true, ...out });
   } catch (e) {
     if (e instanceof StoreError) return res.status(e.status).json({ error: e.message, code: e.code });

@@ -16,7 +16,8 @@ Unknown routes return `404 {"error": "not found"}`.
 | `/api/sentiment` | GET / POST | POST: `Bearer MAISTRO_INGEST_KEY` | website / tracker push bridge |
 | `/api/track` | GET | none (`?store=1` needs the ingest key; the daily cron authenticates with `CRON_SECRET`) | website Performance page, Vercel cron |
 | `/api/ingest` | POST | `Bearer MAISTRO_INGEST_KEY` | external Hermes agent |
-| `/api/login` | GET / POST / DELETE | password → session cookie | website |
+| `/api/login` | GET / POST / DELETE | magic-link token or password → session cookie | website |
+| `/api/members` | GET / POST / PATCH | admin member session | website (invite, roles) |
 | `/api/hermes` | POST | session cookie | website (Dispatch to Hermes) |
 | `/api/director` | POST | session cookie | website (Studio) |
 | `/api/higgsfield` | POST / GET | session cookie | website (Studio) |
@@ -74,13 +75,35 @@ missing. Names only, never values.
 
 ---
 
-## /api/login — interim session
+## /api/login — sessions (ADR-003)
 
-- `GET` → `{configured, authenticated}`.
-- `POST {password}` → `204` + `Set-Cookie: maistro_session=…` · `401 wrong
-  password` · `503` when `MAISTRO_APP_PASSWORD` / `MAISTRO_SESSION_SECRET`
-  are not set.
+- `GET` → `{configured, authenticated, member:{email,role,name}|null,
+  auth:{url, anonKey, magicLink, password}}`. The anon key is public by
+  design: the page posts `{email, create_user:true, options:{email_redirect_to}}`
+  to `<url>/auth/v1/otp` with it to request a magic link.
+- `POST {access_token}` → the token from the magic link is verified with
+  Supabase Auth (`/auth/v1/user`); an active row in `members` yields a
+  **member session** cookie carrying id, e-mail, role and name (HMAC-signed,
+  not editable client-side) → `200 {ok, member}` · `401` invalid/expired
+  link · `403 not_a_member` (ask an admin to invite you). An address listed
+  in `MAISTRO_ADMIN_EMAILS` becomes admin on first sign-in.
+- `POST {password}` → the interim shared-password session (`204` + cookie,
+  no identity) while `MAISTRO_APP_PASSWORD` is set; unset it to retire the
+  path. `MAISTRO_REQUIRE_MEMBER=1` makes `/api/decisions` refuse password
+  sessions.
 - `DELETE` → `204`, clears the cookie.
+
+## /api/members — who may sign in (admin member session only)
+
+- `GET` → `{count, members:[{id,email,role,name,active,createdAt}]}`.
+- `POST {email, role, name?}` → invites through Supabase Auth (the person
+  receives a sign-in link) and creates the `members` row → `{ok, member}` ·
+  `409` already a member · `422` bad e-mail or role.
+- `PATCH {id, role?, active?, name?}` → `{ok, member}`; an admin cannot
+  deactivate themselves.
+
+Roles: admin · creator · reviewer · line_manager · adlcp_approver · viewer
+(what each may do is in `src/domain/stages.js`).
 
 ---
 

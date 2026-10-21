@@ -89,3 +89,23 @@ test('applyServerPieces rebuilds a studio piece the browser lost, maps stage sta
     assert.equal(X.applyServerPieces(server), 0, 'idempotent on a second pass');
   } finally { X.restore(); }
 });
+
+test('member sign-in on the page: the magic-link hash is recognised, the token is exchanged at /api/login, and the OTP request carries the anon key and the redirect', async () => {
+  const calls = [];
+  const X = loadPage({ fetchImpl: async (u, init) => { calls.push({ url: String(u), init }); if (String(u).includes('/auth/v1/otp')) return new Response('{}', { status: 200 }); if (String(u).includes('/api/login')) return new Response(JSON.stringify({ ok: true, member: { email: 'o@samsung.com', role: 'admin', name: null } }), { status: 200 }); return new Promise(() => {}); } });
+  try {
+    assert.equal(X.authFromHash('#/trends'), null);
+    assert.equal(X.authFromHash(''), null);
+    assert.deepEqual(X.authFromHash('#access_token=abc.def&expires_in=3600&refresh_token=r&token_type=bearer&type=magiclink'), { access_token: 'abc.def', type: 'magiclink', error: null });
+    Object.assign(X.AUTH, { url: 'https://sb.test', anonKey: 'anon', magicLink: true });
+    await X.requestMagicLink('o@samsung.com');
+    const otp = calls.find((c) => c.url === 'https://sb.test/auth/v1/otp');
+    assert.equal(otp.init.headers.apikey, 'anon');
+    assert.deepEqual(JSON.parse(otp.init.body), { email: 'o@samsung.com', create_user: true, options: { email_redirect_to: 'https://www.ma1stro.com/' } });
+    assert.equal(await X.exchangeToken('abc.def'), true);
+    assert.deepEqual(X.AUTH.member, { email: 'o@samsung.com', role: 'admin', name: null });
+    assert.deepEqual(JSON.parse(calls.find((c) => c.url === '/api/login' && c.init && c.init.method === 'POST').init.body), { access_token: 'abc.def' });
+    X.AUTH.magicLink = false;
+    await assert.rejects(X.requestMagicLink('o@samsung.com'), /not configured/);
+  } finally { X.restore(); }
+});
