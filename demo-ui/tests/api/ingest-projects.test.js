@@ -31,7 +31,13 @@ test('ingest: method, key, auth, stage and artifact validation (observed status 
 
 test('ingest: plan mints an ext- projectId and inserts one campaign_events row; later stages reuse it', async () => {
   const inserted = [];
-  const f = mockFetch([['https://sb.test/rest/v1/campaign_events', (url, init) => { inserted.push(JSON.parse(init.body)); return new Response('', { status: 201 }); }]]);
+  const f = mockFetch([['https://sb.test/rest/v1/campaign_events', (url, init) => {
+    if (init.method === 'POST') { inserted.push(JSON.parse(init.body)); return new Response('', { status: 201 }); }
+    // GET: the latest stored event for (project, stage) — what the idempotency check reads
+    const m = url.match(/project_id=eq\.([^&]+)&stage=eq\.([^&]+)/);
+    const latest = [...inserted].reverse().find((e) => e.project_id === decodeURIComponent(m[1]) && e.stage === decodeURIComponent(m[2]));
+    return json(latest ? [{ agent: latest.agent, artifact: latest.artifact, at: '2026-10-21T10:00:00Z' }] : []);
+  }]]);
   const h = api('ingest.js', { MAISTRO_INGEST_KEY: 'k1', ...SB });
   try {
     let r = res();
@@ -47,9 +53,16 @@ test('ingest: plan mints an ext- projectId and inserts one campaign_events row; 
     await h.handler(req({ method: 'POST', body: { projectId: pid, stage: 'brief', agent: 'Quill', artifact: { objective: 'o', msg: 'm', markets: [], platforms: [], deadline: 'd', mandatories: [] } }, headers: { Authorization: 'Bearer k1' } }), r);
     assert.equal(r.statusCode, 200);
     assert.equal(inserted[1].project_id, pid);
-    // observed behaviour, documented in AUDIT C-11: no idempotency — a second identical push inserts again
+    // M1 idempotency (AUDIT C-11): an identical re-push is acknowledged, not inserted again
     r = res();
-    await h.handler(req({ method: 'POST', body: { projectId: pid, stage: 'brief', artifact: { objective: 'o', msg: 'm', markets: [], platforms: [], deadline: 'd', mandatories: [] } }, headers: { Authorization: 'Bearer k1' } }), r);
+    await h.handler(req({ method: 'POST', body: { projectId: pid, stage: 'brief', artifact: { mandatories: [], deadline: 'd', platforms: [], markets: [], msg: 'm', objective: 'o' } }, headers: { Authorization: 'Bearer k1' } }), r);
+    assert.equal(r.statusCode, 200);
+    assert.equal(r.body.duplicate, true, 'key order does not matter — the comparison is structural');
+    assert.equal(inserted.length, 2);
+    // a CHANGED artifact for the same stage is a new version and is inserted
+    r = res();
+    await h.handler(req({ method: 'POST', body: { projectId: pid, stage: 'brief', artifact: { objective: 'o2', msg: 'm', markets: [], platforms: [], deadline: 'd', mandatories: [] } }, headers: { Authorization: 'Bearer k1' } }), r);
+    assert.equal(r.body.duplicate, undefined);
     assert.equal(inserted.length, 3);
     assert.equal(r.headers['cache-control'], 'no-store');
   } finally { f.restore(); h.restore(); }

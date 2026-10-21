@@ -13,7 +13,19 @@
 //   artifact: { ... }     // stage-shaped payload, see API.md
 // }
 
-const { insertEvent } = require('./_supabase.js');
+const { insertEvent, queryRows } = require('./_supabase.js');
+
+// Idempotency (M1, AUDIT C-11): an agent that retries a push must not create
+// a second event. Without a schema change the key is the content itself —
+// if the latest stored event for (projectId, stage) carries an identical
+// artifact, the push is acknowledged as a duplicate and nothing is written.
+// (GET /api/projects already lets the NEWEST event per stage win, so a
+// corrected re-push supersedes the old one; only exact repeats are folded.)
+function stable(v) {
+  if (Array.isArray(v)) return '[' + v.map(stable).join(',') + ']';
+  if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + stable(v[k])).join(',') + '}';
+  return JSON.stringify(v);
+}
 const { bearerMatches } = require('./_auth.js');
 
 const STAGE_AGENTS = {
@@ -95,6 +107,12 @@ module.exports = async (req, res) => {
 
   try {
     const agentName = agent || STAGE_AGENTS[stage];
+    const latest = await queryRows('campaign_events',
+      `select=agent,artifact,at&project_id=eq.${encodeURIComponent(projectId)}&stage=eq.${encodeURIComponent(stage)}&order=at.desc&limit=1`);
+    if (latest.length && stable(latest[0].artifact) === stable(artifact)) {
+      res.status(200).json({ ok: true, projectId, stage, agent: latest[0].agent || agentName, duplicate: true, at: latest[0].at });
+      return;
+    }
     await insertEvent({
       project_id: projectId,
       stage,
