@@ -1,10 +1,54 @@
-# Maistro Demo API
+# Maistro API
 
-Base URL: `https://maistro-demo.vercel.app`
+Base URL: `https://www.ma1stro.com` (Vercel project `maistro-demo`; the
+`*.vercel.app` deployment URLs work too). Every route below is served by one
+Vercel function, `api/[route].js`, which dispatches to `api/_handlers/<route>.js`
+(the project is on the Hobby plan, which caps a deployment at 12 functions).
+Unknown routes return `404 {"error": "not found"}`.
 
-Two endpoints back the demo site and are also public for external consumers
-(e.g. a standalone Hermes agent). No authentication is currently required on
-`/api/trends`; `/api/hermes` uses the server-side `ANTHROPIC_API_KEY`.
+## Routes and who may call them
+
+| Route | Methods | Auth | Used by |
+|---|---|---|---|
+| `/api/health` | GET | none | deploy checks |
+| `/api/trends` | GET | none | website, external agents |
+| `/api/projects` | GET | none | website |
+| `/api/sentiment` | GET / POST | POST: `Bearer MAISTRO_INGEST_KEY` | website / tracker push bridge |
+| `/api/track` | GET | none (`?store=1` needs the ingest key; the daily cron authenticates with `CRON_SECRET`) | website Performance page, Vercel cron |
+| `/api/ingest` | POST | `Bearer MAISTRO_INGEST_KEY` | external Hermes agent |
+| `/api/login` | GET / POST / DELETE | password → session cookie | website |
+| `/api/hermes` | POST | session cookie | website (Dispatch to Hermes) |
+| `/api/director` | POST | session cookie | website (Studio) |
+| `/api/higgsfield` | POST / GET | session cookie | website (Studio) |
+| `/api/qc-f1x8` | POST / GET | session cookie | website (Studio QC) |
+| `/api/upload` | POST / GET | session cookie | website (reference photos, approval documents) |
+| `/api/translate` | POST | session cookie | website (comment translation) |
+
+"Session cookie" is the interim single-password login: `POST /api/login` sets
+an HttpOnly, Secure, SameSite=Lax cookie `maistro_session` (HMAC over an
+expiry, 12 h) and the gated routes answer `401` without it. Bearer checks are
+constant-time. Request bodies are validated at the door (`api/_schemas.js`):
+a malformed body is `400` (hermes) or `422` (director, ingest) with a
+`problems[]` list of field paths. All responses are JSON; CORS is open on the
+public routes.
+
+---
+
+## GET /api/health — deploy check
+
+`200 {ok:true, revision, environment, configured:{NAME:true|false,…},
+missing:[], checkedAt}`; `503` with `ok:false` when a required secret is
+missing. Names only, never values.
+
+---
+
+## /api/login — interim session
+
+- `GET` → `{configured, authenticated}`.
+- `POST {password}` → `204` + `Set-Cookie: maistro_session=…` · `401 wrong
+  password` · `503` when `MAISTRO_APP_PASSWORD` / `MAISTRO_SESSION_SECRET`
+  are not set.
+- `DELETE` → `204`, clears the cookie.
 
 ---
 
@@ -62,6 +106,35 @@ minutes (`s-maxage=900, stale-while-revalidate=3600`). CORS is open (`*`).
 ```
 
 Errors return `502 {"error": "..."}` (e.g. kymah.com markup changed).
+
+---
+
+## GET /api/track — live read of the Consumer Sentiment Tracker
+
+Reads the samsungtrack Supabase project directly (`TRACK_SUPABASE_URL` /
+`TRACK_SUPABASE_KEY`), so Maistro rides the tracker's daily Apify schedule
+instead of running duplicate pulls. `?days=N` (default 60, max 90) selects
+the window. The Performance page reads 14 days first and widens to 60 in the
+background.
+
+`200 {source, fetchedAt, days, count, comments:{seen, matched, partial},
+stored, timings, posts:[…]}` — the same post shape as `/api/sentiment`;
+twin comments (same author and text) are collapsed server-side. Edge-cached
+10 minutes (`no-store` when the comment read was partial); `502` with the
+query timings when the tracker DB times out; `503` when not configured.
+
+The Vercel cron (`vercel.json`, 06:30 UTC daily, authenticated by
+`CRON_SECRET`) calls this and stores every post as a snapshot into Maistro's
+`sentiment_posts`, falling back to a 14-day window if the 60-day read times
+out. A manual store is `?store=1` with the ingest-key bearer.
+
+---
+
+## POST /api/translate — comment translation
+
+`{text (≤1500 chars), targetLang?: "en"}` → `{translatedText,
+detectedLanguage}`; `422` when text is empty; `502` when the translation
+service fails. Cached one day at the edge.
 
 ---
 
@@ -210,13 +283,6 @@ Snapshots are append-only; the latest per `postId` wins on read.
 first. The Maistro Performance page polls this every 60 s and renders each
 post with its metrics, a positive/neutral/negative sentiment bar, and the
 captured comments tagged by sentiment.
-
----
-
-## POST /api/hermes — built-in generator (fallback)
-
-The demo's internal Claude-powered chain (see above section) remains available
-for dispatching from the website UI when the external Hermes isn't running.
 
 ---
 
