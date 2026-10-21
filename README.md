@@ -18,7 +18,7 @@ The product today is `demo-ui/`: a single-file app (`index.html`) plus Vercel se
 ```
 cd demo-ui
 npm ci
-npm test          # 49 tests on recorded fixtures — no network, no paid APIs
+npm test          # 99 tests on recorded fixtures and an in-memory PostgREST — no network, no paid APIs
 npm run check     # syntax check of every function
 vercel dev        # local server; functions need the environment variables below
 ```
@@ -27,11 +27,11 @@ Deploy (until the project is git-connected, see MIGRATION_PLAN M1): from a clean
 
 ## Environment variables (names; values live in Vercel)
 
-`ANTHROPIC_API_KEY` · `HF_CREDENTIALS` (`key-id:key-secret`) · `SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY` · `TRACK_SUPABASE_URL` · `TRACK_SUPABASE_KEY` · `MAISTRO_INGEST_KEY` · `MAISTRO_F1X8_BASE_URL` (optional) · `QC_ASSET_HOSTS` (optional) · `CRON_SECRET` · `MAISTRO_SESSION_SECRET` · `MAISTRO_APP_PASSWORD`
+`ANTHROPIC_API_KEY` · `HF_CREDENTIALS` (`key-id:key-secret`) · `SUPABASE_URL` · `SUPABASE_SERVICE_ROLE_KEY` · `NEXT_PUBLIC_SUPABASE_ANON_KEY` · `MAISTRO_DATABASE_URL` (migrations only) · `TRACK_SUPABASE_URL` · `TRACK_SUPABASE_KEY` · `MAISTRO_INGEST_KEY` · `TRENDRADAR_AGENT_KEY` · `TRENDRADAR_BASE_URL` (default) · `MAISTRO_F1X8_BASE_URL` (optional) · `QC_ASSET_HOSTS` (optional) · `CRON_SECRET` · `MAISTRO_SESSION_SECRET` · `MAISTRO_APP_PASSWORD` (interim) · `MAISTRO_ADMIN_EMAILS` · `MAISTRO_REQUIRE_MEMBER` (optional). The full table is in `ARCHITECTURE_CURRENT.md` §1.3.
 
 ## What is where
 
-- `demo-ui/api/` — the twelve functions (trends, hermes, director, higgsfield, qc-f1x8, ingest, projects, sentiment, track, upload, translate, login) and shared helpers (`_http`, `_auth`, `_supabase`, `_brand`).
+- `demo-ui/api/` — one Vercel function (`[route].js`) dispatching 17 routes to `_handlers/` (trends, hermes, director, higgsfield, qc-f1x8, ingest, projects, sentiment, track, upload, translate, login, health, pieces, decisions, members, jobs); the campaign store (`_store.js`), job service (`_jobs.js`), sessions and members (`_auth.js`, `_members.js`), adapters (`_adapters/`), schemas and helpers. Contracts in `demo-ui/API.md`; the domain state machine in `demo-ui/src/domain/stages.js`; migrations in `demo-ui/db/`.
 - `demo-ui/tests/` — characterization, golden and contract tests with their recorded fixtures; CI in `.github/workflows/demo-ui.yml`.
 - `legacy/engine/` — the September 2026 Python/LangGraph design and scaffold. Not used by the product, kept for reference only (owner decision 2026-10-21).
 - Upstream tools (separate repositories, read-only from here): Trend Radar (`Mohamedatwa7/trend-radar`, kymah.com), the Consumer Sentiment Tracker (`Mohamedatwa7/SamsungSentiment`), F1X8 (Modal).
