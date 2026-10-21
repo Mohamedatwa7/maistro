@@ -187,6 +187,21 @@ Open items for the builder (none blocks this drop):
 2. **Ingest to an approved stage diverges.** A push to an approved stage is still accepted into `campaign_events` (what the legacy page reads) while the store answers 409 and the response says `stored:false`. After part (b) either the page reads from the store or ingest refuses pushes to approved stages; otherwise an external push can overwrite what reviewers see after approval.
 3. **`listPieces` query size.** The `id=in.(...)` filters carry up to 200 pieces x 8 stage ids in the URL (about 60 KB), which will exceed proxy header limits long before the limit of 200 is reached. Query by `piece_id` in batches or lower the default; fine at today's volume.
 
+## M2 part 2 (b): legacy page writes through, server decides approvals (commits e51807e, 6f237f4; log d8c2394)
+
+Status: **PASSED** by checker. The M2 done-when row ("login works; a Studio campaign created in the legacy UI is visible in the database") is now covered end to end by the harness (`tests/page/sync.test.js` drives the page's sync functions against the fake PostgREST) but still needs one click-through by the owner, because neither session holds the app password.
+
+- Tests: `npm test` 81/81 green here; typecheck and check clean. CI was still running for d8c2394 at verification time.
+- Page: `syncStage` is called from `attachTo`, both dispatch-loop points, the Studio plan fill and `qcFinishIfSettled`; QC runs are stripped of `heatmap`/`attention_heatmap` before storage; `confirmApprove` and `confirmReject` are async and only mutate local state after a 200 from `/api/decisions`, with the server's error shown in `#ap-err`/`#rj-err` and the button re-enabled; the approve modal offers only line_manager/adlcp_approver/admin on final; `doLogin` calls `loadPieces`, whose `applyServerPieces` lets the server win and skips external pieces. All helpers it relies on (`delivTitle`, `BOT_STAGE_IDX`, `fmtStamp`, `GEN_AGENT`, `authFetch`) exist in the page.
+- Checker items 2 and 3 from part (a) are closed: an ingest push onto an approved stage now answers 409 `approved_immutable` before anything reaches `campaign_events` (test asserts the event count is unchanged); `listPieces` chunks every `id=in.(...)` read at 40 ids, default 100, cap 200 (test: 95 pieces produce 3 chunked reads under 2.5 KB each, and `limit=9999` is capped).
+- Production: `/` byte-identical to the committed `index.html` (sha256 1da81d7f…, 291951 bytes); health ok, missing []; pieces GET 401, decisions POST 401, ingest POST 401 without credentials.
+
+Open items (none blocks this drop):
+
+1. **Stage order is still not enforced on the server** (half of AUDIT A-05). `recordVersion` only refuses an approved stage; it never runs the `generate`/`generated` transitions or `readyStages`, so a version can land on a `locked` stage and `final` can be approved while `plan` is unapproved, as long as `final` has a version. The legacy page produces stages in any order, so enforcing this now would break the write-through; the right moment is M3, when generation moves server-side. Record A-05 as half-closed (documents, immutability, one-approved-per-version, roles) rather than closed.
+2. **Self-claimed role** stays open for part (c), as agreed.
+3. Minor: `syncStage` is fire-and-forget, so an approval clicked within a second of generation can hit 409 `no_version`; the error is shown and a retry succeeds. Awaiting the sync before enabling the approve button would remove it.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Rotate the pasted secrets** (new, from 7b50e15): the database password, the anon key and the service-role key were pasted in chat. Reset the database password (Supabase, Project Settings, Database, Reset) and rotate the keys when convenient, then re-add them with `vercel env add`. Until then they stay valid; this is hygiene, not an outage.
