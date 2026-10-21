@@ -6,6 +6,7 @@ const { fetchT } = require('../_http.js');
 
 const MODELS = {
   video: 'bytedance/seedance-2.5/text-to-video',
+  imageVideo: 'bytedance/seedance-2.5/image-to-video', // 6.6: a storyboard keyframe → a clip (HIGGSFIELD.md §2.2: image_url sets the framing; no aspect_ratio)
   image: 'higgsfield-ai/soul/v2/standard',
 };
 const API = 'https://api.higgsfield.ai';
@@ -33,7 +34,10 @@ function normalizeRequest(b = {}) {
   const duration = Math.min(30, Math.max(4, parseInt(b.duration, 10) || 5));
   const batch = kind === 'image' && Number(b.batch) === 4 ? 4 : 1; // SOUL V2 batch_size is 1 or 4
   const seed = kind === 'image' && Number.isInteger(b.seed) && b.seed >= 1 && b.seed <= 1000000 ? b.seed : null; // SOUL V2 seed range (docs)
-  return { kind, prompt, resolution, aspect_ratio, ref, duration, batch, seed };
+  const imageUrl = kind === 'video' && typeof b.imageUrl === 'string' && /^https:\/\//.test(b.imageUrl) ? b.imageUrl : null;
+  const endImageUrl = imageUrl && typeof b.endImageUrl === 'string' && /^https:\/\//.test(b.endImageUrl) ? b.endImageUrl : null;
+  const generateAudio = b.generateAudio === undefined ? true : Boolean(b.generateAudio);
+  return { kind, prompt, resolution, aspect_ratio, ref, duration, batch, seed, imageUrl, endImageUrl, generateAudio };
 }
 
 // Error classification from the documented status codes (HIGGSFIELD.md §1):
@@ -66,7 +70,7 @@ function providerError(r, body) {
 async function submit(reqBody, opts = {}) {
   const creds = credentials();
   if (!creds) throw Object.assign(new Error('HF_CREDENTIALS is not configured'), { status: 503 });
-  const { kind, prompt, resolution, aspect_ratio, ref, duration, batch, seed } = normalizeRequest(reqBody);
+  const { kind, prompt, resolution, aspect_ratio, ref, duration, batch, seed, imageUrl, endImageUrl, generateAudio } = normalizeRequest(reqBody);
   const idem = opts.idempotencyKey ? { 'Idempotency-Key': String(opts.idempotencyKey).slice(0, 255) } : {};
 
   if (kind === 'image' && ref) {
@@ -99,8 +103,11 @@ async function submit(reqBody, opts = {}) {
   // retries and headers are ours and the path is testable with recordings.
   const input = kind === 'image'
     ? { prompt, aspect_ratio, resolution: resolution === '480p' ? '720p' : resolution, batch_size: batch, ...(seed != null ? { seed } : {}) }
-    : { prompt, aspect_ratio, resolution, duration, generate_audio: true };
-  const r = await fetchT(`${API}/${MODELS[kind]}`, {
+    : imageUrl
+      ? { image_url: imageUrl, prompt, duration, resolution, generate_audio: generateAudio, bitrate_mode: 'high', ...(endImageUrl ? { end_image_url: endImageUrl } : {}) }
+      : { prompt, aspect_ratio, resolution, duration, generate_audio: generateAudio };
+  const endpoint = kind === 'video' && imageUrl ? MODELS.imageVideo : MODELS[kind];
+  const r = await fetchT(`${API}/${endpoint}`, {
     method: 'POST',
     headers: { Authorization: `Key ${creds}`, 'Content-Type': 'application/json', 'User-Agent': 'MaistroDemo/1.0', ...idem },
     body: JSON.stringify(input),

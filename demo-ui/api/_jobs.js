@@ -126,6 +126,13 @@ async function advance(job) {
       if (attempts > MAX_SUBMIT_ATTEMPTS) { await fail(job, 'failed', job.error || 'submit failed repeatedly'); return 'failed'; }
       await patchRows('jobs', `id=eq.${q(job.id)}`, { attempts });
       try {
+        // 6.6: a clip job names its keyframe by private path; the signed URL is minted once
+        // (24 h) and kept on the job so the idempotent body is identical on every retry
+        if (job.kind === 'higgsfield_video' && job.payload.imageAssetPath && !job.payload.imageUrl) {
+          const imageUrl = await storage.signedUrl(job.payload.imageAssetPath, 24 * 3600);
+          job = { ...job, payload: { ...job.payload, imageUrl } };
+          await patchRows('jobs', `id=eq.${q(job.id)}`, { payload: job.payload });
+        }
         const sub = job.kind.startsWith('higgsfield')
           ? await higgsfield.submit({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }, { idempotencyKey: job.id })
           : await f1x8.submit({ kind: job.kind === 'f1x8_video' ? 'video' : 'image', assetUrl: await assetUrlFor(job.payload), title: job.payload.title, description: job.payload.description });
@@ -168,11 +175,12 @@ async function fail(job, state, error) {
     // 6.5: a failed keyframe marks its shot; the other shots keep rendering
     try {
       const { versionId, shot } = job.payload.attachTo;
+      const slot = job.kind === 'higgsfield_video' ? 'clip' : 'keyframe';
       await updateShots(versionId, (payload) => {
         if (!Array.isArray(payload.shots) || !payload.shots[shot - 1]) return null;
         const shots = payload.shots.map((s) => ({ ...s }));
-        const prev = shots[shot - 1].keyframe;
-        shots[shot - 1] = { ...shots[shot - 1], keyframe: prev && prev.state === 'rendered' ? { ...prev, lastError: String(error || '').slice(0, 200) } : { state: 'failed', error: String(error || '').slice(0, 200), jobId: job.id, at: nowIso() } };
+        const prev = shots[shot - 1][slot];
+        shots[shot - 1] = { ...shots[shot - 1], [slot]: prev && prev.state === 'rendered' ? { ...prev, lastError: String(error || '').slice(0, 200) } : { state: 'failed', error: String(error || '').slice(0, 200), jobId: job.id, at: nowIso() } };
         return { ...payload, shots };
       });
     } catch (e) { console.warn('[jobs] shot failure could not be recorded:', e.message); }
@@ -224,7 +232,7 @@ async function pollRender(job) {
     if (meta.direction) { artifact.direction = meta.direction; artifact.directionVersion = meta.directionVersion || null; }
     if (meta.overlay) { artifact.overlay = meta.overlay; artifact.textSide = meta.textSide || null; artifact.promptVersion = meta.promptVersion || null; artifact.moodApproved = Boolean(meta.moodApproved); }
     // 6.5: a storyboard keyframe fills a shot slot on an existing version instead of making a new one
-    if (job.payload.attachTo && !isVideo) return attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage });
+    if (job.payload.attachTo) return attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage, slot: isVideo ? 'clip' : 'keyframe' });
     let recorded;
     try {
       // the stage is `generating`; recordVersion needs a non-approved stage and sets `generated`
@@ -292,36 +300,37 @@ async function settleBoardStage(job) {
  *  version named by the job, keep the previous keyframe in the shot's history, queue the
  *  vision check (anchored to the selected mood tiles and the previous shot's keyframe) and,
  *  on the hook shot, the lightweight F1X8 check. The version number does not change. */
-async function attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage }) {
+async function attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage, slot = 'keyframe' }) {
   const { versionId, shot } = job.payload.attachTo;
-  const keyframe = { state: 'rendered', url: sourceUrl, assetPath: copy ? copy.path : null, sha256: copy ? copy.sha256 : null, size: copy ? copy.size : null, jobId: job.id, prompt: meta.prompt || '', seed: job.payload.seed != null ? job.payload.seed : null, v: job.payload.v || 0, at: nowIso() };
+  const history = `${slot}History`;
+  const keyframe = { state: 'rendered', url: sourceUrl, assetPath: copy ? copy.path : null, sha256: copy ? copy.sha256 : null, size: copy ? copy.size : null, jobId: job.id, prompt: meta.prompt || '', seed: job.payload.seed != null ? job.payload.seed : null, v: job.payload.v || 0, at: nowIso(), ...(slot === 'clip' ? { durationS: job.payload.duration || null, resolution: job.payload.resolution || null, fromKeyframe: job.payload.imageAssetPath || null } : {}) };
   let shots = null;
   try {
     const r = await updateShots(versionId, (payload) => {
       if (!Array.isArray(payload.shots) || !payload.shots[shot - 1]) return null;
       const next = payload.shots.map((s) => ({ ...s }));
-      const prev = next[shot - 1].keyframe;
-      next[shot - 1] = { ...next[shot - 1], keyframe, keyframeHistory: [...(next[shot - 1].keyframeHistory || []), ...(prev && prev.state === 'rendered' ? [prev] : [])], review: null };
+      const prev = next[shot - 1][slot];
+      next[shot - 1] = { ...next[shot - 1], [slot]: keyframe, [history]: [...(next[shot - 1][history] || []), ...(prev && prev.state === 'rendered' ? [prev] : [])], review: null };
       return { ...payload, shots: next };
     });
     if (r.unchanged) { await fail(job, 'failed', `storyboard version or shot ${shot} not found`); return 'failed'; }
     shots = r.payload.shots;
   } catch (e) { await fail(job, 'failed', `keyframe could not be attached: ${String(e.message || e).slice(0, 160)}`); return 'failed'; }
-  await finish(job, { state: 'succeeded', error: null, result: { attached: { versionId, shot }, keyframe, copiedIn: Boolean(copy) } });
+  await finish(job, { state: 'succeeded', error: null, result: { attached: { versionId, shot, slot }, [slot]: keyframe, copiedIn: Boolean(copy) } });
   await jobRecord(job, { status: 'succeeded', outputAssets: [{ url: sourceUrl, assetPath: keyframe.assetPath, sha256: keyframe.sha256, versionId, shot }] });
-  if (job.payload.autoCheck) {
+  if (job.payload.autoCheck && slot === 'keyframe') {
     try {
       const prevShot = shot > 1 ? shots[shot - 2] : null;
       const anchors = [...(meta.anchors || []), ...(prevShot && prevShot.keyframe && prevShot.keyframe.state === 'rendered' ? [{ index: shot - 2, url: prevShot.keyframe.url, assetPath: prevShot.keyframe.assetPath, label: `previous shot ${shot - 1} keyframe — the same product, character, setting and lighting are expected` }] : [])];
       await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'vision_check', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, versionId, shot, images: [{ index: shot, url: sourceUrl, assetPath: keyframe.assetPath }], direction: meta.direction || null, product: meta.product || null, productLook: meta.productLook || null, rules: meta.rules || [], expectProduct: Boolean(meta.expectProduct), anchors, textSide: null, generatedBy: job.payload.generatedBy || null } }]);
     } catch (e) { console.warn('[jobs] vision check could not be queued:', e.message); }
   }
-  if (meta.hookCheck && keyframe.assetPath) {
+  if (meta.hookCheck && slot === 'keyframe' && keyframe.assetPath) {
     try { await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'f1x8_image', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, assetPath: keyframe.assetPath, title: meta.title || 'storyboard hook', description: `Storyboard hook keyframe (shot ${shot})`, hookCheck: true, versionId, generatedBy: job.payload.generatedBy || null } }]); }
     catch (e) { console.warn('[jobs] hook check could not be queued:', e.message); }
   }
   await settleBoardStage(job);
-  try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: `${stage} shot ${shot} keyframe` }); } catch (e) { /* best effort */ }
+  try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: `${stage} shot ${shot} ${slot}` }); } catch (e) { /* best effort */ }
   return 'succeeded';
 }
 

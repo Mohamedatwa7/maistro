@@ -1847,6 +1847,7 @@ function genBox(p,sid){
   ${sid==='thumb'?`<div class="grid-2f" style="margin-top:8px"><div class="f-field"><label>Headline (English, overlaid in code — never inside the image)</label><input class="inp-l" id="gen-head-en" maxlength="120" placeholder="e.g. Slimness check: passed."></div>
    <div class="f-field"><label>Headline (Arabic, optional)</label><input class="inp-l" id="gen-head-ar" dir="rtl" maxlength="120" placeholder="عنوان بالعربية"></div></div>
   <p class="hint" style="margin-top:6px">Cover aspect follows the platforms (${thumbAspectFor(p)}); the text sits inside the platform safe zone. The moodboard must exist first.</p>`:''}
+  ${sid==='draft'&&p.board&&p.board.shots?`<p class="hint" style="margin-top:6px">The first draft is rendered shot by shot from the approved storyboard keyframes (${p.board.shots.length} clips, ${esc(String(p.board.totalS||''))} s, ${esc(p.board.aspect||'9:16')}). Only the resolution applies here.</p>`:''}
   ${sid==='draft'?`
   <div class="row"><span class="kick" style="font-size:9px">Format</span>
    <select id="gen-ar-draft"><option>16:9</option><option>9:16</option><option>1:1</option></select>
@@ -1870,6 +1871,19 @@ async function stageGen(pid,sid,changes){
   markets:p.markets,platforms:p.platforms,trend:p.trend,
   ...(p.refImage&&sid==='thumb'?{referenceImageAttached:true}:{})};
  try{
+  /* 6.6: the first draft is one Seedance clip per approved storyboard shot */
+  if(sid==='draft'&&useJobs()&&p.board&&p.board.shots&&!changes){
+   const pendingShots=p.board.shots.filter(s=>!s.review||s.review.decision!=='approved').map(s=>s.n);
+   if(pendingShots.length)throw new Error('Approve every storyboard shot first — shot '+pendingShots.join(', ')+' pending.');
+   GEN.busy[key]='Seedance 2.5 is rendering '+p.board.shots.length+' clips from the approved keyframes…';studioRefresh();
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',pieceId:p.id,resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));
+   if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
+   attachTo(p,'draft',sd.artifact,'Seedance 2.5',{recorded:{version:sd.version}});
+   p.jobs=p.jobs||{};p.jobs['b:draft']={board:true};saveGenerated();
+   studioRefresh();shotsPoll(p.id,'draft',0);
+   return;
+  }
   /* 6.5: the storyboard is a shot list from the approved brief + one keyframe per shot */
   if(sid==='board'&&useJobs()){
    if(!p.brief){throw new Error('Write and approve the brief first — the storyboard is built from it.')}
@@ -2312,23 +2326,26 @@ async function loadChecks(pid,sid){
 }
 /* 6.5 — the storyboard: shots with keyframes that land one by one, per-shot checks and review */
 const BOARD_POLL={};
-function boardPoll(pid,tries){
- clearTimeout(BOARD_POLL[pid]);
- if(tries>240){const p=PROJECTS.find(x=>x.id===pid);if(p){delete GEN.busy[p.id+':board'];GEN.err[p.id+':board']='Keyframes still rendering after 20 minutes — the jobs keep running on the server; reopen the piece later.'}studioRefresh();return}
- BOARD_POLL[pid]=setTimeout(async()=>{
+function boardPoll(pid,tries){shotsPoll(pid,'board',tries)}
+/* shots fill in one by one on the storyboard (keyframes) and the first draft (clips) */
+function shotsPoll(pid,stage,tries){
+ const slot=stage==='draft'?'clip':'keyframe',pk=pid+':'+stage;
+ clearTimeout(BOARD_POLL[pk]);
+ if(tries>240){const p=PROJECTS.find(x=>x.id===pid);if(p){delete GEN.busy[pk];GEN.err[pk]=(slot==='clip'?'Clips':'Keyframes')+' still rendering after 20 minutes — the jobs keep running on the server; reopen the piece later.'}studioRefresh();return}
+ BOARD_POLL[pk]=setTimeout(async()=>{
   try{
-   const r=await authFetch('/api/studio?board='+encodeURIComponent(pid));const d=await r.json().catch(()=>({}));
+   const r=await authFetch('/api/studio?shots='+encodeURIComponent(pid)+'&stage='+stage);const d=await r.json().catch(()=>({}));
    const p=PROJECTS.find(x=>x.id===pid);if(!p)return;
-   if(r.ok&&d.payload){p.board={...p.board,...d.payload,version:'v'+d.version,hook:d.hook||null,live:d.live,checksPending:d.checksPending};saveGenerated()}
+   if(r.ok&&d.payload){p[stage]={...p[stage],...d.payload,version:'v'+d.version,hook:d.hook||null,live:d.live,checksPending:d.checksPending};saveGenerated()}
    if(r.ok&&d.live===0){
-    delete GEN.busy[pid+':board'];if(p.jobs)delete p.jobs['b:board'];saveGenerated();
-    CHECKS[pid+':board:all']=undefined;loadChecks(pid,'board');studioRefresh();
-    const n=(p.board.shots||[]).filter(s=>s.keyframe&&s.keyframe.state==='rendered').length,f=(p.board.shots||[]).filter(s=>s.keyframe&&s.keyframe.state==='failed').length;
-    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Frame',1)}<div style="font-size:12.5px"><b>Storyboard keyframes landed</b> — ${n} rendered${f?`, ${f} failed (regenerate those shots)`:''}. Review each shot.</div></div>`);
+    delete GEN.busy[pk];if(p.jobs)delete p.jobs['b:'+stage];saveGenerated();
+    CHECKS[pk+':all']=undefined;loadChecks(pid,stage);studioRefresh();
+    const sh=(p[stage]&&p[stage].shots)||[];const n=sh.filter(s=>s[slot]&&s[slot].state==='rendered').length,f=sh.filter(s=>s[slot]&&s[slot].state==='failed').length;
+    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip(slot==='clip'?'Forge':'Frame',1)}<div style="font-size:12.5px"><b>${slot==='clip'?'Draft clips':'Storyboard keyframes'} landed</b> — ${n} rendered${f?`, ${f} failed (regenerate those shots)`:''}. Review each shot.</div></div>`);
     return;
    }
-   studioRefresh();boardPoll(pid,tries+1);
-  }catch(e){boardPoll(pid,tries+1)}
+   studioRefresh();shotsPoll(pid,stage,tries+1);
+  }catch(e){shotsPoll(pid,stage,tries+1)}
  },5000);
 }
 function rBoard(p,locked){
@@ -2338,7 +2355,7 @@ function rBoard(p,locked){
  const spec=all.find(c=>c.kind==='spec')||(CHECKS[key]&&CHECKS[key].kind==='spec'?CHECKS[key]:null);
  const vis=(n)=>all.filter(c=>c.kind==='vision').map(c=>c.results&&c.results.images&&c.results.images.find(im=>im.index===n)).find(Boolean)||null;
  const pendingKf=(b.shots||[]).some(s=>!s.keyframe||s.keyframe.state==='pending');
- if(pendingKf&&!BOARD_POLL[p.id]&&!GEN.busy[key])boardPoll(p.id,0);
+ if(pendingKf&&!BOARD_POLL[p.id+':board']&&!GEN.busy[key])boardPoll(p.id,0);
  const allApproved=(b.shots||[]).length&&(b.shots||[]).every(s=>s.review&&s.review.decision==='approved');
  const R=spec&&spec.results;
  return `
@@ -2369,40 +2386,76 @@ function rBoard(p,locked){
       ${kf&&kf.state==='rendered'&&!(rv&&rv.decision==='approved')?`<button class="btn btn-go btn-sm" onclick="shotDecide('${p.id}',${sh.n},'approved')">Approve shot</button>`:''}
       ${kf&&kf.state==='rendered'&&!(rv&&rv.decision==='rejected')?`<button class="btn btn-ghost btn-sm" onclick="shotRejectForm('${p.id}',${sh.n})">Reject</button>`:''}
       ${kf&&kf.state!=='pending'?`<button class="btn btn-gold btn-sm" onclick="shotRegenForm('${p.id}',${sh.n})">↻ Regenerate</button>`:''}
-     </div><div id="shot-form-${sh.n}"></div>`:''}
+     </div><div id="shot-form-board-${sh.n}"></div>`:''}
     </div></div>`}).join('')}</div>
   ${GEN.err[key]?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[key])}</div>`:''}
   ${p.studio?regenBox(p,'board'):''}`;
 }
-function shotRejectForm(pid,n){
- const el=document.getElementById('shot-form-'+n);if(!el)return;
- el.innerHTML=`<div style="margin-top:8px;display:grid;gap:6px"><select class="inp-l" id="sr-code-${n}">${rejectOptions('board').map(o=>`<option value="${o.code}">${esc(o.label)}</option>`).join('')}</select><input class="inp-l" id="sr-reason-${n}" placeholder="What is wrong with this shot?"><button class="btn btn-sm" style="background:rgba(251,113,133,.2)" onclick="shotDecide('${pid}',${n},'rejected')">Record rejection</button></div>`;
+function shotRejectForm(pid,n,stage){
+ stage=stage||'board';const el=document.getElementById('shot-form-'+stage+'-'+n);if(!el)return;
+ el.innerHTML=`<div style="margin-top:8px;display:grid;gap:6px"><select class="inp-l" id="sr-code-${n}">${rejectOptions(stage==='draft'?'draft':'board').map(o=>`<option value="${o.code}">${esc(o.label)}</option>`).join('')}</select><input class="inp-l" id="sr-reason-${n}" placeholder="What is wrong with this shot?"><button class="btn btn-sm" style="background:rgba(251,113,133,.2)" onclick="shotDecide('${pid}',${n},'rejected','${stage}')">Record rejection</button></div>`;
 }
-function shotRegenForm(pid,n){
- const el=document.getElementById('shot-form-'+n);if(!el)return;
- el.innerHTML=`<div style="margin-top:8px;display:grid;gap:6px"><input class="inp-l" id="sg-changes-${n}" placeholder="e.g. closer on the cover screen, warmer light"><button class="btn btn-gold btn-sm" onclick="shotRegen('${pid}',${n})">↻ Re-render only this shot</button></div>`;
+function shotRegenForm(pid,n,stage){
+ stage=stage||'board';const el=document.getElementById('shot-form-'+stage+'-'+n);if(!el)return;
+ el.innerHTML=`<div style="margin-top:8px;display:grid;gap:6px"><input class="inp-l" id="sg-changes-${n}" placeholder="${stage==='draft'?'e.g. slower push-in, keep the device still':'e.g. closer on the cover screen, warmer light'}"><button class="btn btn-gold btn-sm" onclick="shotRegen('${pid}',${n},'${stage}')">↻ Re-render only this shot</button></div>`;
 }
-async function shotDecide(pid,n,decision){
- const p=PROJECTS.find(x=>x.id===pid);if(!p||!p.board||!p.board.shots)return;
+/* 6.6 — the first draft: one clip per approved shot, reviewed shot by shot; the cut is assembled afterwards */
+function rDraft(p,locked){
+ const b=p.draft,key=p.id+':draft';
+ const pending=(b.shots||[]).some(s=>!s.clip||s.clip.state==='pending');
+ if(pending&&!BOARD_POLL[p.id+':draft']&&!GEN.busy[key])shotsPoll(p.id,'draft',0);
+ const rendered=(b.shots||[]).filter(s=>s.clip&&s.clip.state==='rendered').length,approved=(b.shots||[]).filter(s=>s.review&&s.review.decision==='approved').length;
+ const allApproved=(b.shots||[]).length&&approved===(b.shots||[]).length;
+ return `
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+   ${badge('muted','FIRST DRAFT '+esc(b.version||'v1')+' · '+(b.shots||[]).length+' CLIPS · '+esc(String(b.totalS||''))+' s · '+esc(b.resolution||''))}${b.boardApproved===false?badge('gold','STORYBOARD NOT YET APPROVED'):''}
+   ${badge(rendered===(b.shots||[]).length?'go':'muted',rendered+'/'+(b.shots||[]).length+' CLIPS RENDERED')}
+   ${allApproved?badge('go','ALL CLIPS APPROVED — READY TO ASSEMBLE'):badge('muted',approved+'/'+(b.shots||[]).length+' CLIPS APPROVED')}
+   ${b.assembled?badge('go','ASSEMBLED CUT '+esc(b.assembled.version||'')):''}
+  </div>
+  ${b.assembled&&b.assembled.assetPath?`<video controls playsinline ${mediaAttrs(b.assembled,'url')} style="width:100%;max-width:${(b.aspect||'9:16')==='9:16'?'320px':'640px'};border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}
+  <div class="frames" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">${(b.shots||[]).map(sh=>{
+   const c=sh.clip,rv=sh.review;
+   const art=c&&c.state==='rendered'?`<video controls playsinline muted ${mediaAttrs(c,'url')} style="width:100%;height:100%;object-fit:cover;background:#000"></video>`:c&&c.state==='failed'?`<div class="dim" style="font-size:11px;padding:10px">Render failed — ${esc(c.error||'')}</div>`:`<div style="display:flex;align-items:center;gap:8px;padding:10px"><span class="gen-spin"></span><span class="dim" style="font-size:11px">Seedance is rendering the clip…</span></div>`;
+   return `<div class="frame card" style="overflow:hidden;border-color:${rv?(rv.decision==='approved'?'rgba(110,231,185,.5)':'rgba(251,113,133,.5)'):'var(--hairline)'}">
+    <div class="art" style="height:auto;aspect-ratio:${(b.aspect||'9:16')==='9:16'?'9/12':'16/9'};background:#000;padding:0;position:relative;display:block">${art}<span class="tc" style="position:absolute;left:8px;bottom:8px">SHOT ${sh.n} · ${sh.durationS} s${c&&c.durationS?' (clip '+c.durationS+' s)':''}</span></div>
+    <div class="p3" style="font-size:11.5px;line-height:1.55;color:var(--muted)">
+     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${badge('muted',esc(String(sh.type||'').replace('_',' ').toUpperCase()))}${sh.product&&sh.product.visible?badge('c','PRODUCT'):''}${rv?badge(rv.decision==='approved'?'go':'alert',rv.decision==='approved'?'APPROVED':'REJECTED'):''}</div>
+     <div><b style="color:#fff">${esc(sh.camera||'')}</b> — ${esc(sh.action||'')}</div>
+     ${sh.onScreenText&&(sh.onScreenText.en||sh.onScreenText.ar)?`<div class="dim" style="margin-top:3px">Overlay at assembly: <b style="color:#fff">${esc(sh.onScreenText.en)}</b>${sh.onScreenText.ar?` <span dir="rtl">${esc(sh.onScreenText.ar)}</span>`:''}</div>`:''}
+     ${rv&&rv.decision==='rejected'?`<div style="margin-top:4px;color:#fda4af">Rejected${rv.reasonCode?' · '+esc(rv.reasonCode.replace(/_/g,' ')):''}: ${esc(rv.reason||'')}</div>`:''}
+     ${p.studio&&!locked?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+      ${c&&c.state==='rendered'&&!(rv&&rv.decision==='approved')?`<button class="btn btn-go btn-sm" onclick="shotDecide('${p.id}',${sh.n},'approved','draft')">Approve clip</button>`:''}
+      ${c&&c.state==='rendered'&&!(rv&&rv.decision==='rejected')?`<button class="btn btn-ghost btn-sm" onclick="shotRejectForm('${p.id}',${sh.n},'draft')">Reject</button>`:''}
+      ${c&&c.state!=='pending'?`<button class="btn btn-gold btn-sm" onclick="shotRegenForm('${p.id}',${sh.n},'draft')">↻ Re-render</button>`:''}
+     </div><div id="shot-form-draft-${sh.n}"></div>`:''}
+    </div></div>`}).join('')}</div>
+  ${GEN.err[key]?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[key])}</div>`:''}
+  ${p.studio?regenBox(p,'draft'):''}`;
+}
+async function shotDecide(pid,n,decision,stage){
+ stage=stage||'board';
+ const p=PROJECTS.find(x=>x.id===pid);if(!p||!p[stage]||!p[stage].shots)return;
  const reason=decision==='rejected'?(($('#sr-reason-'+n)||{}).value||'').trim():'';
  const reasonCode=decision==='rejected'?(($('#sr-code-'+n)||{}).value||''):'';
  if(decision==='rejected'&&!reason){toast('<span style="font-size:12.5px;color:#fda4af">Write what is wrong with the shot first.</span>');return}
  try{
-  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board-shot-decide',pieceId:pid,shot:n,decision,reason,reasonCode,name:(AUTH.member&&AUTH.member.name)||'',piece:storeMeta(p)})});
+  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'shot-decide',stage,pieceId:pid,shot:n,decision,reason,reasonCode,name:(AUTH.member&&AUTH.member.name)||'',piece:storeMeta(p)})});
   const sd=await sr.json().catch(()=>({}));if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
-  const sh=p.board.shots.find(x=>x.n===n);if(sh)sh.review=sd.review;saveGenerated();studioRefresh();
+  const sh=p[stage].shots.find(x=>x.n===n);if(sh)sh.review=sd.review;saveGenerated();studioRefresh();
   toast(`<span style="font-size:12.5px"><b style="color:${decision==='approved'?'#6ee7b9':'#fb7185'}">Shot ${n} ${decision}.</b> ${sd.pending&&sd.pending.length?sd.pending.length+' shot(s) still to approve.':'Every shot is approved — record the stage approval.'}</span>`);
  }catch(e){toast(`<b style="color:#fb7185">Shot ${n}:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
 }
-async function shotRegen(pid,n){
- const p=PROJECTS.find(x=>x.id===pid);if(!p||!p.board||!p.board.shots)return;
+async function shotRegen(pid,n,stage){
+ stage=stage||'board';const slot=stage==='draft'?'clip':'keyframe';
+ const p=PROJECTS.find(x=>x.id===pid);if(!p||!p[stage]||!p[stage].shots)return;
  const changes=(($('#sg-changes-'+n)||{}).value||'').trim();
  try{
-  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board-shot',pieceId:pid,shot:n,changes,refImage:p.refImage||null,piece:storeMeta(p)})});
+  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:stage==='draft'?'draft-shot':'board-shot',pieceId:pid,shot:n,changes,refImage:p.refImage||null,piece:storeMeta(p)})});
   const sd=await sr.json().catch(()=>({}));if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
   if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the render could not be submitted');
-  const sh=p.board.shots.find(x=>x.n===n);if(sh){sh.keyframe={state:'pending',jobId:sd.job.id};sh.review=null}saveGenerated();
-  GEN.busy[pid+':board']='Soul is re-rendering shot '+n+'…';studioRefresh();boardPoll(pid,0);
+  const sh=p[stage].shots.find(x=>x.n===n);if(sh){sh[slot]={state:'pending',jobId:sd.job.id};sh.review=null}saveGenerated();
+  GEN.busy[pid+':'+stage]=(slot==='clip'?'Seedance 2.5 is re-rendering shot ':'Soul is re-rendering shot ')+n+'…';studioRefresh();shotsPoll(pid,stage,0);
  }catch(e){toast(`<b style="color:#fb7185">Shot ${n}:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
 }
 /* 6.4 — the brief: every field shown, checks as badges, human edits saved as a new version */
@@ -3515,7 +3568,7 @@ function stageArtifact(p,n){
   case 'board':return head(done)+(p.board?(p.board.shots?rBoard(p,n<p.stage):Array.isArray(p.board)?`
    <div class="frames">${p.board.map(f=>`<div class="frame card" style="overflow:hidden"><div class="art" style="background:linear-gradient(135deg,${f.g[0]},${f.g[1]})"><span class="tc">${f.tc}</span></div><div class="p3" style="font-size:11.5px;line-height:1.55;color:var(--muted)">${f.d}</div></div>`).join('')}</div>`:`
    <img class="gen-media" ${mediaAttrs(p.board,'imageUrl')} alt="Generated storyboard sheet">${dirNote(p.board)}${p.studio?regenBox(p,'board'):''}`):'');
-  case 'draft':return head(done)+(p.draft?`
+  case 'draft':return head(done)+(p.draft?p.draft.shots?rDraft(p,n<p.stage):`
    ${p.draft.videoUrl||p.draft.assetPath?`<video controls playsinline ${mediaAttrs(p.draft,'videoUrl')} style="width:100%;max-width:640px;border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}
    <div class="pipe-item" style="margin-bottom:14px"><span class="thumb" style="background:linear-gradient(120deg,${p.th[0]},${p.th[1]})"></span>
     <div><b style="color:#fff">${esc(p.title)} · first draft ${esc(p.draft.version)}</b> <span class="dim mono" style="font-size:10.5px">· ${p.draft.dur}</span>

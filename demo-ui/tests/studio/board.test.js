@@ -81,7 +81,7 @@ test('POST /api/studio action board: needs the brief; shot list version with che
     // renders complete one by one: shot slots fill, the version number stays 1, checks queue with the previous keyframe as an anchor
     hf.status = 'completed'; for (const j of kjobs) j.next_poll_at = new Date(Date.now() - 1000).toISOString();
     r = res(); await jobs.handler(req({ method: 'GET', query: { id: kjobs[0].id } }), r);
-    assert.equal(r.body.job.state, 'succeeded'); assert.equal(r.body.job.result.artifact, undefined, 'a keyframe never becomes a stage artifact'); assert.deepEqual(r.body.job.result.attached, { versionId: kjobs[0].payload.attachTo.versionId, shot: 1 });
+    assert.equal(r.body.job.state, 'succeeded'); assert.equal(r.body.job.result.artifact, undefined, 'a keyframe never becomes a stage artifact'); assert.deepEqual(r.body.job.result.attached, { versionId: kjobs[0].payload.attachTo.versionId, shot: 1, slot: 'keyframe' });
     let v = pg.tables.artifact_versions.find((x) => x.id === kjobs[0].payload.attachTo.versionId);
     assert.equal(v.payload.shots[0].keyframe.state, 'rendered'); assert.ok(v.payload.shots[0].keyframe.assetPath); assert.equal(v.payload.shots[0].keyframe.seed, kjobs[0].payload.seed); assert.equal(v.payload.rev, 1); assert.ok(v.payload.shots[0].keyframe.sha256); assert.equal(v.payload.shots[1].keyframe, null);
     assert.equal(pg.tables.artifact_versions.filter((x) => x.stage_id === stageRow.id).length, 1, 'no new version per keyframe');
@@ -142,7 +142,7 @@ test('page: rBoard renders every shot with its keyframe state, check and review 
     assert.match(html, /PRODUCT · FlexWindow/); assert.match(html, /<span dir="rtl">صغير لدرجة يختفي<\/span>/); assert.match(html, /APPROVED/); assert.match(html, /Reject<\/button>/); assert.match(html, /↻ Regenerate/);
     await new Promise((r) => setTimeout(r, 20)); html = X.stageArtifact(p, 4);
     assert.match(html, /SHOT LIST NEEDS A LOOK/); assert.match(html, /✗ CTA AT END/); assert.match(html, /weak hook: slow/); assert.match(html, /CHECK OK/);
-    assert.ok(X.BOARD_POLL['gen-x'], 'pending keyframes start the poll'); clearTimeout(X.BOARD_POLL['gen-x']);
+    assert.ok(X.BOARD_POLL['gen-x:board'], 'pending keyframes start the poll'); clearTimeout(X.BOARD_POLL['gen-x:board']);
   } finally { X.restore(); }
 });
 

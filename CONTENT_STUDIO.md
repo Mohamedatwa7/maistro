@@ -68,6 +68,19 @@ Open: approved claims per device (owner input 2) — until they exist the brief 
 
 Open: Higgsfield consistency features (Soul ID / custom references, HIGGSFIELD.md) are not used yet — consistency is asserted by the prompt anchors and checked by vision, not enforced by the model; the end card is a rendered placeholder until the logo/end-card rules arrive (owner input 1); keyframe prompts carry no seed (Soul V2 accepts one — a follow-up for reproducible re-renders).
 
+## 6.6 First draft — part (a): clips (what ships)
+
+| Decision | What | Why |
+|---|---|---|
+| Gate | `action: 'draft'` needs the storyboard's current version with every shot **reviewed approved and rendered** (409 `prerequisites` with the pending shot numbers); the storyboard stage approval is recorded as `boardApproved` | "Turn approved keyframes into a real video" — nothing else |
+| Model | Seedance 2.5 **image-to-video** (`bytedance/seedance-2.5/image-to-video`, HIGGSFIELD.md §2.2): `image_url` = the shot's keyframe, `prompt` = the shot's camera movement + action in present tense (product shots add "the device stays exactly as in the first frame"), `duration` = the shot's duration clamped to Seedance's 4–30 s (the assembly trims to the shot), `resolution` (default 720p, 1080p selectable), `generate_audio: true`, `bitrate_mode: high`; no `aspect_ratio` (the keyframe sets the framing) | One clip per approved shot with its keyframe as the image input |
+| Jobs | One `higgsfield_video` job per shot with `payload.attachTo = {versionId, shot}` and `imageAssetPath` (the private keyframe); at first submit the job service mints ONE signed URL (24 h) and stores it on the job so the idempotent body is byte-identical on retries (same key + different body would be Higgsfield's 422); clips attach to `shots[n].clip` through `updateShots()` (previous clip → `clipHistory`, review reset); the draft stage is `generating` until the last clip lands, then `generated`; a failed clip marks only its shot; generation records carry `seed: null` (Seedance has no seed) | Background, per shot, never a serverless timeout, status per shot on the page |
+| Draft version | One version per draft run: `shots[]` (shot fields + `keyframe` ref + `clipDurationS` + `clip` + `review`), `totalS`, `aspect`, `resolution`, `boardVersionId`; legacy fields (`version`, `dur`, `audio`, `variants`, `videoUrl: null`) kept so the legacy renderer and QC keep working; `assembled: null` until part (b) | The version is the unit of approval; clips fill it in |
+| Review | `shot-decide` with `stage: 'draft'` (approve needs a rendered clip; reject needs a reason); `draft-shot` re-renders ONE clip with the reviewer's changes appended (409 `busy` while rendering, 409 `approved_immutable` after the stage approval) | "A rejected shot regenerates alone" |
+| Page | `rDraft()`: per-shot clip players (signed from the private copy), states, review badges, Approve / Reject / Re-render per clip, the overlay text each shot will get at assembly; `shotsPoll(pid, 'draft')` refreshes as clips land | Status visible per shot |
+
+Not yet (part b, next): assembly (ordering and trimming to exact shot durations, transitions, code-rendered overlays with Arabic shaping, captions, loudness, logo/end card, per-platform export) and the per-clip checks (product stability / no morphing, artifacts, consistency with the keyframe) which need frames extracted from the clips — both require ffmpeg in the function (design: `ffmpeg-static` bundled with `includeFiles`, an `assemble` job kind, overlay PNGs drawn in the browser as for the thumbnail).
+
 ## Open owner inputs (collected from the seed's `gaps`)
 
 1. Disclaimers by claim type and market; logo and end-card rules; overlay typeface.

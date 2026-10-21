@@ -95,6 +95,7 @@ const STAGE_SCHEMAS = {
   board: oneOf([
     arr(obj({ tc: str({ max: 12 }), d: str({ max: 600 }), g: tuple([hex(), hex()]) }), { min: 1, max: 6 }),
     obj({ imageUrl: url(), prompt: str({ max: 4000, optional: true }), note: str({ max: 2000, optional: true }) }),
+    obj({ shots: arr(obj({}), { min: 1, max: 8 }) }), // 6.5 shot list (the Studio writes it through the store; other keys pass)
   ]),
   final: media({
     version: str({ max: 20 }), dur: str({ max: 20 }), audio: str({ max: 300 }),
