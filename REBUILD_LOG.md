@@ -4,6 +4,7 @@ Running log of the Maistro rebuild programme. Newest entries at the top of each 
 
 ## Progress
 
+- **2026-10-21 — P0 trend feed: root cause fixed upstream.** The empty feed was not a Maistro parser problem: Trend Radar's board publish on 2026-10-20 read 181/184 live reference clips as dead because TikTok's oEmbed endpoint stopped returning thumbnail/author for every url (verified from a GitHub runner and locally), held 40/41 cards off the board and retired 38 members. Fixed in Mohamedatwa7/trend-radar main (07d8054 + follow-up): probe-health gate fails open when a same-day sample reads dead; `board-restore.ts` heals membership + previous store + warm store from a git ref; issue #1 tracks the TikHub-backed replacement. Maistro parser restored to Phase 0 state (1d51041) after a peer session's multi-array change (2550532) was found to read sound-chart surfaces as trends.
 - **2026-10-21 — Phase 0 (reconnaissance) complete.** Deliverable: `ARCHITECTURE_CURRENT.md` on branch `rebuild/phase-0-recon`. No product code changed. Local run attempted and documented (page serves; every secret-backed function 503s locally).
 - 2026-10-20 — pre-programme fixes already on `main` (for context): Performance page loads a 14-day window first (`ec1d17b`), twin-comment collapse on author+text (`8a552eb`), landing-page toast removed, git identity corrected, full history re-authored.
 
@@ -22,7 +23,7 @@ Running log of the Maistro rebuild programme. Newest entries at the top of each 
 
 ## Open questions for the owner
 
-- Q-001 **(P0, blocks trend intake)**: Production `/api/trends` returns zero trends because kymah currently publishes a single trend with `fit: null`, which the rule fallback drops and Claude curation cannot select. Options: (a) wait for kymah's next board; (b) hotfix the feed to also surface unfit trends when the curated set is empty, clearly labelled; (c) switch to Trend Radar's `/api/agent/*` API. (b) changes product behaviour and needs approval; (c) is a Phase 2 decision.
+- Q-001 **(P0) — RESOLVED upstream 2026-10-21**, see Progress. Remaining decision (Phase 2): keep scraping kymah's page or move to Trend Radar's `/api/agent/trends` (bearer AGENT_API_KEY, fit-ranked, carries the editorial brief). Original note:: Production `/api/trends` returns zero trends because kymah currently publishes a single trend with `fit: null`, which the rule fallback drops and Claude curation cannot select. Options: (a) wait for kymah's next board; (b) hotfix the feed to also surface unfit trends when the curated set is empty, clearly labelled; (c) switch to Trend Radar's `/api/agent/*` API. (b) changes product behaviour and needs approval; (c) is a Phase 2 decision.
 - Q-002: Confirm the Vercel plan tier (affects timeouts and cron precision).
 - Q-003: Is the Hermes-dispatch pathway (`dispatchTrend`, Claude-simulated QC, no media) still a wanted feature, or has the Studio superseded it? It shapes the domain model in Phase 2.
 - Q-004: Do approvals on external (Hermes-pushed) deliverables need to be durable? Today they are lost on reload (not persisted at all).
