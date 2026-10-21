@@ -273,6 +273,24 @@ Open items for the builder (none blocks):
 2. **A `completed` status without output loops until timeout.** `pollRender` only records when `completed` comes with a video or an image; a completed-but-empty answer is re-polled for the full 15 to 20 minutes. Fail it at once.
 3. **Copy-in failure** (the builder's question): keep the job succeeding with `copiedIn:false` as now, because a failed copy should not cost the person their render; but since provider URLs expire, add a reconcile that retries the copy for succeeded jobs with `copiedIn:false` (the ops phase is the natural home). The swallowed `qc_results` insert failure deserves the same treatment.
 
+## M3 robustness fixes; Phase 0 revision 2 (commits 6183893, 62c4af3; log 28ef46a)
+
+Status: **PASSED** by checker. Items 1 and 2 from the M3 review are closed; item 3 (copy-in and qc_results reconcile) is carried to the ops phase of the expanded mandate.
+
+- Tests: `npm test` 100/100 green here. CI was running for 28ef46a at verification time.
+- `createJob` now inserts the job row first and patches the stage second; a failed patch is recorded on the row as `failed` and answered 502 `stage_patch`, so nothing is stranded; a stage left `generating` with no queued or running job counts as `ready` (a live job still gives 409 `not_ready`); the inline advance runs after the patch. `pollRender` fails a `completed` status that carries no media at once.
+- `ARCHITECTURE_CURRENT.md` revision 2 describes the live system after M0 to M4 with the M3 render data flow and the enforced stage lifecycle; no stale claims about the old demo host, the kymah scrape as primary source, or localStorage as the only state. README refreshed. This is the expanded mandate's Phase 0, reconciled rather than redone.
+
+## Expanded mandate (phases 0 to 13): reconciliation against this log
+
+The builder's plan reuses Phase 0 (revision 2), Phase 1 (AUDIT.md plus a status column with commit ids instead of a re-audit), Phase 2 (ADRs stand, new ones only where phases 5 to 8 need them), Phase 3 (the suite, 100 tests, as the safety net) and Phase 4 (M5 to M10 of MIGRATION_PLAN). Checker's view: nothing recorded here as verified would be redone. Three places to keep single:
+
+1. Phase 5.0's snapshot storage should extend `trends_cache` (one row per fetch, keep history) rather than add a second store for the same board; the hourly cron already produces a snapshot per hour.
+2. Phase 11 (security) should start from the AUDIT status column and the verdicts in this log (M1 quick wins, A-02, A-05 half, ADR-003 live role check), not from a fresh scan of what is already closed.
+3. Phase 6.0's Higgsfield capability matrix should cite the adapter's characterization tests and recorded fixtures rather than probe the live API, which spends credit.
+
+Release policy: the expanded mandate restores "no production deploy without explicit approval". The builder has asked the owner whether the earlier blanket approval stands. The checker does not relay or interpret approvals between sessions; until the owner answers, the builder does documentation and preview-only work (5.0, 6.0, 7.0), which is the right call.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
