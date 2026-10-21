@@ -119,8 +119,18 @@ Content-Type: application/json
 ```
 
 Response: `200 {"ok": true, "projectId", "stage", "agent"}`.
-Errors: `401` bad token · `400` bad stage/projectId · `422` artifact missing
-required fields (message lists them) · `503` storage or key not configured.
+Errors: `401` bad token · `400` bad stage/projectId · `422` artifact does not
+match its stage schema · `503` storage or key not configured.
+
+A `422` body is `{"error": "<stage> artifact is missing: a, b"}` when only
+required keys are absent, otherwise `{"error": "<stage> artifact invalid: …",
+"problems": ["$.th[1]: has the wrong format", …]}` with one entry per field
+(`$` is the artifact). The schemas live in `api/_schemas.js`: colors must be
+`#rrggbb`, `platforms` ∈ tiktok|instagram|youtube|x, media URLs must be
+`https://`, string lengths are capped, and an artifact is at most 64 KB. Each
+visual stage also accepts the Studio media shape (`{imageUrl, prompt?, note?}`,
+and `videoUrl` on `final`); `qc` also accepts the real-F1X8 shape
+`{real: true, runs, avg?}`.
 
 ### Artifact shapes per stage
 

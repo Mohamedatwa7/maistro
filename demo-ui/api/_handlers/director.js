@@ -17,6 +17,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { requireSession } = require('../_auth.js');
 const { PRODUCTS_PROMPT, BRAND_PROMPT } = require('../_brand');
+const { validate, DIRECTOR_BODY } = require('../_schemas.js');
 
 const MODEL = 'claude-opus-4-8';
 
@@ -127,6 +128,8 @@ module.exports = async (req, res) => {
   const spec = ARTIFACTS[stage];
   if (!spec) return res.status(422).json({ error: `unknown stage "${stage}" — use mood|thumb|board|final|revise` });
   if (!campaign || !campaign.title) return res.status(422).json({ error: 'campaign {title, product, msg, angle, ...} is required' });
+  const problems = validate(DIRECTOR_BODY, req.body || {});
+  if (problems.length) return res.status(422).json({ error: `invalid request: ${problems.slice(0, 3).join('; ')}`, problems });
 
   const prior = [];
   ['mood', 'thumb', 'board'].forEach((s) => {

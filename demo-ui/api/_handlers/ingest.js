@@ -33,31 +33,10 @@ const STAGE_AGENTS = {
   board: 'Frame', final: 'Forge', qc: 'Sentinel',
 };
 
-// Minimal shape validation so a malformed push fails loudly at the door
-// instead of breaking the website renderer later.
-const REQUIRED_KEYS = {
-  plan: ['title', 'product', 'msg', 'markets', 'platforms', 'th'],
-  mood: ['note', 'tiles'],
-  thumb: ['title', 'sub', 'g'],
-  brief: ['objective', 'msg', 'markets', 'platforms', 'deadline', 'mandatories'],
-  board: null, // artifact itself is the frames array
-  final: ['version', 'dur', 'audio', 'variants'],
-  qc: ['f1x8', 'f1x8Note', 'human', 'humanNote'],
-};
-
-function validate(stage, artifact) {
-  if (stage === 'board') {
-    if (!Array.isArray(artifact) || !artifact.length || !artifact[0].tc) {
-      return 'board artifact must be a non-empty array of {tc, d, g:[hex,hex]} frames';
-    }
-    return null;
-  }
-  if (typeof artifact !== 'object' || artifact === null || Array.isArray(artifact)) {
-    return `${stage} artifact must be an object`;
-  }
-  const missing = REQUIRED_KEYS[stage].filter((k) => artifact[k] == null);
-  return missing.length ? `${stage} artifact is missing: ${missing.join(', ')}` : null;
-}
+// Per-stage artifact schemas (api/_schemas.js, ADR-010): the documented
+// contract widened to the media shapes the Studio renders. A malformed push
+// fails at the door with the field paths, not in the website renderer later.
+const { validateArtifact } = require('../_schemas.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -88,9 +67,9 @@ module.exports = async (req, res) => {
     res.status(400).json({ error: 'missing artifact' });
     return;
   }
-  const invalid = validate(stage, artifact);
+  const invalid = validateArtifact(stage, artifact);
   if (invalid) {
-    res.status(422).json({ error: invalid });
+    res.status(422).json({ error: invalid.message, problems: invalid.problems });
     return;
   }
   if (stage === 'plan' && !projectId) {

@@ -21,9 +21,9 @@ test('ingest: method, key, auth, stage and artifact validation (observed status 
     assert.equal(r.statusCode, 422); assert.match(r.body.error, /missing: tiles/);
     r = res(); await h.handler(req({ method: 'POST', body: { stage: 'board', artifact: [{ d: 'no tc' }] }, headers: { Authorization: 'Bearer k1' } }), r);
     assert.equal(r.statusCode, 422);
-    r = res(); await h.handler(req({ method: 'POST', body: { stage: 'mood', projectId: 'bad id!', artifact: { note: 'x', tiles: [] } }, headers: { Authorization: 'Bearer k1' } }), r);
+    r = res(); await h.handler(req({ method: 'POST', body: { stage: 'mood', projectId: 'bad id!', artifact: { note: 'x', tiles: [['#0a0f14', '#1d3a44', 'Dune']] } }, headers: { Authorization: 'Bearer k1' } }), r);
     assert.equal(r.statusCode, 400); assert.match(r.body.error, /projectId must be/);
-    r = res(); await h.handler(req({ method: 'POST', body: { stage: 'mood', artifact: { note: 'x', tiles: [] } }, headers: { Authorization: 'Bearer k1' } }), r);
+    r = res(); await h.handler(req({ method: 'POST', body: { stage: 'mood', artifact: { note: 'x', tiles: [['#0a0f14', '#1d3a44', 'Dune']] } }, headers: { Authorization: 'Bearer k1' } }), r);
     assert.equal(r.statusCode, 400); assert.match(r.body.error, /missing projectId/);
     h.restore();
   } finally { f.restore(); }

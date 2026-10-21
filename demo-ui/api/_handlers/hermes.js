@@ -8,6 +8,7 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { requireSession } = require('../_auth.js');
 const { PRODUCTS_PROMPT, BRAND_PROMPT } = require('../_brand');
+const { validate, HERMES_BODY } = require('../_schemas.js');
 
 const MODEL = 'claude-opus-4-8';
 
@@ -139,6 +140,11 @@ module.exports = async (req, res) => {
   }
   if (!trend || !trend.name) {
     res.status(400).json({ error: 'missing trend' });
+    return;
+  }
+  const problems = validate(HERMES_BODY, req.body || {});
+  if (problems.length) {
+    res.status(400).json({ error: `invalid request: ${problems.slice(0, 3).join('; ')}`, problems });
     return;
   }
   if (!process.env.ANTHROPIC_API_KEY) {
