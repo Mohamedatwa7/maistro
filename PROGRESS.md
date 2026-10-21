@@ -146,6 +146,14 @@ Status: **PASSED** by checker, with a compatibility review of `demo-ui/api/_sche
 - Behaviour change, by design (ADR-010), for the external Hermes agent: pushes that the old presence-only check accepted are now rejected when they carry capitalised platforms, colours not in `#rrggbb`, tiles not exactly `[from, to, label]`, more than 6 tiles or frames, variant kinds outside original|subtitles|voiceover|seedance, strings over the per-field maxima, or an artifact over 64 KB. `API.md` already documents the strict forms, so a conforming agent is unaffected.
 - Watch item: the 64 KB artifact cap is fine for every current push, but a real F1X8 QC result with deep analysis could approach it if the Studio ever pushes QC through ingest (heatmaps are already kept out).
 
+## Fix: cross-post twin fold in Critical Alerts and KPI drill-downs (commit 179f9c1, log 14262c4, production live, main at tip)
+
+Status: **PASSED** by checker.
+
+- Cause (builder): `sentiDedupe` runs per post, but Critical Alerts and the KPI drill-downs use `allComments(list)`, which flattens across posts, so one author pasting the same complaint under two posts produced two rows. New `sentiFoldAcross(cmts)` folds the flattened list on author+text, keeps the analysed or most-liked copy and sets `c.across`; the alert row and `rCommentRow` show "× N POSTS" when across > 1. Per-post sections and `s.flags` counts intentionally unchanged.
+- Local: `npm test` 69/69 (new test at the end of `tests/page/performance.test.js`). Served `/` byte-identical to the branch (second fetch; the builder's first probe had hit a cold edge).
+- Full render with production data: the "Dear Samsung Pakistan Management…" alert appears once in Critical Alerts with "× 2 POSTS". In rendered markup (embedded data excluded) the text occurs 3 times on the base page: the single alert row plus the two per-post sections. Triggering `kpiDrill('alerts')` adds exactly one row (4 total) with its own "× 2 POSTS" label, so the drill lists it once; `kpiDrill('cmts')` (most-liked) adds none.
+
 ## [GATE] Owner items blocking M2 part 2 (only the user can provide these)
 
 1. **Supabase connection string and anon key** (REBUILD_LOG Q-006): set `MAISTRO_DATABASE_URL` (direct Postgres connection string of Maistro's Supabase project) so `db/migrate.mjs` can apply migrations 001-006, and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for the browser client. Give them to either session or add them to Vercel env; neither session can read them from Vercel.
