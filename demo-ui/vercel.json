@@ -1,10 +1,37 @@
 {
   "functions": {
+    "api/trends.js": {
+      "maxDuration": 60
+    },
     "api/hermes.js": {
       "maxDuration": 120
     },
+    "api/director.js": {
+      "maxDuration": 60
+    },
+    "api/higgsfield.js": {
+      "maxDuration": 30
+    },
+    "api/qc-f1x8.js": {
+      "maxDuration": 150
+    },
+    "api/ingest.js": {
+      "maxDuration": 15
+    },
+    "api/projects.js": {
+      "maxDuration": 15
+    },
+    "api/sentiment.js": {
+      "maxDuration": 20
+    },
     "api/track.js": {
       "maxDuration": 300
+    },
+    "api/upload.js": {
+      "maxDuration": 30
+    },
+    "api/translate.js": {
+      "maxDuration": 15
     }
   },
   "crons": [

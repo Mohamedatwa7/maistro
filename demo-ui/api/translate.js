@@ -1,3 +1,4 @@
+const { fetchT } = require('./_http.js');
 // POST /api/translate — same mechanism as samsungtrack's translate route:
 // the free Google Translate gtx endpoint, auto-detect → English.
 // Body: { text, targetLang? } → { translatedText, detectedLanguage }
@@ -14,9 +15,10 @@ module.exports = async (req, res) => {
     const text = String(b.text || '').slice(0, 1500);
     if (!text.trim()) return res.status(422).json({ error: 'text is required' });
     const target = /^[a-z]{2}$/i.test(b.targetLang || '') ? b.targetLang : 'en';
-    const r = await fetch(
+    const r = await fetchT(
       `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${target}&dt=t&q=${encodeURIComponent(text)}`,
-      { headers: { 'user-agent': 'Mozilla/5.0 (compatible; MaistroDemo/1.0)' } }
+      { headers: { 'user-agent': 'Mozilla/5.0 (compatible; MaistroDemo/1.0)' } },
+      { timeoutMs: 10000, retries: 1 },
     );
     if (!r.ok) return res.status(502).json({ error: `translation service responded ${r.status}` });
     const data = await r.json();

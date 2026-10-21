@@ -1,3 +1,4 @@
+const { fetchT } = require('./_http.js');
 // Studio Create — Higgsfield generation proxy.
 // POST {kind:'video'|'image', prompt, ...} → submits a generation, returns
 //   {request_id, status} immediately (no long polling in a lambda).
@@ -31,7 +32,7 @@ module.exports = async (req, res) => {
       if (!/^[\w-]{8,64}$/.test(id)) return res.status(400).json({ error: 'invalid id' });
       if ((req.query && req.query.v) === '1') {
         // v1 job-set polling (reference-image generations)
-        const r = await fetch(`${API}/v1/job-sets/${id}`, { headers: { Authorization: `Key ${creds}` } });
+        const r = await fetchT(`${API}/v1/job-sets/${id}`, { headers: { Authorization: `Key ${creds}` } }, { timeoutMs: 10000, retries: 1 });
         if (!r.ok) return res.status(502).json({ error: `job-set check failed (${r.status})` });
         const d = await r.json();
         const job = (d.jobs || [])[0] || {};
@@ -41,9 +42,9 @@ module.exports = async (req, res) => {
           ? [job.results.raw && job.results.raw.url].filter(Boolean) : null;
         return res.status(200).json({ status, video: null, images, raw_status: job.status });
       }
-      const r = await fetch(`${API}/requests/${id}/status`, {
+      const r = await fetchT(`${API}/requests/${id}/status`, {
         headers: { Authorization: `Key ${creds}` },
-      });
+      }, { timeoutMs: 10000, retries: 1 });
       if (!r.ok) return res.status(502).json({ error: `status check failed (${r.status})` });
       const d = await r.json();
       const done = d.status === 'completed';
@@ -69,7 +70,7 @@ module.exports = async (req, res) => {
       if (kind === 'image' && ref) {
         // Product reference photo attached → Soul v1 with image_reference so
         // the generated image matches the REAL product design.
-        const r = await fetch(`${API}/v1/text2image/soul`, {
+        const r = await fetchT(`${API}/v1/text2image/soul`, {
           method: 'POST',
           headers: { Authorization: `Key ${creds}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -84,7 +85,7 @@ module.exports = async (req, res) => {
               enhance_prompt: false,
             },
           }),
-        });
+        }, { timeoutMs: 30000 });
         const d = await r.json().catch(() => ({}));
         if (!r.ok || !d.id) {
           return res.status(502).json({ error: (d && (d.error || JSON.stringify(d.detail || d))) || `soul v1 submit failed (${r.status})` });
@@ -98,10 +99,11 @@ module.exports = async (req, res) => {
 
       const { createHiggsfieldClient } = require('@higgsfield/client/v2');
       const hf = createHiggsfieldClient({ credentials: creds });
-      const out = await hf.subscribe(MODELS[kind], {
-        input,
-        withPolling: false,
-      });
+      // The SDK call has no timeout of its own; bound it like every other upstream call.
+      const out = await Promise.race([
+        hf.subscribe(MODELS[kind], { input, withPolling: false }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('higgsfield submit timed out after 30000 ms')), 30000)),
+      ]);
       if (!out || !out.request_id) {
         return res.status(502).json({ error: 'submit failed', detail: out || null });
       }

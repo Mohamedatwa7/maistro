@@ -1,3 +1,4 @@
+const { fetchT } = require('./_http.js');
 // POST /api/upload — stores a product reference photo in Supabase Storage
 // (public bucket "refs") and returns its public URL. The client downsizes the
 // image to ≤1600px JPEG before sending, so bodies stay well under limits.
@@ -27,17 +28,17 @@ module.exports = async (req, res) => {
     const path = `products/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     // Ensure the public bucket exists (409 = already there).
-    await fetch(`${base}/storage/v1/bucket`, {
+    await fetchT(`${base}/storage/v1/bucket`, {
       method: 'POST',
       headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: 'refs', name: 'refs', public: true }),
-    }).catch(() => {});
+    }, { timeoutMs: 10000 }).catch(() => {});
 
-    const up = await fetch(`${base}/storage/v1/object/refs/${path}`, {
+    const up = await fetchT(`${base}/storage/v1/object/refs/${path}`, {
       method: 'POST',
       headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': contentType, 'x-upsert': 'true' },
       body: buf,
-    });
+    }, { timeoutMs: 30000 });
     if (!up.ok) {
       const t = await up.text().catch(() => '');
       return res.status(502).json({ error: `upload failed (${up.status}) ${t.slice(0, 160)}` });

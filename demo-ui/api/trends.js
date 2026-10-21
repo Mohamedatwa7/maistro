@@ -1,3 +1,4 @@
+const { fetchT } = require('./_http.js');
 // GET /api/trends — pulls trends from TrendRadar (kymah.com) and returns the
 // TOP 10 director-safe, Samsung-fit trends, curated by Claude.
 //
@@ -184,9 +185,9 @@ async function claudeCurate(trends) {
 module.exports = async (req, res) => {
   try {
     const q = req.query || {};
-    const r = await fetch(SOURCE, {
+    const r = await fetchT(SOURCE, {
       headers: { 'user-agent': 'Mozilla/5.0 (compatible; MaistroDemo/1.0)', accept: 'text/html' },
-    });
+    }, { timeoutMs: 20000, retries: 1 });
     if (!r.ok) throw new Error(`kymah.com responded ${r.status}`);
     const html = await r.text();
     let trends = extractTrendStore(html).map(normalize).filter((t) => t.name);

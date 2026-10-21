@@ -156,7 +156,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const client = new Anthropic();
+    const client = new Anthropic({ timeout: 55000, maxRetries: 1 }); // under the 60 s function limit
     const response = await client.messages.create({
       model: MODEL,
       max_tokens: 2000,

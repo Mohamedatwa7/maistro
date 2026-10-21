@@ -1,3 +1,4 @@
+const { fetchT } = require('./_http.js');
 // Quality Check — real F1X8 integration (the user's Modal-hosted engagement
 // scoring backend, contract: packages/contracts/openapi/f1x8.yaml).
 //
@@ -24,7 +25,7 @@ module.exports = async (req, res) => {
     if (req.method === 'GET') {
       const id = (req.query && req.query.job) || '';
       if (!/^[\w-]{4,80}$/.test(id)) return res.status(400).json({ error: 'invalid job id' });
-      const r = await fetch(`${BASE}/api/job/${encodeURIComponent(id)}`);
+      const r = await fetchT(`${BASE}/api/job/${encodeURIComponent(id)}`, {}, { timeoutMs: 20000, retries: 1 });
       const d = await r.json().catch(() => ({}));
       if (d && d.status === 'error') {
         return res.status(200).json({ status: 'error', error: d.error || 'F1X8 analysis failed' });
@@ -38,7 +39,7 @@ module.exports = async (req, res) => {
       const assetUrl = String(b.assetUrl || '');
       if (!/^https:\/\//.test(assetUrl)) return res.status(422).json({ error: 'assetUrl (https) is required' });
 
-      const ar = await fetch(assetUrl);
+      const ar = await fetchT(assetUrl, {}, { timeoutMs: 60000 });
       if (!ar.ok) return res.status(502).json({ error: `could not fetch asset (${ar.status})` });
       const buf = await ar.arrayBuffer();
       if (buf.byteLength > 50 * 1024 * 1024) return res.status(413).json({ error: 'asset too large for analysis' });
@@ -52,7 +53,7 @@ module.exports = async (req, res) => {
       form.append('role', 'creative_director');
 
       const endpoint = kind === 'video' ? '/api/analyze/video/submit' : '/api/analyze/image/submit';
-      const r = await fetch(BASE + endpoint, { method: 'POST', body: form });
+      const r = await fetchT(BASE + endpoint, { method: 'POST', body: form }, { timeoutMs: 120000 });
       const d = await r.json().catch(() => ({}));
       if (d && d.error) return res.status(502).json({ error: d.error });
       if (!d || !d.job_id) return res.status(502).json({ error: `F1X8 submit failed (${r.status})` });

@@ -33,6 +33,7 @@
 // and page along the published_at index, never ORDER BY id.
 
 const { insertRow } = require('./_supabase.js');
+const { fetchT } = require('./_http.js');
 
 const DAYS_MAX = 90;
 const FALLBACK_DAYS = 14; // cron snapshot window when the full read fails or is partial
@@ -224,7 +225,7 @@ module.exports = async (req, res) => {
     let last = '';
     const t0 = Date.now();
     for (let attempt = 0; attempt < 4; attempt++) {
-      const r = await fetch(`${base}/rest/v1/${path}`, { headers: H });
+      const r = await fetchT(`${base}/rest/v1/${path}`, { headers: H }, { timeoutMs: 30000 });
       const j = await r.json().catch(() => null);
       if (r.ok && Array.isArray(j)) {
         timings.push({ q: path.split('?')[0] + ':' + (path.match(/platform=eq\.(\w+)/) || [])[1], rows: j.length, ms: Date.now() - t0, attempts: attempt + 1 });
