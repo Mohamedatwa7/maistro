@@ -233,3 +233,29 @@ test('cache: an hour-old board is refreshed on read; when the refresh fails the 
     assert.equal(r.statusCode, 502);
   } finally { f.restore(); h.restore(); }
 });
+
+test('cache: a raw (?all=1) miss stores no curation; the next curated read within the hour curates once and writes it back keeping fetched_at; the hourly cron refreshes unconditionally', async () => {
+  const pg = fakePostgrest();
+  let upstream = 0, claude = 0;
+  const f = mockFetch([
+    ['/api/agent/trends', () => { upstream++; return json(agentFeed()); }],
+    ['api.anthropic.com', () => { claude++; return anthropicReply({ selected: [{ id: 'setup-line-then-deadpan-punchline-caption-reveal', reason: 'r', hashtags: [] }] }); }],
+    pg.route,
+  ]);
+  const h = api('trends.js', { ANTHROPIC_API_KEY: 'k', TRENDRADAR_AGENT_KEY: 'agent-key', TRENDRADAR_BASE_URL: 'https://tr.test', CRON_SECRET: 'cron', ...SBC });
+  try {
+    let r = res(); await h.handler(req({ query: { all: '1' } }), r);
+    assert.equal(upstream, 1); assert.equal(claude, 0); assert.deepEqual(pg.tables.trends_cache[0].payload.curated, []);
+    const stamp = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    pg.tables.trends_cache[0].fetched_at = stamp;
+    r = res(); await h.handler(req(), r);
+    assert.equal(upstream, 1, 'hit'); assert.equal(claude, 1, 'curated once'); assert.equal(r.body.curatedBy, 'claude'); assert.equal(r.body.cache.hit, true);
+    assert.equal(pg.tables.trends_cache[0].payload.curated.length, 1, 'curation written back'); assert.equal(pg.tables.trends_cache[0].fetched_at, stamp, 'fetched_at kept');
+    r = res(); await h.handler(req(), r);
+    assert.equal(claude, 1, 'no re-curation on the next hit'); assert.equal(r.body.trends[0].curatorNote, 'r');
+    // the cron refreshes regardless of age
+    r = res(); await h.handler(req({ headers: { authorization: 'Bearer cron' } }), r);
+    assert.equal(r.statusCode, 200); assert.equal(r.body.refreshed, true); assert.equal(upstream, 2); assert.equal(claude, 2); assert.equal(r.body.curated, 1);
+    assert.ok(Date.now() - new Date(pg.tables.trends_cache[0].fetched_at).getTime() < 5000);
+  } finally { f.restore(); h.restore(); }
+});

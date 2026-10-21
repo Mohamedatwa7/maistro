@@ -26,6 +26,7 @@ const MODEL = 'claude-opus-4-8';
 // hourly cron, so refresh-on-read is the whole mechanism. Caching is skipped
 // when the database is not configured (tests, local runs).
 const { queryRows, upsertRows } = require('../_supabase.js');
+const { isCron } = require('../_auth.js');
 const CACHE_KEY = 'board';
 const CACHE_FRESH_S = 3600;
 const cacheConfigured = () => Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -42,10 +43,10 @@ async function readCache() {
     return null;
   }
 }
-async function writeCache(payload, error) {
+async function writeCache(payload, error, fetchedAt) {
   if (!cacheConfigured()) return;
   try {
-    await upsertRows('trends_cache', [{ id: CACHE_KEY, payload, source: payload.source || null, board_generated_at: payload.boardGeneratedAt || null, fetched_at: new Date().toISOString(), error: error || null }], 'id');
+    await upsertRows('trends_cache', [{ id: CACHE_KEY, payload, source: payload.source || null, board_generated_at: payload.boardGeneratedAt || null, fetched_at: fetchedAt || new Date().toISOString(), error: error || null }], 'id');
   } catch (e) {
     console.warn('[trends] cache write failed:', e.message);
   }
@@ -329,6 +330,24 @@ async function claudeCurate(trends) {
 module.exports = async (req, res) => {
   try {
     const q = req.query || {};
+    // Hourly cron (Pro plan, vercel.json): refresh the stored board and its
+    // curation unconditionally, so reads in the next hour are all hits.
+    if (isCron(req)) {
+      res.setHeader('Cache-Control', 'no-store');
+      try {
+        const board = await fetchBoard();
+        let curated = [], curatedBy = 'none';
+        if (board.raw.length) {
+          try { const picked = await claudeCurate(board.raw); curated = picked || ruleCurate(board.raw); curatedBy = picked ? 'claude' : 'rules'; }
+          catch { curated = ruleCurate(board.raw); curatedBy = 'rules'; }
+        }
+        await writeCache({ ...board, curated, curatedBy });
+        return res.status(200).json({ ok: true, refreshed: true, source: board.source, boardTotal: board.total, curated: curated.length, curatedBy, at: new Date().toISOString() });
+      } catch (e) {
+        await markCacheError(e.message || e);
+        return res.status(502).json({ ok: false, refreshed: false, error: String(e.message || e) });
+      }
+    }
     let board = null, cache = { hit: false, stale: false, fetchedAt: null, ageS: null };
     const cached = await readCache();
     if (cached && cached.ageS < CACHE_FRESH_S) {
@@ -363,13 +382,17 @@ module.exports = async (req, res) => {
         try { picked = await claudeCurate(trends); curatedBy = picked ? 'claude' : 'rules'; }
         catch { curatedBy = 'rules'; }
         trends = picked || ruleCurate(trends);
+        // a fresh board: write it with its curation; a hit whose row had no
+        // curation yet (filled by a raw read): write the curation back but
+        // keep the row's fetched_at so the hour does not restart
         if (!cache.hit) await writeCache({ ...board, curated: trends, curatedBy });
-        else if (cache.stale) { /* keep the stored curation */ }
+        else if (!cache.stale) await writeCache({ raw: board.raw, source, live, boardGeneratedAt, total, curated: trends, curatedBy }, null, board.fetchedAt);
       }
     } else {
       trends.sort((a, b) => (b.samsungFit.score || 0) - (a.samsungFit.score || 0));
-      // a raw read still refreshes the stored board (curation is filled on the next curated read)
-      if (!cache.hit) await writeCache({ ...board, curated: (cached && cached.curated) || [], curatedBy: (cached && cached.curatedBy) || 'none' });
+      // a raw miss stores the new board WITHOUT a curation (the previous top
+      // 10 may name trends no longer on the board); the next curated read fills it
+      if (!cache.hit) await writeCache({ ...board, curated: [], curatedBy: 'none' });
     }
 
     // consumer filters kept for the external Hermes agent
