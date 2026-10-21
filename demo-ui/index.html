@@ -2399,6 +2399,50 @@ function shotRegenForm(pid,n,stage){
  stage=stage||'board';const el=document.getElementById('shot-form-'+stage+'-'+n);if(!el)return;
  el.innerHTML=`<div style="margin-top:8px;display:grid;gap:6px"><input class="inp-l" id="sg-changes-${n}" placeholder="${stage==='draft'?'e.g. slower push-in, keep the device still':'e.g. closer on the cover screen, warmer light'}"><button class="btn btn-gold btn-sm" onclick="shotRegen('${pid}',${n},'${stage}')">↻ Re-render only this shot</button></div>`;
 }
+/* 6.6 (b) — overlays: one PNG per shot with text, drawn by the browser inside the safe zone, then the assembly job */
+function drawOverlay(sh,aspect,resolution){
+ const dims={'9:16':{'720p':[720,1280],'1080p':[1080,1920]},'16:9':{'720p':[1280,720],'1080p':[1920,1080]},'1:1':{'720p':[720,720],'1080p':[1080,1080]}};
+ const [W,H]=(dims[aspect]||dims['9:16'])[resolution]||(dims[aspect]||dims['9:16'])['720p'];
+ const cv=document.createElement('canvas');cv.width=W;cv.height=H;const g=cv.getContext('2d');
+ const zone=aspect==='9:16'?{top:.13,bottom:.34,left:.06,right:.06}:{top:.08,bottom:.12,left:.06,right:.06};
+ const x0=W*zone.left,x1=W*(1-zone.right),w=x1-x0;
+ const wrap=(text,font,dir)=>{g.font=font;g.direction=dir;const out=[];for(const para of String(text).split(/\n/)){let line='';for(const wd of para.split(/\s+/)){const t=line?line+' '+wd:wd;if(g.measureText(t).width>w&&line){out.push(line);line=wd}else line=t}if(line)out.push(line)}return out};
+ g.textBaseline='top';g.fillStyle='#fff';g.shadowColor='rgba(0,0,0,.65)';g.shadowBlur=Math.round(W*.02);
+ let drew=false;
+ const t=sh.onScreenText||{},l=sh.line||{};
+ /* on-screen text: upper third inside the safe zone, big */
+ let y=H*zone.top+H*.04;const big=Math.round(W*(aspect==='9:16'?.075:.05));
+ if(t.en){g.textAlign='center';for(const ln of wrap(t.en,`800 ${big}px system-ui`,'ltr')){g.fillText(ln,W/2,y);y+=big*1.12}drew=true;y+=big*.3}
+ if(t.ar){g.textAlign='center';g.direction='rtl';for(const ln of wrap(t.ar,`800 ${big}px system-ui`,'rtl')){g.fillText(ln,W/2,y);y+=big*1.3}drew=true}
+ /* caption line: just above the bottom zone, smaller */
+ const small=Math.round(W*(aspect==='9:16'?.045:.03));let yb=H*(1-zone.bottom)-small*.5;
+ const lines=[];if(l.ar)lines.push(['rtl',l.ar]);if(l.en)lines.push(['ltr',l.en]);
+ for(const [dir,txt] of lines.reverse()){const ls=wrap(txt,`600 ${small}px system-ui`,dir);g.textAlign='center';g.direction=dir;for(const ln of ls.reverse()){yb-=small*1.25;g.fillText(ln,W/2,yb)}drew=true;yb-=small*.4}
+ return drew?cv:null;
+}
+async function assembleDraft(pid){
+ const p=PROJECTS.find(x=>x.id===pid);if(!p||!p.draft||!p.draft.shots)return;
+ const key=pid+':draft';
+ try{
+  GEN.busy[key]='Drawing the text overlays in your browser…';studioRefresh();
+  const overlays=[];
+  for(const sh of p.draft.shots){
+   const cv=drawOverlay(sh,p.draft.aspect||'9:16',p.draft.resolution||'720p');if(!cv)continue;
+   const blob=await new Promise(ok=>cv.toBlob(ok,'image/png'));
+   const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.onerror=()=>no(new Error('overlay read failed'));fr.readAsDataURL(blob)});
+   overlays.push({shot:sh.n,data:b64,text:{en:[(sh.onScreenText||{}).en,(sh.line||{}).en].filter(Boolean).join(' / '),ar:[(sh.onScreenText||{}).ar,(sh.line||{}).ar].filter(Boolean).join(' / ')}});
+  }
+  if(overlays.length){
+   const orr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft-overlays',pieceId:pid,overlays,piece:storeMeta(p)})});
+   const od=await orr.json().catch(()=>({}));if(!orr.ok)throw new Error(od.error||('overlays: studio responded '+orr.status));
+  }
+  GEN.busy[key]='Assembling the cut (trim, transitions, overlays, loudness, export)…';studioRefresh();
+  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft-assemble',pieceId:pid,piece:storeMeta(p)})});
+  const sd=await sr.json().catch(()=>({}));if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
+  p.jobs=p.jobs||{};p.jobs['g:draft']={jobId:sd.job.id,meta:{}};saveGenerated();
+  jobPoll(pid,'draft',sd.job.id,0);
+ }catch(e){delete GEN.busy[key];GEN.err[key]=e.message;studioRefresh()}
+}
 /* 6.6 — the first draft: one clip per approved shot, reviewed shot by shot; the cut is assembled afterwards */
 function rDraft(p,locked){
  const b=p.draft,key=p.id+':draft';
@@ -2411,8 +2455,11 @@ function rDraft(p,locked){
    ${badge('muted','FIRST DRAFT '+esc(b.version||'v1')+' · '+(b.shots||[]).length+' CLIPS · '+esc(String(b.totalS||''))+' s · '+esc(b.resolution||''))}${b.boardApproved===false?badge('gold','STORYBOARD NOT YET APPROVED'):''}
    ${badge(rendered===(b.shots||[]).length?'go':'muted',rendered+'/'+(b.shots||[]).length+' CLIPS RENDERED')}
    ${allApproved?badge('go','ALL CLIPS APPROVED — READY TO ASSEMBLE'):badge('muted',approved+'/'+(b.shots||[]).length+' CLIPS APPROVED')}
-   ${b.assembled?badge('go','ASSEMBLED CUT '+esc(b.assembled.version||'')):''}
+   ${b.assembled?badge('go','ASSEMBLED CUT '+esc(b.assembled.version||'')+' · '+esc(String(b.assembled.durationS||''))+' s · '+b.assembled.width+'×'+b.assembled.height):''}
+   ${b.assembledChecks?(b.assembledChecks.every(c=>c.passed)?badge('go','CUT CHECKS PASSED'):badge('alert','CUT CHECKS NEED A LOOK')):''}
   </div>
+  ${b.assembledChecks?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${b.assembledChecks.map(c=>`<span title="${esc(c.detail)}">${badge(c.passed?'go':'alert',(c.passed?'✓ ':'✗ ')+c.code.replace(/_/g,' ').toUpperCase())}</span>`).join('')}</div>`:''}
+  ${p.studio&&!locked&&allApproved&&!GEN.busy[key]?`<div style="margin:4px 0 12px"><button class="btn btn-ai btn-sm" onclick="assembleDraft('${p.id}')">${b.assembled?'↻ Re-compose overlays & assemble again':'Compose overlays & assemble the cut'}</button> <span class="dim" style="font-size:11px">Text and captions are drawn here in your browser (Arabic shaped correctly) and burnt in by the assembly; the cut lands as this version's video.</span></div>`:''}
   ${b.assembled&&b.assembled.assetPath?`<video controls playsinline ${mediaAttrs(b.assembled,'url')} style="width:100%;max-width:${(b.aspect||'9:16')==='9:16'?'320px':'640px'};border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}
   <div class="frames" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">${(b.shots||[]).map(sh=>{
    const c=sh.clip,rv=sh.review;

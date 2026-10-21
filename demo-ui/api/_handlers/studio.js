@@ -35,6 +35,8 @@
 //   POST { action: 'draft-shot', pieceId, shot, changes? } → re-render ONE clip
 //   POST { action: 'shot-decide', stage: 'board'|'draft', pieceId, shot, decision, reason?, reasonCode? }
 //   GET  ?shots=<pieceId>&stage=board|draft → that stage's version with its shots
+//   POST { action: 'draft-overlays', pieceId, overlays: [{ shot, data (base64 PNG), text? }] } → stored per shot
+//   POST { action: 'draft-assemble', pieceId } → an `assemble` job over the approved clips (ffmpeg on the tick)
 //   GET  ?checks=<pieceId>&stage=<kind>  (session) → the stored checks for the
 //       stage's current version
 const { requireSession, refreshMember } = require('../_auth.js');
@@ -105,7 +107,7 @@ module.exports = async (req, res) => {
     }
     if (!(await refreshMember(req, res))) return;
     const b = req.body || {};
-    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
+    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
     const legacyId = String(b.pieceId || '');
     if (b.action === 'thumb-composite') {
       const data = String(b.data || '');
@@ -170,6 +172,41 @@ module.exports = async (req, res) => {
       await jobsSvc.advance(job).catch(() => null);
       const fresh = await jobsSvc.getJob(job.id);
       return res.status(200).json({ ok: true, shot: n, job: jobsSvc.publicJob(fresh || job, legacyId) });
+    }
+    if (b.action === 'draft-overlays' || b.action === 'draft-assemble') {
+      // 6.6 (b): the browser draws each shot's text + caption as a PNG (correct Arabic shaping);
+      // the PNGs are validated like the thumbnail composite and stored on the shot; assembly
+      // then runs as a job over the APPROVED clips only
+      const [ds] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.draft&limit=1`);
+      if (!ds || !ds.current_version_id) return res.status(409).json({ error: 'no first draft version', code: 'no_version' });
+      if (ds.state === 'approved') return res.status(409).json({ error: 'the draft is approved; reopen it first', code: 'approved_immutable' });
+      const [dv] = await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(ds.current_version_id)}&limit=1`);
+      if (!dv || !Array.isArray(dv.payload.shots)) return res.status(409).json({ error: 'the draft has no shot list', code: 'no_version' });
+      if (b.action === 'draft-overlays') {
+        const list = Array.isArray(b.overlays) ? b.overlays.slice(0, 8) : [];
+        if (!list.length) return res.status(422).json({ error: 'overlays[] (shot, data) is required' });
+        const PNG_SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+        const stored = [];
+        for (const o of list) {
+          const n = Number(o.shot); if (!dv.payload.shots[n - 1]) return res.status(404).json({ error: `shot ${n} not found` });
+          const bytes = Buffer.from(String(o.data || ''), 'base64');
+          if (!bytes.length || bytes.length > 2 * 1024 * 1024) return res.status(413).json({ error: `overlay for shot ${n} must be a PNG under 2 MB` });
+          if (bytes.length < 8 || !PNG_SIG.every((x, i) => bytes[i] === x)) return res.status(422).json({ error: `overlay for shot ${n} must be a PNG` });
+          const put = await storage.putBlob(`pieces/${legacyId}/draft/overlay-${n}-${Date.now().toString(36)}.png`, bytes, 'image/png');
+          stored.push({ n, overlay: { assetPath: put.path, sha256: put.sha256, size: put.size, text: o.text && typeof o.text === 'object' ? { en: String(o.text.en || '').slice(0, 200), ar: String(o.text.ar || '').slice(0, 200) } : null, at: new Date().toISOString() } });
+        }
+        await jobsSvc.updateShots(dv.id, (payload) => { const shots = payload.shots.map((s) => ({ ...s })); for (const x of stored) shots[x.n - 1] = { ...shots[x.n - 1], overlay: x.overlay }; return { ...payload, shots }; });
+        return res.status(200).json({ ok: true, stored: stored.map((x) => ({ shot: x.n, assetPath: x.overlay.assetPath })) });
+      }
+      const notReady = dv.payload.shots.filter((s) => !(s.clip && s.clip.state === 'rendered') || !(s.review && s.review.decision === 'approved')).map((s) => s.n);
+      if (notReady.length) return res.status(409).json({ error: `approve every clip first — shot${notReady.length > 1 ? 's' : ''} ${notReady.join(', ')} pending`, code: 'prerequisites', pending: notReady });
+      const liveRows = await queryRows('jobs', `select=id,kind&stage_id=eq.${encodeURIComponent(ds.id)}&state=in.(queued,running)&limit=50`);
+      if (liveRows.some((j) => j.kind === 'assemble')) return res.status(409).json({ error: 'the cut is already being assembled', code: 'busy' });
+      const brief = await boardMod.briefFor(piece.id);
+      const targetS = brief && brief.payload && brief.payload.spec && brief.payload.spec.format ? brief.payload.spec.format.targetDurationS : null;
+      const [job] = await insertRows('jobs', [{ piece_id: piece.id, stage_id: ds.id, kind: 'assemble', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'draft', versionId: dv.id, targetS, generatedBy: req.member ? req.member.id : null } }], { returning: true });
+      // the job runs on the next tick (ffmpeg inside the job service, not inside this request)
+      return res.status(200).json({ ok: true, job: jobsSvc.publicJob(job, legacyId) });
     }
     if (b.action === 'draft' || b.action === 'draft-shot') {
       // 6.6: one Seedance image-to-video clip per APPROVED storyboard shot, from its keyframe

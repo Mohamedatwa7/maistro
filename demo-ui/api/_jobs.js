@@ -13,17 +13,19 @@ const higgsfield = require('./_adapters/higgsfield.js');
 const f1x8 = require('./_adapters/f1x8.js');
 const storage = require('./_adapters/storage.js');
 const { recordGeneration } = require('./_records.js');
-const jobRecord = (job, extra) => recordGeneration({ kind: job.kind.startsWith('higgsfield') ? job.kind : 'f1x8', legacyPieceId: job.payload && job.payload.pieceId, pieceId: job.piece_id || null, stage: job.payload && job.payload.stage, promptName: job.kind.startsWith('higgsfield') ? 'director.prompt' : 'f1x8.analysis', promptVersion: null, resolvedPrompt: job.payload && (job.payload.prompt || job.payload.description) || null, params: { aspect_ratio: job.payload && job.payload.aspect_ratio, resolution: job.payload && job.payload.resolution, duration: job.payload && job.payload.duration, ref: Boolean(job.payload && job.payload.ref), v: job.payload && job.payload.v, seed: job.payload && job.payload.seed != null ? job.payload.seed : null }, inputAssets: job.payload && (job.payload.ref || job.payload.assetUrl || job.payload.assetPath) ? [job.payload.ref || job.payload.assetPath || job.payload.assetUrl] : [], jobId: job.id, memberId: job.payload && job.payload.generatedBy, correlationId: job.payload && job.payload.correlationId, latencyMs: job.started_at ? Date.now() - new Date(job.started_at).getTime() : null, ...extra });
+const jobRecord = (job, extra) => recordGeneration({ kind: job.kind.startsWith('higgsfield') ? job.kind : job.kind === 'assemble' ? 'assemble' : 'f1x8', legacyPieceId: job.payload && job.payload.pieceId, pieceId: job.piece_id || null, stage: job.payload && job.payload.stage, promptName: job.kind.startsWith('higgsfield') ? 'director.prompt' : job.kind === 'assemble' ? 'assemble.ffmpeg' : 'f1x8.analysis', promptVersion: null, resolvedPrompt: job.payload && (job.payload.prompt || job.payload.description) || null, params: { aspect_ratio: job.payload && job.payload.aspect_ratio, resolution: job.payload && job.payload.resolution, duration: job.payload && job.payload.duration, ref: Boolean(job.payload && job.payload.ref), v: job.payload && job.payload.v, seed: job.payload && job.payload.seed != null ? job.payload.seed : null }, inputAssets: job.payload && (job.payload.ref || job.payload.assetUrl || job.payload.assetPath) ? [job.payload.ref || job.payload.assetPath || job.payload.assetUrl] : [], jobId: job.id, memberId: job.payload && job.payload.generatedBy, correlationId: job.payload && job.payload.correlationId, latencyMs: job.started_at ? Date.now() - new Date(job.started_at).getTime() : null, ...extra });
 
 const q = (v) => encodeURIComponent(String(v));
-const KINDS = ['higgsfield_image', 'higgsfield_video', 'f1x8_image', 'f1x8_video', 'vision_check'];
+const KINDS = ['higgsfield_image', 'higgsfield_video', 'f1x8_image', 'f1x8_video', 'vision_check', 'assemble', 'clip_check'];
 const RENDER_KINDS = ['higgsfield_image', 'higgsfield_video'];
-const KIND_STAGE = { higgsfield_image: ['mood', 'thumb', 'board'], higgsfield_video: ['draft', 'final'], f1x8_image: ['mood', 'thumb', 'board'], f1x8_video: ['draft', 'final'], vision_check: ['mood', 'thumb', 'board'] };
+const KIND_STAGE = { higgsfield_image: ['mood', 'thumb', 'board'], higgsfield_video: ['draft', 'final'], f1x8_image: ['mood', 'thumb', 'board'], f1x8_video: ['draft', 'final'], vision_check: ['mood', 'thumb', 'board', 'draft', 'final'], assemble: ['draft', 'final'], clip_check: ['draft', 'final'] };
 // How long to wait before asking again, and when to give up (seconds).
 // the vision_check claim window must exceed the bounded model call (90 s) so a
 // second tick cannot re-claim a check that is still running
-const POLL_S = { higgsfield_image: 20, higgsfield_video: 45, f1x8_image: 60, f1x8_video: 90, vision_check: 150 };
-const TIMEOUT_S = { higgsfield_image: 15 * 60, higgsfield_video: 20 * 60, f1x8_image: 30 * 60, f1x8_video: 45 * 60, vision_check: 10 * 60 };
+// assemble and clip_check run ffmpeg inside one invocation: their claim windows exceed the
+// longest run (the function limit is 300 s) so a second tick can never double-claim them
+const POLL_S = { higgsfield_image: 20, higgsfield_video: 45, f1x8_image: 60, f1x8_video: 90, vision_check: 150, assemble: 290, clip_check: 200 };
+const TIMEOUT_S = { higgsfield_image: 15 * 60, higgsfield_video: 20 * 60, f1x8_image: 30 * 60, f1x8_video: 45 * 60, vision_check: 10 * 60, assemble: 15 * 60, clip_check: 10 * 60 };
 const MAX_SUBMIT_ATTEMPTS = 3;
 
 const nowIso = () => new Date().toISOString();
@@ -121,6 +123,8 @@ async function advance(job) {
   }
   try {
     if (!job.provider_ref && job.kind === 'vision_check') return await runVisionCheck(job);
+    if (!job.provider_ref && job.kind === 'clip_check') return await runClipCheck(job);
+    if (!job.provider_ref && job.kind === 'assemble') return await runAssemble(job);
     if (!job.provider_ref) {
       const attempts = (job.attempts || 0) + 1;
       if (attempts > MAX_SUBMIT_ATTEMPTS) { await fail(job, 'failed', job.error || 'submit failed repeatedly'); return 'failed'; }
@@ -325,6 +329,11 @@ async function attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage, slo
       await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'vision_check', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, versionId, shot, images: [{ index: shot, url: sourceUrl, assetPath: keyframe.assetPath }], direction: meta.direction || null, product: meta.product || null, productLook: meta.productLook || null, rules: meta.rules || [], expectProduct: Boolean(meta.expectProduct), anchors, textSide: null, generatedBy: job.payload.generatedBy || null } }]);
     } catch (e) { console.warn('[jobs] vision check could not be queued:', e.message); }
   }
+  if (job.payload.autoCheck && slot === 'clip' && keyframe.assetPath) {
+    // 6.6 (b): frames of the clip go to the vision check with the keyframe as the anchor
+    try { await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'clip_check', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, versionId, shot, clipAssetPath: keyframe.assetPath, keyframeAssetPath: job.payload.imageAssetPath || null, product: meta.product || null, productLook: meta.productLook || null, rules: meta.rules || [], expectProduct: Boolean(meta.expectProduct), generatedBy: job.payload.generatedBy || null } }]); }
+    catch (e) { console.warn('[jobs] clip check could not be queued:', e.message); }
+  }
   if (meta.hookCheck && slot === 'keyframe' && keyframe.assetPath) {
     try { await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'f1x8_image', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, assetPath: keyframe.assetPath, title: meta.title || 'storyboard hook', description: `Storyboard hook keyframe (shot ${shot})`, hookCheck: true, versionId, generatedBy: job.payload.generatedBy || null } }]); }
     catch (e) { console.warn('[jobs] hook check could not be queued:', e.message); }
@@ -332,6 +341,84 @@ async function attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage, slo
   await settleBoardStage(job);
   try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: `${stage} shot ${shot} ${slot}` }); } catch (e) { /* best effort */ }
   return 'succeeded';
+}
+
+/** Download a private asset to a file (signed URL → bytes). */
+async function fetchToFile(assetPath, file) {
+  const url = await storage.signedUrl(assetPath, 3600);
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`asset ${assetPath} could not be fetched (${r.status})`);
+  const buf = Buffer.from(await r.arrayBuffer());
+  require('node:fs').writeFileSync(file, buf);
+  return buf.length;
+}
+
+/** 6.6 (b): three frames of one clip → the vision check in clip mode (product stability,
+ *  morphing, artefacts) with the source keyframe as the anchor. */
+async function runClipCheck(job) {
+  const A = require('./_studio/assemble.js');
+  const { visionCheck } = require('./_studio/checks.js');
+  const fs = require('node:fs'); const path = require('node:path');
+  const p = job.payload || {};
+  await patchRows('jobs', `id=eq.${q(job.id)}`, { state: 'running', error: null });
+  const dir = A.tmpDir('maistro-clip-');
+  try {
+    const clip = path.join(dir, 'clip.mp4');
+    await fetchToFile(p.clipAssetPath, clip);
+    const { frames, probe } = await A.extractFrames(clip, dir);
+    const images = [];
+    for (const f of frames) {
+      const put = await storage.putBlob(`pieces/${p.pieceId}/${p.stage}/frames-${p.shot}-${f.index}-${job.id.slice(0, 8)}.png`, fs.readFileSync(f.file), 'image/png');
+      images.push({ index: f.index, url: await storage.signedUrl(put.path, 3600), assetPath: put.path, t: f.t });
+    }
+    const anchors = [];
+    if (p.keyframeAssetPath) { try { anchors.push({ index: 0, url: await storage.signedUrl(p.keyframeAssetPath, 3600), label: `source keyframe of shot ${p.shot} — the clip must keep this product, character, setting and lighting` }); } catch (e) { /* no anchor */ } }
+    const out = await visionCheck({ images: images.map((i) => ({ index: i.index, url: i.url })), anchors, mode: 'clip', product: p.product, productLook: p.productLook, rules: p.rules, expectProduct: p.expectProduct, legacyPieceId: p.pieceId, stage: p.stage, jobId: job.id });
+    if (!Array.isArray(out.results)) { await fail(job, 'failed', out.error || 'clip check failed'); return 'failed'; }
+    const results = { images: out.results, shot: p.shot, frames: images.map((i) => ({ index: i.index, t: i.t, assetPath: i.assetPath })), clip: { durationS: probe.durationS, width: probe.width, height: probe.height, fps: probe.fps, hasAudio: probe.hasAudio } };
+    await insertRows('stage_checks', [{ piece_id: job.piece_id, stage_id: job.stage_id, artifact_version_id: p.versionId, kind: 'vision', passed: out.passed, results, model: out.model || null, prompt_version: out.promptVersion || null, job_id: job.id }]);
+    await finish(job, { state: 'succeeded', error: null, result: { shot: p.shot, passed: out.passed, flags: results.images.flatMap((i) => i.flags || []) } });
+    return 'succeeded';
+  } catch (e) { await fail(job, 'failed', `clip check: ${String(e.message || e).slice(0, 240)}`); return 'failed'; }
+  finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* tmp */ } }
+}
+
+/** 6.6 (b): assemble the approved clips of a draft version into one cut (ffmpeg), store it
+ *  in the private bucket, record it on the version (assembled + assetPath/sha256), run the
+ *  assembled checks and hand the whole artifact back as the job result. */
+async function runAssemble(job) {
+  const A = require('./_studio/assemble.js');
+  const fs = require('node:fs'); const path = require('node:path');
+  const p = job.payload || {};
+  await patchRows('jobs', `id=eq.${q(job.id)}`, { state: 'running', error: null });
+  const [v] = await queryRows('artifact_versions', `select=id,version,payload&id=eq.${q(p.versionId)}&limit=1`);
+  if (!v || !Array.isArray(v.payload.shots)) { await fail(job, 'failed', 'draft version not found'); return 'failed'; }
+  const shots = v.payload.shots;
+  const notReady = shots.filter((s) => !(s.clip && s.clip.state === 'rendered' && s.clip.assetPath) || !(s.review && s.review.decision === 'approved')).map((s) => s.n);
+  if (notReady.length) { await fail(job, 'failed', `shots not approved or not rendered: ${notReady.join(', ')}`); return 'failed'; }
+  const dir = A.tmpDir('maistro-cut-');
+  try {
+    const inputs = [];
+    for (const s of shots) {
+      const file = path.join(dir, `clip-${s.n}.mp4`); await fetchToFile(s.clip.assetPath, file);
+      let overlayFile = null;
+      if (s.overlay && s.overlay.assetPath) { overlayFile = path.join(dir, `ov-${s.n}.png`); await fetchToFile(s.overlay.assetPath, overlayFile); }
+      inputs.push({ n: s.n, file, trimS: Number(s.durationS) || undefined, transition: s.transition || 'cut', overlayFile });
+    }
+    const out = path.join(dir, 'cut.mp4');
+    const r = await A.assemble({ shots: inputs, aspect: v.payload.aspect || '9:16', resolution: v.payload.resolution || '720p', out });
+    const put = await storage.putBlob(`pieces/${p.pieceId}/${p.stage}/cut-${job.id.slice(0, 8)}.mp4`, fs.readFileSync(out), 'video/mp4');
+    const assembled = { assetPath: put.path, sha256: r.sha256, size: r.size, durationS: r.durationS, expectedS: r.expectedS, width: r.width, height: r.height, fps: r.fps, hasAudio: r.hasAudio, loudness: r.loudness, transitions: r.transitions, overlays: inputs.filter((i) => i.overlayFile).map((i) => i.n), jobId: job.id, at: nowIso(), version: `v${v.version}` };
+    const checks = A.assembledChecks(r, { targetS: p.targetS || v.payload.totalS || null, shots });
+    const passed = checks.every((c) => c.passed);
+    const upd = await updateShots(v.id, (payload) => ({ ...payload, assembled, assetPath: put.path, sha256: r.sha256, size: r.size, videoUrl: null, dur: `${r.durationS}s`, variants: (payload.variants || []).map((x) => ({ ...x, st: 'ready' })), audio: `Native clip audio, loudnorm ${r.loudness.I} LUFS / ${r.loudness.TP} dBTP`, assembledChecks: checks }));
+    await insertRows('stage_checks', [{ piece_id: job.piece_id, stage_id: job.stage_id, artifact_version_id: v.id, kind: 'spec', passed, results: { codeChecks: checks, flags: checks.filter((c) => !c.passed).map((c) => `${c.code}: ${c.detail}`), passed, assembled }, job_id: job.id }]);
+    await finish(job, { state: 'succeeded', error: null, result: { artifact: { ...upd.payload, version: `v${v.version}` }, version: v.version, versionId: v.id, assembled, checks } });
+    await jobRecord(job, { status: 'succeeded', outputAssets: [{ assetPath: put.path, sha256: r.sha256, versionId: v.id }], latencyMs: Date.now() - new Date(job.started_at || job.created_at).getTime() });
+    try { const { syncSpec } = require('./_spec.js'); await syncSpec(p.pieceId, { memberId: p.generatedBy || null, note: 'draft assembled' }); } catch (e) { /* best effort */ }
+    return 'succeeded';
+  } catch (e) { await fail(job, 'failed', `assembly: ${String(e.message || e).slice(0, 280)}`); return 'failed'; }
+  finally { try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* tmp */ } }
 }
 
 /** The automated visual check (6.2): one vision call over the version's images,

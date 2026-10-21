@@ -1,7 +1,9 @@
 {
   "functions": {
     "api/[route].js": {
-      "maxDuration": 300
+      "maxDuration": 300,
+      "memory": 2048,
+      "includeFiles": "node_modules/ffmpeg-static/ffmpeg"
     }
   },
   "crons": [

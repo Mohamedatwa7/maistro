@@ -25,6 +25,6 @@ module.exports = async (req, res) => {
     configured,
     missing,
     features,
-    checkedAt: new Date().toISOString(),
+    tools: { ffmpeg: (() => { try { const f = require('ffmpeg-static'); return Boolean(f && require('node:fs').existsSync(f)); } catch (e) { return false; } })() }, checkedAt: new Date().toISOString(),
   });
 };

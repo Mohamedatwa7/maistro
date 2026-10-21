@@ -7,7 +7,7 @@
 // not decide — the human approval does.
 const { registerPrompt, recordGeneration } = require('../_records.js');
 
-const VERSION = 'vision-check-v1.1-2026-10-21'; // v1.1: anchors (moodboard consistency) and the reserved text side
+const VERSION = 'vision-check-v1.2-2026-10-21'; // v1.1: anchors and the reserved text side; v1.2: clip mode (morphing, artefacts across frames)
 const MODEL = () => process.env.MAISTRO_VISION_MODEL || 'claude-sonnet-5-5';
 
 const SYSTEM = [
@@ -16,15 +16,17 @@ const SYSTEM = [
   'Prohibited: competitor devices or logos; readable text inside the image; real identifiable people or celebrities; minors; alcohol, gambling, drugs; revealing or suggestive dress or posing; religious or political symbols used as devices; tragedy or violence.',
   'Palette and lighting: judge against the named direction (colours by hex family, lighting by description).',
   'When ANCHOR images (the approved moodboard tiles) are given, judge whether each candidate image continues their palette, lighting, materials and mood: consistentWithMood yes | partial | no. When a reserved text side is given, say whether that side is clean negative space (textSpaceClear yes | partial | no).',
+  'CLIP MODE: when told the images are FRAMES of one generated video clip (in time order) with its source keyframe as the anchor, also answer per frame: morphing — does the device (shape, hinge, buttons, logo area, colour) or a person change between this frame and the earlier ones or the keyframe (yes | no | unsure); artifacts — distorted hands or faces, flicker, warping, garbled background text, extra limbs (yes | no | unsure). Outside clip mode answer n/a to both.',
 ].join('\n');
 
 const SCHEMA = {
   type: 'object', additionalProperties: false, required: ['images'],
   properties: {
     images: { type: 'array', items: { type: 'object', additionalProperties: false,
-      required: ['index', 'productPresent', 'productMatchesCatalog', 'competitorOrLogo', 'realPerson', 'textInImage', 'prohibitedImagery', 'paletteMatch', 'lightingMatch', 'culturalOk', 'consistentWithMood', 'textSpaceClear', 'notes'],
+      required: ['index', 'productPresent', 'productMatchesCatalog', 'competitorOrLogo', 'realPerson', 'textInImage', 'prohibitedImagery', 'paletteMatch', 'lightingMatch', 'culturalOk', 'consistentWithMood', 'textSpaceClear', 'morphing', 'artifacts', 'notes'],
       properties: {
         consistentWithMood: { type: 'string', enum: ['yes', 'partial', 'no', 'n/a'] }, textSpaceClear: { type: 'string', enum: ['yes', 'partial', 'no', 'n/a'] },
+        morphing: { type: 'string', enum: ['yes', 'no', 'unsure', 'n/a'] }, artifacts: { type: 'string', enum: ['yes', 'no', 'unsure', 'n/a'] },
         index: { type: 'integer' },
         productPresent: { type: 'string', enum: ['yes', 'no', 'unsure'] }, productMatchesCatalog: { type: 'string', enum: ['yes', 'no', 'unsure', 'n/a'] },
         competitorOrLogo: { type: 'string', enum: ['yes', 'no', 'unsure'] }, realPerson: { type: 'string', enum: ['yes', 'no', 'unsure'] }, textInImage: { type: 'string', enum: ['yes', 'no', 'unsure'] },
@@ -47,25 +49,29 @@ function verdict(img, expectProduct) {
   if (img.paletteMatch === 'no') flags.push('palette off-direction');
   if (img.lightingMatch === 'no') flags.push('lighting off-direction');
   if (img.consistentWithMood === 'no') flags.push('inconsistent with the moodboard');
+  if (img.morphing === 'yes') flags.push('product or person morphs between frames');
+  if (img.morphing === 'unsure') flags.push('morphing unsure');
+  if (img.artifacts === 'yes') flags.push('visual artefacts');
+  if (img.artifacts === 'unsure') flags.push('artefacts unsure');
   if (img.textSpaceClear === 'no') flags.push('reserved text side is not clear');
-  const hard = flags.some((f) => /^(product missing|product does not match|competitor device|real identifiable|text inside|prohibited imagery$|cultural rule broken)/.test(f));
+  const hard = flags.some((f) => /^(product missing|product does not match|competitor device|real identifiable|text inside|prohibited imagery$|cultural rule broken|product or person morphs|visual artefacts)/.test(f));
   const unsure = flags.some((f) => /unsure/.test(f));
   return { pass: !hard && !unsure, needsReview: !hard && unsure, flags };
 }
 
 /** images: [{index, url}] (signed or public, fetchable by the model). */
 /** expectProduct: true (every image), false (none), or the indexes that are meant to show the product. */
-async function visionCheck({ images, anchors, textSide, direction, product, productLook, rules, client, legacyPieceId, stage, jobId, expectProduct }) {
+async function visionCheck({ images, anchors, textSide, direction, product, productLook, rules, client, legacyPieceId, stage, jobId, expectProduct, mode }) {
   const Anthropic = client ? null : require('@anthropic-ai/sdk');
   const c = client || new Anthropic({ timeout: 90000, maxRetries: 1 });
   registerPrompt('studio.vision.check', VERSION, `SYSTEM:\n${SYSTEM}\n\nUSER: images {{n}} direction {{direction}} product {{productLook}} rules {{rules}}`, ['n', 'direction', 'productLook', 'rules']);
   const content = [];
   (anchors || []).forEach((a) => { content.push({ type: 'text', text: `ANCHOR (${a.label || `approved moodboard tile ${a.index + 1}`}):` }); content.push({ type: 'image', source: { type: 'url', url: a.url } }); });
   images.forEach((im) => { content.push({ type: 'text', text: `IMAGE ${im.index}:` }); content.push({ type: 'image', source: { type: 'url', url: im.url } }); });
-  const userText = `DIRECTION: ${JSON.stringify({ palette: direction && direction.palette, lighting: direction && direction.lighting, mood: direction && direction.mood }, null, 1)}\nPRODUCT: ${product || 'none expected'}${productLook ? ` — catalog look: ${productLook}` : ''}\nCULTURAL RULES: ${JSON.stringify(rules || [])}\nANCHORS: ${(anchors || []).length ? `${anchors.length} approved moodboard tile(s) shown above — judge consistentWithMood against them` : 'none (answer n/a)'}\nRESERVED TEXT SIDE: ${textSide || 'none (answer n/a)'}\nAnswer the questions for every image (indexes ${images.map((i) => i.index).join(', ')}).`;
+  const userText = `DIRECTION: ${JSON.stringify({ palette: direction && direction.palette, lighting: direction && direction.lighting, mood: direction && direction.mood }, null, 1)}\nPRODUCT: ${product || 'none expected'}${productLook ? ` — catalog look: ${productLook}` : ''}\nCULTURAL RULES: ${JSON.stringify(rules || [])}\nANCHORS: ${(anchors || []).length ? `${anchors.length} anchor image(s) shown above — judge consistentWithMood against them` : 'none (answer n/a)'}\nRESERVED TEXT SIDE: ${textSide || 'none (answer n/a)'}\nMODE: ${mode === 'clip' ? `CLIP — the ${images.length} images are FRAMES of one generated clip in time order (first, middle, last); the anchor is its source keyframe. Answer morphing and artifacts per frame.` : 'single images (morphing and artifacts: n/a)'}\nAnswer the questions for every image (indexes ${images.map((i) => i.index).join(', ')}).`;
   content.push({ type: 'text', text: userText });
   const t0 = Date.now();
-  const rec = { kind: 'claude', legacyPieceId, stage, model: MODEL(), promptName: 'studio.vision.check', promptVersion: VERSION, resolvedPrompt: `${SYSTEM}\n\n${userText}`, userPrompt: userText, params: { images: images.length, anchors: (anchors || []).length, textSide: textSide || null }, inputAssets: [...(anchors || []).map((a) => a.url), ...images.map((i) => i.url)], jobId };
+  const rec = { kind: 'claude', legacyPieceId, stage, model: MODEL(), promptName: 'studio.vision.check', promptVersion: VERSION, resolvedPrompt: `${SYSTEM}\n\n${userText}`, userPrompt: userText, params: { images: images.length, anchors: (anchors || []).length, textSide: textSide || null, mode: mode || 'image' }, inputAssets: [...(anchors || []).map((a) => a.url), ...images.map((i) => i.url)], jobId };
   let response;
   try {
     response = await c.messages.create({ model: MODEL(), max_tokens: 8000, system: SYSTEM, messages: [{ role: 'user', content }], output_config: { format: { type: 'json_schema', schema: SCHEMA }, effort: 'low' } });
