@@ -1317,8 +1317,15 @@ async function hermesCall(stage,trend,project){
  if(!r.ok)throw new Error(d.error||('hermes responded '+r.status));
  return d.artifact;
 }
+/* Stored assets (private bucket) render through short-lived signed URLs. */
+async function hydrateAssets(root){
+ const els=[...((root||document).querySelectorAll('[data-asset]:not([src])'))];
+ for(const el of els){
+  try{const r=await authFetch('/api/jobs?asset='+encodeURIComponent(el.dataset.asset));const d=await r.json().catch(()=>({}));if(r.ok&&d.url)el.src=d.url}catch(e){}
+ }
+}
 function studioRefresh(){
- if(location.hash.replace(/^#\//,'').split('/')[0]==='studio'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rStudio();reveal()}
+ if(location.hash.replace(/^#\//,'').split('/')[0]==='studio'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rStudio();hydrateAssets($('#view'));reveal()}
 }
 function delivTitle(sid,a){
  switch(sid){
@@ -1621,7 +1628,12 @@ async function loadPieces(){
   if(applyServerPieces(d.pieces)&&location.hash.replace(/^#\//,'').split('/')[0]==='studio'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rStudio();reveal()}
  }catch(e){/* offline or storage not configured — the cache stands */}
 }
-function attachTo(p,sid,artifact,by){
+/* M3 flag: renders and F1X8 checks go through the job service (/api/jobs —
+   durable rows, server-side completion, one-minute tick). Set
+   localStorage['maistro-legacy-providers']='1' to fall back to the direct
+   /api/higgsfield + /api/qc-f1x8 polling path (rollback, ADR-004). */
+function useJobs(){try{return localStorage.getItem('maistro-legacy-providers')!=='1'}catch(e){return true}}
+function attachTo(p,sid,artifact,by,opts){
  p[sid]=artifact;
  p.stage=Math.max(p.stage,Math.min(BOT_STAGE_IDX[sid]+1,7));
  const id='d-'+p.id+'-'+sid;
@@ -1635,7 +1647,8 @@ function attachTo(p,sid,artifact,by){
    ver:artifact.version||'v1',by:by,at:'Just now',st:'pending'});
  }
  saveGenerated();
- syncStage(p,sid,artifact);
+ if(opts&&opts.recorded){const dl=DELIVS.find(x=>x.id===id);if(dl&&opts.recorded.version)dl.ver='v'+opts.recorded.version}
+ else syncStage(p,sid,artifact);
 }
 function genCtx(p){
  const ctx={};
@@ -1764,6 +1777,20 @@ async function stageGen(pid,sid,changes){
      thumbnail, which is a single hero visual by design */
   const useRef=!isVideo&&p.refImage&&sid==='thumb';
   GEN.busy[key]=(isVideo?'Seedance 2.5 is rendering the '+(sid==='final'?'revised cut':'first cut'):'Higgsfield is rendering the image'+(useRef?' from your product photo':''))+'…';studioRefresh();
+  if(useJobs()){
+   const prevArt=p[sid];
+   const version=isVideo?(prevArt&&prevArt.version?'v'+((parseInt(prevArt.version.slice(1),10)||1)+1):(sid==='final'?'v2':'v1')):undefined;
+   const meta={prompt:dd.prompt,note:dd.note,ar,dur,res,...(version?{version}:{}),...(sid==='thumb'?{title:p.title,sub:p.map.msg}:{})};
+   const jr=await authFetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({pieceId:p.id,stage:sid,kind:isVideo?'higgsfield_video':'higgsfield_image',piece:storeMeta(p),
+     payload:{prompt:dd.prompt,aspect_ratio:ar,resolution:res,duration:dur,...(useRef?{ref:p.refImage}:{}),meta}})});
+   const jd=await jr.json().catch(()=>({}));
+   if(!jr.ok||!jd.job)throw new Error(jd.error||('jobs responded '+jr.status));
+   if(jd.job.state==='failed'||jd.job.state==='timed_out')throw new Error(jd.job.error||'the render could not be submitted');
+   p.jobs=p.jobs||{};p.jobs['g:'+sid]={jobId:jd.job.id,meta};saveGenerated();
+   jobPoll(p.id,sid,jd.job.id,0);
+   return;
+  }
   const hr=await authFetch('/api/higgsfield',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({kind:isVideo?'video':'image',prompt:dd.prompt,aspect_ratio:ar,resolution:res,duration:dur,
     ...(useRef?{ref:p.refImage}:{})})});
@@ -1775,6 +1802,39 @@ async function stageGen(pid,sid,changes){
  }catch(e){
   delete GEN.busy[key];GEN.err[key]=e.message;studioRefresh();
  }
+}
+/* The page only READS job state; completion was recorded server-side. */
+const POLL_MS={job:10000};
+function jobPoll(pid,sid,jobId,tries){
+ const key=pid+':'+sid;
+ clearTimeout(GEN.timer[key]);
+ if(tries>240){delete GEN.busy[key];GEN.err[key]='Still rendering after 40 minutes — the job keeps running on the server; reopen the piece later.';studioRefresh();return}
+ GEN.timer[key]=setTimeout(async()=>{
+  try{
+   const r=await authFetch('/api/jobs?id='+encodeURIComponent(jobId));
+   const d=await r.json().catch(()=>({}));
+   const j=d.job;
+   if(!j){if(r.status===404){delete GEN.busy[key];GEN.err[key]='The render job is gone — try again.';studioRefresh();return}jobPoll(pid,sid,jobId,tries+1);return}
+   if(j.state==='succeeded'&&j.result&&j.result.artifact){
+    const p=PROJECTS.find(x=>x.id===pid);
+    if(!p){delete GEN.busy[key];return}
+    if(p.jobs)delete p.jobs['g:'+sid];
+    attachTo(p,sid,j.result.artifact,GEN_AGENT[sid],{recorded:{version:j.result.version}});
+    delete GEN.busy[key];studioRefresh();
+    const sg=STAGES[BOT_STAGE_IDX[sid]-1];
+    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip(sg.agent,1)}<div style="font-size:12.5px"><b>${GEN_VIDEO(sid)?'Seedance 2.5':'Higgsfield'}</b> delivered the ${sg.l.toLowerCase()} for <b>${esc(p.title)}</b>${sid==='final'?' — F1X8 fixes implemented':''}${j.result.copiedIn?' · stored':''}.</div></div>`);
+    return;
+   }
+   if(j.state==='failed'||j.state==='timed_out'){
+    delete GEN.busy[key];
+    GEN.err[key]=/moderated/.test(j.error||'')?'The request was moderated — nothing was generated. Rephrase and try again.':((j.error||'Generation '+j.state)+' — nothing was generated. Try again.');
+    const p=PROJECTS.find(x=>x.id===pid);
+    if(p&&p.jobs){delete p.jobs['g:'+sid];saveGenerated()}
+    studioRefresh();return;
+   }
+   jobPoll(pid,sid,jobId,tries+1);
+  }catch(e){jobPoll(pid,sid,jobId,tries+1)}
+ },POLL_MS.job);
 }
 function genPoll(pid,sid,reqId,meta,tries){
  const key=pid+':'+sid;
@@ -1855,6 +1915,22 @@ async function qcRunAll(pid){
   const key=pid+':'+a.sid;
   if(QCRUN.state[key]&&QCRUN.state[key]!=='done'&&QCRUN.state[key]!=='error')continue;
   QCRUN.state[key]='submitting';delete QCRUN.err[key];
+  if(useJobs()){
+   authFetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({pieceId:p.id,stage:a.sid,kind:a.kind==='video'?'f1x8_video':'f1x8_image',piece:storeMeta(p),
+     payload:{assetUrl:a.url,title:`${p.title} — ${QC_ASSET_LABELS[a.sid]}`,description:desc}})})
+   .then(r=>r.json().then(d=>({ok:r.ok,d})))
+   .then(({ok,d})=>{
+    if(!ok||!d.job)throw new Error(d.error||'submit failed');
+    if(d.job.state==='failed')throw new Error(d.job.error||'submit failed');
+    QCRUN.state[key]='fetching';
+    p.jobs=p.jobs||{};p.jobs['q:'+a.sid]={jobId:d.job.id};saveGenerated();
+    studioRefresh();
+    qcJobPoll(pid,a.sid,d.job.id,0);
+   })
+   .catch(e=>{QCRUN.state[key]='error';QCRUN.err[key]=e.message;studioRefresh()});
+   continue;
+  }
   authFetch('/api/qc-f1x8',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({kind:a.kind,assetUrl:a.url,title:`${p.title} — ${QC_ASSET_LABELS[a.sid]}`,description:desc})})
   .then(r=>r.json().then(d=>({ok:r.ok,d})))
@@ -1868,6 +1944,41 @@ async function qcRunAll(pid){
   .catch(e=>{QCRUN.state[key]='error';QCRUN.err[key]=e.message;studioRefresh()});
  }
  studioRefresh();
+}
+function qcJobPoll(pid,sid,jobId,tries){
+ const key=pid+':'+sid;
+ clearTimeout(QCRUN.timer[key]);
+ if(tries>270){QCRUN.state[key]='error';QCRUN.err[key]='F1X8 still running after 45 minutes — the job continues on the server; reopen the piece later.';studioRefresh();return}
+ QCRUN.timer[key]=setTimeout(async()=>{
+  try{
+   const r=await authFetch('/api/jobs?id='+encodeURIComponent(jobId));
+   const d=await r.json().catch(()=>({}));
+   const j=d.job;
+   if(!j){if(r.status===404){QCRUN.state[key]='error';QCRUN.err[key]='The analysis job is gone — resubmit.';studioRefresh();return}qcJobPoll(pid,sid,jobId,tries+1);return}
+   if(j.state==='succeeded'&&j.result&&j.result.analysis){
+    const p=PROJECTS.find(x=>x.id===pid);if(!p){delete QCRUN.state[key];return}
+    const R=j.result.analysis;
+    if(j.result.heatmapPath)QCHEAT[key]={path:j.result.heatmapPath};
+    if(!p.qc||!p.qc.real)p.qc={real:true,runs:{},at:'Just now'};
+    p.qc.runs[sid]=R;
+    if(p.jobs)delete p.jobs['q:'+sid];
+    QCRUN.state[key]='done';
+    qcFinishIfSettled(p);
+    studioRefresh();
+    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Sentinel',1)}<div style="font-size:12.5px"><b>F1X8</b> scored the ${QC_ASSET_LABELS[sid].toLowerCase()} <b>${(R.score??0).toFixed(1)}/10</b> for <b>${esc(p.title)}</b>.</div></div>`);
+    return;
+   }
+   if(j.state==='failed'||j.state==='timed_out'){
+    QCRUN.state[key]='error';QCRUN.err[key]=j.error||('F1X8 reported '+j.state);
+    const p=PROJECTS.find(x=>x.id===pid);
+    if(p){if(p.jobs){delete p.jobs['q:'+sid];saveGenerated()}qcFinishIfSettled(p)}
+    studioRefresh();return;
+   }
+   if(j.result&&j.result.providerStatus)QCRUN.state[key]=j.result.providerStatus;
+   studioRefresh();
+   qcJobPoll(pid,sid,jobId,tries+1);
+  }catch(e){qcJobPoll(pid,sid,jobId,tries+1)}
+ },POLL_MS.job);
 }
 function qcPoll(pid,sid,jobId,tries){
  const key=pid+':'+sid;
@@ -1926,9 +2037,16 @@ function resumeJobs(){
   if(!p.jobs)return;
   Object.entries(p.jobs).forEach(([k,v])=>{
    const sid=k.slice(2);
-   if(k.startsWith('g:')&&v&&v.reqId){
+   if(k.startsWith('g:')&&v&&v.jobId){
+    GEN.busy[genKey(p,sid)]='Resuming — '+(GEN_VIDEO(sid)?'Seedance render':'image render')+' in progress…';
+    jobPoll(p.id,sid,v.jobId,0);
+   }else if(k.startsWith('g:')&&v&&v.reqId){
     GEN.busy[genKey(p,sid)]='Resuming — '+(GEN_VIDEO(sid)?'Seedance render':'image render')+' in progress…';
     genPoll(p.id,sid,v.reqId,v.meta||{},0);
+   }else if(k.startsWith('q:')&&v&&v.jobId){
+    if(!p.qc||!p.qc.real)p.qc={real:true,runs:{},at:'Just now'};
+    QCRUN.state[p.id+':'+sid]='analyzing';
+    qcJobPoll(p.id,sid,v.jobId,0);
    }else if(k.startsWith('q:')&&typeof v==='string'){
     if(!p.qc||!p.qc.real)p.qc={real:true,runs:{},at:'Just now'};
     QCRUN.state[p.id+':'+sid]='analyzing';
@@ -2054,7 +2172,9 @@ function rQcReport(p,sid){
     <span class="track"><span class="fill" data-w="${Math.round((kp.score||0)*10)}%"></span></span>
     <span class="lab mono" style="color:#fff">${(kp.score??0).toFixed(1)}</span></div>`).join('')}
   </div>
-  ${heat?(heat.type==='video/mp4'
+  ${heat?(heat.path
+    ?`<img class="qc-heat" data-asset="${esc(heat.path)}" alt="F1X8 attention heatmap (stored)" onerror="this.style.display='none'">`
+    :heat.type==='video/mp4'
     ?`<video class="qc-heat" controls muted playsinline src="data:video/mp4;base64,${heat.data}"></video>`
     :`<img class="qc-heat" src="data:image/png;base64,${heat.data}" alt="F1X8 attention heatmap">`)
    +`<div class="src" style="margin-top:6px">F1X8 attention heatmap — where eyes land first (this session only).</div>`:''}

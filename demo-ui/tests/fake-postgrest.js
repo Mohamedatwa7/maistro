@@ -28,14 +28,19 @@ function fakePostgrest(base = 'https://sb.test') {
       else if (k === 'limit') limit = Number(v);
       else if (k === 'on_conflict') onConflict = v.split(',');
       else {
-        const m = v.match(/^(eq|in)\.(.*)$/s);
+        const m = v.match(/^(eq|in|lte|gte)\.(.*)$/s);
         if (!m) throw new Error(`fake-postgrest: unsupported filter ${k}=${v}`);
         filters.push({ col: k, op: m[1], val: m[1] === 'in' ? m[2].replace(/^\(|\)$/g, '').split(',').map(decodeURIComponent) : m[2] });
       }
     }
     return { table, filters, order, limit, select, onConflict };
   }
-  const matches = (row, f) => f.every(({ col, op, val }) => (op === 'eq' ? String(row[col]) === String(val) : val.includes(String(row[col]))));
+  const matches = (row, f) => f.every(({ col, op, val }) => {
+    if (op === 'eq') return String(row[col]) === String(val);
+    if (op === 'in') return val.includes(String(row[col]));
+    if (row[col] == null) return false;
+    return op === 'lte' ? String(row[col]) <= String(val) : String(row[col]) >= String(val);
+  });
   const project = (row, select) => (select === '*' ? { ...row } : Object.fromEntries(select.split(',').map((c) => [c, row[c]])));
 
   function defaults(table, row) {
@@ -46,6 +51,8 @@ function fakePostgrest(base = 'https://sb.test') {
     if (table === 'artifact_versions') r.created_at = now();
     if (table === 'approvals') r.decided_at = now();
     if (table === 'adlcp_documents') r.uploaded_at = now();
+    if (table === 'jobs') { r.state = r.state || 'queued'; r.attempts = r.attempts || 0; r.created_at = r.created_at || now(); r.provider_ref = r.provider_ref || null; }
+    if (table === 'qc_results') r.created_at = now();
     if (table === 'members') { r.active = r.active !== undefined ? r.active : true; r.created_at = r.created_at || now(); r.updated_at = now(); }
     return r;
   }

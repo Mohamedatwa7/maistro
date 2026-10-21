@@ -19,6 +19,8 @@ export type StageSnapshot = { kind: StageKind; state: StageState };
 export declare function stagePosition(kind: StageKind): number;
 export declare function prerequisites(kind: StageKind): StageKind[];
 export declare function readyStages(stages: StageSnapshot[], origin: Origin): StageKind[];
+/** true when `kind` may be generated; otherwise the list of unmet prerequisite kinds. */
+export declare function prerequisitesMet(stages: StageSnapshot[], kind: StageKind, opts?: { strict?: boolean; origin?: Origin }): true | StageKind[];
 
 export type Transition =
   | { type: "generate" }

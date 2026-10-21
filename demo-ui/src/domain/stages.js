@@ -47,6 +47,20 @@ function readyStages(stages, origin) {
   return out;
 }
 
+/** May `kind` be generated now? Strict (the new pages): every prerequisite
+ *  is approved. Soft (the legacy page, which produces stages in any order
+ *  and has no plan approval step): every prerequisite merely exists
+ *  (generated or approved). External pushes only need the plan. */
+function prerequisitesMet(stages, kind, opts = {}) {
+  const state = new Map(stages.map((s) => [s.kind, s.state]));
+  const exists = (k) => ["generated", "approved"].includes(state.get(k));
+  const approved = (k) => state.get(k) === "approved" || (k === "draft" && state.get(k) === "generated");
+  if (opts.origin === "external_hermes") return kind === "plan" || exists("plan");
+  const ok = opts.strict ? approved : exists;
+  const missing = prerequisites(kind).filter((k) => !ok(k));
+  return missing.length === 0 ? true : missing;
+}
+
 /** The single place that decides whether a stage transition is allowed. */
 function transition(kind, from, t) {
   const no = (code, message) => ({ ok: false, code, message });
@@ -96,4 +110,4 @@ function pieceStatus(stages) {
   return "in_production";
 }
 
-module.exports = { STAGE_KINDS, STAGE_STATES, ORIGINS, ROLES, FINAL_APPROVER_ROLES, STAGE_APPROVER_ROLES, stagePosition, prerequisites, readyStages, transition, pieceStatus };
+module.exports = { STAGE_KINDS, STAGE_STATES, ORIGINS, ROLES, FINAL_APPROVER_ROLES, STAGE_APPROVER_ROLES, stagePosition, prerequisites, prerequisitesMet, readyStages, transition, pieceStatus };

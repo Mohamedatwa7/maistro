@@ -108,3 +108,65 @@ test('member sign-in on the page: the magic-link hash is recognised, the token i
     await assert.rejects(X.requestMagicLink('o@samsung.com'), /not configured/);
   } finally { X.restore(); }
 });
+
+// ---- M3: the page reads job state from /api/jobs; the server already recorded the version ----
+test('jobPoll: a succeeded render job attaches the server artifact with the recorded version and does NOT write a second version through /api/pieces; a failed job surfaces the error', async () => {
+  const posts = [];
+  let state = 'running';
+  const X = loadPage({ fetchImpl: async (u, init) => {
+    const url = String(u);
+    if (url.startsWith('/api/jobs?id=')) return json({ job: { id: 'j1', kind: 'higgsfield_image', state, stage: 'thumb', pieceId: 'gen-sync1', result: state === 'succeeded' ? { artifact: { imageUrl: 'https://cdn/t.png', prompt: 'p', note: 'n', title: 'Deadpan Fold', sub: 'm', assetPath: 'pieces/gen-sync1/thumb/a-b.png', sha256: 'f'.repeat(64) }, version: 3, copiedIn: true } : null, error: state === 'failed' ? 'moderated (nsfw) — nothing was generated' : null } });
+    if (url === '/api/pieces' && init && init.method === 'POST') { posts.push(JSON.parse(init.body)); return json({ ok: true, version: 99 }); }
+    return new Promise(() => {});
+  } });
+  try {
+    X.POLL_MS.job = 1;
+    const p = piece(X);
+    p.jobs = { 'g:thumb': { jobId: 'j1', meta: {} } };
+    X.GEN.busy['gen-sync1:thumb'] = 'rendering';
+    X.jobPoll('gen-sync1', 'thumb', 'j1', 0);
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(X.GEN.busy['gen-sync1:thumb'], 'rendering', 'still running');
+    state = 'succeeded';
+    await new Promise((r) => setTimeout(r, 40));
+    assert.equal(p.thumb.imageUrl, 'https://cdn/t.png'); assert.equal(p.thumb.assetPath, 'pieces/gen-sync1/thumb/a-b.png');
+    assert.equal(X.GEN.busy['gen-sync1:thumb'], undefined); assert.deepEqual(p.jobs, {});
+    const dl = X.DELIVS.find((d) => d.id === 'd-gen-sync1-thumb');
+    assert.equal(dl.ver, 'v3', 'the deliverable carries the server version'); assert.equal(dl.st, 'pending');
+    assert.equal(posts.length, 0, 'no duplicate version written by the page');
+    assert.equal(X.useJobs(), true);
+    // failure path
+    state = 'failed';
+    X.GEN.busy['gen-sync1:board'] = 'rendering'; p.jobs = { 'g:board': { jobId: 'j1', meta: {} } };
+    X.jobPoll('gen-sync1', 'board', 'j1', 0);
+    await new Promise((r) => setTimeout(r, 30));
+    assert.match(X.GEN.err['gen-sync1:board'], /moderated/); assert.equal(X.GEN.busy['gen-sync1:board'], undefined); assert.deepEqual(p.jobs, {});
+  } finally { X.restore(); }
+});
+
+test('qcJobPoll: a succeeded F1X8 job fills the run, keeps the stored heatmap path, settles the QC composite and syncs the qc stage once', async () => {
+  const posts = [];
+  let state = 'running';
+  const X = loadPage({ fetchImpl: async (u, init) => {
+    const url = String(u);
+    if (url.startsWith('/api/jobs?id=')) return json({ job: { id: 'q1', kind: 'f1x8_image', state, stage: 'thumb', pieceId: 'gen-sync1', result: state === 'succeeded' ? { analysis: { score: 6.4, verdict: { risks: [] } }, score: 6.4, heatmapPath: 'pieces/gen-sync1/thumb/heatmap-q1.png' } : { providerStatus: 'analyzing' }, error: null } });
+    if (url === '/api/pieces' && init && init.method === 'POST') { posts.push(JSON.parse(init.body)); return json({ ok: true, version: 1 }); }
+    return new Promise(() => {});
+  } });
+  try {
+    X.POLL_MS.job = 1;
+    const p = piece(X, { thumb: { imageUrl: 'https://cdn/t.png' } });
+    p.jobs = { 'q:thumb': { jobId: 'q1' } };
+    X.QCRUN.state['gen-sync1:thumb'] = 'submitting';
+    X.qcJobPoll('gen-sync1', 'thumb', 'q1', 0);
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(X.QCRUN.state['gen-sync1:thumb'], 'analyzing', 'provider status surfaced');
+    state = 'succeeded';
+    await new Promise((r) => setTimeout(r, 40));
+    assert.equal(X.QCRUN.state['gen-sync1:thumb'], 'done');
+    assert.equal(p.qc.runs.thumb.score, 6.4); assert.equal(p.qc.avg, 6.4); assert.equal(p.stage, 7);
+    assert.deepEqual(X.QCHEAT['gen-sync1:thumb'], { path: 'pieces/gen-sync1/thumb/heatmap-q1.png' });
+    assert.equal(posts.length, 1); assert.equal(posts[0].stage, 'qc'); assert.equal(posts[0].producedBy, 'f1x8');
+    assert.ok(X.DELIVS.some((d) => d.id === 'd-gen-sync1-qc'));
+  } finally { X.restore(); }
+});

@@ -18,6 +18,7 @@ Unknown routes return `404 {"error": "not found"}`.
 | `/api/ingest` | POST | `Bearer MAISTRO_INGEST_KEY` | external Hermes agent |
 | `/api/login` | GET / POST / DELETE | magic-link token or password → session cookie | website |
 | `/api/members` | GET / POST / PATCH | admin member session | website (invite, roles) |
+| `/api/jobs` | GET / POST | session cookie (tick: `CRON_SECRET`) | website (renders and F1X8 checks as durable jobs) |
 | `/api/hermes` | POST | session cookie | website (Dispatch to Hermes) |
 | `/api/director` | POST | session cookie | website (Studio) |
 | `/api/higgsfield` | POST / GET | session cookie | website (Studio) |
@@ -64,6 +65,36 @@ documents bound to a final version (`adlcp_documents`). Rules come from
 
 Until Supabase Auth lands (M2 part 2 c) the `role` is the signer's claim;
 afterwards the session's member role is used instead.
+
+---
+
+## /api/jobs — durable renders and quality checks (ADR-004)
+
+Every Higgsfield render and F1X8 analysis is a row in `jobs`; the browser
+only reads job state, never a provider. A one-minute cron advances due rows
+(conditional claim, so overlapping ticks never double-submit; submit retried
+up to 3 times with backoff; `timed_out` after 15–45 minutes by kind).
+
+- `POST {pieceId, stage, kind, payload, piece?}` → `{ok, job}`. Kinds:
+  `higgsfield_image` (mood/thumb/board; payload `{prompt, aspect_ratio,
+  resolution, ref?, meta:{prompt,note,ar,res,title?,sub?}}`),
+  `higgsfield_video` (draft/final; payload adds `duration`, `meta.dur`,
+  `meta.version`), `f1x8_image` / `f1x8_video` (payload `{assetUrl, title,
+  description}`). A render sets the stage `generating` through the domain:
+  `409 prerequisites` when the stage's prerequisites do not exist yet
+  (`strict:true` in the payload requires them approved), `409
+  approved_immutable` on an approved stage.
+- `GET ?id=` → `{job}` (`state`: queued | running | succeeded | failed |
+  timed_out; `result.artifact` + `result.version` for a render, `result.analysis`
+  + `result.score` + `result.heatmapPath` for a check). A due job is advanced
+  by the read itself.
+- `GET ?piece=<legacy id>` → `{count, jobs}`, advancing the open ones
+  (reconcile-on-open).
+- Completion: a finished render is copied into the private `assets` bucket
+  (`artifact.assetPath`, `sha256`) and recorded as the stage's next version
+  (`produced_by` higgsfield_soul / higgsfield_seedance, `job_id`); a finished
+  check is stored in `qc_results` against the analysed stage's current
+  version, its heatmap in `assets`.
 
 ---
 

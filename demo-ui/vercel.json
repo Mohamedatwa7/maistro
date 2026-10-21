@@ -12,6 +12,10 @@
     {
       "path": "/api/trends",
       "schedule": "15 * * * *"
+    },
+    {
+      "path": "/api/jobs",
+      "schedule": "* * * * *"
     }
   ],
   "framework": "nextjs"
