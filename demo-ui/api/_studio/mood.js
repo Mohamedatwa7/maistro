@@ -7,7 +7,7 @@
 const { registerPrompt, recordGeneration } = require('../_records.js');
 
 const VERSION = 'mood-direction-v1-2026-10-21';
-const MODEL = () => process.env.MAISTRO_STUDIO_MODEL || 'claude-opus-4-8';
+const MODEL = () => process.env.MAISTRO_STUDIO_MODEL || 'claude-opus-5-5';
 const TILES = 4; // Soul v2 batch size
 
 const SYSTEM = [
@@ -79,4 +79,14 @@ function tilePrompt(direction, tile, productLook) {
   return `${tile.prompt} Art direction: ${direction.lighting}; ${direction.compositionStyle}; ${direction.cameraFeel}. Palette: ${pal}. ${productLook ? `The device, when shown, is exactly: ${productLook}.` : ''} No text, no logos, no competitor devices, no real identifiable people.`.replace(/\s+/g, ' ').trim();
 }
 
-module.exports = { VERSION, SYSTEM, SCHEMA, TILES, visualDirection, validateDirection, tilePrompt, userMessage };
+/** The set prompt: Soul V2 renders ONE prompt as a batch of variations, so the
+ *  moodboard set is four variations of the whole direction (setting, product
+ *  when in the catalog, lighting, styling, palette) — not one tile per facet.
+ *  The tile briefs stay on the direction as text for the human. */
+function setPrompt(direction, productLook) {
+  const pal = (direction.palette || []).map((c) => `${c.name} ${c.hex}`).join(', ');
+  const subject = productLook ? `featuring the device, which is exactly: ${productLook},` : 'without any phone or device,';
+  return `${direction.setting}, ${subject} ${direction.styling}; ${direction.wardrobe ? `wardrobe: ${direction.wardrobe};` : ''} ${direction.trendAdaptation || ''} Art direction: ${direction.lighting}; ${direction.compositionStyle}; ${direction.cameraFeel}; mood: ${direction.mood}. Palette: ${pal}. No text, no logos, no competitor devices, no real identifiable people.`.replace(/\s+/g, ' ').trim();
+}
+
+module.exports = { VERSION, SYSTEM, SCHEMA, TILES, visualDirection, validateDirection, tilePrompt, setPrompt, userMessage };

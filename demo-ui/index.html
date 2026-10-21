@@ -1844,6 +1844,9 @@ function genBox(p,sid){
     ?`${sg.agent} writes this from the campaign plan${prior?' and everything generated so far':''}. Add wishes below if you have any.`
     :`Describe what you want and the <b style="color:#ffe3a3">AI Creative Director</b> turns it into a professional ${sg.l.toLowerCase()} prompt${prior?' — matched to the look of the pieces you already made':''}, then ${sid==='draft'?'Seedance 2.5 renders the first cut':'Higgsfield renders the image'}.`}</p>
   <textarea id="gen-in-${sid}" placeholder="${hints[sid]}"></textarea>
+  ${sid==='thumb'?`<div class="grid-2f" style="margin-top:8px"><div class="f-field"><label>Headline (English, overlaid in code — never inside the image)</label><input class="inp-l" id="gen-head-en" maxlength="120" placeholder="e.g. Slimness check: passed."></div>
+   <div class="f-field"><label>Headline (Arabic, optional)</label><input class="inp-l" id="gen-head-ar" dir="rtl" maxlength="120" placeholder="عنوان بالعربية"></div></div>
+  <p class="hint" style="margin-top:6px">Cover aspect follows the platforms (${thumbAspectFor(p)}); the text sits inside the platform safe zone. The moodboard must exist first.</p>`:''}
   ${sid==='draft'?`
   <div class="row"><span class="kick" style="font-size:9px">Format</span>
    <select id="gen-ar-draft"><option>16:9</option><option>9:16</option><option>1:1</option></select>
@@ -1877,6 +1880,21 @@ async function stageGen(pid,sid,changes){
    attachTo(p,sid,artifact,sg.agent);
    delete GEN.busy[key];studioRefresh();
    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip(sg.agent,1)}<div style="font-size:12.5px"><b>${sg.agent}</b> delivered ${esc(delivTitle(sid,artifact))}.</div></div>`);
+   return;
+  }
+  /* 6.3: the thumbnail continues the approved moodboard; headlines are overlays */
+  if(sid==='thumb'&&useJobs()&&!changes){
+   if(!p.mood){throw new Error('Generate and approve the moodboard first — the thumbnail continues its direction.')}
+   GEN.busy[key]='Art director is writing the cover prompt from the moodboard…';studioRefresh();
+   const head=(($('#gen-head-en')||{}).value||'').trim(),headAr=(($('#gen-head-ar')||{}).value||'').trim();
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'thumb',pieceId:p.id,userInput,headline:head,headlineAr:headAr,refImage:p.refImage||null,piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));
+   if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
+   if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the render could not be submitted');
+   GEN.busy[key]='Soul is rendering the '+sd.aspect+' cover'+(p.refImage?' from your product photo':'')+'…';
+   p.jobs=p.jobs||{};p.jobs['g:thumb']={jobId:sd.job.id,meta:{}};saveGenerated();
+   delete CHECKS[p.id+':thumb'];
+   jobPoll(p.id,'thumb',sd.job.id,0);
    return;
   }
   /* 6.2: the moodboard is a visual DIRECTION first, then a set of tiles */
@@ -2264,6 +2282,58 @@ function rRefControl(p){
 const CHECKS={};
 async function loadChecks(pid,sid){
  try{const r=await authFetch('/api/studio?checks='+encodeURIComponent(pid)+'&stage='+encodeURIComponent(sid));const d=await r.json().catch(()=>({}));if(r.ok){CHECKS[pid+':'+sid]=(d.checks||[])[0]||null;studioRefresh()}}catch(e){}
+}
+/* 6.3 — the cover: image + headline overlay inside the safe zone (drawn by the page, never by the model) */
+function thumbAspectFor(p){const pl=(p.platforms||[]).map(x=>String(x).toLowerCase());if(!pl.length)return '16:9';return pl.some(x=>x==='youtube'||x==='x'||x==='twitter'||x==='facebook')?'16:9':'9:16'}
+function rThumbCover(p){
+ const t=p.thumb,ov=t.overlay||{},box=ov.box||{top:.08,bottom:.12,left:.06,width:.44},asp=ov.aspect||'16:9';
+ const key=p.id+':thumb';
+ if(CHECKS[key]===undefined){CHECKS[key]=null;loadChecks(p.id,'thumb')}
+ const chk=CHECKS[key],r=chk&&chk.results&&chk.results.images&&chk.results.images[0];
+ const ratio=asp==='9:16'?'9/16':asp==='1:1'?'1/1':'16/9';
+ const maxW=asp==='9:16'?'300px':'560px';
+ const headEn=ov.headline||'',headAr=ov.headlineAr||'';
+ return `
+  <div id="cover-${p.id}" style="position:relative;max-width:${maxW};aspect-ratio:${ratio};border-radius:14px;overflow:hidden;border:1px solid var(--hairline);background:#000">
+   <img ${mediaAttrs(t,'imageUrl')} alt="Cover" crossorigin="anonymous" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
+   ${!t.composite?`<div style="position:absolute;left:${box.left*100}%;top:${box.top*100}%;width:${box.width*100}%;bottom:${box.bottom*100}%;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;pointer-events:none">
+    ${headEn?`<div dir="ltr" style="font-size:${asp==='9:16'?'22px':'20px'};font-weight:700;line-height:1.1;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6)">${esc(headEn)}</div>`:''}
+    ${headAr?`<div dir="rtl" style="font-size:${asp==='9:16'?'22px':'20px'};font-weight:700;line-height:1.3;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6);unicode-bidi:plaintext;text-align:${ov.side==='right'?'right':'left'}">${esc(headAr)}</div>`:''}
+   </div>
+   <div style="position:absolute;inset:0;border:1px dashed rgba(125,211,252,.35);margin:${box.top*100}% ${box.safeZone?box.safeZone.right*100:6}% ${box.bottom*100}% ${box.safeZone?box.safeZone.left*100:6}%;pointer-events:none"></div>`:''}
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
+   ${badge('muted',asp+' COVER')}${t.composite?badge('go','HEADLINE COMPOSITED · v'+(t.version||'')):headEn||headAr?badge('gold','OVERLAY PREVIEW · SAFE ZONE'):badge('muted','NO HEADLINE')}
+   ${r?(r.pass?badge('go','CHECKS PASSED'):r.needsReview?badge('gold','NEEDS A LOOK'):badge('alert','FLAGGED')):chk===null?badge('muted','CHECKING…'):''}
+   ${t.moodApproved===false?badge('gold','MOOD NOT YET APPROVED'):''}
+  </div>
+  ${r&&r.flags&&r.flags.length?`<div class="dim" style="font-size:11px;margin-top:4px">${r.flags.map(f=>esc(f)).join(' · ')}</div>`:''}
+  ${!t.composite&&(headEn||headAr)&&t.assetPath?`<div style="margin-top:8px"><button class="btn btn-ai btn-sm" onclick="composeCover('${p.id}')">Compose cover with headline → save as version</button></div>`:''}
+  ${dirNote(t)}${p.studio?regenBox(p,'thumb'):''}`;
+}
+/* Draw the headline onto the stored cover in the browser (the browser shapes Arabic correctly) and store it as a manual version */
+async function composeCover(pid){
+ const p=PROJECTS.find(x=>x.id===pid);if(!p||!p.thumb||!p.thumb.assetPath)return;
+ const ov=p.thumb.overlay||{},box=ov.box||{top:.08,bottom:.12,left:.06,width:.44};
+ try{
+  const r=await authFetch('/api/jobs?asset='+encodeURIComponent(p.thumb.assetPath));const d=await r.json();if(!r.ok||!d.url)throw new Error(d.error||'could not sign the cover');
+  const img=await new Promise((ok,no)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>ok(i);i.onerror=()=>no(new Error('cover image could not be loaded for compositing'));i.src=d.url});
+  const cv=document.createElement('canvas');cv.width=img.naturalWidth;cv.height=img.naturalHeight;const g=cv.getContext('2d');g.drawImage(img,0,0);
+  const W=cv.width,H=cv.height,x=box.left*W,w=box.width*W,yBottom=H*(1-box.bottom);
+  const size=Math.round(W*(ov.aspect==='9:16'?0.075:0.045));
+  g.fillStyle='#fff';g.shadowColor='rgba(0,0,0,.6)';g.shadowBlur=size*0.6;g.textBaseline='bottom';
+  let y=yBottom;
+  const wrap=(text,font,dir)=>{g.font=font;g.direction=dir;const words=text.split(/\s+/);const lines=[];let line='';for(const wd of words){const t=line?line+' '+wd:wd;if(g.measureText(t).width>w&&line){lines.push(line);line=wd}else line=t}if(line)lines.push(line);return lines};
+  if(ov.headlineAr){g.textAlign=ov.side==='right'?'right':'left';const lines=wrap(ov.headlineAr,`700 ${size}px ${ov.font||'system-ui'}`,'rtl');for(const ln of lines.reverse()){g.fillText(ln,ov.side==='right'?x+w:x,y);y-=size*1.3}y-=size*.3}
+  if(ov.headline){g.textAlign='left';g.direction='ltr';const lines=wrap(ov.headline,`700 ${size}px ${ov.font||'system-ui'}`,'ltr');for(const ln of lines.reverse()){g.fillText(ln,x,y);y-=size*1.15}}
+  const blob=await new Promise(ok=>cv.toBlob(ok,'image/png'));
+  const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.onerror=()=>no(new Error('read failed'));fr.readAsDataURL(blob)});
+  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'thumb-composite',pieceId:p.id,data:b64,overlay:{...ov,baseAssetPath:p.thumb.assetPath},piece:storeMeta(p)})});
+  const sd=await sr.json().catch(()=>({}));if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
+  attachTo(p,'thumb',{...p.thumb,imageUrl:null,assetPath:sd.assetPath,composite:true,version:'v'+sd.version,title:ov.headline||ov.headlineAr,sub:''},'You',{recorded:{version:sd.version}});
+  toast(`<span style="font-size:12.5px"><b style="color:#6ee7b9">Cover composited</b> and stored as version ${sd.version} — ready for approval.</span>`);
+  studioRefresh();
+ }catch(e){toast(`<b style="color:#fb7185">Compose:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
 }
 function rMoodSet(p){
  const m=p.mood,d=m.direction||{};
@@ -3245,7 +3315,7 @@ function stageArtifact(p,n){
    <img class="gen-media" ${mediaAttrs(p.mood,'imageUrl')} alt="Generated moodboard">${dirNote(p.mood)}${p.studio?regenBox(p,'mood'):''}`:`
    <div class="mood">${p.mood.tiles.map(t=>`<div style="background:linear-gradient(135deg,${t[0]},${t[1]})"><span>${t[2]}</span></div>`).join('')}</div>
    <p class="dim" style="font-size:12.5px;line-height:1.65;margin-top:12px">${p.mood.note}</p>`):'');
-  case 'thumb':return head(done)+(p.thumb?(p.thumb.imageUrl?`
+  case 'thumb':return head(done)+(p.thumb?((p.thumb.imageUrl||p.thumb.assetPath)&&p.thumb.overlay?rThumbCover(p):p.thumb.imageUrl?`
    <img class="gen-media" style="max-width:560px;aspect-ratio:16/9;object-fit:cover" ${mediaAttrs(p.thumb,'imageUrl')} alt="Generated thumbnail">${dirNote(p.thumb)}${p.studio?regenBox(p,'thumb'):''}`:`
    <div style="max-width:520px"><div class="thumb169" style="background:linear-gradient(120deg,${p.thumb.g[0]},${p.thumb.g[1]})">
     <span class="play">▶</span><div class="tt">${p.thumb.title}<div class="mono" style="font-size:10px;font-weight:400;letter-spacing:.14em;margin-top:5px;color:rgba(255,255,255,.75)">${p.thumb.sub.toUpperCase()}</div></div></div></div>

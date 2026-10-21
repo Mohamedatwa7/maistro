@@ -15,6 +15,28 @@ Living document for Phase 6. Started 2026-10-21 with the 6.0 verification (`HIGG
 | 7. Generation Record | table `generation_records` | 6.1 (b): one row per model or render call (prompt version, resolved prompt, params, seed, assets, status, latency, cost, usage, member, correlation id); the job service and the generation handlers write it. |
 | 8. Structured Rejection Reasons | kind `rejection_taxonomy`, key `v1` | Fixed codes per stage plus free text; the Production Center's reject modal switches to it in 6.1 (b). |
 
+## 6.2 Moodboard — what ships (and a correction from verification)
+
+- Visual direction: schema-validated structure from Claude (`api/_studio/mood.js`, prompt `mood-direction-v1`), palette hexes from the brand KB, the catalog look line as the only product fact, four tile briefs, competitor names rejected.
+- The rendered set: ONE Soul V2 job with `batch_size 4`. **Correction (checker finding, 2026-10-21):** a Soul batch renders one prompt as variations, so the set is now rendered from a direction-level `setPrompt()` (setting, product when in the catalog, lighting, styling, palette) and every image is tagged `variation n` with `setMode: 'variations'` on the artifact. The earlier build rendered tile 1's prompt four times while tagging the images with tiles 1–4 and holding only "product" tiles to the product check — the tags claimed facets that were never asked for. The four tile briefs stay on the direction as text for the human. One job per tile (four submits) remains an option if the owner wants one image per facet.
+- The product is expected in every variation exactly when the catalog has a look line (`meta.expectProduct`, explicit on the job); the vision check (`vision-check-v1.1`) stores a `stage_checks` row per set.
+- Ops fixes from verification: the `vision_check` claim window is 150 s (above the 90 s call bound, so a second tick cannot re-claim a running check) and the job is patched to `running` before the call; vision `max_tokens` 8000; studio default model `claude-opus-5-5` (`MAISTRO_STUDIO_MODEL`).
+
+## 6.3 Thumbnail — what ships
+
+| Decision | What | Why |
+|---|---|---|
+| Position | Stage slot 2 (after the moodboard, before the brief/storyboard) | The cover must continue the approved direction; the storyboard does not change it. Order to be revisited with evidence from 6.10. |
+| Inputs | `moodContext()` reads the mood stage's current version, its `direction`, and the approval's `details.selectedImages` + `annotations` (unselected tiles are dropped); the official product photo goes through the Higgsfield v1 `image_reference` path (`refImage`); the catalog look line is the only text about the device | The thumbnail inherits exactly what the reviewer approved, and the device is never re-described |
+| Prompt | `thumb-prompt-v1` (`api/_studio/thumb.js`): one key visual, moodboard palette by hex, reserves clean negative space on one side (`textSide`); validation rejects competitor names and any request for text inside the image (≤110 words) | Text rendered by the image model is wrong for Arabic and unversionable |
+| Aspect | `aspectFor(platforms)`: 9:16 unless a landscape platform (YouTube, X, Facebook) is targeted; `1152x2048` on Soul | TikTok/Reels covers are vertical. 4:5/1:1 for the Instagram feed is a follow-up once the feed is a selectable placement. |
+| Headline | Entered in the Studio (English + optional Arabic), overlaid by code inside `overlayBox()` = the safe zone (9:16: top 13 %, bottom 34 %, sides 6 % — the conservative union of the TikTok in-feed and Reels templates; 16:9/1:1: 8/12/6 %); the preview is drawn on the page, the composite is drawn on a canvas in the browser (correct Arabic shaping, RTL) | Arabic shaping needs a real text engine; the safe zone keeps the headline out of the platform chrome |
+| Stored artifact | `action: 'thumb-composite'` uploads the composited PNG to the private `assets` bucket (`putBlob`, sha256 + size recorded) and records it as a new **manual** version of the thumb stage with the overlay spec and `baseAssetPath` | The bytes the reviewer approves are the bytes in the bucket (checker requirement) |
+| Checks | The vision check receives the selected mood tiles as ANCHOR images and the reserved side: `consistentWithMood` and `textSpaceClear` per image, flags `inconsistent with the moodboard` / `reserved text side is not clear`, plus the product-accuracy and safety questions | Consistency with the approved direction is judged against the actual approved pixels |
+| Gate | 409 `prerequisites` when the piece has no moodboard version | No cover without a direction |
+
+Open: 4:5/1:1 feed covers; typeface for the overlay (owner input 1); the composite is capped at 3 MB and PNG only.
+
 ## Open owner inputs (collected from the seed's `gaps`)
 
 1. Disclaimers by claim type and market; logo and end-card rules; overlay typeface.

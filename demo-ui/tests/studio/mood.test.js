@@ -14,7 +14,7 @@ const DIRECTION = {
   palette: [{ name: 'Samsung Blue', hex: '#1428A0', role: 'dominant' }, { name: 'Porcelain', hex: '#FCF8E6', role: 'secondary' }, { name: 'Persimmon', hex: '#FFC861', role: 'accent' }],
   tiles: [{ tag: 'palette', demonstrates: 'colours and materials', prompt: 'A flat-lay of matte linen and porcelain ceramics in Samsung Blue and Porcelain, warm rim light' }, { tag: 'product', demonstrates: 'the device in its setting', prompt: 'The foldable on a terrace table, half open, warm light' }, { tag: 'light', demonstrates: 'lighting and mood', prompt: 'Terrace at golden hour, long shadows, calm' }, { tag: 'trend', demonstrates: 'the mechanic adapted', prompt: 'A hand pauses mid-reveal above the cover screen' }],
 };
-const CHECK = { images: [0, 1, 2, 3].map((i) => ({ index: i, productPresent: i === 1 ? 'yes' : 'no', productMatchesCatalog: i === 1 ? 'yes' : 'n/a', competitorOrLogo: 'no', realPerson: i === 3 ? 'unsure' : 'no', textInImage: 'no', prohibitedImagery: 'no', paletteMatch: i === 2 ? 'partial' : 'yes', lightingMatch: 'yes', culturalOk: 'yes', notes: 'ok' })) };
+const CHECK = { images: [0, 1, 2, 3].map((i) => ({ index: i, productPresent: i === 0 ? 'no' : 'yes', productMatchesCatalog: i === 0 ? 'n/a' : 'yes', consistentWithMood: 'n/a', textSpaceClear: 'n/a', competitorOrLogo: 'no', realPerson: i === 3 ? 'unsure' : 'no', textInImage: 'no', prohibitedImagery: 'no', paletteMatch: i === 2 ? 'partial' : 'yes', lightingMatch: 'yes', culturalOk: 'yes', notes: 'ok' })) };
 
 function world() {
   const pg = fakePostgrest();
@@ -57,15 +57,16 @@ test('POST /api/studio action mood: direction from Claude with the catalog look 
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     assert.equal(r.body.direction.leadingPrinciple, 'Authentically grounded'); assert.equal(r.body.promptVersion, 'mood-direction-v1-2026-10-21');
     assert.equal(r.body.job.kind, 'higgsfield_image'); assert.equal(r.body.job.state, 'running');
-    assert.equal(W.hf.body.batch_size, 4); assert.equal(W.hf.body.aspect_ratio, '4:3'); assert.match(W.hf.body.prompt, /clamshell flip foldable/, 'the catalog look line is the product description');
+    assert.equal(W.hf.body.batch_size, 4); assert.equal(W.hf.body.aspect_ratio, '4:3'); assert.match(W.hf.body.prompt, /clamshell flip foldable/, 'the catalog look line is the product description'); assert.match(W.hf.body.prompt, /^sunlit Dubai apartment terrace, featuring the device/, 'the set prompt is the whole direction, not tile 1');
     const job = W.pg.tables.jobs[0];
+    assert.equal(job.payload.meta.setMode, 'variations');
     assert.equal(job.payload.autoCheck, true); assert.equal(job.payload.meta.direction.setting, DIRECTION.setting); assert.equal(job.payload.meta.productLook, '2026 clamshell flip foldable, large FlexWindow cover screen when closed');
     assert.ok(W.pg.tables.generation_records.some((g) => g.prompt_name === 'studio.mood.direction' && g.status === 'succeeded'));
     // render completes → version with four images, vision check queued
     W.hf.status = 'completed'; job.next_poll_at = new Date(Date.now() - 1000).toISOString();
     r = res(); await W.jobs.handler(req({ method: 'GET', query: { id: job.id } }), r);
     assert.equal(r.body.job.state, 'succeeded'); const art = r.body.job.result.artifact;
-    assert.equal(art.images.length, 4); assert.ok(art.images.every((im) => im.assetPath && im.sha256)); assert.deepEqual(art.images.map((im) => im.tag), ['palette', 'product', 'light', 'trend']); assert.equal(art.imageUrl, art.images[0].url); assert.equal(art.direction.mood, 'calm confidence');
+    assert.equal(art.images.length, 4); assert.ok(art.images.every((im) => im.assetPath && im.sha256)); assert.deepEqual(art.images.map((im) => im.tag), ['variation 1', 'variation 2', 'variation 3', 'variation 4'], 'a Soul batch is four variations of one prompt'); assert.equal(art.setMode, 'variations'); assert.equal(art.imageUrl, art.images[0].url); assert.equal(art.direction.mood, 'calm confidence');
     const check = W.pg.tables.jobs.find((j) => j.kind === 'vision_check');
     assert.ok(check, 'vision check queued'); assert.equal(check.payload.images.length, 4); assert.equal(check.payload.versionId, r.body.job.result.versionId);
     // the tick runs the check
@@ -73,7 +74,8 @@ test('POST /api/studio action mood: direction from Claude with the catalog look 
     assert.equal(r.body.states.succeeded, 1, JSON.stringify(r.body));
     assert.equal(W.pg.tables.stage_checks.length, 1); const sc = W.pg.tables.stage_checks[0];
     assert.equal(sc.kind, 'vision'); assert.equal(sc.passed, false, 'tile 4 is unsure'); assert.equal(sc.results.images[1].pass, true); assert.deepEqual(sc.results.images[3].flags, ['person unsure']);
-    assert.equal(sc.results.images[0].pass, true, 'the palette tile is not expected to show the product'); assert.deepEqual(check.payload.expectProduct, [1], 'only the tile tagged product');
+    assert.equal(sc.results.images[0].pass, false, 'every variation is expected to show the catalog product'); assert.deepEqual(sc.results.images[0].flags, ['product missing']); assert.equal(check.payload.expectProduct, true, 'explicit on the job: the catalog has a look line');
+    assert.equal(check.next_poll_at, null); assert.equal(check.state, 'succeeded');
     r = res(); await W.studio.handler(req({ method: 'GET', query: { checks: 'gen-mood1', stage: 'mood' } }), r);
     assert.equal(r.body.count, 1); assert.equal(r.body.checks[0].stage, 'mood');
     // the human selects tiles 2 and 3 with an annotation; the pieces list returns it
