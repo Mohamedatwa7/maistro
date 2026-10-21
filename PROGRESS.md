@@ -58,12 +58,24 @@ Acceptance criteria: `AUDIT.md` committed with findings carrying id, severity, l
 
 Status: **PASSED** by checker at ce4a776 / db9c6c8. `AUDIT.md` has 7 areas (A data model, B stage state machine, C integrations, D security, E reliability, F performance, G observability/testing/DevOps/docs), 57 finding rows (8 Critical, 22 High, 26 Medium, 6 Low by keyword count; a few rows are cross-references such as D-03 pointing at C-14), a ranked top 10 and a verdict per area. Every substantive row has an evidence cell citing either a `demo-ui` path with line numbers or a function name with line numbers in `index.html`. Spot-checks against the source all match: A-02 (`uplOk` at index.html:2840 stores only the file name; `confirmApprove` 2866-2869 writes the names as strings), C-14 (`api/qc-f1x8.js:39-43` fetches any https URL server-side with no auth), D-02 (`esc` at index.html:873 escapes only `&` and `<`). No files under `demo-ui/` changed in the Phase 1 commits.
 
+Phase 1 gate: **approved by the user** in the builder's session on 2026-10-21. The user chose to keep the "Dispatch to Hermes" path (ADR-007 re-bases it on the job model with real F1X8 QC). Roles were not specified; ADR-003 carries the builder's proposal for the user to amend.
+
+## Phase 2: target architecture (branch `rebuild/phase-0-recon`)
+
+Acceptance criteria (as stated by the builder): `ARCHITECTURE_TARGET.md` with the domain model (12 entities), a Mermaid stage state machine, the adapter table with Sprinklr in manual mode, auth/roles, storage and folder structure; ADRs 001-011 each with Context / Options / Decision / Consequences, ADR-005 and ADR-008 referencing audit ids; `MIGRATION_PLAN.md` with milestones M0-M10 each carrying done-when, risk and rollback; no `demo-ui` change.
+
+Status: **PASSED on substance at 585aaa1, with two documentation gaps** handed back to the builder (non-blocking for the gate):
+
+- Verified: all three deliverables present. `ARCHITECTURE_TARGET.md` has 12 sections, 12 domain entities (Trend, ContentPiece, Stage, ArtifactVersion, Approval, ADLCPDocument, QCResult, Job, Post, PerformanceSnapshot, BoostRecommendation, AuditLog), 3 Mermaid blocks including a `stateDiagram`, Sprinklr in manual/export mode in both the system diagram and the Post entity, auth/roles, storage, folder structure. 11 ADR files. `MIGRATION_PLAN.md` is a table of 11 milestones M0-M10 with Scope (audit ids), Done when, Risk and Rollback columns, every cell filled. `git diff db9c6c8..585aaa1 -- demo-ui/` is empty.
+- Gap 1: ADRs 005 through 011 (7 of 11) have only Context / Decision / Consequences; the Options section is missing.
+- Gap 2: ADR-008 cites no audit ids; ADR-005 cites only C-01.
+
 ## [GATE] Waiting for the user
 
-Phase 2 (target architecture) does not start until the user approves `AUDIT.md`. Suggested reading order: the "Top 10 problems" section, then the Critical rows (A-02, A-05, C-14/D-03 and the rest). Neither session builds anything until the approval.
+Phase 3 (safety net: characterization, golden and contract tests, CI, baselines) does not start until the user approves Phase 2. Suggested reading: `ARCHITECTURE_TARGET.md` sections 1, 3 and 7 (roles proposal in ADR-003 needs the user's input), then `MIGRATION_PLAN.md`.
 
 ## Open items for the user
 
-- **Phase 1 [GATE]:** read `AUDIT.md` and approve, amend, or reprioritise it so Phase 2 can start.
+- **Phase 2 [GATE]:** approve `ARCHITECTURE_TARGET.md`, the ADRs and `MIGRATION_PLAN.md`, or say what to change. ADR-003 (roles) explicitly awaits your amendment.
 - **State lives only in browser localStorage** (key `maistro-gen-v2`) for studio campaigns, approvals, rejections and the ADLCP attachment (file name only, no bytes). Flagged Critical, assigned to the Phase 1 audit.
 - **`vercel env pull`** is blocked for the builder session, so production credentials stay out of reach there by design.
