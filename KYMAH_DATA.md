@@ -33,8 +33,8 @@ Coverage measured on the 38-trend board of 2026-10-21. "Empty" counts `null`, `'
 | `category` | string | topic family (entertainment, sport, tech, beauty, fashion, food, other) | 38/38 | 20/38 entertainment, 9 other |
 | `scope` | `global` \| `local` | geographic reading | global 36, local 2 | "local" is rare; GCC presence is **not** a field |
 | `lang` | string | language of the sampled posts | en 36, mixed 2 | no Arabic-only trend on this board |
-| `onBrand` | boolean | passed the Samsung relevance gate: brandSafe AND `fit.strength ≥ 50` AND a named Galaxy beat, and not sensitive-blocked or demoted (`board-enrich.ts:100–107, 506`) | true 11 / false 27 | the gate is an LLM verdict with a prompt version; cached per trend |
-| `fit` | `{strength 0–100, beat, reason}` \| null | the gate's "how ownable is the Galaxy hook" score, the beat, one-line reason | 29 present, **9 null (never gated)** | null = UNKNOWN, not zero. Range on this board 0–82; 11 ≥ 50 |
+| `onBrand` | boolean | passed the Samsung relevance gate: brandSafe AND `fit.strength ≥ 55` (`GATE_PASS_STRENGTH`, `packages/synthesis/synthesis.ts:66`; moved from 50 to 55 with gate version 5, `board-enrich.ts:96`) AND a named Galaxy beat, and not sensitive-blocked or demoted (`board-enrich.ts:100–107, 506`) | true 11 / false 27 | the gate is an LLM verdict with a prompt version; cached per trend. Trend Radar's own AGENT_API.md still says "pass bar 50" — the code is 55 |
+| `fit` | `{strength 0–100, beat, reason}` \| null | the gate's "how ownable is the Galaxy hook" score, the beat, one-line reason | 29 present, **9 null (never gated)** | null = UNKNOWN, not zero. Range on this board 0–82; 11 ≥ 55 (the 11 `onBrand` trends) |
 | `signalStrength` | 0–100 \| null | hand-weighted evidence composite (sources, verification, clips, growth measured) — **not** a probability | 38/38 | do not treat as a quality score |
 | `durabilityClass` | `flash` \| `seasonal` \| `ongoing` \| null | `spanDays < 14` → flash else ongoing (`board-publish.ts:265`); categories always ongoing; moments always flash | ongoing 25, flash 13 | `seasonal` never produced on this board |
 | `viewsWk` | string (`"2.7M"`) \| null | sum of views of the **sampled** example posts aged ≤ 7 days (`board-layout.ts:267`) | 28 present, **10 null** | a sample, not the platform total; null = no post in the window |
@@ -79,10 +79,10 @@ Consequences for 5.1: momentum and timing must be computed by Maistro from its o
 
 ## 6. Snapshot history — what Trend Radar's git history already shows
 
-Reconstructed from the daily data commits of `trends.generated.json` (2026-09-18 → 2026-10-21, 40 commits; the 2026-10-20 commit is the one-trend collapse, 2026-10-01 to 10-05 are a 12-trend plateau from a different incident):
+Reconstructed from the commits touching `trends.generated.json` since 2026-09-15 (44 commits, 28 distinct boards by `generatedAt`; the 2026-10-20 board is the one-trend collapse, 2026-10-01 to 10-05 a 12-trend plateau from a different incident). **Counting rule matters**, so it is stated: a trend's stay = last board date − first board date + 1, over distinct board dates (not commit days, which repeat on re-publish days).
 
-- Board size per day: 27 → 60 (late September) → 12 (early October plateau) → 28–39 (October).
-- 133 distinct trend ids over the period. Days on board: 24 ids seen on one day only, 31 for 2–5 days, 50 for 6–15 days, 15 for 16–37 days. The median trend stays about a week; a quarter are one-day visitors.
+- Board size per board: 27 → 60 (late September) → 12 (early October plateau) → 28–39 (October).
+- 133 distinct trend ids. Days on board by that rule: 27 one-day visitors, 39 at 2–5 days, 52 at 6–15, 15 at 16–40; median 6 days. A second measurement by the checker session (same file, slightly different window) gave 25 / 46 / 53 / 8 — the buckets move with the window and rule, the shape does not: about a fifth are one-day visitors, most stay under two weeks, a handful persist a month.
 - This is enough to **define** lifecycle math (first seen, last seen, days on board, stage transitions) but the upstream board stage is too coarse (peaking/mature) to validate "emerging/rising/declining" against it. Maistro's own snapshots (below) must capture `growth`, `eng`, `viewsWk`, `fit`, `signalStrength`, `onBrand` and the raw record per trend per fetch so velocity and acceleration are computed in code over time.
 
 ## 7. Robustness today (Maistro side)
