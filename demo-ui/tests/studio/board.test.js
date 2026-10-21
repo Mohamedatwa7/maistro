@@ -74,7 +74,8 @@ test('POST /api/studio action board: needs the brief; shot list version with che
     assert.equal(kjobs.length, 4); assert.deepEqual(kjobs.map((j) => j.payload.attachTo.shot), [1, 2, 3, 4]); assert.ok(kjobs.every((j) => j.payload.attachTo.versionId === r.body.versionId));
     assert.deepEqual(kjobs[0].payload.meta.anchors.map((a) => a.index), [2], 'only the selected mood tile anchors the keyframes'); assert.equal(kjobs[0].payload.meta.hookCheck, true); assert.equal(kjobs[3].payload.meta.hookCheck, false);
     assert.equal(kjobs[0].payload.ref, 'https://sb.test/storage/v1/object/public/refs/products/flip.jpg', 'product visible → reference path'); assert.equal(kjobs[3].payload.ref, undefined, 'end card: no product, no reference'); assert.equal(kjobs[3].payload.meta.expectProduct, false);
-    assert.match(kjobs[1].payload.prompt, /^medium shot, eye level, static\. The caption reveal beat/); assert.match(kjobs[1].payload.prompt, /exact product from the reference image, showing FlexWindow cover screen/);
+    assert.match(kjobs[1].payload.prompt, /^medium shot, eye level, static\. The caption reveal beat/);
+    assert.ok(kjobs.every((j) => Number.isInteger(j.payload.seed) && j.payload.seed >= 1 && j.payload.seed <= 1000000), 'a seed per keyframe job'); assert.equal(hf.submits.find((x) => x.v === 2).body.seed, kjobs[3].payload.seed, 'the end card (v2 path) sends its seed'); assert.match(kjobs[1].payload.prompt, /exact product from the reference image, showing FlexWindow cover screen/);
     const stageRow = pg.tables.stages.find((s) => s.kind === 'board'); assert.equal(stageRow.state, 'generating');
     assert.ok(pg.tables.generation_records.some((g) => g.prompt_name === 'studio.storyboard' && g.status === 'succeeded'));
     // renders complete one by one: shot slots fill, the version number stays 1, checks queue with the previous keyframe as an anchor
@@ -82,7 +83,7 @@ test('POST /api/studio action board: needs the brief; shot list version with che
     r = res(); await jobs.handler(req({ method: 'GET', query: { id: kjobs[0].id } }), r);
     assert.equal(r.body.job.state, 'succeeded'); assert.equal(r.body.job.result.artifact, undefined, 'a keyframe never becomes a stage artifact'); assert.deepEqual(r.body.job.result.attached, { versionId: kjobs[0].payload.attachTo.versionId, shot: 1 });
     let v = pg.tables.artifact_versions.find((x) => x.id === kjobs[0].payload.attachTo.versionId);
-    assert.equal(v.payload.shots[0].keyframe.state, 'rendered'); assert.ok(v.payload.shots[0].keyframe.assetPath); assert.ok(v.payload.shots[0].keyframe.sha256); assert.equal(v.payload.shots[1].keyframe, null);
+    assert.equal(v.payload.shots[0].keyframe.state, 'rendered'); assert.ok(v.payload.shots[0].keyframe.assetPath); assert.equal(v.payload.shots[0].keyframe.seed, kjobs[0].payload.seed); assert.equal(v.payload.rev, 1); assert.ok(v.payload.shots[0].keyframe.sha256); assert.equal(v.payload.shots[1].keyframe, null);
     assert.equal(pg.tables.artifact_versions.filter((x) => x.stage_id === stageRow.id).length, 1, 'no new version per keyframe');
     assert.equal(pg.tables.stages.find((s) => s.kind === 'board').state, 'generating', 'three shots still rendering');
     const hook = pg.tables.jobs.find((j) => j.kind === 'f1x8_image'); assert.ok(hook, 'F1X8 queued on the hook keyframe'); assert.equal(hook.payload.hookCheck, true); assert.equal(hook.payload.assetPath, v.payload.shots[0].keyframe.assetPath);
@@ -143,4 +144,31 @@ test('page: rBoard renders every shot with its keyframe state, check and review 
     assert.match(html, /SHOT LIST NEEDS A LOOK/); assert.match(html, /✗ CTA AT END/); assert.match(html, /weak hook: slow/); assert.match(html, /CHECK OK/);
     assert.ok(X.BOARD_POLL['gen-x'], 'pending keyframes start the poll'); clearTimeout(X.BOARD_POLL['gen-x']);
   } finally { X.restore(); }
+});
+
+test('updateShots: two writers that read the same revision both land (the loser re-reads and re-applies); a recorded seed rides every keyframe job and reaches SOUL V2', async () => {
+  const pg = fakePostgrest();
+  const hf = { bodies: [] };
+  const f = mockFetch([
+    [/\/higgsfield-ai\/soul\/v2\/standard$/, (u, init) => { hf.bodies.push(JSON.parse(init.body)); return json({ status: 'queued', request_id: `req00009${hf.bodies.length}`, status_url: 'x', cancel_url: 'y' }); }],
+    pg.route,
+  ]);
+  const jobsMod = require('../../api/_jobs.js');
+  const saved = { u: process.env.SUPABASE_URL, k: process.env.SUPABASE_SERVICE_ROLE_KEY, h: process.env.HF_CREDENTIALS };
+  process.env.SUPABASE_URL = 'https://sb.test'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'k'; process.env.HF_CREDENTIALS = 'id:secret';
+  try {
+    pg.tables.artifact_versions = [{ id: 'v-race', payload: { shots: [{ n: 1, keyframe: null }, { n: 2, keyframe: null }], rev: 0 } }];
+    // both writers read rev 0 before either writes
+    const slow = (n) => jobsMod.updateShots('v-race', (payload) => { const shots = payload.shots.map((s) => ({ ...s })); shots[n - 1] = { ...shots[n - 1], keyframe: { state: 'rendered', jobId: `j${n}` } }; return { ...payload, shots }; });
+    const [a, b] = await Promise.all([slow(1), slow(2)]);
+    const final = pg.tables.artifact_versions[0].payload;
+    assert.equal(final.shots[0].keyframe.jobId, 'j1'); assert.equal(final.shots[1].keyframe.jobId, 'j2'); assert.equal(final.rev, 2); assert.deepEqual([a.rev, b.rev].sort(), [1, 2]);
+    const r = await jobsMod.updateShots('v-race', () => null); assert.equal(r.unchanged, true); assert.equal(pg.tables.artifact_versions[0].payload.rev, 2, 'an aborted mutate writes nothing');
+    // a seed on the job reaches the SOUL V2 body (v1 has no documented seed)
+    const hg = require('../../api/_adapters/higgsfield.js');
+    await hg.submit({ kind: 'image', prompt: 'p', aspect_ratio: '9:16', resolution: '1080p', seed: 4242 }, { idempotencyKey: 'k1' });
+    assert.equal(hf.bodies[0].seed, 4242);
+    await hg.submit({ kind: 'image', prompt: 'p', aspect_ratio: '9:16', resolution: '1080p', seed: 0 }, { idempotencyKey: 'k2' });
+    assert.equal(hf.bodies[1].seed, undefined, 'out-of-range seeds are dropped, not sent');
+  } finally { f.restore(); for (const [k, v] of [['SUPABASE_URL', saved.u], ['SUPABASE_SERVICE_ROLE_KEY', saved.k], ['HF_CREDENTIALS', saved.h]]) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } }
 });

@@ -1871,7 +1871,7 @@ async function stageGen(pid,sid,changes){
   ...(p.refImage&&sid==='thumb'?{referenceImageAttached:true}:{})};
  try{
   /* 6.5: the storyboard is a shot list from the approved brief + one keyframe per shot */
-  if(sid==='board'&&useJobs()&&!changes){
+  if(sid==='board'&&useJobs()){
    if(!p.brief){throw new Error('Write and approve the brief first — the storyboard is built from it.')}
    GEN.busy[key]='Frame is writing the shot list from the approved brief…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',pieceId:p.id,userInput,refImage:p.refImage||null,piece:storeMeta(p)})});

@@ -13,7 +13,7 @@ const higgsfield = require('./_adapters/higgsfield.js');
 const f1x8 = require('./_adapters/f1x8.js');
 const storage = require('./_adapters/storage.js');
 const { recordGeneration } = require('./_records.js');
-const jobRecord = (job, extra) => recordGeneration({ kind: job.kind.startsWith('higgsfield') ? job.kind : 'f1x8', legacyPieceId: job.payload && job.payload.pieceId, pieceId: job.piece_id || null, stage: job.payload && job.payload.stage, promptName: job.kind.startsWith('higgsfield') ? 'director.prompt' : 'f1x8.analysis', promptVersion: null, resolvedPrompt: job.payload && (job.payload.prompt || job.payload.description) || null, params: { aspect_ratio: job.payload && job.payload.aspect_ratio, resolution: job.payload && job.payload.resolution, duration: job.payload && job.payload.duration, ref: Boolean(job.payload && job.payload.ref), v: job.payload && job.payload.v }, inputAssets: job.payload && (job.payload.ref || job.payload.assetUrl || job.payload.assetPath) ? [job.payload.ref || job.payload.assetPath || job.payload.assetUrl] : [], jobId: job.id, memberId: job.payload && job.payload.generatedBy, correlationId: job.payload && job.payload.correlationId, latencyMs: job.started_at ? Date.now() - new Date(job.started_at).getTime() : null, ...extra });
+const jobRecord = (job, extra) => recordGeneration({ kind: job.kind.startsWith('higgsfield') ? job.kind : 'f1x8', legacyPieceId: job.payload && job.payload.pieceId, pieceId: job.piece_id || null, stage: job.payload && job.payload.stage, promptName: job.kind.startsWith('higgsfield') ? 'director.prompt' : 'f1x8.analysis', promptVersion: null, resolvedPrompt: job.payload && (job.payload.prompt || job.payload.description) || null, params: { aspect_ratio: job.payload && job.payload.aspect_ratio, resolution: job.payload && job.payload.resolution, duration: job.payload && job.payload.duration, ref: Boolean(job.payload && job.payload.ref), v: job.payload && job.payload.v, seed: job.payload && job.payload.seed != null ? job.payload.seed : null }, inputAssets: job.payload && (job.payload.ref || job.payload.assetUrl || job.payload.assetPath) ? [job.payload.ref || job.payload.assetPath || job.payload.assetUrl] : [], jobId: job.id, memberId: job.payload && job.payload.generatedBy, correlationId: job.payload && job.payload.correlationId, latencyMs: job.started_at ? Date.now() - new Date(job.started_at).getTime() : null, ...extra });
 
 const q = (v) => encodeURIComponent(String(v));
 const KINDS = ['higgsfield_image', 'higgsfield_video', 'f1x8_image', 'f1x8_video', 'vision_check'];
@@ -168,13 +168,13 @@ async function fail(job, state, error) {
     // 6.5: a failed keyframe marks its shot; the other shots keep rendering
     try {
       const { versionId, shot } = job.payload.attachTo;
-      const [v] = await queryRows('artifact_versions', `select=id,payload&id=eq.${q(versionId)}&limit=1`);
-      if (v && v.payload && Array.isArray(v.payload.shots) && v.payload.shots[shot - 1]) {
-        const shots = v.payload.shots.map((s) => ({ ...s }));
+      await updateShots(versionId, (payload) => {
+        if (!Array.isArray(payload.shots) || !payload.shots[shot - 1]) return null;
+        const shots = payload.shots.map((s) => ({ ...s }));
         const prev = shots[shot - 1].keyframe;
         shots[shot - 1] = { ...shots[shot - 1], keyframe: prev && prev.state === 'rendered' ? { ...prev, lastError: String(error || '').slice(0, 200) } : { state: 'failed', error: String(error || '').slice(0, 200), jobId: job.id, at: nowIso() } };
-        await patchRows('artifact_versions', `id=eq.${q(versionId)}`, { payload: { ...v.payload, shots } });
-      }
+        return { ...payload, shots };
+      });
     } catch (e) { console.warn('[jobs] shot failure could not be recorded:', e.message); }
     await settleBoardStage(job);
     return;
@@ -256,6 +256,28 @@ async function pollRender(job) {
   return 'running';
 }
 
+/** 6.5: change a version's `payload.shots` under an optimistic revision. Readers that run
+ *  in separate invocations (the tick, GET ?id= polls, the page's decisions) each read,
+ *  mutate one shot and write back; the PATCH is filtered on the revision they read, so a
+ *  concurrent writer makes it return zero rows and the change is re-applied on a fresh
+ *  read (the same pattern as claim()). `mutate(payload)` returns the new payload or null
+ *  to abort. Resolves {payload, rev} or throws after `attempts`. */
+async function updateShots(versionId, mutate, attempts = 6) {
+  for (let i = 0; i < attempts; i++) {
+    const [v] = await queryRows('artifact_versions', `select=id,payload&id=eq.${q(versionId)}&limit=1`);
+    if (!v) throw new Error(`version ${versionId} not found`);
+    const seen = v.payload && v.payload.rev != null ? Number(v.payload.rev) : null;
+    const next = mutate(v.payload || {});
+    if (next === null) return { payload: v.payload, rev: seen, unchanged: true };
+    const payload = { ...next, rev: (seen || 0) + 1 };
+    const filter = seen == null ? 'payload->>rev=is.null' : `payload->>rev=eq.${seen}`;
+    const rows = await patchRows('artifact_versions', `id=eq.${q(versionId)}&${filter}`, { payload });
+    if (rows.length) return { payload, rev: payload.rev };
+    await new Promise((r) => setTimeout(r, 25 + Math.floor(Math.random() * 50)));
+  }
+  throw new Error(`version ${versionId}: payload changed concurrently ${attempts} times`);
+}
+
 /** 6.5: no render job left alive on the stage → the storyboard is `generated` again. */
 async function settleBoardStage(job) {
   const rows = await queryRows('jobs', `select=id,kind&stage_id=eq.${q(job.stage_id)}&state=in.(queued,running)&limit=50`);
@@ -272,13 +294,19 @@ async function settleBoardStage(job) {
  *  on the hook shot, the lightweight F1X8 check. The version number does not change. */
 async function attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage }) {
   const { versionId, shot } = job.payload.attachTo;
-  const [v] = await queryRows('artifact_versions', `select=id,payload&id=eq.${q(versionId)}&limit=1`);
-  if (!v || !v.payload || !Array.isArray(v.payload.shots) || !v.payload.shots[shot - 1]) { await fail(job, 'failed', `storyboard version or shot ${shot} not found`); return 'failed'; }
-  const shots = v.payload.shots.map((s) => ({ ...s }));
-  const prev = shots[shot - 1].keyframe;
-  const keyframe = { state: 'rendered', url: sourceUrl, assetPath: copy ? copy.path : null, sha256: copy ? copy.sha256 : null, size: copy ? copy.size : null, jobId: job.id, prompt: meta.prompt || '', at: nowIso() };
-  shots[shot - 1] = { ...shots[shot - 1], keyframe, keyframeHistory: [...(shots[shot - 1].keyframeHistory || []), ...(prev && prev.state === 'rendered' ? [prev] : [])], review: null };
-  await patchRows('artifact_versions', `id=eq.${q(versionId)}`, { payload: { ...v.payload, shots } });
+  const keyframe = { state: 'rendered', url: sourceUrl, assetPath: copy ? copy.path : null, sha256: copy ? copy.sha256 : null, size: copy ? copy.size : null, jobId: job.id, prompt: meta.prompt || '', seed: job.payload.seed != null ? job.payload.seed : null, v: job.payload.v || 0, at: nowIso() };
+  let shots = null;
+  try {
+    const r = await updateShots(versionId, (payload) => {
+      if (!Array.isArray(payload.shots) || !payload.shots[shot - 1]) return null;
+      const next = payload.shots.map((s) => ({ ...s }));
+      const prev = next[shot - 1].keyframe;
+      next[shot - 1] = { ...next[shot - 1], keyframe, keyframeHistory: [...(next[shot - 1].keyframeHistory || []), ...(prev && prev.state === 'rendered' ? [prev] : [])], review: null };
+      return { ...payload, shots: next };
+    });
+    if (r.unchanged) { await fail(job, 'failed', `storyboard version or shot ${shot} not found`); return 'failed'; }
+    shots = r.payload.shots;
+  } catch (e) { await fail(job, 'failed', `keyframe could not be attached: ${String(e.message || e).slice(0, 160)}`); return 'failed'; }
   await finish(job, { state: 'succeeded', error: null, result: { attached: { versionId, shot }, keyframe, copiedIn: Boolean(copy) } });
   await jobRecord(job, { status: 'succeeded', outputAssets: [{ url: sourceUrl, assetPath: keyframe.assetPath, sha256: keyframe.sha256, versionId, shot }] });
   if (job.payload.autoCheck) {
@@ -384,4 +412,4 @@ async function jobsForPiece(legacyId, limit = 50) {
   return out;
 }
 
-module.exports = { KINDS, createJob, getJob, advance, tick, jobsForPiece, publicJob, settleBoardStage, POLL_S, TIMEOUT_S };
+module.exports = { KINDS, createJob, getJob, advance, tick, jobsForPiece, publicJob, settleBoardStage, updateShots, POLL_S, TIMEOUT_S };

@@ -178,7 +178,7 @@ function artifactFrom(list, meta) {
     shots: list.shots.map((s) => ({ ...s, keyframe: null, review: null })),
     hookShot: list.hookShot, notes: list.notes, totalS: Math.round(list.shots.reduce((a, s) => a + s.durationS, 0) * 10) / 10,
     boardVersion: meta.promptVersion || VERSION, briefVersionId: meta.briefVersionId || null, briefApproved: Boolean(meta.briefApproved), moodApproved: Boolean(meta.moodApproved), aspect: meta.aspect || '9:16',
-    prompt: `storyboard of ${list.shots.length} shots`, note: list.notes,
+    prompt: `storyboard of ${list.shots.length} shots`, note: list.notes, rev: 0,
   };
 }
 

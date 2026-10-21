@@ -44,6 +44,8 @@ const { recordVersion } = require('../_store.js');
 const { activeDocuments, getDocument } = require('../_kb/index.js');
 const { queryRows, insertRows } = require('../_supabase.js');
 
+// a recorded seed per keyframe (SOUL V2 accepts 1–1,000,000) so a shot can be re-rendered reproducibly (6.9)
+const newSeed = () => 1 + Math.floor(Math.random() * 1000000);
 const ASSET_RE = (legacyId) => new RegExp(`^pieces/${legacyId.replace(/[^a-zA-Z0-9_-]/g, '')}/(mood|thumb|board|draft|final)/[a-z0-9-]+\\.(png|jpg|webp)$`);
 
 /** Store the brief's checks (code + copy) on the version; returns the row shape the page reads. */
@@ -127,13 +129,14 @@ module.exports = async (req, res) => {
       if (stage.state === 'approved') return res.status(409).json({ error: 'the storyboard is approved; reopen it first', code: 'approved_immutable' });
       const [v] = await queryRows('artifact_versions', `select=id,payload&id=eq.${encodeURIComponent(stage.current_version_id)}&limit=1`);
       if (!v || !Array.isArray(v.payload.shots) || !v.payload.shots[n - 1]) return res.status(404).json({ error: `shot ${n} not found` });
-      const shots = v.payload.shots.map((s) => ({ ...s }));
-      if (decision === 'approved' && !(shots[n - 1].keyframe && shots[n - 1].keyframe.state === 'rendered')) return res.status(409).json({ error: `shot ${n} has no rendered keyframe to approve`, code: 'no_keyframe' });
-      shots[n - 1].review = { decision, reason: String(b.reason || '').slice(0, 2000) || null, reasonCode: b.reasonCode ? String(b.reasonCode).slice(0, 60) : null, by: req.member ? req.member.name || req.member.email : String(b.name || '').slice(0, 120) || null, at: new Date().toISOString(), keyframeJobId: shots[n - 1].keyframe ? shots[n - 1].keyframe.jobId || null : null };
-      const { patchRows } = require('../_supabase.js');
-      await patchRows('artifact_versions', `id=eq.${encodeURIComponent(v.id)}`, { payload: { ...v.payload, shots } });
-      try { await insertRows('audit_log', [{ actor: req.member ? req.member.id : null, action: `board.shot.${decision}`, target: v.id, details: { pieceId: legacyId, shot: n, reasonCode: shots[n - 1].review.reasonCode, reason: shots[n - 1].review.reason } }]); } catch (e) { /* best effort */ }
-      return res.status(200).json({ ok: true, shot: n, review: shots[n - 1].review, pending: shots.filter((s) => !s.review || s.review.decision !== 'approved').map((s) => s.n) });
+      if (decision === 'approved' && !(v.payload.shots[n - 1].keyframe && v.payload.shots[n - 1].keyframe.state === 'rendered')) return res.status(409).json({ error: `shot ${n} has no rendered keyframe to approve`, code: 'no_keyframe' });
+      const review = { decision, reason: String(b.reason || '').slice(0, 2000) || null, reasonCode: b.reasonCode ? String(b.reasonCode).slice(0, 60) : null, by: req.member ? req.member.name || req.member.email : String(b.name || '').slice(0, 120) || null, at: new Date().toISOString(), keyframeJobId: v.payload.shots[n - 1].keyframe ? v.payload.shots[n - 1].keyframe.jobId || null : null };
+      // the review binds to the keyframe that was on screen: a keyframe that landed meanwhile is not approved by this click
+      const r = await jobsSvc.updateShots(v.id, (payload) => { const shots = payload.shots.map((s) => ({ ...s })); const cur = shots[n - 1].keyframe ? shots[n - 1].keyframe.jobId || null : null; if (decision === 'approved' && cur !== review.keyframeJobId) return null; shots[n - 1] = { ...shots[n - 1], review }; return { ...payload, shots }; });
+      if (r.unchanged) return res.status(409).json({ error: `shot ${n} was re-rendered while you reviewed it — look at the new keyframe`, code: 'keyframe_changed' });
+      const shots = r.payload.shots;
+      try { await insertRows('audit_log', [{ actor: req.member ? req.member.id : null, action: `board.shot.${decision}`, target: v.id, details: { pieceId: legacyId, shot: n, reasonCode: review.reasonCode, reason: review.reason } }]); } catch (e) { /* best effort */ }
+      return res.status(200).json({ ok: true, shot: n, review, pending: shots.filter((s) => !s.review || s.review.decision !== 'approved').map((s) => s.n) });
     }
     if (b.action === 'board-shot') {
       const n = Number(b.shot);
@@ -151,7 +154,7 @@ module.exports = async (req, res) => {
       const changes = String(b.changes || '').trim();
       const prompt = `${boardMod.keyframePrompt(shot, mood.direction, bits.productLook, useRef)}${changes ? ` Changes requested by the reviewer (apply only these, keep everything else): ${changes}.` : ''}`;
       const anchors = mood.tiles.filter((t) => t.assetPath || t.url).slice(0, 4).map((t) => ({ index: t.index, url: t.url || null, assetPath: t.assetPath || null }));
-      const [job] = await insertRows('jobs', [{ piece_id: piece.id, stage_id: stage.id, kind: 'higgsfield_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: v.payload.aspect || '9:16', resolution: '1080p', ...(useRef ? { ref: refImage } : {}), autoCheck: true, attachTo: { versionId: v.id, shot: n }, generatedBy: req.member ? req.member.id : null, meta: { shot: n, prompt, changes: changes || null, anchors, direction: mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: n === v.payload.hookShot, title: piece.title } } }], { returning: true });
+      const [job] = await insertRows('jobs', [{ piece_id: piece.id, stage_id: stage.id, kind: 'higgsfield_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: v.payload.aspect || '9:16', resolution: '1080p', seed: newSeed(), ...(useRef ? { ref: refImage } : {}), autoCheck: true, attachTo: { versionId: v.id, shot: n }, generatedBy: req.member ? req.member.id : null, meta: { shot: n, prompt, changes: changes || null, anchors, direction: mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: n === v.payload.hookShot, title: piece.title } } }], { returning: true });
       const { patchRows } = require('../_supabase.js');
       if (stage.state !== 'generating') await patchRows('stages', `id=eq.${encodeURIComponent(stage.id)}`, { state: 'generating' });
       await jobsSvc.advance(job).catch(() => null);
@@ -186,7 +189,7 @@ module.exports = async (req, res) => {
       const rows = w.list.shots.map((shot) => {
         const useRef = Boolean(refImage && shot.product.visible);
         const prompt = boardMod.keyframePrompt(shot, bctx.mood.direction, bits.productLook, useRef);
-        return { piece_id: piece.id, stage_id: stageRow.id, kind: 'higgsfield_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: aspect, resolution: '1080p', ...(useRef ? { ref: refImage } : {}), autoCheck: true, attachTo: { versionId: out.versionId, shot: shot.n }, generatedBy: req.member ? req.member.id : null, meta: { shot: shot.n, prompt, anchors, direction: bctx.mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: shot.n === w.list.hookShot, title: piece.title } } };
+        return { piece_id: piece.id, stage_id: stageRow.id, kind: 'higgsfield_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: aspect, resolution: '1080p', seed: newSeed(), ...(useRef ? { ref: refImage } : {}), autoCheck: true, attachTo: { versionId: out.versionId, shot: shot.n }, generatedBy: req.member ? req.member.id : null, meta: { shot: shot.n, prompt, anchors, direction: bctx.mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: shot.n === w.list.hookShot, title: piece.title } } };
       });
       const inserted = await insertRows('jobs', rows, { returning: true });
       const { patchRows } = require('../_supabase.js');

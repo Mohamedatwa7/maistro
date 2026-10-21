@@ -38,13 +38,16 @@ function fakePostgrest(base = 'https://sb.test') {
     }
     return { table, filters, order, limit, select, onConflict };
   }
+  // `payload->>rev` reads a JSON field as text, like PostgREST
+  const cell = (row, col) => { if (!col.includes('->>')) return row[col]; const [base, key] = col.split('->>'); const v = row[base] && typeof row[base] === 'object' ? row[base][key] : undefined; return v == null ? null : String(v); };
   const matches = (row, f) => f.every(({ col, op, val }) => {
-    if (op === 'notnull') return row[col] != null;
-    if (op === 'isnull') return row[col] == null;
-    if (op === 'eq') return String(row[col]) === String(val);
-    if (op === 'in') return val.includes(String(row[col]));
-    if (row[col] == null) return false;
-    const a = row[col], b = (typeof a === 'number' ? Number(val) : String(val)), x = (typeof a === 'number' ? a : String(a));
+    const c = cell(row, col);
+    if (op === 'notnull') return c != null;
+    if (op === 'isnull') return c == null;
+    if (op === 'eq') return String(c) === String(val);
+    if (op === 'in') return val.includes(String(c));
+    if (c == null) return false;
+    const a = c, b = (typeof a === 'number' ? Number(val) : String(val)), x = (typeof a === 'number' ? a : String(a));
     return op === 'lte' ? x <= b : op === 'gte' ? x >= b : op === 'lt' ? x < b : x > b;
   });
   const project = (row, select) => (select === '*' ? { ...row } : Object.fromEntries(select.split(',').map((c) => [c, row[c]])));
