@@ -17,6 +17,7 @@
 // GET (public): latest snapshot per post, newest posts first.
 
 const { insertRow, listRows } = require('./_supabase.js');
+const { bearerMatches } = require('./_auth.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -28,7 +29,7 @@ module.exports = async (req, res) => {
       res.status(503).json({ error: 'MAISTRO_INGEST_KEY is not configured on the server' });
       return;
     }
-    if ((req.headers.authorization || '') !== `Bearer ${key}`) {
+    if (!bearerMatches(req.headers.authorization, key)) {
       res.status(401).json({ error: 'missing or invalid Authorization bearer token' });
       return;
     }

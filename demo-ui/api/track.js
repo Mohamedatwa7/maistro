@@ -33,6 +33,7 @@
 // and page along the published_at index, never ORDER BY id.
 
 const { insertRow } = require('./_supabase.js');
+const { bearerMatches, isCron: isCronRequest } = require('./_auth.js');
 const { fetchT } = require('./_http.js');
 
 const DAYS_MAX = 90;
@@ -211,9 +212,9 @@ module.exports = async (req, res) => {
   if (!base || !key) return res.status(503).json({ error: 'tracker DB is not configured (TRACK_SUPABASE_URL / TRACK_SUPABASE_KEY)' });
   const H = { apikey: key, Authorization: `Bearer ${key}` };
   const headers = req.headers || {};
-  const isCron = /^vercel-cron/i.test(String(headers['user-agent'] || ''));
+  const isCron = isCronRequest(req);
   const ingestKey = process.env.MAISTRO_INGEST_KEY;
-  const authorized = !!ingestKey && String(headers.authorization || '') === `Bearer ${ingestKey}`;
+  const authorized = bearerMatches(headers.authorization, ingestKey);
   const q = req.query || {};
   const wantStore = isCron || (authorized && String(q.store || '') === '1');
 

@@ -14,6 +14,7 @@
 // }
 
 const { insertEvent } = require('./_supabase.js');
+const { bearerMatches } = require('./_auth.js');
 
 const STAGE_AGENTS = {
   plan: 'Hermes', mood: 'Muse', thumb: 'Pixel', brief: 'Quill',
@@ -59,7 +60,7 @@ module.exports = async (req, res) => {
     res.status(503).json({ error: 'MAISTRO_INGEST_KEY is not configured on the server' });
     return;
   }
-  if (auth !== `Bearer ${key}`) {
+  if (!bearerMatches(auth, key)) {
     res.status(401).json({ error: 'missing or invalid Authorization bearer token' });
     return;
   }
