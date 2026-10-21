@@ -1,0 +1,4298 @@
+{
+ "exportedAt": "2026-10-21T19:29:45.439Z",
+ "source": "trend_scores, run of 2026-10-21T19:15Z (profile-v1.1, claude-sonnet-5-5)",
+ "note": "recorded judgements for the 5.9 eval set; names and model output only",
+ "rows": [
+  {
+   "trendId": "snd-7002429550756219654",
+   "name": "Zany Emote Dance (Fortnite)",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-CULTURE",
+     "reason": "There is no Gulf evidence. Hip movement and mixed-group dancing may need modesty review for the Gulf market, and the clips' attire and context are unknown.",
+     "evidence": [
+      "\"hip pop\"",
+      "\"Solo, duo or group perform the same short choreography\"",
+      "scope: \"Global\""
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-ORIGIN",
+     "reason": "The emote is third-party game IP and the sound's author is unknown. The choreography likely traces back to a licensed property, so rights and origin need review before brand use, even though the sound itself is marked cleared.",
+     "evidence": [
+      "\"Fortnite-licensed dance performance\"",
+      "\"title\": \"Zany Emote Fortnite\"",
+      "\"author\": null"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "Commercial use is cleared, but no lyrics are carried by the radar, so explicit content cannot be confirmed as absent. Ambiguity is never treated as safe.",
+     "evidence": [
+      "\"cue\": \"Zany (DC: Davis)\"",
+      "\"commercialUseCleared\": true"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"Fortnite-licensed dance performance\"",
+      "\"title\": \"Zany Emote Fortnite\"",
+      "\"author\": null"
+     ],
+     "rationale": "The emote is third-party game IP and the sound's author is unknown. The choreography likely traces back to a licensed property, so rights and origin need review before brand use, even though the sound itself is marked cleared."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "\"arms out, a hip pop, a kicking step and a snappy arm throw\"",
+      "category: \"entertainment\""
+     ],
+     "rationale": "The choreography is a harmless gaming-emote dance with no risky stunts or sensitive content shown in the evidence."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"hip pop\"",
+      "\"Solo, duo or group perform the same short choreography\"",
+      "scope: \"Global\""
+     ],
+     "rationale": "There is no Gulf evidence. Hip movement and mixed-group dancing may need modesty review for the Gulf market, and the clips' attire and context are unknown."
+    },
+    "profile": {
+     "mechanic": "Performers repeat a short choreography (arms out, hip pop, kicking step, snappy arm throw) in one locked static take that keeps the full body and footwork in frame.",
+     "unknowns": [
+      "Gulf adoption or engagement (none measured)",
+      "Sound author",
+      "Whether Fortnite/Epic IP permits brand use of the emote",
+      "Lyrics (not carried by the radar)"
+     ],
+     "whatItIs": "A global Fortnite-referencing dance trend built on the Zany emote, performed solo, in duos or in groups.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Measured: 88 creators / 96 sampled videos, 67% posted this week, adoption accelerating. Top clips reach 3.7M, 2.5M and 1M views. The format is a simple, repeatable choreography.",
+     "originAndMeaning": "It originates from the Fortnite Zany emote; the sound is titled \"Zany Emote Fortnite\" with cue \"Zany (DC: Davis)\". No deeper meaning is stated in the evidence. Sound author is null, so the audio's origin is unknown."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 4,
+      "evidence": [
+       "scope: \"Global\"",
+       "lang: \"EN\"",
+       "clips from @sophieraiin, @motolyssaa, @realalinnarosee, @tomfoolerysdiner"
+      ],
+      "rationale": "There is no Gulf evidence: no local scope, no Arabic text and no Gulf creators. Gaming has some general appeal in the region, but that is inference only.",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 3,
+      "evidence": [
+       "\"upstreamOnBrand\": false",
+       "\"generated remake loses the trend\""
+      ],
+      "rationale": "A borrowed Fortnite-licensed dance sits poorly with Confident Explorer and Refined Wit, and the upstream assessment already flags it as off-brand.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 2,
+      "feature": "none",
+      "product": "none",
+      "evidence": [
+       "\"products\": []",
+       "\"no Galaxy slot\"",
+       "\"one locked static take\""
+      ],
+      "rationale": "The dance is the content and there is no natural product beat. A static-take phone mapping (Galaxy S26 Ultra camera) would be forced.",
+      "confidence": "medium",
+      "catalogMatch": false
+     },
+     "audience": {
+      "score": 5,
+      "evidence": [
+       "category: \"entertainment\"",
+       "\"88 creators / 96 sampled videos\"",
+       "lang: \"EN\""
+      ],
+      "rationale": "Gaming and dance appeal to a young audience broadly, but Gulf audience data is unknown, so the score is neutral.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 7,
+      "evidence": [
+       "\"67% posted this week, adoption accelerating\"",
+       "\"stage\": \"peaking\"",
+       "\"commercialUseCleared\": true"
+      ],
+      "rationale": "It is a native TikTok format with a cleared sound and strong momentum. The caveat is that it is peaking, with post-by 2026-10-31.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 4,
+      "evidence": [
+       "\"stage\": \"peaking\"",
+       "\"acceleration\": -1",
+       "\"88 creators / 96 sampled videos\""
+      ],
+      "rationale": "The trend is at peak with slowing acceleration and many creators already posting. A brand entering now would be late with no distinctive angle.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"cue\": \"Zany (DC: Davis)\"",
+      "\"commercialUseCleared\": true"
+     ],
+     "rationale": "Commercial use is cleared, but no lyrics are carried by the radar, so explicit content cannot be confirmed as absent. Ambiguity is never treated as safe."
+    },
+    "feasibilityClass": "performance"
+   },
+   "timing": {
+    "basis": "conditional median given 15 d on board",
+    "postBy": "2026-10-31T09:38:44.978Z",
+    "leadDays": 5,
+    "stayDays": 29,
+    "endOfLife": "2026-11-05T09:38:44.978Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 15,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7239848717925943298",
+   "name": "Fancam style romance TV and movie scene edits",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "evergreen",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "sound \"Follow Me\" is flagged not cleared for commercial use by TikTok",
+     "needsReview": false
+    }
+   ],
+   "judgement": null,
+   "timing": {
+    "basis": "evergreen",
+    "postBy": "2026-11-15T19:15:27.856Z",
+    "leadDays": 5,
+    "stayDays": 9,
+    "endOfLife": "2026-11-20T19:15:27.856Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 30,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": null
+  },
+  {
+   "trendId": "snd-7585687637122631696",
+   "name": "Dip On Em dance challenge",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "evergreen",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "sound \"DIP ON EM\" is flagged not cleared for commercial use by TikTok",
+     "needsReview": false
+    }
+   ],
+   "judgement": null,
+   "timing": {
+    "basis": "evergreen",
+    "postBy": "2026-11-15T19:15:27.856Z",
+    "leadDays": 5,
+    "stayDays": 9,
+    "endOfLife": "2026-11-20T19:15:27.856Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 30,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": null
+  },
+  {
+   "trendId": "snd-7608017198820477727",
+   "name": "What iPad Trend",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-CULTURE",
+     "reason": "The accusation theme and the audio's full wording are not fully known; the humour about theft or denial may be sensitive, so a human should review it.",
+     "evidence": [
+      "accusatory line about an iPad",
+      "original sound - zleebabyy"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "pass",
+     "evidence": [
+      "original sound - zleebabyy",
+      "commercialUseCleared: true"
+     ],
+     "rationale": "It is a creator-original sound with no sign of a problematic origin; the exact origin remains unknown but nothing flags concern."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "Creator films a single locked selfie style take, acting confused and defensive"
+     ],
+     "rationale": "Mild comedic denial skit with no hazardous or harmful behaviour shown."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "accusatory line about an iPad",
+      "original sound - zleebabyy"
+     ],
+     "rationale": "The accusation theme and the audio's full wording are not fully known; the humour about theft or denial may be sensitive, so a human should review it."
+    },
+    "profile": {
+     "mechanic": "Single locked selfie-style take; creator mouths the audio's accusation, gestures with empty hands or an unrelated object to sell the denial, and the clip ends on the punchline reaction with no payoff or reveal.",
+     "unknowns": [
+      "Original context of the audio",
+      "Gulf engagement",
+      "Exact lyrics beyond the cue \"What iPad?!\"",
+      "Whether the accusation carries a sensitive subtext"
+     ],
+     "whatItIs": "A TikTok skit trend where creators lip-sync an accusatory audio line about an iPad (cue: \"What iPad?!\") while acting confused and defensive.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Evidence says \"93 creators / 94 sampled videos, 85% posted this week, adoption accelerating\"; the lifecycle stage is peaking, and the top clips range from 3.2M to 6.2M views. The format is simple and easy to copy.",
+     "originAndMeaning": "Sound is \"original sound - zleebabyy\"; the meaning is a comedic denial of owning or taking an iPad. The origin context of the original clip is unknown from the evidence."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 4,
+      "evidence": [
+       "scope: Global",
+       "lang: EN",
+       "clips by @delilahsdischarge, @michaa.x, @itssmiyah08, @mylifeaskay__"
+      ],
+      "rationale": "There is no Gulf evidence: the scope is global, the language is EN and no Gulf creators are visible. English skits are common in the Gulf, but this is unproven.",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 2,
+      "evidence": [
+       "accusatory line about an iPad",
+       "upstreamOnBrand: false"
+      ],
+      "rationale": "Samsung would be giving free airtime to a rival's product, which conflicts with Refined Wit and never putting down competitors; the trend's centre of gravity is a competitor.",
+      "confidence": "high"
+     },
+     "product": {
+      "score": 2,
+      "feature": "Large edge-to-edge display with S Pen",
+      "product": "Galaxy Tab S12",
+      "evidence": [
+       "upstreamFit reason: \"Trend centers rival iPad itself, not a remakeable visual mechanic.\"",
+       "products: []"
+      ],
+      "rationale": "The joke is centered on an iPad. Mapping it to Galaxy Tab S12 would be forced, as the punchline names a competitor product, so the score is capped low.",
+      "confidence": "high",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 5,
+      "evidence": [
+       "93 creators / 94 sampled videos",
+       "clips of 3.2M–6.2M views"
+      ],
+      "rationale": "Broad appeal in general, but the audience mix is unknown and there is no Gulf demographic evidence.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 6,
+      "evidence": [
+       "TikTok-first radar",
+       "single locked selfie style take"
+      ],
+      "rationale": "It is native to TikTok and simple to execute, with the caveat that it depends on a creator performing to audio.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 4,
+      "evidence": [
+       "stage: peaking",
+       "acceleration: -23",
+       "85% posted this week",
+       "postBy 2026-10-26"
+      ],
+      "rationale": "It is at peak with decelerating acceleration, and with 10 days remaining and a short post-by window, joining now means entering a crowded space late.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "pass",
+     "evidence": [
+      "cue: \"What iPad?!\""
+     ],
+     "rationale": "The known cue is clean; the full lyrics are not carried by the radar, so this is low-risk but not fully verified."
+    },
+    "feasibilityClass": "performance"
+   },
+   "timing": {
+    "basis": "conditional median given 4 d on board",
+    "postBy": "2026-10-26T08:32:28.199Z",
+    "leadDays": 5,
+    "stayDays": 13,
+    "endOfLife": "2026-10-31T08:32:28.199Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 10,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7609830978302887953",
+   "name": "Don't Invite Me to Watch Scary Movies caption meme",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "rising",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "sound \"Bounce it\" is flagged not cleared for commercial use by TikTok",
+     "needsReview": false
+    }
+   ],
+   "judgement": null,
+   "timing": {
+    "basis": "still on the board beyond the class median (+1 day)",
+    "postBy": "2026-10-18T09:43:21.103Z",
+    "leadDays": 5,
+    "stayDays": 17,
+    "endOfLife": "2026-10-23T09:43:21.103Z",
+    "leadAssumed": true,
+    "postByPassed": true,
+    "remainingDays": 2,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": null
+  },
+  {
+   "trendId": "snd-7618726403697134356",
+   "name": "Wash Day Hair Transformation Labels",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "Commercial use is cleared, but the radar carries no lyrics and the sound is an unattributed original. The audio content cannot be verified, so a human should listen to it before use.",
+     "evidence": [
+      "title: original sound - user8yhr0r6nax",
+      "commercialUseCleared: true",
+      "no lyrics carried"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "pass",
+     "evidence": [
+      "Measured: 83 creators / 93 sampled videos",
+      "cue: Sucio/Lavado/Peinado or Lavado/Seco/Alisado"
+     ],
+     "rationale": "The sampled clips come from many creators, and the labels are plain Spanish or English routine words. Nothing in the evidence points to a problematic origin or a coded meaning."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "Locked multi-cut montage of a single wash day",
+      "category: beauty"
+     ],
+     "rationale": "An everyday hair-washing routine with no risky behaviour, minors, or hazardous stunts evident in the evidence."
+    },
+    "culture": {
+     "verdict": "pass",
+     "evidence": [
+      "Locked multi-cut montage of a single wash day, each clip stamped with a text label"
+     ],
+     "rationale": "Hair-care content is neutral for Gulf markets. The one point to watch is that showing hair, so the casting choice should respect modesty norms. This is a production note, not a veto."
+    },
+    "profile": {
+     "mechanic": "Locked multi-cut montage of one wash day, each clip stamped with a stage label and cut on the beat drop, so it reads as a timeline of transformation rather than a single reveal.",
+     "unknowns": [
+      "No Gulf engagement data or Gulf creators in the clips",
+      "Original creator of the sound is unknown (author null)",
+      "Lyrics are not available, so the audio content is unverified",
+      "Lifecycle is peaking with acceleration -7, so decline may be near"
+     ],
+     "whatItIs": "A beauty montage trend in which a single wash day is shown as a timeline of stamped text labels (dirty/wet, washed, dried, styled).",
+     "languages": [
+      "EN",
+      "ES (labels in the cue)"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Measured: 83 creators / 93 sampled videos, 45% posted this week, adoption accelerating. The format is low-effort and easy to copy, since it only needs stage labels cut to a beat drop.",
+     "originAndMeaning": "Origin unknown. The evidence shows an original sound by user8yhr0r6nax used across all four sampled clips, and the cue mentions Spanish labels (Sucio/Lavado/Peinado). The meaning is a plain hair-care routine with no hidden or coded connotation in the evidence."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 4,
+      "evidence": [
+       "scope: Global",
+       "lang: EN",
+       "clips: @nathalia.gonzaleez, @janicenicholee, @grumpyleanneandmaitland, @bbranson8"
+      ],
+      "rationale": "The scope is global and there are no Gulf creators or Gulf text in the name or why. The brief's Arabic on-screen text is a proposed adaptation, not trend evidence. Hair-care routines are universal, but Gulf traction is unproven.",
+      "confidence": "medium"
+     },
+     "brand": {
+      "score": 6,
+      "evidence": [
+       "onBrand: Keeps hair and the stage-label mechanic as the unmistakable spine",
+       "dont: Never narrate the feature"
+      ],
+      "rationale": "The adaptation is understated and lets the product sit inside the routine, which suits Refined Wit. The caveat is that the format is generic and the beat-drop montage is fairly mechanical. The CTA wording is casual.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 5,
+      "feature": "Clamshell FlexWindow cover screen with hands-free half-fold standing",
+      "product": "Galaxy Z Flip8",
+      "evidence": [
+       "products: Galaxy Z Flip8 - FlexWindow cover screen lets you preview the reveal framing while propped hands-free",
+       "brief: Prop the half-folded Flip on the bathroom counter"
+      ],
+      "rationale": "The hands-free propped Flip is a plausible but modest fit for a wet multi-stage routine. A tripod or any other phone stand would work equally well, so it is somewhat convenient rather than essential. The Bespoke dryer idea is a forced mapping, and 'Bespoke AI Washer/Dryer' is not a catalog name. Galaxy AI is not a catalog product either.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 6,
+      "evidence": [
+       "category: beauty",
+       "45% posted this week, adoption accelerating"
+      ],
+      "rationale": "Beauty and haircare content is broadly relevant to Gulf Galaxy Z Flip audiences, who skew young and style-conscious. The evidence has no audience data, so this is an inference.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 7,
+      "evidence": [
+       "TikTok-first radar",
+       "Locked multi-cut montage ... cut on the beat drop",
+       "commercialUseCleared: true"
+      ],
+      "rationale": "Short vertical beat-cut montages suit TikTok and Reels natively. Commercial sound use is cleared. The caveat is that the sound's content is unverified.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 4,
+      "evidence": [
+       "lifecycle stage: peaking",
+       "acceleration: -7",
+       "83 creators / 93 sampled videos",
+       "postBy: 2026-10-22T09:30:05.200Z"
+      ],
+      "rationale": "The trend is peaking with negative acceleration, and a large creator base is already posting. The post-by date is 2026-10-22, which is under a day away, so there is little room to ship before it passes.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "title: original sound - user8yhr0r6nax",
+      "commercialUseCleared: true",
+      "no lyrics carried"
+     ],
+     "rationale": "Commercial use is cleared, but the radar carries no lyrics and the sound is an unattributed original. The audio content cannot be verified, so a human should listen to it before use."
+    },
+    "feasibilityClass": "product-led visual"
+   },
+   "timing": {
+    "basis": "conditional median given 10 d on board",
+    "postBy": "2026-10-22T09:30:05.200Z",
+    "leadDays": 5,
+    "stayDays": 15,
+    "endOfLife": "2026-10-27T09:30:05.200Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 6,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7644867439653652481",
+   "name": "Bloodstream emotional captions trend",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "evergreen",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "sound \"bloodstream\" is flagged not cleared for commercial use by TikTok",
+     "needsReview": false
+    }
+   ],
+   "judgement": null,
+   "timing": {
+    "basis": "evergreen",
+    "postBy": "2026-11-15T19:15:27.856Z",
+    "leadDays": 5,
+    "stayDays": 9,
+    "endOfLife": "2026-11-20T19:15:27.856Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 30,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": null
+  },
+  {
+   "trendId": "snd-7646573656474961936",
+   "name": "Can I Ride duo dance",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "sound \"Can I Ride\" is flagged not cleared for commercial use by TikTok",
+     "needsReview": false
+    }
+   ],
+   "judgement": null,
+   "timing": {
+    "basis": "conditional median given 5 d on board",
+    "postBy": "2026-10-26T08:24:15.053Z",
+    "leadDays": 5,
+    "stayDays": 14,
+    "endOfLife": "2026-10-31T08:24:15.053Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 10,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": null
+  },
+  {
+   "trendId": "snd-7647270089099839489",
+   "name": "Fan Art Obsessed Edit to Obsessica",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "sound \"Obsessica\" is flagged not cleared for commercial use by TikTok",
+     "needsReview": false
+    }
+   ],
+   "judgement": null,
+   "timing": {
+    "basis": "conditional median given 3 d on board",
+    "postBy": "2026-10-26T08:11:31.914Z",
+    "leadDays": 5,
+    "stayDays": 12,
+    "endOfLife": "2026-10-31T08:11:31.914Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 10,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": null
+  },
+  {
+   "trendId": "snd-7648818707803753229",
+   "name": "Sey Mami arm raise dance challenge",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "evergreen",
+   "vetoes": [
+    {
+     "code": "V-CULTURE",
+     "reason": "The hip groove and the 'tonight we're getting ___' caption could read as suggestive in Gulf markets, and the phrase meaning is unknown. Ambiguity is never safe, so it needs human review.",
+     "evidence": [
+      "hip groove sequence",
+      "\"Sey Mami\"",
+      "tonight we're getting ___"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-ORIGIN",
+     "reason": "The cultural or linguistic origin of 'Sey Mami' is not stated in the evidence, so it cannot be cleared.",
+     "evidence": [
+      "\"title\": \"Sey Mami\"",
+      "\"author\": \"Cinco Suave\""
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "Commercial use is cleared, but Trend Radar carries no lyrics, so explicit content cannot be verified. Lyrics need a manual check.",
+     "evidence": [
+      "\"commercialUseCleared\": true",
+      "no lyrics"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"title\": \"Sey Mami\"",
+      "\"author\": \"Cinco Suave\""
+     ],
+     "rationale": "The cultural or linguistic origin of 'Sey Mami' is not stated in the evidence, so it cannot be cleared."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "Dancer faces camera in a locked single take, throws both arms overhead in a V",
+      "finishing with a confident pose or point to camera"
+     ],
+     "rationale": "The mechanic is a benign arm-raise and wave dance with no hazardous stunts, minors or risky behaviour described."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "hip groove sequence",
+      "\"Sey Mami\"",
+      "tonight we're getting ___"
+     ],
+     "rationale": "The hip groove and the 'tonight we're getting ___' caption could read as suggestive in Gulf markets, and the phrase meaning is unknown. Ambiguity is never safe, so it needs human review."
+    },
+    "profile": {
+     "mechanic": "Dancer faces camera in a locked single take, throws both arms overhead in a V on the drop, rolls through a repeated arm wave and hip groove sequence, then finishes with a confident pose or point to camera; caption riffs on 'tonight we're getting ___'.",
+     "unknowns": [
+      "Meaning and language of the phrase 'Sey Mami'",
+      "Lyric content of the sound",
+      "Any Gulf creator or engagement data",
+      "Whether the dance has any suggestive connotation in context"
+     ],
+     "whatItIs": "A global TikTok dance challenge set to the sound 'Sey Mami' by Cinco Suave, built around an arm-raise move on the beat drop.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Measured: 84 creators / 99 sampled videos, 1% posted this week. Top clips reach 20400000 views (@ciara) and 12900000 (@officialnickkosir). Lifecycle stage is evergreen with 37 days on board, so the spread is steady rather than surging.",
+     "originAndMeaning": "The sound is 'Sey Mami' by Cinco Suave. The evidence gives no information on the origin of the phrase 'Sey Mami', its language or its meaning, and no lyrics are carried. Unknown."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 4,
+      "evidence": [
+       "\"scope\": \"Global\"",
+       "\"lang\": \"EN\"",
+       "clips: @ciara, @lucyxerinxeva67, @officialnickkosir, @iamrigbycat"
+      ],
+      "rationale": "There is no Gulf evidence: global scope, English, and no Arabic or Gulf creators. The calendar windows (oman-national-day, white-friday) are only timing, not trend relevance.",
+      "confidence": "medium"
+     },
+     "brand": {
+      "score": 4,
+      "evidence": [
+       "\"upstreamOnBrand\": false",
+       "hip groove sequence",
+       "confident pose or point to camera"
+      ],
+      "rationale": "The confident pose touches the Confident Explorer, but a dance challenge with a suggestive-leaning caption is hard to square with Refined Wit, and upstream flags it as not on brand.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 2,
+      "feature": "none",
+      "product": "none",
+      "evidence": [
+       "\"products\": []",
+       "upstreamFit reason: \"Human dance choreography; no transferable device or product hook for AI remake.\""
+      ],
+      "rationale": "It is a human choreography with no product hook. Any mapping, for example a phone as a camera, would be forced.",
+      "confidence": "high",
+      "catalogMatch": false
+     },
+     "audience": {
+      "score": 5,
+      "evidence": [
+       "\"category\": \"entertainment\"",
+       "84 creators / 99 sampled videos"
+      ],
+      "rationale": "It has broad youth entertainment appeal globally, but there is no Gulf audience data, so the fit is neutral.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 6,
+      "evidence": [
+       "TikTok-first radar",
+       "\"commercialUseCleared\": true",
+       "\"postByPassed\": false, \"remainingDays\": 30"
+      ],
+      "rationale": "It is native to short-form vertical video, the sound is cleared for commercial use, and there is time to post. The caveat is that it needs performers.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 4,
+      "evidence": [
+       "\"stage\": \"evergreen\"",
+       "\"daysOnBoard\": 37",
+       "\"boardsSeen\": 27",
+       "Top clip 20400000 views"
+      ],
+      "rationale": "It is long-running and heavily viewed with big creators already in it, and only 1% was posted this week, so a brand entry would be late and low in novelty.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"commercialUseCleared\": true",
+      "no lyrics"
+     ],
+     "rationale": "Commercial use is cleared, but Trend Radar carries no lyrics, so explicit content cannot be verified. Lyrics need a manual check."
+    },
+    "feasibilityClass": "performance"
+   },
+   "timing": {
+    "basis": "evergreen",
+    "postBy": "2026-11-15T19:15:27.856Z",
+    "leadDays": 5,
+    "stayDays": 9,
+    "endOfLife": "2026-11-20T19:15:27.856Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 30,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7668271352941742081",
+   "name": "Vibin dance challenge",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "evergreen",
+   "vetoes": [
+    {
+     "code": "V-CULTURE",
+     "reason": "Body-focused dance performance may need review for Gulf modesty norms depending on who dances and how they are dressed. Nothing in the evidence is offensive, but the Gulf context is unverified.",
+     "evidence": [
+      "Creator or duo stands facing camera",
+      "performs a repeated arm and shoulder groove"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "Commercial use is cleared, but the evidence has no lyrics, so explicit content cannot be confirmed. Ambiguity is never treated as safe.",
+     "evidence": [
+      "sound.title: Vibin",
+      "sound.commercialUseCleared: true"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "pass",
+     "evidence": [
+      "scope: Global",
+      "category: entertainment"
+     ],
+     "rationale": "No sign of a problematic origin; the evidence shows a global dance sound with no contentious association. The origin of the moves is unknown, which is noted in the profile."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "Creator or duo stands facing camera in a single locked shot",
+      "performs a repeated arm and shoulder groove"
+     ],
+     "rationale": "The mechanic is a benign dance with no risky stunts, dares or harmful content in the evidence."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "Creator or duo stands facing camera",
+      "performs a repeated arm and shoulder groove"
+     ],
+     "rationale": "Body-focused dance performance may need review for Gulf modesty norms depending on who dances and how they are dressed. Nothing in the evidence is offensive, but the Gulf context is unverified."
+    },
+    "profile": {
+     "mechanic": "Creator or duo stands facing camera in a single locked shot, performing a repeated arm and shoulder groove with bounce and hand pop moves synced to the beat drop.",
+     "unknowns": [
+      "Gulf engagement",
+      "lyrics content",
+      "creator demographics",
+      "origin of the dance moves"
+     ],
+     "whatItIs": "A TikTok dance challenge set to the sound 'Vibin' by Wxoda, where creators perform a repeated arm and shoulder groove.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Evidence: 'Measured: 92 creators / 106 sampled videos, 0% posted this week.' Top clips reach 17000000 views (@ebbyj). Lifecycle stage is evergreen, 37 days on board, so it is sustained but not currently accelerating.",
+     "originAndMeaning": "Sound 'Vibin' by Wxoda; the evidence carries no origin story or lyrics. Meaning is unknown beyond a beat-driven dance sound."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 5,
+      "evidence": [
+       "scope: Global",
+       "lang: EN",
+       "calendarEvents: oman-national-day, white-friday"
+      ],
+      "rationale": "No Gulf creators or Gulf text in the evidence, so the score is neutral. The post-by date falls in a Gulf calendar window, but that is not Gulf engagement.",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 4,
+      "evidence": [
+       "upstreamOnBrand: false",
+       "onBrand: []"
+      ],
+      "rationale": "A generic dance challenge is not distinctively Confident Explorer or Refined Wit. It is neither mechanical nor competitor-bashing, but it has no clear brand angle.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 3,
+      "feature": "studio-grade ANC earbuds for the beat drop",
+      "product": "Galaxy Buds4 Pro",
+      "evidence": [
+       "upstreamFit.reason: Human choreography performance; no transferable device or product hook to remake.",
+       "products: []"
+      ],
+      "rationale": "Any mapping would be forced. Galaxy Buds4 Pro, which sits near the beat and music theme, is the closest option, but the dance has no product hook.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 6,
+      "evidence": [
+       "clips: @ebbyj 17000000 views",
+       "92 creators / 106 sampled videos"
+      ],
+      "rationale": "Broad appeal with large views suggests young, music-driven audiences. Gulf audience fit is unverified.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 6,
+      "evidence": [
+       "TikTok-first radar",
+       "sound.commercialUseCleared: true",
+       "stage: evergreen",
+       "postBy: 2026-11-15"
+      ],
+      "rationale": "It is native to TikTok, the sound is cleared for commercial use and there is time to post before 2026-11-15. The caveat is that it requires a performer.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 4,
+      "evidence": [
+       "stage: evergreen",
+       "daysOnBoard: 37",
+       "92 creators / 106 sampled videos, 0% posted this week"
+      ],
+      "rationale": "It has been on the board for 37 days, with many creators already participating and no posts this week, so it is mature and crowded rather than fresh.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "sound.title: Vibin",
+      "sound.commercialUseCleared: true"
+     ],
+     "rationale": "Commercial use is cleared, but the evidence has no lyrics, so explicit content cannot be confirmed. Ambiguity is never treated as safe."
+    },
+    "feasibilityClass": "performance"
+   },
+   "timing": {
+    "basis": "evergreen",
+    "postBy": "2026-11-15T19:15:27.856Z",
+    "leadDays": 5,
+    "stayDays": 9,
+    "endOfLife": "2026-11-20T19:15:27.856Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 30,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7668756535405316871",
+   "name": "Akpokrikrii dance challenge",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "declining",
+   "vetoes": [
+    {
+     "code": "V-CULTURE",
+     "reason": "The meaning of the term and the sound content are unknown, and ambiguous meaning is never treated as safe. Gulf cultural suitability of full-body dance with friends also needs human review.",
+     "evidence": [
+      "\"name\": \"Akpokrikrii dance challenge\"",
+      "\"author\": null",
+      "\"cue\": null"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-ORIGIN",
+     "reason": "The origin of the sound and its creator are not identified, so any cultural or community ties cannot be verified.",
+     "evidence": [
+      "\"author\": null",
+      "\"title\": \"original sound - akpokrikrii\"",
+      "\"scope\": \"Global\""
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "Commercial use is cleared, but no lyrics or content transcript is available, so explicit content cannot be ruled out.",
+     "evidence": [
+      "\"cue\": null",
+      "\"commercialUseCleared\": true"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"author\": null",
+      "\"title\": \"original sound - akpokrikrii\"",
+      "\"scope\": \"Global\""
+     ],
+     "rationale": "The origin of the sound and its creator are not identified, so any cultural or community ties cannot be verified."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "arm pump and shoulder bounce routine",
+      "single locked-off take"
+     ],
+     "rationale": "The mechanic is a benign, non-risky dance with no stunts, minors-focus or hazardous behaviour described."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"name\": \"Akpokrikrii dance challenge\"",
+      "\"author\": null",
+      "\"cue\": null"
+     ],
+     "rationale": "The meaning of the term and the sound content are unknown, and ambiguous meaning is never treated as safe. Gulf cultural suitability of full-body dance with friends also needs human review."
+    },
+    "profile": {
+     "mechanic": "Creator films solo or with friends in a single locked-off, full-body take, performing a short repeated arm pump and shoulder bounce routine synced to the sound, ending on the final pose or beat drop.",
+     "unknowns": [
+      "Meaning and etymology of 'akpokrikrii'",
+      "Sound author and origin",
+      "Any Gulf engagement or creators",
+      "Lyrics or spoken content of the sound",
+      "Whether the gestures carry any cultural or ambiguous meaning"
+     ],
+     "whatItIs": "A global TikTok dance challenge set to the sound 'original sound - akpokrikrii', in the entertainment category.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Evidence: 'Measured: 63 creators / 95 sampled videos, 17% posted this week.' Top clips reach 559000, 384000, 261000 and 205000 views. It is now declining (velocity -17, acceleration -19) and upstream stage is 'mature'.",
+     "originAndMeaning": "Unknown. The evidence gives no sound author (author: null), no lyrics and no translation of 'akpokrikrii'. The name looks like a non-English word or onomatopoeia but its meaning cannot be confirmed from the evidence."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 4,
+      "evidence": [
+       "\"scope\": \"Global\"",
+       "\"lang\": \"EN\"",
+       "clip handles: @codybangs0, @just1bobby_, @ble_ble538, @locsdownhair"
+      ],
+      "rationale": "No Gulf evidence: scope is Global, language is English and no Arabic or Gulf creators are visible. It is also declining.",
+      "confidence": "medium"
+     },
+     "brand": {
+      "score": 4,
+      "evidence": [
+       "\"upstreamOnBrand\": false",
+       "\"onBrand\": []"
+      ],
+      "rationale": "Upstream marks it off-brand, and a repeated pump-and-bounce dance leans loud and cutesy rather than Refined Wit for the Confident Explorer persona.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 3,
+      "feature": "Studio-grade ANC earbuds used as a music accessory",
+      "product": "Galaxy Buds4 Pro",
+      "evidence": [
+       "\"products\": []",
+       "\"reason\": \"Human choreography performance; no transferable device for a generated product remake.\""
+      ],
+      "rationale": "The trend is human choreography with no product device. Any phone or earbuds mapping would be forced, so the score is capped at 4. Galaxy Buds4 Pro for a dance-to-music tie-in is the weakest plausible link.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 5,
+      "evidence": [
+       "\"category\": \"entertainment\"",
+       "559000 views on top clip"
+      ],
+      "rationale": "Broad entertainment reach with large views, but the Gulf audience is unknown and no demographic data is available, so it is neutral.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 6,
+      "evidence": [
+       "\"scope\": \"Global\"",
+       "single locked-off take, TikTok-first radar",
+       "\"commercialUseCleared\": true"
+      ],
+      "rationale": "It suits short vertical TikTok or Reels and the sound is cleared for commercial use. The caveat is that a dance requires performers and the trend is declining.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 3,
+      "evidence": [
+       "\"stage\": \"declining\"",
+       "\"upstreamStage\": \"mature\"",
+       "velocity -17",
+       "\"postBy\": \"2026-10-31T09:38:44.978Z\""
+      ],
+      "rationale": "The trend is declining and mature upstream, with 63 creators and 95 sampled videos already. A post-by date of 2026-10-31 remains, but the late entry is weak.",
+      "confidence": "high"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"cue\": null",
+      "\"commercialUseCleared\": true"
+     ],
+     "rationale": "Commercial use is cleared, but no lyrics or content transcript is available, so explicit content cannot be ruled out."
+    },
+    "feasibilityClass": "performance"
+   },
+   "timing": {
+    "basis": "conditional median given 15 d on board",
+    "postBy": "2026-10-31T09:38:44.978Z",
+    "leadDays": 5,
+    "stayDays": 29,
+    "endOfLife": "2026-11-05T09:38:44.978Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 15,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7678257386833857302",
+   "name": "Reaction clip with caption setup and punchline text",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "rising",
+   "vetoes": [
+    {
+     "code": "V-SAFETY",
+     "reason": "The format's clips are described only as 'chaotic or unhinged', and one sampled handle is sexually suggestive. Clip content is unseen, so safety cannot be cleared. Our own adaptations would be benign, but the trend context needs a human check.",
+     "evidence": [
+      "chaotic or unhinged reaction clip",
+      "@cockissteadyhandisready"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "Commercial use is cleared, but there are no lyrics in the evidence and the sound content is unknown. It is likely an instrumental bass-hit meme sound, but explicitness cannot be confirmed, so it needs a listen.",
+     "evidence": [
+      "\"The WORST 808s known to man\"",
+      "commercialUseCleared: true",
+      "cue: null"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "pass",
+     "evidence": [
+      "scope: Global",
+      "tags: []"
+     ],
+     "rationale": "Nothing in the evidence ties the format to a sensitive origin or community. It is a generic global comedy device. The originator is unknown, but no red flag appears."
+    },
+    "safety": {
+     "verdict": "needsReview",
+     "evidence": [
+      "chaotic or unhinged reaction clip",
+      "@cockissteadyhandisready"
+     ],
+     "rationale": "The format's clips are described only as 'chaotic or unhinged', and one sampled handle is sexually suggestive. Clip content is unseen, so safety cannot be cleared. Our own adaptations would be benign, but the trend context needs a human check."
+    },
+    "culture": {
+     "verdict": "pass",
+     "evidence": [
+      "Creator overlays a dry, relatable setup caption on top of a chaotic or unhinged reaction clip"
+     ],
+     "rationale": "The mechanic is a neutral caption-and-reaction device with no religious, political or sensitive cultural content in the evidence. Our adaptations use a prank and a group laugh, which are culturally unproblematic."
+    },
+    "profile": {
+     "mechanic": "Creator overlays a dry setup caption on a reaction clip, then a 'worst 808s' sound hits as the footage plays out, with zero dialogue.",
+     "unknowns": [
+      "No Gulf engagement data or Gulf creators in the clips",
+      "Sound author and origin unknown",
+      "Content of the clips themselves (what the 'unhinged' reactions show) is not described",
+      "Lifecycle shows rising while the brief's onBrand text calls growth declining, so the trajectory is contradictory"
+     ],
+     "whatItIs": "A caption-driven reaction format: a dry, relatable setup caption sits over a chaotic or unhinged reaction clip, and the joke lands from the mismatch between flat text and wild footage.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Evidence says \"89 creators / 92 sampled videos, 28% posted this week\" with a population counter of \"+5.12%/day\". The lifecycle stage is rising. The format needs no dialogue and is easy to replicate.",
+     "originAndMeaning": "Origin is unknown; the evidence does not name an originator. The sound is titled \"The WORST 808s known to man\" with author null. The meaning of the format is a comedic mismatch between text and visual."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 5,
+      "evidence": [
+       "scope: Global",
+       "lang: EN",
+       "onScreenText includes Arabic: لما تنسى إن الكاميرا شغالة"
+      ],
+      "rationale": "There is no Gulf evidence in the trend itself. The Arabic line in the brief is our own adaptation, not trend evidence. Scores neutral because the format is language-light and travels, but local lift is unproven.",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 6,
+      "evidence": [
+       "Keep the caption dry and flat",
+       "Caption-driven humor with zero dialogue"
+      ],
+      "rationale": "Dry, flat humour matches the Refined Wit persona. Caveat: the 'unhinged' chaos and the 'worst 808s' sound risk reading loud, and a prank format needs a light touch. It does not put down competitors.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 6,
+      "feature": "Live heart-rate screen as the punchline in sync with the 808 hit",
+      "product": "Galaxy Watch9",
+      "evidence": [
+       "Prop the Flip8 half-folded on the table, cover screen facing the group",
+       "Galaxy Watch9 heart-rate spike as the punchline",
+       "products: []"
+      ],
+      "rationale": "The Watch9 heart-rate reveal makes a strong caption-and-punchline fit, since the number is the joke. The Flip8 stand idea is plausible but somewhat forced, because the format is about unposed footage. The Watch9 gets a clear fit with the caveat that it requires a real adrenaline moment.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 6,
+      "evidence": [
+       "category: entertainment",
+       "92 sampled videos, 89 creators",
+       "clip views of 521000, 383000, 267000 and 234000"
+      ],
+      "rationale": "Relatable meme humour has broad appeal to a younger social audience. Clip views are strong. Gulf audience response is unmeasured, so it earns a clear but caveated fit.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 7,
+      "evidence": [
+       "TikTok-first radar",
+       "Sound commercialUseCleared: true",
+       "Mechanic: zero dialogue needed"
+      ],
+      "rationale": "It is a short, native TikTok sound-plus-caption format with the sound cleared for commercial use. Caveat: the post-by date has passed (postByPassed true) with about 4 days left, so timing is tight.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 4,
+      "evidence": [
+       "89 creators / 92 sampled videos",
+       "stage: rising",
+       "upstreamStage: peaking",
+       "postByPassed: true"
+      ],
+      "rationale": "Many creators are already using it, upstream is peaking, and the post-by date has passed with about 4 days of life left. A late entry will be hard to differentiate. The Watch9 twist offers some differentiation.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"The WORST 808s known to man\"",
+      "commercialUseCleared: true",
+      "cue: null"
+     ],
+     "rationale": "Commercial use is cleared, but there are no lyrics in the evidence and the sound content is unknown. It is likely an instrumental bass-hit meme sound, but explicitness cannot be confirmed, so it needs a listen."
+    },
+    "feasibilityClass": "product-led visual"
+   },
+   "timing": {
+    "basis": "conditional median given 12 d on board",
+    "postBy": "2026-10-20T09:15:41.845Z",
+    "leadDays": 5,
+    "stayDays": 15,
+    "endOfLife": "2026-10-25T09:15:41.845Z",
+    "leadAssumed": true,
+    "postByPassed": true,
+    "remainingDays": 4,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7678338544116435730",
+   "name": "Upside Down Hand Transition",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-CULTURE",
+     "reason": "Nothing is flagged, but there is no Gulf evidence. A palm-toward-camera hand gesture and outfit or look reveals need a quick modesty and gesture check for Gulf markets. Ambiguity is not treated as safe.",
+     "evidence": [
+      "\"Creator reaches a hand toward the lens palm up, then flips it\"",
+      "\"scope\": \"Global\""
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-ORIGIN",
+     "reason": "The origin of the trend and its sound is not documented in the evidence, so it cannot be confirmed as free of problematic roots.",
+     "evidence": [
+      "\"title\": \"original sound - hellemdebas\"",
+      "\"author\": null"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "Commercial use is cleared, but the radar carries no lyrics, so explicit content cannot be verified. Someone needs to listen to the sound before use.",
+     "evidence": [
+      "\"title\": \"original sound - hellemdebas\"",
+      "\"commercialUseCleared\": true"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"title\": \"original sound - hellemdebas\"",
+      "\"author\": null"
+     ],
+     "rationale": "The origin of the trend and its sound is not documented in the evidence, so it cannot be confirmed as free of problematic roots."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "\"reveals a new look, outfit or character\"",
+      "\"category\": \"other\""
+     ],
+     "rationale": "The mechanic is a harmless hand flip and outfit reveal, with no risky stunts or sensitive content described."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"Creator reaches a hand toward the lens palm up, then flips it\"",
+      "\"scope\": \"Global\""
+     ],
+     "rationale": "Nothing is flagged, but there is no Gulf evidence. A palm-toward-camera hand gesture and outfit or look reveals need a quick modesty and gesture check for Gulf markets. Ambiguity is not treated as safe."
+    },
+    "profile": {
+     "mechanic": "\"Creator reaches a hand toward the lens palm up, then flips it or claps as the camera cuts, revealing a new look, outfit or character on the other side.\" The flip syncs to the beat drop so the cut reads as one continuous motion.",
+     "unknowns": [
+      "Gulf engagement",
+      "origin of the sound and gesture",
+      "whether the gesture carries any regional connotation",
+      "whether the trend is losing steam (acceleration is -2)"
+     ],
+     "whatItIs": "A hand-flip transition reveal: a creator reaches a palm-up hand toward the lens, then flips it or claps on a cut to reveal a new look, outfit or character.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "\"Measured: 89 creators / 97 sampled videos, 26% posted this week, adoption accelerating.\" Lifecycle stage is peaking, with 15 days on board. The format is easy to copy and has a satisfying beat-synced payoff.",
+     "originAndMeaning": "Origin unknown. The sound is \"original sound - hellemdebas\", and the evidence carries no origin story or cultural meaning. The format reads as a purely visual transition with no stated symbolism."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 5,
+      "evidence": [
+       "\"scope\": \"Global\"",
+       "\"lang\": \"EN\"",
+       "clips: @yencetan, @happyhappygaltv, @legnahernandez1, @falsefitt"
+      ],
+      "rationale": "Global trend with no Gulf signals: no Arabic or Gulf creators in the clips and no Gulf text in the name or why. The score is neutral and capped at 7 in any case.",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 7,
+      "evidence": [
+       "\"Skip any phone-spec talk in the caption\"",
+       "\"nobody's holding this phone\"",
+       "\"same flip, new world\""
+      ],
+      "rationale": "The self-standing fold concept is witty and understated, with no competitor put-downs, which suits Refined Wit. The caveat is that the 'nobody's holding' claim must stay playful rather than gimmicky.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 7,
+      "feature": "Half-fold (FlexCam) self-standing tent angle that frees both hands for the flip",
+      "product": "Galaxy Z Flip8",
+      "evidence": [
+       "\"reason\": \"FlexCam half-fold props the phone at the transition angle so both hands are free\"",
+       "\"samsungify\": \"the Flip stands itself open at a tent angle\""
+      ],
+      "rationale": "The Galaxy Z Flip8 half-fold gives a hands-free setup that directly serves the two-hands-free flip. The caveat is that the trend works with any propped phone, so the benefit is real but not unique.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 6,
+      "evidence": [
+       "\"89 creators / 97 sampled videos\"",
+       "\"revealing a new look, outfit or character\"",
+       "Global reach and beauty/transformation audience overlap"
+      ],
+      "rationale": "The look and outfit transformation appeals to a broad young creator audience. The caveat is that there is no Gulf audience data.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 7,
+      "evidence": [
+       "\"a TikTok-first radar\"",
+       "\"commercialUseCleared\": true",
+       "\"postBy\": \"2026-10-31T09:38:44.978Z\""
+      ],
+      "rationale": "A short vertical beat-synced video suits TikTok and Reels, and the sound is cleared for commercial use. The caveat is that the beat-drop timing must be rehearsed.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 4,
+      "evidence": [
+       "\"stage\": \"peaking\"",
+       "\"acceleration\": -2",
+       "\"26% posted this week\"",
+       "\"daysOnBoard\": 15"
+      ],
+      "rationale": "The trend is at its peak with acceleration turning negative and many creators already posting. The window is closing, though the post-by date has not passed.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"title\": \"original sound - hellemdebas\"",
+      "\"commercialUseCleared\": true"
+     ],
+     "rationale": "Commercial use is cleared, but the radar carries no lyrics, so explicit content cannot be verified. Someone needs to listen to the sound before use."
+    },
+    "feasibilityClass": "product-led visual"
+   },
+   "timing": {
+    "basis": "conditional median given 15 d on board",
+    "postBy": "2026-10-31T09:38:44.978Z",
+    "leadDays": 5,
+    "stayDays": 29,
+    "endOfLife": "2026-11-05T09:38:44.978Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 15,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7678781752288495633",
+   "name": "Come Back and Back dance challenge",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "sound \"Wyw my sweetie #JerseyClub - Slowed\" is flagged not cleared for commercial use by TikTok",
+     "needsReview": false
+    }
+   ],
+   "judgement": null,
+   "timing": {
+    "basis": "conditional median given 5 d on board",
+    "postBy": "2026-10-26T08:24:15.053Z",
+    "leadDays": 5,
+    "stayDays": 14,
+    "endOfLife": "2026-10-31T08:24:15.053Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 10,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": null
+  },
+  {
+   "trendId": "snd-7678818228084853511",
+   "name": "POV Sudden Betrayal or Twist Reveal",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "rising",
+   "vetoes": [
+    {
+     "code": "V-CULTURE",
+     "reason": "The adaptation brief suggests a deadnaming caption and unhinged payoff images, which are sensitive for Gulf markets. The 'betrayal' premise and the unseen payoff images also need human review. The Flip8 idea itself is benign, but the content pool is unverified.",
+     "evidence": [
+      "\"lang\": \"MIXED\"",
+      "\"Pick a payoff image as unhinged as the best examples in the trend\"",
+      "\"deadnamed-by-a-friend caption\""
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-ORIGIN",
+     "reason": "The origin and meaning of the format and the sound are not stated in the evidence. Ambiguity is never safe, so it needs review.",
+     "evidence": [
+      "\"sound\": {\"title\": \"original sound - eldanieloko\", \"author\": null, \"cue\": null}",
+      "\"tags\": []"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "The sound is cleared for commercial use, but there are no lyrics or content cue, so explicitness cannot be verified. A human should listen before use.",
+     "evidence": [
+      "\"cue\": null",
+      "\"commercialUseCleared\": true",
+      "\"title\": \"original sound - eldanieloko\""
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"sound\": {\"title\": \"original sound - eldanieloko\", \"author\": null, \"cue\": null}",
+      "\"tags\": []"
+     ],
+     "rationale": "The origin and meaning of the format and the sound are not stated in the evidence. Ambiguity is never safe, so it needs review."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "\"A relatable POV caption sets up a scenario\"",
+      "\"category\": \"entertainment\""
+     ],
+     "rationale": "The mechanic is a harmless comedic caption/image mismatch with no dangerous behaviour. Payoff images need care in execution."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"lang\": \"MIXED\"",
+      "\"Pick a payoff image as unhinged as the best examples in the trend\"",
+      "\"deadnamed-by-a-friend caption\""
+     ],
+     "rationale": "The adaptation brief suggests a deadnaming caption and unhinged payoff images, which are sensitive for Gulf markets. The 'betrayal' premise and the unseen payoff images also need human review. The Flip8 idea itself is benign, but the content pool is unverified."
+    },
+    "profile": {
+     "mechanic": "\"A relatable POV caption sets up a scenario, then the footage cuts to an unrelated reaction clip or static image that visually punchlines the setup\"; the joke is the gap between premise and absurd payoff, usually on one static or looping shot.",
+     "unknowns": [
+      "Gulf engagement and creators (scope is Global)",
+      "Content of the original sound (no lyrics or cue)",
+      "Origin of the format",
+      "What the typical payoff images show; some may be unhinged or inappropriate"
+     ],
+     "whatItIs": "A POV caption-mismatch reveal: a relatable POV caption sets up a scenario, then a reaction clip or static image punchlines it.",
+     "languages": [
+      "MIXED"
+     ],
+     "confidence": "medium",
+     "whySpreading": "\"Measured: 87 creators / 91 sampled videos, 46% posted this week\"; the population counter is +4.26%/day. Lifecycle stage is rising, 14 days on board, upstream stage peaking. The format is low-production and easy to copy.",
+     "originAndMeaning": "Origin unknown. The trend name \"POV Sudden Betrayal or Twist Reveal\" and the mechanic describe a comedic twist format. The sound is \"original sound - eldanieloko\", and the evidence does not say who started the format or what the sound's content is."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 5,
+      "evidence": [
+       "\"scope\": \"Global\"",
+       "\"lang\": \"MIXED\"",
+       "clips: @alexndrxd_, @matiscrap, @esalaskaa"
+      ],
+      "rationale": "There is no Gulf evidence: the scope is global and nothing indicates Gulf creators. The format is a universal humour template that travels, and the suggested Arabic on-screen text is only a proposal, not evidence. Neutral.",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 6,
+      "evidence": [
+       "\"Keep the setup caption boring and relatable, the flatter the better\"",
+       "\"Pick a payoff image as unhinged as the best examples\"",
+       "\"Don't explain the joke in a voiceover\""
+      ],
+      "rationale": "Deadpan, understated wit suits Refined Wit. The 'unhinged' and 'feral' payoff direction risks feeling loud or off-brand and must be kept tasteful. The betrayal premise is slightly negative in tone.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 7,
+      "feature": "Closed FlexWindow cover screen revealing the payoff image on a snap-shut",
+      "product": "Galaxy Z Flip8",
+      "evidence": [
+       "\"product\": \"Galaxy Z Flip8\"",
+       "\"Flip8: large FlexWindow cover screen when closed\"",
+       "\"the fold itself performing the scene-cut\""
+      ],
+      "rationale": "The snap-shut of the Flip8 physically performs the cut between setup and payoff, and the cover screen shows the payoff image. This is a clear fit, with the caveat that the brief says not to show the brand or UI, which weakens attribution. Galaxy AI is a secondary option but is not a catalog product name.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 6,
+      "evidence": [
+       "\"category\": \"entertainment\"",
+       "\"87 creators / 91 sampled videos\"",
+       "clips views of 72000, 46000, 66000"
+      ],
+      "rationale": "Meme-literate young viewers on short-video platforms are a plausible fit for a broad entertainment format. The evidence has no Gulf audience data, so this is an inference.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 8,
+      "evidence": [
+       "\"usually on one static or looping shot\"",
+       "\"a TikTok-first radar\"",
+       "\"postBy\": \"2026-10-29T09:30:31.498Z\""
+      ],
+      "rationale": "Short, looping, single-shot vertical content suits TikTok and Reels, and it is low production. The post-by date has not passed (13 days remaining).",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 6,
+      "evidence": [
+       "\"87 creators / 91 sampled videos, 46% posted this week\"",
+       "\"stage\": \"rising\"",
+       "\"upstreamStage\": \"peaking\""
+      ],
+      "rationale": "The format is still rising on the board, but upstream it is peaking, and creators recycle the same payoff images. There is room to enter now, but the window is closing. No Gulf saturation data.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"cue\": null",
+      "\"commercialUseCleared\": true",
+      "\"title\": \"original sound - eldanieloko\""
+     ],
+     "rationale": "The sound is cleared for commercial use, but there are no lyrics or content cue, so explicitness cannot be verified. A human should listen before use."
+    },
+    "feasibilityClass": "product-led visual"
+   },
+   "timing": {
+    "basis": "conditional median given 14 d on board",
+    "postBy": "2026-10-29T09:30:31.498Z",
+    "leadDays": 5,
+    "stayDays": 26,
+    "endOfLife": "2026-11-03T09:30:31.498Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 13,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7680157780221184017",
+   "name": "CapCut Pioneer Template (multi-angle selfie flip)",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "sound \"Hide It\" is flagged not cleared for commercial use by TikTok",
+     "needsReview": false
+    }
+   ],
+   "judgement": null,
+   "timing": {
+    "basis": "conditional median given 6 d on board",
+    "postBy": "2026-10-25T07:58:52.843Z",
+    "leadDays": 5,
+    "stayDays": 14,
+    "endOfLife": "2026-10-30T07:58:52.843Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 9,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": null
+  },
+  {
+   "trendId": "snd-7680715246777501713",
+   "name": "Nicole Kidman by ADELA used for reveals and costume transformations",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "evergreen",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "sound \"Nicole Kidman\" is flagged not cleared for commercial use by TikTok",
+     "needsReview": false
+    }
+   ],
+   "judgement": null,
+   "timing": {
+    "basis": "evergreen",
+    "postBy": "2026-11-15T19:15:27.856Z",
+    "leadDays": 5,
+    "stayDays": 9,
+    "endOfLife": "2026-11-20T19:15:27.856Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 30,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": null
+  },
+  {
+   "trendId": "snd-7682757374056024081",
+   "name": "Lip-syncing the Dublin Deluge chorus freakout",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "sound \"The Dublin Deluge - Live\" is flagged not cleared for commercial use by TikTok",
+     "needsReview": false
+    }
+   ],
+   "judgement": null,
+   "timing": {
+    "basis": "still on the board beyond the class median (+1 day)",
+    "postBy": "2026-10-18T09:43:21.103Z",
+    "leadDays": 5,
+    "stayDays": 17,
+    "endOfLife": "2026-10-23T09:43:21.103Z",
+    "leadAssumed": true,
+    "postByPassed": true,
+    "remainingDays": 2,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": null
+  },
+  {
+   "trendId": "snd-7683550930130257937",
+   "name": "Bow Bow Bow sound various clips",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "evergreen",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "sound \"Bow Bow Bow\" is flagged not cleared for commercial use by TikTok",
+     "needsReview": false
+    }
+   ],
+   "judgement": null,
+   "timing": {
+    "basis": "evergreen",
+    "postBy": "2026-11-15T19:15:27.856Z",
+    "leadDays": 5,
+    "stayDays": 9,
+    "endOfLife": "2026-11-20T19:15:27.856Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 30,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": null
+  },
+  {
+   "trendId": "snd-7683619692979751687",
+   "name": "Captioned Portrait Punchline Meme",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-CULTURE",
+     "reason": "The brief's sample on-screen text references tequila, which is unsuitable for Gulf markets and must be replaced. The caption content of the source clips is unknown, so a human should review. The format itself is neutral.",
+     "evidence": [
+      "\"scope\": \"Global\"",
+      "\"handle\": \"@a7med.abfakhri\"",
+      "\"onScreenText\": \"...it's me in 2019 after one tequila\""
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-ORIGIN",
+     "reason": "No origin is documented and the underlying meaning of the captions in source clips is not visible, so it cannot be cleared as safe.",
+     "evidence": [
+      "\"scope\": \"Global\"",
+      "\"author\": null",
+      "\"cue\": null"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "Commercial use is cleared, but the radar carries no lyrics and the cue is null, so explicit content in the sound cannot be verified.",
+     "evidence": [
+      "\"title\": \"original sound - allezzftbl\"",
+      "\"cue\": null",
+      "\"commercialUseCleared\": true"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"scope\": \"Global\"",
+      "\"author\": null",
+      "\"cue\": null"
+     ],
+     "rationale": "No origin is documented and the underlying meaning of the captions in source clips is not visible, so it cannot be cleared as safe."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "\"category\": \"entertainment\"",
+      "\"tags\": []"
+     ],
+     "rationale": "A static image with captions and no stunts, minors or hazardous behaviour in the evidence. The proposed adaptations use the creator's own photo or a sketch."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"scope\": \"Global\"",
+      "\"handle\": \"@a7med.abfakhri\"",
+      "\"onScreenText\": \"...it's me in 2019 after one tequila\""
+     ],
+     "rationale": "The brief's sample on-screen text references tequila, which is unsuitable for Gulf markets and must be replaced. The caption content of the source clips is unknown, so a human should review. The format itself is neutral."
+    },
+    "profile": {
+     "mechanic": "\"A single static image sits locked on screen while two or three text captions build in sequence like a dialogue or dramatic quote, landing on a punchline or wistful line. No cuts, no camera movement.\"",
+     "unknowns": [
+      "Original creator and first post",
+      "Whether the sound carries lyrics or spoken content (cue is null, no lyrics in the radar)",
+      "Gulf engagement and Gulf creator counts",
+      "What the captions typically say in the source clips"
+     ],
+     "whatItIs": "A static-image meme where a single locked portrait or image carries two or three sequential text captions that land on a punchline or wistful line.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "\"Measured: 61 creators / 92 sampled videos, 23% posted this week.\" The format is low-effort and text-driven. Lifecycle stage is peaking with acceleration -1, so growth is slowing.",
+     "originAndMeaning": "Origin is unknown: the evidence gives no source account or first post. The meaning is a deadpan caption-escalation joke over a still image, with an ambient or dramatic sound bed (\"original sound - allezzftbl\")."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 5,
+      "evidence": [
+       "\"scope\": \"Global\"",
+       "\"handle\": \"@a7med.abfakhri\"",
+       "\"lang\": \"EN\""
+      ],
+      "rationale": "Scope is global and there is no Gulf engagement data. One clip handle may be Arabic-leaning (@a7med.abfakhri), but that is only a weak signal. Neutral and unknown.",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 7,
+      "evidence": [
+       "\"samsungify\": \"no watermark, no third-party app logo sitting in the corner\"",
+       "\"donts\": [\"Don't caption-drop the product name\"]",
+       "\"onBrand\": [\"Zero reliance on camera movement or specs keeps every adaptation about participation in the joke\"]"
+      ],
+      "rationale": "Deadpan, self-deprecating humour fits the Refined Wit persona and is not loud or competitor-bashing. The caveat is that the product is invisible by design, so Samsung's presence is subtle, and the tequila line must go.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 6,
+      "feature": "On-device Galaxy AI Generative Edit restyling a personal photo into a painting-like portrait",
+      "product": "Galaxy S26 Ultra",
+      "evidence": [
+       "\"product\": \"Galaxy AI (Generative Edit / Photo Assist)\"",
+       "\"samsungify\": \"Generative Edit restyles the photo entirely on-device\"",
+       "\"reason\": \"Portrait Studio restyles a single photo into the stylised punchline look\""
+      ],
+      "rationale": "Galaxy AI restyling fits the portrait-still format, but the edit must stay invisible, so the feature is never shown. Galaxy AI is not a named catalog item. The closest catalog fit is Galaxy S26 Ultra as the device that runs it, or The Frame for the artwork angle, which is a looser fit. The Galaxy Tab S12 sketch idea is a weaker, secondary fit.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 6,
+      "evidence": [
+       "\"category\": \"entertainment\"",
+       "\"lang\": \"EN\"",
+       "\"why\": \"61 creators / 92 sampled videos\""
+      ],
+      "rationale": "The general social audience engages with the meme. The audience skew is not stated and the format is English-led, so Gulf youth fit is plausible but unproven.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 7,
+      "evidence": [
+       "\"mechanic\": \"No cuts, no camera movement\"",
+       "\"commercialUseCleared\": true",
+       "\"views\": 1300000"
+      ],
+      "rationale": "A TikTok-first still-and-text format that is trivial to produce for short-form vertical video. The sound is cleared for commercial use. The caveat is the short window.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 4,
+      "evidence": [
+       "\"stage\": \"peaking\"",
+       "\"acceleration\": -1",
+       "\"postBy\": \"2026-10-22T09:30:05.200Z\"",
+       "\"remainingDays\": 6"
+      ],
+      "rationale": "Post-by is tomorrow and 6 days remain. Acceleration is negative and the brief itself notes the image pool is recycled and limited. Entry is late and a rushed post risks looking stale.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"title\": \"original sound - allezzftbl\"",
+      "\"cue\": null",
+      "\"commercialUseCleared\": true"
+     ],
+     "rationale": "Commercial use is cleared, but the radar carries no lyrics and the cue is null, so explicit content in the sound cannot be verified."
+    },
+    "feasibilityClass": "product-led visual"
+   },
+   "timing": {
+    "basis": "conditional median given 10 d on board",
+    "postBy": "2026-10-22T09:30:05.200Z",
+    "leadDays": 5,
+    "stayDays": 15,
+    "endOfLife": "2026-10-27T09:30:05.200Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 6,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7686644251815332639",
+   "name": "Setup line then deadpan punchline caption reveal",
+   "status": "scored",
+   "finalScore": 69.3,
+   "lifecycle": "peaking",
+   "vetoes": [],
+   "judgement": {
+    "origin": {
+     "verdict": "pass",
+     "evidence": [
+      "scope: 'Global'",
+      "lang: 'EN'",
+      "sound: 'original sound - djprincelex'"
+     ],
+     "rationale": "A global English format with no sign of a problematic or contested origin. The exact origin is unknown, but nothing in the evidence raises a concern."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "mechanic: 'locked static shot of a subject or object'",
+      "tags: []"
+     ],
+     "rationale": "Text-swap comedy over a static shot with no stunts, risky behavior or sensitive subject in the evidence."
+    },
+    "culture": {
+     "verdict": "pass",
+     "evidence": [
+      "mechanic: 'deadpan punchline that reframes the opening line as a joke or flex'",
+      "category: entertainment"
+     ],
+     "rationale": "Neutral text humor with no religious, political or sensitive cultural content in the evidence. Punchline copy must still be kept clean, as it is brand-authored."
+    },
+    "profile": {
+     "mechanic": "One locked static shot of a subject or object holds the frame the entire time. A setup line appears as text, then without any cut the caption swaps to a deadpan punchline timed to the audio beat.",
+     "unknowns": [
+      "Gulf engagement and creator presence are not measured",
+      "Origin of the sound and format is not stated",
+      "Content of the sampled clips is not described, only handles and views"
+     ],
+     "whatItIs": "A deadpan comedy format: a locked static shot with an on-screen setup line that swaps to a short punchline caption, no cut.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Evidence: 'Measured: 93 creators / 95 sampled videos, 71% posted this week, adoption accelerating.' Lifecycle stage is 'peaking' with 15 days on board. The format is low-production and easy to replicate.",
+     "originAndMeaning": "Unknown origin. The sound is 'original sound - djprincelex' and the meaning is the text-swap joke that reframes the setup as a joke or flex. No cultural or religious meaning appears in the evidence."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 5,
+      "evidence": [
+       "scope: 'Global'",
+       "lang: 'EN'",
+       "clips: @taniajvvwaters, @maygrace_official, @_dianaabennett, @sayehsoltani"
+      ],
+      "rationale": "There is no Gulf evidence: scope is Global, the language is English and the handles show no Gulf signal. The text-only format translates easily to Arabic captions, but that is inference. Neutral.",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 7,
+      "evidence": [
+       "mechanic: 'short deadpan punchline'",
+       "adaptations[0].dos: 'overly polished scenes read as an ad'"
+      ],
+      "rationale": "Deadpan, text-only humor fits Refined Wit and is never loud. The caveat is that punchlines about the product risk reading as a flex or an ad. Avoid lines that put down competitors.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 8,
+      "feature": "Half-folded clamshell stand holds a hands-free, locked static shot, with the FlexWindow cover screen as the setup or punchline surface",
+      "product": "Galaxy Z Flip8",
+      "evidence": [
+       "adaptations[0].samsungify: 'The half-folded stand is the only way to get a hands-free locked static shot without a tripod'",
+       "adaptations[1].samsungify: 'The Watch is the only object in frame that can supply a real, checkable number as the punchline'"
+      ],
+      "rationale": "A locked static shot suits the Flip8's half-fold stand, and the punchline can be a real feature moment. The Watch9 sleep-score and Bespoke AI Fridge ideas also work, but Flip8 is the most specific mapping.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 6,
+      "evidence": [
+       "onBrand: 'highly duettable, matching how Gulf and global youth audiences already remix comedic formats'",
+       "category: entertainment"
+      ],
+      "rationale": "A broad youth entertainment audience fits. The Gulf claim is only in the brief and is not backed by measured Gulf data, hence a moderate score.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 8,
+      "evidence": [
+       "why: '93 creators / 95 sampled videos, 71% posted this week, adoption accelerating'",
+       "lifecycle.stage: 'peaking'",
+       "timing.postBy: '2026-10-31T09:38:44.978Z'"
+      ],
+      "rationale": "It is a TikTok-native format on a cleared sound, still accelerating, with a post-by date of 2026-10-31 and the post-by not yet passed. Lead time is assumed.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 5,
+      "evidence": [
+       "why: '71% posted this week'",
+       "lifecycle: 'peaking', daysOnBoard 15",
+       "clips top views: 784000"
+      ],
+      "rationale": "The trend is peaking with heavy recent posting, so the window is open but narrowing. Saturation among Gulf brands is unknown. Neutral.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "pass",
+     "evidence": [
+      "sound.commercialUseCleared: true",
+      "sound.cue: 'beat drop or spoken line timed to the caption switching'"
+     ],
+     "rationale": "The sound is cleared for commercial use. Lyrics are not carried, so explicit content cannot be checked directly, but the cue is a beat drop or a spoken line, and the format is text-led. Confirm the audio on listen."
+    },
+    "feasibilityClass": "product-led visual"
+   },
+   "timing": {
+    "basis": "conditional median given 15 d on board",
+    "postBy": "2026-10-31T09:38:44.978Z",
+    "leadDays": 5,
+    "stayDays": 29,
+    "endOfLife": "2026-11-05T09:38:44.978Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 15,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7686747525743479559",
+   "name": "Bad Day Outfit Check",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-ORIGIN",
+     "reason": "The origin of the trend and of the sound is not stated in the evidence. Provenance is unknown, so it should not be treated as safe without review.",
+     "evidence": [
+      "scope: Global",
+      "@sanam.jaan367",
+      "sound: original sound - singerbashirmahar0"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "The sound is cleared for commercial use, but no lyrics are available and the title suggests a vocal singer's original sound. Its content and language cannot be verified, so it needs a manual listen.",
+     "evidence": [
+      "original sound - singerbashirmahar0",
+      "cue: null",
+      "commercialUseCleared: true"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "needsReview",
+     "evidence": [
+      "scope: Global",
+      "@sanam.jaan367",
+      "sound: original sound - singerbashirmahar0"
+     ],
+     "rationale": "The origin of the trend and of the sound is not stated in the evidence. Provenance is unknown, so it should not be treated as safe without review."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "Creator starts with a blurry or shaky opening shot implying motion or a bad mood, then cuts to a single locked shot where they pose confidently"
+     ],
+     "rationale": "The mechanic is a harmless outfit and mood contrast with no risky behaviour, stunts or sensitive topics."
+    },
+    "culture": {
+     "verdict": "pass",
+     "evidence": [
+      "simple, neat, authoritative looking outfit, often with sunglasses or a sharp kurta"
+     ],
+     "rationale": "Modest, neat outfit posing; nothing in the evidence conflicts with Gulf norms. A kurta is familiar attire in the region."
+    },
+    "profile": {
+     "mechanic": "Blurry/shaky opening shot, then a hard cut to a single locked confident pose in a sharp outfit, with a 'bad day' caption. Uses the sound 'original sound - singerbashirmahar0'.",
+     "unknowns": [
+      "Gulf engagement",
+      "Origin of the sound",
+      "Meaning of the sound's vocals/lyrics (no lyrics in the evidence)",
+      "Whether the format carries any cultural or religious connotation"
+     ],
+     "whatItIs": "A POV/outfit-check format where a creator opens with a blurry, shaky shot implying a bad mood, then cuts to a locked shot posing confidently in a neat, authoritative outfit (sunglasses, sharp kurta) under a 'bad day' caption.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Evidence: 'Measured: 55 creators / 70 sampled videos, 17% posted this week'; lifecycle stage is 'peaking' with 16 days on board. It is a simple, replicable before/after contrast format.",
+     "originAndMeaning": "Origin is unknown; the evidence gives no source. The kurta reference and the clip handles (@sanam.jaan367, @sohail.ali1223, @zoya.queen6086) suggest a South Asian creator base, but this is inference only. The meaning is a contrast between a bad mood and a polished look."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 4,
+      "evidence": [
+       "scope: Global",
+       "lang: EN",
+       "clips by @sanam.jaan367, @sohail.ali1223, @zoya.queen6086"
+      ],
+      "rationale": "There is no Gulf evidence: scope is Global and the clips show no Gulf-specific signals. The kurta is familiar regionally but is not Gulf evidence. The format is also past its post-by date (postByPassed: true).",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 5,
+      "evidence": [
+       "upstreamOnBrand: false",
+       "pose confidently in a simple, neat, authoritative looking outfit"
+      ],
+      "rationale": "Confident, polished posing aligns loosely with the Confident Explorer persona, but upstream marks it not on-brand and the 'bad day' framing adds nothing for Samsung. Neutral.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 4,
+      "feature": "Camera array: steady locked shot after a shaky opening (stabilisation contrast)",
+      "product": "Galaxy S26 Ultra",
+      "evidence": [
+       "products: []",
+       "adaptations: []",
+       "upstreamFit: 'no transferable device for a generated remake.'"
+      ],
+      "rationale": "No product mapping in the evidence. The closest, Galaxy Z Flip8 FlexWindow as a quick mirror/outfit check or Galaxy S26 Ultra's camera for the locked shot, is a forced fit with no support in the mechanic.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 5,
+      "evidence": [
+       "55 creators / 70 sampled videos",
+       "lang: EN",
+       "upstreamFit score 48"
+      ],
+      "rationale": "Broad fashion/mood audience with no audience data for Gulf. The top clip is 159000 views but demographic is unknown.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 6,
+      "evidence": [
+       "Creator starts with a blurry or shaky opening shot... cuts to a single locked shot",
+       "stage: peaking"
+      ],
+      "rationale": "A short, simple, vertical-friendly cut that suits TikTok and Reels. The caveat is that the post-by date has passed, with about 2 days remaining.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 4,
+      "evidence": [
+       "55 creators / 70 sampled videos",
+       "stage: peaking",
+       "remainingDays: 2",
+       "postByPassed: true"
+      ],
+      "rationale": "The trend is at its peak with 2 days of life left; a new entrant would arrive late and the format is crowded.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "original sound - singerbashirmahar0",
+      "cue: null",
+      "commercialUseCleared: true"
+     ],
+     "rationale": "The sound is cleared for commercial use, but no lyrics are available and the title suggests a vocal singer's original sound. Its content and language cannot be verified, so it needs a manual listen."
+    },
+    "feasibilityClass": "character-light"
+   },
+   "timing": {
+    "basis": "still on the board beyond the class median (+1 day)",
+    "postBy": "2026-10-18T09:43:21.103Z",
+    "leadDays": 5,
+    "stayDays": 17,
+    "endOfLife": "2026-10-23T09:43:21.103Z",
+    "leadAssumed": true,
+    "postByPassed": true,
+    "remainingDays": 2,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7688073970768234513",
+   "name": "Multi Cut Hype Edits (Pyro Slowed)",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "sound \"pyro - slowed\" is flagged not cleared for commercial use by TikTok",
+     "needsReview": false
+    }
+   ],
+   "judgement": null,
+   "timing": {
+    "basis": "conditional median given 3 d on board",
+    "postBy": "2026-10-26T08:11:31.914Z",
+    "leadDays": 5,
+    "stayDays": 12,
+    "endOfLife": "2026-10-31T08:11:31.914Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 10,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": null
+  },
+  {
+   "trendId": "snd-7688362521883495188",
+   "name": "Outfit or Look Transition Reveal Edit",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-CULTURE",
+     "reason": "Outfit reveals are generally benign, but the clips are not visible and creator outfits may be revealing or not suited to Gulf modesty norms. The adaptation depicts a person changing clothes, so wardrobe choices need a check for the Gulf audience.",
+     "evidence": [
+      "\"transformed outfit or styled scene\"",
+      "handles: @alena_sahnova, @elya.fitt, @mira_att2.0"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "The sound is cleared for commercial use, but no lyrics or transcript are available, so explicit content cannot be ruled out. The audio is a lip-sync original sound.",
+     "evidence": [
+      "\"original sound - kaannnaa\"",
+      "\"commercialUseCleared\": true",
+      "\"cue\": null"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "pass",
+     "evidence": [
+      "\"scope\": \"Global\"",
+      "\"original sound - kaannnaa\""
+     ],
+     "rationale": "Generic global format with no evidence of a sensitive, religious or politically charged origin. Its exact origin is unknown, but the meaning is not ambiguous."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "\"Video opens on a plain, everyday look mid-lip-sync or mid-sentence\"",
+      "category: \"other\""
+     ],
+     "rationale": "The format is an outfit change with no hazardous stunts, hate, politics or adult themes in the evidence."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"transformed outfit or styled scene\"",
+      "handles: @alena_sahnova, @elya.fitt, @mira_att2.0"
+     ],
+     "rationale": "Outfit reveals are generally benign, but the clips are not visible and creator outfits may be revealing or not suited to Gulf modesty norms. The adaptation depicts a person changing clothes, so wardrobe choices need a check for the Gulf audience."
+    },
+    "profile": {
+     "mechanic": "\"Video opens on a plain, everyday look mid-lip-sync or mid-sentence, then hard-cuts on a beat to a transformed outfit or styled scene using a whip, hand-cover or multi-cut to mask the switch.\" Each cut escalates further.",
+     "unknowns": [
+      "No Gulf engagement data",
+      "Lyrics and content of the original sound are not provided",
+      "Origin of the sound and the first creator",
+      "Whether the lip-sync audio contains explicit content"
+     ],
+     "whatItIs": "An outfit/look transition reveal edit: a plain everyday look flips to a transformed outfit or styled scene, with the cut landing on a beat.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "\"Measured: 73 creators / 96 sampled videos, 47% posted this week.\" The format is low-barrier and the beat-synced payoff is easy to replicate. Lifecycle stage is peaking, velocity 4, acceleration -9, so momentum is slowing.",
+     "originAndMeaning": "Origin is unknown beyond the sound \"original sound - kaannnaa\" and clips from @alena_sahnova, @elya.fitt and others. The meaning is a straightforward visual transformation with no evidence of a hidden or coded meaning."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 5,
+      "evidence": [
+       "\"scope\": \"Global\"",
+       "\"lang\": \"EN\"",
+       "clips from @alena_sahnova, @nopowerbank, @elya.fitt, @mira_att2.0 carry no Gulf marker"
+      ],
+      "rationale": "There is no Gulf evidence in the scope, language or creators, so relevance is neutral. Outfit-reveal formats are broadly universal, but local traction is unknown. The Arabic on-screen text in the brief is an adaptation and not evidence of Gulf trend traction.",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 7,
+      "evidence": [
+       "onBrand: \"a propped foldable genuinely enables rather than fakes\"",
+       "\"Don't hide the phone entirely, the whole point is the hands-free proof\"",
+       "upstreamOnBrand: true"
+      ],
+      "rationale": "A confident, witty reveal where the product enables the trick fits the Confident Explorer persona. The caveat is that lip-sync and beat-cuts can drift toward loud or cutesy, so tone needs control.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 7,
+      "feature": "FlexCam half-fold hands-free framing with cover screen",
+      "product": "Galaxy Z Flip8",
+      "evidence": [
+       "\"Galaxy Z Flip8\" score 78: \"FlexCam half-fold stands on its own so the outfit-change snap transition can be hands-free\"",
+       "featureMoment: \"the phone standing on its own, half-open, with nobody adjusting it\""
+      ],
+      "rationale": "The Flip8 propped half-folded is a clear fit because the format depends on a hands-free, no-tripod illusion. The caveat is that the mapping rests on the product's FlexCam and half-fold behavior, which the trend itself does not mention.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 7,
+      "evidence": [
+       "\"73 creators / 96 sampled videos\"",
+       "clips with 2000000, 1300000, 622000 and 333000 views",
+       "category \"other\""
+      ],
+      "rationale": "The fashion and transition format appeals to a broad young social audience and shows strong reach in the sampled clips. Gulf audience affinity is not measured, which caps the score.",
+      "confidence": "medium"
+     },
+     "platform": {
+      "score": 8,
+      "evidence": [
+       "\"Video opens on a plain, everyday look mid-lip-sync\"",
+       "\"47% posted this week\"",
+       "TikTok-first radar; sound \"commercialUseCleared\": true"
+      ],
+      "rationale": "A short, beat-synced vertical edit is native to TikTok and Reels, and the sound is cleared for commercial use. It is a good fit for a short vertical format.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 5,
+      "evidence": [
+       "lifecycle stage \"peaking\", acceleration -9",
+       "\"postBy\": \"2026-10-26T08:32:28.199Z\", remainingDays 10",
+       "\"73 creators / 96 sampled videos\""
+      ],
+      "rationale": "The trend is peaking with slowing acceleration, so crowding is rising, yet there are 5 days left before the post-by date and the Samsung-hands-free angle is distinctive. The Gulf saturation level is unknown, so the score is neutral.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"original sound - kaannnaa\"",
+      "\"commercialUseCleared\": true",
+      "\"cue\": null"
+     ],
+     "rationale": "The sound is cleared for commercial use, but no lyrics or transcript are available, so explicit content cannot be ruled out. The audio is a lip-sync original sound."
+    },
+    "feasibilityClass": "character-light"
+   },
+   "timing": {
+    "basis": "conditional median given 4 d on board",
+    "postBy": "2026-10-26T08:32:28.199Z",
+    "leadDays": 5,
+    "stayDays": 13,
+    "endOfLife": "2026-10-31T08:32:28.199Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 10,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7689214017718650932",
+   "name": "Pink Blush confident strut and pose",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-AUDIO",
+     "reason": "sound \"Pink Blush (Remix) [feat. Megan Thee Stallion]\" is flagged not cleared for commercial use by TikTok",
+     "needsReview": false
+    }
+   ],
+   "judgement": null,
+   "timing": {
+    "basis": "still on the board beyond the class median (+1 day)",
+    "postBy": "2026-10-18T09:43:21.103Z",
+    "leadDays": 5,
+    "stayDays": 17,
+    "endOfLife": "2026-10-23T09:43:21.103Z",
+    "leadAssumed": true,
+    "postByPassed": true,
+    "remainingDays": 2,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": null
+  },
+  {
+   "trendId": "snd-7689273697034685198",
+   "name": "Thank You Baby money reaction meme",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "rising",
+   "vetoes": [
+    {
+     "code": "V-CULTURE",
+     "reason": "The money-and-payoff theme with an endearment lyric is likely harmless, but the sound's wider content and its gambling-adjacent 'bet payout' scenarios (in the brief) are not verified for Gulf norms. Ambiguity means it needs review rather than a pass.",
+     "evidence": [
+      "\"synced to hands reaching for or counting money\"",
+      "\"original sound - drebabygums\"",
+      "\"Thank you baby\" (sung line that lands as the punchline over the reveal)"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-ORIGIN",
+     "reason": "The evidence gives no origin story and the author is null, so the sound's source and meaning can't be confirmed. Ambiguous origin is not treated as safe.",
+     "evidence": [
+      "\"original sound - drebabygums\"",
+      "author: null",
+      "\"Thank you baby\""
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "Only the cue line is known and it is not explicit. Lyrics are not carried in the evidence, so the rest of the sound cannot be verified. Commercial use is cleared, but that does not confirm clean content.",
+     "evidence": [
+      "\"Thank you baby\" (sung line that lands as the punchline over the reveal)",
+      "commercialUseCleared: true",
+      "\"Carried 2d past its last fresh sighting\""
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"original sound - drebabygums\"",
+      "author: null",
+      "\"Thank you baby\""
+     ],
+     "rationale": "The evidence gives no origin story and the author is null, so the sound's source and meaning can't be confirmed. Ambiguous origin is not treated as safe."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "\"Creator sets an everyday scenario in on-screen text in a single locked static shot\"",
+      "tags: []"
+     ],
+     "rationale": "The format is mundane money-reaction humour with no hazardous behaviour, minors or sensitive topics in the evidence."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"synced to hands reaching for or counting money\"",
+      "\"original sound - drebabygums\"",
+      "\"Thank you baby\" (sung line that lands as the punchline over the reveal)"
+     ],
+     "rationale": "The money-and-payoff theme with an endearment lyric is likely harmless, but the sound's wider content and its gambling-adjacent 'bet payout' scenarios (in the brief) are not verified for Gulf norms. Ambiguity means it needs review rather than a pass."
+    },
+    "profile": {
+     "mechanic": "Single locked static shot with on-screen text setup; no cuts or camera movement; the audio drop synced to hands taking or counting money delivers the joke.",
+     "unknowns": [
+      "Original context and meaning of the sound source beyond the sung line",
+      "Any Gulf engagement or Gulf creators",
+      "Lyrics beyond the cue line",
+      "Whether the sound's wider lyrics contain explicit content"
+     ],
+     "whatItIs": "A global audio-driven deadpan meme where a static caption sets up an everyday scenario and the sung line 'Thank You Baby' lands as the punchline over hands reaching for or counting money.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Measured: 93 creators / 96 sampled videos, 58% posted this week. The format is low-effort and needs no edit, so it is easy to replicate. Lifecycle stage is rising, but durability is 'flash' and upstream stage is 'peaking'.",
+     "originAndMeaning": "Sound is 'original sound - drebabygums' with the cue \"Thank you baby\". The evidence gives no information on the original creator's intent or the source context of the line. Meaning in the format is a money-received reaction."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 4,
+      "evidence": [
+       "scope: \"Global\"",
+       "lang: \"EN\"",
+       "clips: @askaboutnathan, @theflakesfam, @2exclusive.tr1pin"
+      ],
+      "rationale": "There is no Gulf scope, no Arabic or Gulf creators and no Gulf-specific text. The Arabic captions in the brief are Samsung-side additions rather than trend evidence. Wide global reach suggests some generic relevance, but nothing is confirmed for the Gulf.",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 6,
+      "evidence": [
+       "\"Keep the shot dead static\"",
+       "\"Don't force a branded product in hand, the cash/money is the only prop\"",
+       "upstreamOnBrand: true"
+      ],
+      "rationale": "Deadpan restraint matches Refined Wit and avoids loud or competitor-bashing tone. Caveat: a money-payoff gag risks feeling transactional, and the format is a generic meme rather than an Open or Explorer expression.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 6,
+      "feature": "Half-folded hands-free stand (FlexCam) holding the locked static shot",
+      "product": "Galaxy Z Flip8",
+      "evidence": [
+       "\"Galaxy Z Flip8: 2026 clamshell flip foldable\"",
+       "\"Creators already hunt for a free surface or stack of books to rest the phone on\"",
+       "\"Galaxy Watch9\" notification as visual stinger"
+      ],
+      "rationale": "The Flip8 standing half-folded and holding the locked shot is a clear fit with the static-shot need. Caveat: the phone is only a prop and the money is the focus. The Watch9 idea is a looser fit.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 5,
+      "evidence": [
+       "category: \"entertainment\"",
+       "\"93 creators / 96 sampled videos\"",
+       "clips views: 2600000, 1700000, 723000"
+      ],
+      "rationale": "Broad entertainment appeal with large views, but there is no data on Gulf audience demographics, so the fit for Samsung's Gulf audience is neutral.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 6,
+      "evidence": [
+       "\"Measured: 93 creators / 96 sampled videos, 58% posted this week\"",
+       "\"No camera movement or cuts\"",
+       "sound commercialUseCleared: true"
+      ],
+      "rationale": "It is TikTok-native, simple to produce, and the sound is cleared for commercial use. Caveat: no evidence on Gulf platform presence or on non-TikTok performance.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 3,
+      "evidence": [
+       "lifecycle durability: \"flash\"",
+       "upstreamStage: \"peaking\"",
+       "timing postByPassed: true",
+       "remainingDays: 2"
+      ],
+      "rationale": "The post-by date has passed, about 2 days of life remain and the trend is peaking upstream with flash durability. A brand entry would arrive late into a crowded format.",
+      "confidence": "high"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"Thank you baby\" (sung line that lands as the punchline over the reveal)",
+      "commercialUseCleared: true",
+      "\"Carried 2d past its last fresh sighting\""
+     ],
+     "rationale": "Only the cue line is known and it is not explicit. Lyrics are not carried in the evidence, so the rest of the sound cannot be verified. Commercial use is cleared, but that does not confirm clean content."
+    },
+    "feasibilityClass": "product-led visual"
+   },
+   "timing": {
+    "basis": "still on the board beyond the class median (+1 day)",
+    "postBy": "2026-10-18T09:30:31.498Z",
+    "leadDays": 5,
+    "stayDays": 15,
+    "endOfLife": "2026-10-23T09:30:31.498Z",
+    "leadAssumed": true,
+    "postByPassed": true,
+    "remainingDays": 2,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7691463689475541767",
+   "name": "CapCut Pioneer Template Reveal",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-ORIGIN",
+     "reason": "The origin of the sound and the intended meaning of 'Crashing' are not in the evidence. Ambiguous meaning is never safe, so a human should confirm the sound's background.",
+     "evidence": [
+      "original sound - mannuzinha135",
+      "the word Crashing appearing in cursive text overlay at the sync point"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "Commercial use is cleared, but the radar carries no lyrics, so explicit content cannot be ruled out. Review the audio before use.",
+     "evidence": [
+      "original sound - mannuzinha135",
+      "commercialUseCleared: true"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "needsReview",
+     "evidence": [
+      "original sound - mannuzinha135",
+      "the word Crashing appearing in cursive text overlay at the sync point"
+     ],
+     "rationale": "The origin of the sound and the intended meaning of 'Crashing' are not in the evidence. Ambiguous meaning is never safe, so a human should confirm the sound's background."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "Shoot a locked single-take selfie or clip of the subject in low light or on stage",
+      "finishing on a glamorous or dramatic pose"
+     ],
+     "rationale": "The mechanic is a styled selfie with a text stamp, with no risky behaviour, stunts or vulnerable subjects."
+    },
+    "culture": {
+     "verdict": "pass",
+     "evidence": [
+      "finishing on a glamorous or dramatic pose",
+      "scope: Global"
+     ],
+     "rationale": "The format is a neutral caption reveal with no religious, political or sensitive cultural content in the evidence."
+    },
+    "profile": {
+     "mechanic": "Shoot a locked single-take selfie or clip in low light or on stage, let the audio play, and at the beat marked by 'Crashing' a cursive on-screen text stamp appears as a stylized caption, finishing on a dramatic pose. The clip is exported as a CapCut template for others to reuse with their own footage.",
+     "unknowns": [
+      "Origin and meaning of the sound and of the word 'Crashing'",
+      "Lyrics content of the audio (the radar carries no lyrics)",
+      "Any Gulf creator or engagement presence",
+      "Whether the sound is explicit or has a dark or self-harm connotation"
+     ],
+     "whatItIs": "A CapCut template trend in which a locked single-take clip of a subject in low light or on stage gets a cursive text stamp reading 'Crashing' at the audio sync point, ending on a glamorous or dramatic pose.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Evidence says: 'Measured: 63 creators / 91 sampled videos, 41% posted this week' and a population counter of +1.39%/day. The reusable CapCut template makes it easy to copy. Lifecycle is peaking with flash durability.",
+     "originAndMeaning": "The sound is 'original sound - mannuzinha135' and the one clip shown is from @liimart93. The word 'Crashing' is the on-screen cue. The origin of the sound and any deeper meaning of the word are unknown from the evidence."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 4,
+      "evidence": [
+       "scope: Global",
+       "lang: EN",
+       "@liimart93"
+      ],
+      "rationale": "There is no Gulf evidence: scope is Global, language EN, and the only clip handle shows no Gulf signal. English-language CapCut templates are usable in the region, but relevance is unproven.",
+      "confidence": "medium"
+     },
+     "brand": {
+      "score": 6,
+      "evidence": [
+       "finishing on a glamorous or dramatic pose",
+       "stylized caption"
+      ],
+      "rationale": "A stylized caption reveal can carry Refined Wit and Bold confidence. The caveat is that the glamorous or dramatic pose risks looking self-indulgent unless it is kept understated.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 6,
+      "feature": "Low-light video stability and camera array in a locked single-take shot",
+      "product": "Galaxy S26 Ultra",
+      "evidence": [
+       "at the beat marked by the word Crashing, the on-screen cursive text stamp appears over the frame as a stylized caption",
+       "low light or on stage"
+      ],
+      "rationale": "The caption reveal works as a low-light camera showcase: a locked low-light clip with a text stamp at the beat shows off the Galaxy S26 Ultra's camera array. The caveat is that the trend is about the subject's pose rather than the product.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 6,
+      "evidence": [
+       "63 creators / 91 sampled videos",
+       "the clip is exported as a CapCut template others reuse with their own footage"
+      ],
+      "rationale": "A broad creator base and a template format suit young social-first users. There is no Gulf audience data, so this is a clear fit with a caveat.",
+      "confidence": "medium"
+     },
+     "platform": {
+      "score": 7,
+      "evidence": [
+       "TikTok-first radar",
+       "exported as a CapCut template",
+       "locked single-take selfie or clip"
+      ],
+      "rationale": "The format is short vertical video built for TikTok and CapCut, and it is simple to execute. The brand would need to produce its own template to join in.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 5,
+      "evidence": [
+       "41% posted this week",
+       "stage: peaking",
+       "durability: flash",
+       "postBy: 2026-10-23T08:03:08.688Z"
+      ],
+      "rationale": "The trend is at its peak and flash-durability, with a post-by date of 2026-10-23 and 7 remaining days. Activity is high but there is little time left to post. Neutral overall.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "original sound - mannuzinha135",
+      "commercialUseCleared: true"
+     ],
+     "rationale": "Commercial use is cleared, but the radar carries no lyrics, so explicit content cannot be ruled out. Review the audio before use."
+    },
+    "feasibilityClass": "product-led visual"
+   },
+   "timing": {
+    "basis": "conditional median given 8 d on board",
+    "postBy": "2026-10-23T08:03:08.688Z",
+    "leadDays": 5,
+    "stayDays": 14,
+    "endOfLife": "2026-10-28T08:03:08.688Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 7,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "snd-7691560754469767954",
+   "name": "Finger point and hair flip pose to akunke5ini sound",
+   "status": "needs_review",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-CULTURE",
+     "reason": "The poses (wink, pout, hair flip) are mostly benign, but the tone could read as flirtatious and context for Gulf audiences is not evidenced. The sound meaning is unknown, so ambiguity means needsReview rather than pass.",
+     "evidence": [
+      "mechanic: 'confident smile or pout'",
+      "lang: MIXED",
+      "tags: []"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-ORIGIN",
+     "reason": "The origin of the sound and the pose is unknown and no meaning can be verified from the evidence. Ambiguous origin is never safe.",
+     "evidence": [
+      "sound.title: 'original sound - akunke5ini'",
+      "sound.author: null"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "Commercial use is cleared, but the radar carries no lyrics and the language is MIXED, so explicit content cannot be ruled out. A human must listen before use.",
+     "evidence": [
+      "sound.title: 'original sound - akunke5ini'",
+      "commercialUseCleared: true",
+      "lang: MIXED"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "needsReview",
+     "evidence": [
+      "sound.title: 'original sound - akunke5ini'",
+      "sound.author: null"
+     ],
+     "rationale": "The origin of the sound and the pose is unknown and no meaning can be verified from the evidence. Ambiguous origin is never safe."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "mechanic: finger point, wink or hand gesture, then a hair flip"
+     ],
+     "rationale": "The mechanic involves only a benign pose with no stunts, risky behaviour or minors-related content in the evidence."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "mechanic: 'confident smile or pout'",
+      "lang: MIXED",
+      "tags: []"
+     ],
+     "rationale": "The poses (wink, pout, hair flip) are mostly benign, but the tone could read as flirtatious and context for Gulf audiences is not evidenced. The sound meaning is unknown, so ambiguity means needsReview rather than pass."
+    },
+    "profile": {
+     "mechanic": "Solo creator faces the camera in a single locked static shot, performs a short beat synced pose sequence, then a hair flip or turn into a confident smile or pout as the beat lands. The cue is the beat drop where the finger point or turn lands.",
+     "unknowns": [
+      "Lyrics or vocal content of the sound",
+      "Original creator and intent of the sound",
+      "Gulf engagement figures (none carried by the radar)",
+      "Whether the sound contains explicit content"
+     ],
+     "whatItIs": "A short beat-synced pose trend: a solo creator performs a finger point, wink or hand gesture, then a hair flip or turn into a confident smile or pout, set to 'original sound - akunke5ini'.",
+     "languages": [
+      "MIXED"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Evidence: 'Measured: 78 creators / 91 sampled videos, 73% posted this week, adoption accelerating.' Low effort format (one static shot, one short pose) makes it easy to copy. Lifecycle stage is 'peaking' with durability 'flash'.",
+     "originAndMeaning": "Origin of the sound is unknown: the author field is null and the sound is an 'original sound' by akunke5ini. No lyrics are carried by the radar, so the meaning of any vocal content is unknown. The visual pose has no stated cultural meaning beyond a confident attitude."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 6,
+      "evidence": [
+       "clips: @imanrahman._1, @reemdibo, @randqandeill, @raghadnofal4",
+       "scope: local"
+      ],
+      "rationale": "Handles look Arabic-leaning and scope is 'local', which suggests regional presence, but no explicit Gulf market evidence or engagement data exists, so it is a clear fit with a caveat.",
+      "confidence": "medium"
+     },
+     "brand": {
+      "score": 4,
+      "evidence": [
+       "upstreamOnBrand: false",
+       "mechanic: 'confident smile or pout'"
+      ],
+      "rationale": "Confidence echoes the Confident Explorer, but pouting and posing leans cutesy and is not Open, Bold or Authentic in a Samsung way; there is little room for Refined Wit.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 3,
+      "feature": "FlexWindow cover screen used as a mirror for the pose",
+      "product": "Galaxy Z Flip8",
+      "evidence": [
+       "products: []",
+       "upstreamFit: 'no transferable device beyond performance itself'"
+      ],
+      "rationale": "The trend is a human pose with no product device. Any mapping is forced; the least forced option is showing a flip phone's FlexWindow as a mirror-pose moment, but it is a stretch.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 6,
+      "evidence": [
+       "why: '78 creators / 91 sampled videos'",
+       "clips views: 228000, 202000, 105000, 76000"
+      ],
+      "rationale": "Appeals to young social-first users who engage with pose trends; the audience skew is inferred from format rather than a field, with a caveat.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 5,
+      "evidence": [
+       "lifecycle: stage 'peaking', durability 'flash'",
+       "timing: postBy 2026-10-22T09:30:05.200Z, remainingDays 6",
+       "mechanic: single locked static shot"
+      ],
+      "rationale": "The format is TikTok native and simple, but the flash durability and a post-by date of about a day away leave a very tight window. Platform fit beyond TikTok is unknown.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 3,
+      "evidence": [
+       "why: '73% posted this week, adoption accelerating'",
+       "lifecycle: stage 'peaking', acceleration -4"
+      ],
+      "rationale": "With 78 creators and a peaking stage with negative acceleration, the trend is already crowded and a brand entry would be late.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "sound.title: 'original sound - akunke5ini'",
+      "commercialUseCleared: true",
+      "lang: MIXED"
+     ],
+     "rationale": "Commercial use is cleared, but the radar carries no lyrics and the language is MIXED, so explicit content cannot be ruled out. A human must listen before use."
+    },
+    "feasibilityClass": "performance"
+   },
+   "timing": {
+    "basis": "conditional median given 10 d on board",
+    "postBy": "2026-10-22T09:30:05.200Z",
+    "leadDays": 5,
+    "stayDays": 15,
+    "endOfLife": "2026-10-27T09:30:05.200Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 6,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "top-15762372",
+   "name": "Mexico vs Chile friendly loss",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-UNPRODUCIBLE",
+     "reason": "format depends on real people, live events or licensed footage our pipeline cannot produce",
+     "needsReview": false
+    },
+    {
+     "code": "V-CULTURE",
+     "reason": "This is a national-team rivalry and fan grievance with no Gulf link. Brand content that mocks or piles onto a team loss could offend. Needs human review rather than assumed safe.",
+     "evidence": [
+      "Mexico's national team losing 0-2 to Chile",
+      "scope: Global"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "pass",
+     "evidence": [
+      "Fans react to Mexico's national team losing 0-2 to Chile in a friendly"
+     ],
+     "rationale": "The origin is a football match result and there is no sign of a problematic origin. It is not a meme with hidden meaning."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "venting about the team being in crisis"
+     ],
+     "rationale": "A sports result with fan venting. No sign of harmful, dangerous or sensitive content in the evidence."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "Mexico's national team losing 0-2 to Chile",
+      "scope: Global"
+     ],
+     "rationale": "This is a national-team rivalry and fan grievance with no Gulf link. Brand content that mocks or piles onto a team loss could offend. Needs human review rather than assumed safe."
+    },
+    "profile": {
+     "mechanic": "Fans post match clips, goal recaps and stadium footage, and vent about the team being in crisis. The 'why' field says 'no participation format measured', so there is no repeatable format.",
+     "unknowns": [
+      "No Gulf engagement data",
+      "No sound or lyrics (sound is only the hashtag)",
+      "Whether any Gulf creators are involved",
+      "Rights status of the match footage"
+     ],
+     "whatItIs": "A sports conversation moment: fans reacting to Mexico's national team losing 0-2 to Chile in a friendly at the LA Memorial Coliseum.",
+     "languages": [
+      "EN",
+      "Spanish (inferred from handles; unverified)"
+     ],
+     "confidence": "medium",
+     "whySpreading": "The match result and the fan frustration drive it. Evidence: '56 creators / 73 sampled videos, 100% posted this week'. Growth is flat ('population counter +0.05%/day', velocity 0) and the trend is flagged 'flash' durability.",
+     "originAndMeaning": "Evidence: 'Fans react to Mexico's national team losing 0-2 to Chile in a friendly'. Tag 'mexicovschile'. Clip handles are Spanish-language, Mexican-fan accounts (@tirandocotorreo, @lapasiondepichibol). Meaning is a news and sentiment reaction to a football result, not a creative format."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 2,
+      "evidence": [
+       "scope: Global",
+       "lang: EN",
+       "handles are Mexican-fan accounts"
+      ],
+      "rationale": "Mexico vs Chile has no evident Gulf angle and no Gulf creators or text appear. Relevance is weak.",
+      "confidence": "medium"
+     },
+     "brand": {
+      "score": 3,
+      "evidence": [
+       "venting about the team being in crisis",
+       "onBrand: []"
+      ],
+      "rationale": "The sentiment is negative and about loss. This clashes with the Confident Explorer persona, and piggybacking on a team's failure risks putting others down.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 2,
+      "feature": "Glare-free matte screen for match viewing (forced, weak)",
+      "product": "OLED S95F",
+      "evidence": [
+       "products: []",
+       "adaptations: []"
+      ],
+      "rationale": "No product link. Any mapping (for example OLED S95F for watching matches) would be forced, so it is capped low.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 3,
+      "evidence": [
+       "Fans react to Mexico's national team",
+       "Spanish-language fan handles"
+      ],
+      "rationale": "The audience is Mexican football fans. Overlap with the Gulf audience is unproven.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 3,
+      "evidence": [
+       "no participation format measured",
+       "clips: match clips, goal recaps, stadium footage"
+      ],
+      "rationale": "It is a commentary moment built on match footage, with no native reusable format. Footage is likely licensed.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 2,
+      "evidence": [
+       "postByPassed: true",
+       "remainingDays: 2",
+       "durability: flash",
+       "56 creators / 73 sampled videos"
+      ],
+      "rationale": "The post-by date has passed and end of life is 2 days away. The trend is a flash, so any content would arrive late.",
+      "confidence": "high"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "pass",
+     "evidence": [
+      "sound: #mexicovschile",
+      "sound: null"
+     ],
+     "rationale": "No audio is attached, only the hashtag. There are no lyrics to be explicit. Original match audio is unknown."
+    },
+    "feasibilityClass": "infeasible"
+   },
+   "timing": {
+    "basis": "still on the board beyond the class median (+1 day)",
+    "postBy": "2026-10-18T09:38:44.978Z",
+    "leadDays": 5,
+    "stayDays": 16,
+    "endOfLife": "2026-10-23T09:38:44.978Z",
+    "leadAssumed": true,
+    "postByPassed": true,
+    "remainingDays": 2,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "top-1601714912191493",
+   "name": "Bangladesh vs Afghanistan Test, Hasan Mahmud hat-trick",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-UNPRODUCIBLE",
+     "reason": "format depends on real people, live events or licensed footage our pipeline cannot produce",
+     "needsReview": false
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "pass",
+     "evidence": [
+      "scope: \"local\"",
+      "tags: [\"banvsafg\"]"
+     ],
+     "rationale": "Organic sports-event trend with no problematic origin evident. It is not Gulf-specific, but that is a relevance issue rather than a veto."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "\"Fans are posting highlight clips, reaction edits and commentary\""
+     ],
+     "rationale": "Sports highlight chatter with no sensitive content cited in the evidence."
+    },
+    "culture": {
+     "verdict": "pass",
+     "evidence": [
+      "category: \"sport\"",
+      "\"Bangladesh vs Afghanistan Test\""
+     ],
+     "rationale": "Cricket is a neutral, widely followed topic in the Gulf. No religious, political or cultural conflict is evident in the evidence."
+    },
+    "profile": {
+     "mechanic": "Highlight clips, reaction edits and commentary under #banvsafg. The evidence states \"no participation format measured\", so there is no repeatable template.",
+     "unknowns": [
+      "Gulf engagement (scope is \"local\", no Gulf data)",
+      "Audio used (sound is null; clips carry only the hashtag \"#banvsafg\")",
+      "Rights status of match footage",
+      "Size of the South Asian expat audience in the Gulf"
+     ],
+     "whatItIs": "A cricket conversation moment: fans posting highlights, reaction edits and commentary from the Bangladesh vs Afghanistan Test, centered on Hasan Mahmud's hat-trick.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Event-driven: \"creators are talking about it\" after a historic hat-trick and five-wicket haul. Measured: 27 creators / 46 sampled videos, 100% posted this week. Lifecycle is \"peaking\" with durability \"flash\".",
+     "originAndMeaning": "Originates from a live sporting event (Bangladesh vs Afghanistan Test). Clips are tagged \"banvsafg\" and the lang is EN; the handles suggest a Bangladeshi/South Asian creator base, though this is inferred from handles only."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 4,
+      "evidence": [
+       "scope: \"local\"",
+       "lang: \"EN\"",
+       "handles @ahmedniazi100, @md.siham.ahmed4, @farhad890k, @rafi_eidit"
+      ],
+      "rationale": "There is no Gulf evidence: the scope is local, the text is English, and the clip handles suggest a Bangladeshi audience. Only the expat population in the Gulf may relate, which is an inference.",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 3,
+      "evidence": [
+       "\"Fans are posting highlight clips, reaction edits and commentary\""
+      ],
+      "rationale": "Riding a specific match and real players is opportunistic and off the Confident Explorer persona. It would also be hard to add Refined Wit without exploiting real athletes.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 2,
+      "feature": "none",
+      "product": "none",
+      "evidence": [
+       "\"products\": []",
+       "\"adaptations\": []"
+      ],
+      "rationale": "No product is tied to the trend. Any mapping would be forced.",
+      "confidence": "medium",
+      "catalogMatch": false
+     },
+     "audience": {
+      "score": 4,
+      "evidence": [
+       "lang: \"EN\"",
+       "scope: \"local\"",
+       "4 clips of 43k–207k views"
+      ],
+      "rationale": "It appeals to cricket fans, a narrow group. Overlap with Samsung Gulf's target audience is unproven.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 4,
+      "evidence": [
+       "clips with #banvsafg",
+       "\"no participation format measured\""
+      ],
+      "rationale": "It works on TikTok as highlight clips, but those depend on match footage, and there is no template to adapt.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 3,
+      "evidence": [
+       "\"27 creators / 46 sampled videos, 100% posted this week\"",
+       "lifecycle stage \"peaking\", durability \"flash\"",
+       "postByPassed: true"
+      ],
+      "rationale": "The post-by date has passed, and the trend is a flash event already peaking, so a brand entry would be late.",
+      "confidence": "high"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "pass",
+     "evidence": [
+      "\"sound\": null",
+      "clips sound: \"#banvsafg\""
+     ],
+     "rationale": "No track is identified, so there is no explicit lyric evidence. Any use would have to rely on original or licensed audio."
+    },
+    "feasibilityClass": "infeasible"
+   },
+   "timing": {
+    "basis": "conditional median given 11 d on board",
+    "postBy": "2026-10-21T09:22:26.407Z",
+    "leadDays": 5,
+    "stayDays": 15,
+    "endOfLife": "2026-10-26T09:22:26.407Z",
+    "leadAssumed": true,
+    "postByPassed": true,
+    "remainingDays": 5,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "top-1667597430608934",
+   "name": "ASOS data breach notification scare",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-UNPRODUCIBLE",
+     "reason": "format depends on real people, live events or licensed footage our pipeline cannot produce",
+     "needsReview": false
+    },
+    {
+     "code": "V-SAFETY",
+     "reason": "The trend is about a named third-party brand's alleged data breach with unverified claims. A Samsung post would risk spreading unverified security allegations about another company and invites association with data-security fear. Unsafe for brand content.",
+     "evidence": [
+      "\"alarming in-app notification claiming ASOS was hacked by attackers threatening to leak data via its Snowflake instance\""
+     ],
+     "needsReview": false
+    },
+    {
+     "code": "V-ORIGIN",
+     "reason": "The origin and veracity of the incident (real breach vs. false notification) are not established by the evidence, and ambiguity is never safe. Needs human review.",
+     "evidence": [
+      "\"claiming ASOS was hacked\"",
+      "\"tags\": [\"asoshack\"]"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"claiming ASOS was hacked\"",
+      "\"tags\": [\"asoshack\"]"
+     ],
+     "rationale": "The origin and veracity of the incident (real breach vs. false notification) are not established by the evidence, and ambiguity is never safe. Needs human review."
+    },
+    "safety": {
+     "verdict": "veto",
+     "evidence": [
+      "\"alarming in-app notification claiming ASOS was hacked by attackers threatening to leak data via its Snowflake instance\""
+     ],
+     "rationale": "The trend is about a named third-party brand's alleged data breach with unverified claims. A Samsung post would risk spreading unverified security allegations about another company and invites association with data-security fear. Unsafe for brand content."
+    },
+    "culture": {
+     "verdict": "pass",
+     "evidence": [
+      "\"scope\": \"Global\"",
+      "\"lang\": \"EN\""
+     ],
+     "rationale": "No religious, cultural or regional sensitivity is evident in the evidence; it is a neutral tech/retail news topic."
+    },
+    "profile": {
+     "mechanic": "Creators and news accounts react to the notification, ranging from cybersecurity explainers and news segments to jokey personal commentary. No participation format was measured (\"creators are talking about it — no participation format measured\").",
+     "unknowns": [
+      "Whether the breach was real, a false alert, or a hoax",
+      "Any Gulf audience or creator engagement",
+      "Whether ASOS has resolved or confirmed the incident",
+      "Sound or audio used beyond the hashtag \"#asoshack\""
+     ],
+     "whatItIs": "A news-driven conversation moment about ASOS customers receiving an alarming in-app notification claiming the retailer was hacked and data would be leaked via its Snowflake instance.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "\"35 creators / 36 sampled videos, 100% posted this week\" and reactions are news-driven. Lifecycle is \"peaking\" with durability \"flash\"; postBy has already passed (postByPassed: true) and remaining days are 2.",
+     "originAndMeaning": "Originates from a UK-linked retail brand incident (clips from @goodmorningbritain, @katiebowater). Tag: \"asoshack\". Whether the breach was real or a spoofed or erroneous notification is not stated in the evidence, so it is unknown."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 2,
+      "evidence": [
+       "\"scope\": \"Global\"",
+       "\"lang\": \"EN\"",
+       "clips: @katiebowater, @rachellllxb, @goodmorningbritain"
+      ],
+      "rationale": "ASOS-customer, UK-oriented news chatter with no Gulf evidence. Little reason to expect Gulf resonance.",
+      "confidence": "medium"
+     },
+     "brand": {
+      "score": 2,
+      "evidence": [
+       "\"attackers threatening to leak data via its Snowflake instance\"",
+       "\"jokey personal commentary\""
+      ],
+      "rationale": "Capitalising on another company's alleged breach conflicts with Refined Wit and the no-putting-down-others rule, and fear-based framing is not Open or Authentic.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 3,
+      "feature": "On-device security (forced mapping; not supported by evidence)",
+      "product": "Galaxy S26 Ultra",
+      "evidence": [
+       "\"products\": []",
+       "\"mechanic\": \"...cybersecurity explainers and news segments...\""
+      ],
+      "rationale": "Any mapping (e.g. Galaxy S26 Ultra with security features) would be forced and reliant on a competitor-adjacent breach story. No product mapping in the evidence.",
+      "confidence": "medium",
+      "catalogMatch": true
+     },
+     "audience": {
+      "score": 4,
+      "evidence": [
+       "\"category\": \"tech\"",
+       "\"lang\": \"EN\""
+      ],
+      "rationale": "Tech-aware audiences care about data security, but the story is tied to a specific UK fashion retailer's customers; Gulf fit is weak.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 3,
+      "evidence": [
+       "\"Conversation moment: creators are talking about it — no participation format measured\"",
+       "\"postByPassed\": true"
+      ],
+      "rationale": "No repeatable format exists to join, and the post-by date has passed with about 2 days remaining. Poor timing for TikTok.",
+      "confidence": "high"
+     },
+     "saturation": {
+      "score": 3,
+      "evidence": [
+       "\"35 creators / 36 sampled videos, 100% posted this week\"",
+       "\"stage\": \"peaking\"",
+       "\"durability\": \"flash\""
+      ],
+      "rationale": "Peaking, flash-durability trend with heavy news coverage; a late entry would add nothing distinctive.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "pass",
+     "evidence": [
+      "\"sound\": null",
+      "\"sound\": \"#asoshack\""
+     ],
+     "rationale": "No track is attached; the sound field is only the hashtag. No explicit audio is evidenced, though lyrics are not measured."
+    },
+    "feasibilityClass": "infeasible"
+   },
+   "timing": {
+    "basis": "still on the board beyond the class median (+1 day)",
+    "postBy": "2026-10-18T09:38:44.978Z",
+    "leadDays": 5,
+    "stayDays": 16,
+    "endOfLife": "2026-10-23T09:38:44.978Z",
+    "leadAssumed": true,
+    "postByPassed": true,
+    "remainingDays": 2,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "top-1672774376858630",
+   "name": "Nepal vs Canada ODI World Cup League 2",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-UNPRODUCIBLE",
+     "reason": "format depends on real people, live events or licensed footage our pipeline cannot produce",
+     "needsReview": false
+    },
+    {
+     "code": "V-CULTURE",
+     "reason": "Cricket is popular in the Gulf, but the content is about a national team match and no Gulf cultural check is possible from the evidence. Fan reactions could include partisan or betting-related content, which is unknown, so review is needed.",
+     "evidence": [
+      "\"scope\": \"Global\"",
+      "\"category\": \"sport\"",
+      "\"lang\": \"EN\""
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "No actual audio or lyrics are present in the evidence (the sound field is just the hashtag), so explicitness cannot be confirmed. Ambiguity is not safe.",
+     "evidence": [
+      "\"sound\": \"#nepalvscanada\"",
+      "\"sound\": null"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "pass",
+     "evidence": [
+      "Nepal's win over Canada in the ICC Men's Cricket World Cup League 2",
+      "\"tags\": [\"nepalvscanada\"]"
+     ],
+     "rationale": "The origin is a sporting event with no sign of problematic or hateful origins."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "Creators post match highlights, scorecards and reactions"
+     ],
+     "rationale": "Sports result content with no hazardous behaviour, stunts or sensitive themes in the evidence."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"scope\": \"Global\"",
+      "\"category\": \"sport\"",
+      "\"lang\": \"EN\""
+     ],
+     "rationale": "Cricket is popular in the Gulf, but the content is about a national team match and no Gulf cultural check is possible from the evidence. Fan reactions could include partisan or betting-related content, which is unknown, so review is needed."
+    },
+    "profile": {
+     "mechanic": "Creators post match highlights, scorecards and reactions centered on Rohit Paudel's century and Nepal's 24-run victory. No participation format measured.",
+     "unknowns": [
+      "Gulf engagement unknown; no Gulf data in the evidence",
+      "Whether clips use licensed broadcast footage",
+      "Audio content of clips (sound is only the hashtag #nepalvscanada)",
+      "Creator nationalities beyond handles"
+     ],
+     "whatItIs": "A sports news conversation moment around Nepal's win over Canada in the ICC Men's Cricket World Cup League 2, with highlights, scorecards and reactions.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Creators are talking about a match result: '29 creators / 67 sampled videos, 100% posted this week'. It is a news-driven moment, not a repeatable format. Lifecycle is 'peaking' with durability 'flash'.",
+     "originAndMeaning": "Originates from a real cricket match (Nepal vs Canada, ODI World Cup League 2). The hashtag #nepalvscanada is the only tag; it carries no wider cultural meaning beyond the match result."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 4,
+      "evidence": [
+       "\"scope\": \"Global\"",
+       "\"lang\": \"EN\"",
+       "handles: @nepalcricket328, @cricknepal1"
+      ],
+      "rationale": "No Gulf evidence; the audience is Nepal-focused cricket fans. Cricket has a diaspora following in the Gulf, but that is inference only.",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 3,
+      "evidence": [
+       "\"mechanic\": \"Creators post match highlights, scorecards and reactions\"",
+       "\"onBrand\": []"
+      ],
+      "rationale": "A match-result conversation tied to one team's win is difficult to fit with Refined Wit and risks looking opportunistic or partisan. No on-brand angle was supplied.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 2,
+      "feature": "none",
+      "product": "none",
+      "evidence": [
+       "\"products\": []",
+       "\"adaptations\": []"
+      ],
+      "rationale": "No product mapping in the evidence. Any link (e.g. a screen for watching highlights) would be forced.",
+      "confidence": "medium",
+      "catalogMatch": false
+     },
+     "audience": {
+      "score": 4,
+      "evidence": [
+       "\"category\": \"sport\"",
+       "\"lang\": \"EN\""
+      ],
+      "rationale": "Appeals to cricket fans; Gulf diaspora overlap is plausible but unmeasured. The audience is narrow rather than broad Samsung Gulf.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 4,
+      "evidence": [
+       "\"Conversation moment: creators are talking about it — no participation format measured.\"",
+       "\"durability\": \"flash\"",
+       "\"postBy\": \"2026-10-22T09:30:05.200Z\""
+      ],
+      "rationale": "TikTok-first, but there is no reusable format and the post-by window is about a day away on an assumed lead of 5 days. A flash trend makes timely production unlikely.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 5,
+      "evidence": [
+       "\"29 creators / 67 sampled videos\"",
+       "\"stage\": \"peaking\"",
+       "\"acceleration\": -1"
+      ],
+      "rationale": "Modest creator count and peaking with negative acceleration; saturation relative to the Gulf market is unknown, so neutral.",
+      "confidence": "low"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"sound\": \"#nepalvscanada\"",
+      "\"sound\": null"
+     ],
+     "rationale": "No actual audio or lyrics are present in the evidence (the sound field is just the hashtag), so explicitness cannot be confirmed. Ambiguity is not safe."
+    },
+    "feasibilityClass": "infeasible"
+   },
+   "timing": {
+    "basis": "conditional median given 10 d on board",
+    "postBy": "2026-10-22T09:30:05.200Z",
+    "leadDays": 5,
+    "stayDays": 15,
+    "endOfLife": "2026-10-27T09:30:05.200Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 6,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "top-29708032",
+   "name": "Pakistan vs England ODI series 2026",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "unknown",
+   "vetoes": [
+    {
+     "code": "V-UNPRODUCIBLE",
+     "reason": "format depends on real people, live events or licensed footage our pipeline cannot produce",
+     "needsReview": false
+    },
+    {
+     "code": "V-CULTURE",
+     "reason": "Rivalry-driven memes can carry national or partisan sentiment, and a brand taking a side between two nations is sensitive. The content of the memes is not visible, so this needs human review.",
+     "evidence": [
+      "\"meme reactions to Pakistan's ODI win over England\"",
+      "\"scope\": \"Global\""
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "pass",
+     "evidence": [
+      "\"category\": \"sport\"",
+      "\"tags\": [\"pakvseng\"]"
+     ],
+     "rationale": "The origin is a public sporting event, with no sign of a sensitive or appropriated source."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "\"highlight clips, scorecards, and meme reactions\""
+     ],
+     "rationale": "Sports results and fandom content show no safety concern in the evidence. Meme reactions are a minor unknown."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "\"meme reactions to Pakistan's ODI win over England\"",
+      "\"scope\": \"Global\""
+     ],
+     "rationale": "Rivalry-driven memes can carry national or partisan sentiment, and a brand taking a side between two nations is sensitive. The content of the memes is not visible, so this needs human review."
+    },
+    "profile": {
+     "mechanic": "Creators post highlight clips, scorecards and meme reactions, focused on Arafat Minhas's bowling and Hasan Nawaz's batting in the 2nd ODI, which Pakistan won by 87 runs. The evidence says no participation format was measured.",
+     "unknowns": [
+      "Gulf engagement",
+      "Gulf creator presence",
+      "whether any sound is used beyond the hashtag",
+      "rights status of match footage",
+      "how long interest lasts after the series"
+     ],
+     "whatItIs": "A sports conversation moment around the Pakistan vs England ODI series 2026, tagged #pakvseng, centred on Pakistan's win in the 2nd ODI.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "It is driven by a live sporting event, with \"45 creators / 77 sampled videos, 100% posted this week\". Durability is flagged \"flash\" and upstream stage is \"peaking\".",
+     "originAndMeaning": "Origin is a live international cricket series. The meaning is match fandom and reaction to a result. Evidence: \"Pakistan's ODI win over England\"."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 5,
+      "evidence": [
+       "\"scope\": \"Global\"",
+       "\"lang\": \"EN\""
+      ],
+      "rationale": "Cricket interest is plausible in the Gulf, but the evidence has no Gulf creators, Arabic text or local scope. The score is therefore neutral and capped.",
+      "confidence": "low"
+     },
+     "brand": {
+      "score": 3,
+      "evidence": [
+       "\"meme reactions\"",
+       "\"upstreamOnBrand\": false"
+      ],
+      "rationale": "Taking part in a rivalry between two nations is risky for Samsung's Refined Wit persona, which should avoid putting others down. The upstream signal also says it is not on-brand.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 2,
+      "feature": "none",
+      "product": "none",
+      "evidence": [
+       "\"products\": []",
+       "\"adaptations\": []"
+      ],
+      "rationale": "Nothing in the trend maps naturally to a Samsung product. Any mapping, such as a TV for match viewing, would be forced.",
+      "confidence": "medium",
+      "catalogMatch": false
+     },
+     "audience": {
+      "score": 5,
+      "evidence": [
+       "\"45 creators / 77 sampled videos\"",
+       "clip views of 175000 to 415000"
+      ],
+      "rationale": "Reach among sports fans is solid, but the audience is South Asian cricket fans and Gulf overlap is unproven.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 4,
+      "evidence": [
+       "\"no participation format measured\"",
+       "\"durability\": \"flash\""
+      ],
+      "rationale": "There is no repeatable format, only a flash conversation moment. The post-by date of 2026-10-23 is workable but tight.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 3,
+      "evidence": [
+       "\"45 creators / 77 sampled videos, 100% posted this week\"",
+       "\"upstreamStage\": \"peaking\""
+      ],
+      "rationale": "The trend is peaking and crowded with creators and highlight footage, so a brand entry would be late and undifferentiated.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "pass",
+     "evidence": [
+      "\"sound\": null",
+      "clips sound: \"#pakvseng\""
+     ],
+     "rationale": "No sound or lyrics are attached, only the hashtag, so there is no evidence of explicit audio. Lyrics are not carried by the radar."
+    },
+    "feasibilityClass": "infeasible"
+   },
+   "timing": {
+    "basis": "conditional median given 1 d on board",
+    "postBy": "2026-10-23T08:25:58.646Z",
+    "leadDays": 5,
+    "stayDays": 7,
+    "endOfLife": "2026-10-28T08:25:58.646Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 7,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "top-35283260",
+   "name": "WNBA Finals: Valkyries vs Dream Game 1",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-UNPRODUCIBLE",
+     "reason": "format depends on real people, live events or licensed footage our pipeline cannot produce",
+     "needsReview": false
+    },
+    {
+     "code": "V-SAFETY",
+     "reason": "Referee complaints are truncated, so the tone is unknown, and the content is built around real named athletes. Human review is needed rather than assuming it is safe.",
+     "evidence": [
+      "referee compl",
+      "Angel Reese, Gabby Williams, Kiah Stokes"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "pass",
+     "evidence": [
+      "Golden State Valkyries beat the Atlanta Dream 68-64"
+     ],
+     "rationale": "The origin is a US sporting event with no problematic origin or meaning evidenced."
+    },
+    "safety": {
+     "verdict": "needsReview",
+     "evidence": [
+      "referee compl",
+      "Angel Reese, Gabby Williams, Kiah Stokes"
+     ],
+     "rationale": "Referee complaints are truncated, so the tone is unknown, and the content is built around real named athletes. Human review is needed rather than assuming it is safe."
+    },
+    "culture": {
+     "verdict": "pass",
+     "evidence": [
+      "scope: Global",
+      "category: sport"
+     ],
+     "rationale": "Sports highlights show no culturally sensitive content in the evidence, such as religion, alcohol or gambling. Arena footage is not flagged."
+    },
+    "profile": {
+     "mechanic": "Creators post arena crowd footage, player highlight clips, reaction/commentary videos and referee complaints. Evidence: \"highlights, recaps, and reactions from Game 1 of the WNBA Finals\". The mechanic text is truncated at \"referee compl\".",
+     "unknowns": [
+      "Gulf audience interest in the WNBA",
+      "Full text of the mechanic (truncated)",
+      "Content of the referee complaints",
+      "Any Gulf engagement data"
+     ],
+     "whatItIs": "A news and sports event trend: highlights, recaps and reactions from Game 1 of the WNBA Finals (Golden State Valkyries beat Atlanta Dream 68-64).",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Measured: 63 creators / 74 sampled videos, 100% posted this week. Spread is driven by the Finals game itself, a live news hook, with population counter +1.44%/day.",
+     "originAndMeaning": "Originates from a live professional basketball game. Top clips come from @wnbaonnbc, @mariahcrose, @mj23arc and @bleacherreport, all tagged #wnbafinals. No cultural meaning beyond the sporting event is evidenced."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 3,
+      "evidence": [
+       "scope: Global",
+       "lang: EN",
+       "clips: @wnbaonnbc, @mariahcrose, @mj23arc, @bleacherreport"
+      ],
+      "rationale": "There is no Gulf evidence: the scope is global, the language is English and the creators are US sports accounts. A US women's basketball final is a weak fit for the Gulf.",
+      "confidence": "medium"
+     },
+     "brand": {
+      "score": 3,
+      "evidence": [
+       "onBrand: []",
+       "upstreamOnBrand: false"
+      ],
+      "rationale": "Riding live-game commentary and referee complaints risks looking opportunistic and does not show Refined Wit. It also relies on a licensed league and real athletes, with no authentic Samsung angle.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 2,
+      "feature": "none",
+      "product": "none",
+      "evidence": [
+       "products: []",
+       "adaptations: []"
+      ],
+      "rationale": "There is no product mapping, and any link would be forced, since the format is game recaps. A Galaxy S26 Ultra camera tie-in to game footage would be a stretch.",
+      "confidence": "medium",
+      "catalogMatch": false
+     },
+     "audience": {
+      "score": 3,
+      "evidence": [
+       "lang: EN",
+       "category: sport"
+      ],
+      "rationale": "Basketball fans exist, but nothing evidences a Gulf Samsung audience for the WNBA specifically. The audience skews to the US.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 5,
+      "evidence": [
+       "clips: wnbaonnbc 1000000 views",
+       "Measured: 63 creators / 74 sampled videos"
+      ],
+      "rationale": "It is clearly active on TikTok, with a top clip of 1,000,000 views, which is a neutral-to-positive signal. But it is a flash trend with no distinct format or sound for Samsung to adopt.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 4,
+      "evidence": [
+       "Measured: 63 creators / 74 sampled videos",
+       "stage: peaking",
+       "durability: flash"
+      ],
+      "rationale": "Many creators, including official media accounts such as @bleacherreport, already cover it. It is peaking with flash durability and about 8 days remaining, so a brand adds little.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "pass",
+     "evidence": [
+      "sound: #wnbafinals",
+      "sound: null"
+     ],
+     "rationale": "There is no distinct sound, only the hashtag. No explicit audio is evidenced, though lyrics are not carried by the radar."
+    },
+    "feasibilityClass": "infeasible"
+   },
+   "timing": {
+    "basis": "conditional median given 4 d on board",
+    "postBy": "2026-10-24T08:32:28.199Z",
+    "leadDays": 5,
+    "stayDays": 11,
+    "endOfLife": "2026-10-29T08:32:28.199Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 8,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "top-416047",
+   "name": "Love of Your Life (2026) reactions and edits",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-UNPRODUCIBLE",
+     "reason": "format depends on real people, live events or licensed footage our pipeline cannot produce",
+     "needsReview": false
+    },
+    {
+     "code": "V-SAFETY",
+     "reason": "Nothing in the evidence suggests harm, but the film's themes are unknown beyond romance and grief-like emotion, so a quick human check is prudent.",
+     "evidence": [
+      "Creators are reacting to Prime Video's film Love of Your Life",
+      "tearful reaction videos"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-CULTURE",
+     "reason": "A romance film with unknown content; Gulf suitability of romantic film clips cannot be confirmed from the evidence, so ambiguity means review.",
+     "evidence": [
+      "fan edits of the Maya and Charlie/Felix romance",
+      "scope: Global, lang: EN"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "pass",
+     "evidence": [
+      "Prime Video's film Love of Your Life starring Margaret Qualley",
+      "@primevideo"
+     ],
+     "rationale": "Origin is a mainstream streaming film release with an official account participating; no problematic origin evident."
+    },
+    "safety": {
+     "verdict": "needsReview",
+     "evidence": [
+      "Creators are reacting to Prime Video's film Love of Your Life",
+      "tearful reaction videos"
+     ],
+     "rationale": "Nothing in the evidence suggests harm, but the film's themes are unknown beyond romance and grief-like emotion, so a quick human check is prudent."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "fan edits of the Maya and Charlie/Felix romance",
+      "scope: Global, lang: EN"
+     ],
+     "rationale": "A romance film with unknown content; Gulf suitability of romantic film clips cannot be confirmed from the evidence, so ambiguity means review."
+    },
+    "profile": {
+     "mechanic": "Creators post reactions warning viewers to prepare tissues, plus fan edits of the Maya and Charlie/Felix romance set to film clips, clarifying it is not the rom-com it appears to be. Evidence says 'no participation format measured'.",
+     "unknowns": [
+      "Gulf engagement or availability of the film in Gulf markets",
+      "Whether film content has any sensitive themes",
+      "Specific plot details",
+      "Whether clips use licensed audio"
+     ],
+     "whatItIs": "A conversation moment around Prime Video's film Love of Your Life (2026) starring Margaret Qualley: tearful reaction videos and fan edits.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Emotional surprise (a film that looks like a rom-com but is a tearjerker) drives reactions. Measured: 61 creators / 71 sampled videos, 97% posted this week; official @primevideo account is among top clips.",
+     "originAndMeaning": "Originates from the Prime Video film release; the hashtag #loveofyourlife is the only tag. Meaning is straightforward: film promotion and fan reaction. Clips use film footage, which is licensed content."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 3,
+      "evidence": [
+       "scope: Global",
+       "lang: EN",
+       "handles @brookestyless, @bombxel, @bob.frank923 with no Gulf signal"
+      ],
+      "rationale": "No Gulf evidence; the trend is tied to a Western film release and no Gulf creators or text appear.",
+      "confidence": "medium"
+     },
+     "brand": {
+      "score": 3,
+      "evidence": [
+       "mechanic: tearful reaction videos",
+       "fan edits set to clips from the film"
+      ],
+      "rationale": "Riding another company's film (Prime Video) with licensed footage and tearful reactions is a weak fit with Refined Wit and Authentic; risk of looking opportunistic.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 2,
+      "feature": "none",
+      "product": "none",
+      "evidence": [
+       "products: []",
+       "adaptations: []"
+      ],
+      "rationale": "No product link; a Samsung mapping would be forced. Closest would be OLED S95F as a viewing screen for a film, but it is contrived.",
+      "confidence": "medium",
+      "catalogMatch": false
+     },
+     "audience": {
+      "score": 5,
+      "evidence": [
+       "category: entertainment",
+       "97% posted this week; 61 creators"
+      ],
+      "rationale": "Broad entertainment audience and Gulf-relevant demographics are unknown; neutral.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 6,
+      "evidence": [
+       "clips: 3,000,000 views, 1,700,000 views on #loveofyourlife",
+       "Measured: 61 creators / 71 sampled videos"
+      ],
+      "rationale": "Clear traction on TikTok with strong view counts, but a conversation moment with no participation format measured.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 4,
+      "evidence": [
+       "stage: peaking",
+       "durability: flash",
+       "postBy: 2026-10-24T08:32:28.199Z",
+       "acceleration: -1"
+      ],
+      "rationale": "Peaking, flash durability and decelerating; the window closes soon with 8 remaining days, and the official studio is already posting.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "pass",
+     "evidence": [
+      "sound: null",
+      "clips sound: #loveofyourlife"
+     ],
+     "rationale": "No audio or lyrics are carried; no explicit sound evidence. Samsung would not use film audio anyway."
+    },
+    "feasibilityClass": "infeasible"
+   },
+   "timing": {
+    "basis": "conditional median given 4 d on board",
+    "postBy": "2026-10-24T08:32:28.199Z",
+    "leadDays": 5,
+    "stayDays": 11,
+    "endOfLife": "2026-10-29T08:32:28.199Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 8,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "top-72158955",
+   "name": "Brand Risk 16 (Adin Ross influencer boxing)",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-UNPRODUCIBLE",
+     "reason": "format depends on real people, live events or licensed footage our pipeline cannot produce",
+     "needsReview": false
+    },
+    {
+     "code": "V-SAFETY",
+     "reason": "The trend is built on real physical violence and fight altercations between real people, which is unsafe for a Samsung brand to join.",
+     "evidence": [
+      "drama (biting, bans, altercations)",
+      "knockouts"
+     ],
+     "needsReview": false
+    },
+    {
+     "code": "V-CULTURE",
+     "reason": "There is no Gulf evidence. Violent spectacle and influencer-drama content is likely to sit poorly with Gulf norms, and the full content of the clips is unknown, so a human must review it.",
+     "evidence": [
+      "scope: Global",
+      "lang: EN",
+      "Island Boys",
+      "drama (biting, bans, altercations)"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-ORIGIN",
+     "reason": "The origin is a streamer's boxing event. Adin Ross is a controversial figure and the event carries drama and bans, so the origin's reputation needs human review. The wider context is not in the evidence.",
+     "evidence": [
+      "Adin Ross's Brand Risk influencer boxing event",
+      "Amanda Solis, Mysterious, Yera, Evelyn Ortiz and the Island Boys"
+     ],
+     "needsReview": true
+    },
+    {
+     "code": "V-AUDIO",
+     "reason": "No audio or lyrics are carried, only a hashtag. Fight clips and reactions may contain explicit language, which cannot be verified, so ambiguity means needsReview.",
+     "evidence": [
+      "sound: null",
+      "#brandrisk"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "needsReview",
+     "evidence": [
+      "Adin Ross's Brand Risk influencer boxing event",
+      "Amanda Solis, Mysterious, Yera, Evelyn Ortiz and the Island Boys"
+     ],
+     "rationale": "The origin is a streamer's boxing event. Adin Ross is a controversial figure and the event carries drama and bans, so the origin's reputation needs human review. The wider context is not in the evidence."
+    },
+    "safety": {
+     "verdict": "veto",
+     "evidence": [
+      "drama (biting, bans, altercations)",
+      "knockouts"
+     ],
+     "rationale": "The trend is built on real physical violence and fight altercations between real people, which is unsafe for a Samsung brand to join."
+    },
+    "culture": {
+     "verdict": "needsReview",
+     "evidence": [
+      "scope: Global",
+      "lang: EN",
+      "Island Boys",
+      "drama (biting, bans, altercations)"
+     ],
+     "rationale": "There is no Gulf evidence. Violent spectacle and influencer-drama content is likely to sit poorly with Gulf norms, and the full content of the clips is unknown, so a human must review it."
+    },
+    "profile": {
+     "mechanic": "Creators repost event clips and react to them. The evidence says 'no participation format measured', so there is no repeatable template. Clips carry only the hashtag '#brandrisk' as their sound.",
+     "unknowns": [
+      "Gulf audience engagement",
+      "Whether the event content includes explicit language or gambling or betting promotion",
+      "Fighters' likenesses and rights",
+      "Actual audio content, since no lyrics or sound are carried"
+     ],
+     "whatItIs": "A conversation-moment trend: creators post clips from Adin Ross's Brand Risk 16 influencer boxing event, covering fight highlights, knockouts, post-fight reactions and drama.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Evidence: '48 creators / 76 sampled videos, 100% posted this week'. This is a live-event news cycle driven by fight drama. It is peaking with acceleration -3, durability 'flash', and 7 remaining days.",
+     "originAndMeaning": "It comes from Adin Ross's 'Brand Risk' influencer boxing event, with fighters named in the evidence such as Amanda Solis, Mysterious, Yera, Evelyn Ortiz and the Island Boys. The drama referenced includes 'biting, bans, altercations'. Beyond that, the event's wider context is unknown."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 2,
+      "evidence": [
+       "scope: Global",
+       "lang: EN",
+       "@teaology__",
+       "@lanetachisme"
+      ],
+      "rationale": "There are no Gulf signals: global scope, English language, and no Gulf creators evident in the clips. Gulf relevance is unsupported, and a violent US influencer event is a weak match.",
+      "confidence": "medium"
+     },
+     "brand": {
+      "score": 1,
+      "evidence": [
+       "drama (biting, bans, altercations)",
+       "knockouts"
+      ],
+      "rationale": "Violence and influencer brawl drama contradict the Confident Explorer persona and Refined Wit. It would also use real people's likeness.",
+      "confidence": "high"
+     },
+     "product": {
+      "score": 1,
+      "feature": "none",
+      "product": "none",
+      "evidence": [
+       "products: []",
+       "adaptations: []"
+      ],
+      "rationale": "The trend consists of event footage clips, so any product mapping would be forced. Nothing in the evidence connects it to a catalog item.",
+      "confidence": "medium",
+      "catalogMatch": false
+     },
+     "audience": {
+      "score": 3,
+      "evidence": [
+       "category: entertainment",
+       "Island Boys",
+       "Amanda Solis"
+      ],
+      "rationale": "Interest likely skews to young, online, English-speaking viewers who follow streamers. Its fit with Samsung Gulf's audience is weak and there is no Gulf data.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 4,
+      "evidence": [
+       "48 creators / 76 sampled videos",
+       "no participation format measured",
+       "onLatestBoard: true"
+      ],
+      "rationale": "It is active on TikTok, but it is reaction and repost content with no reusable format. It is also a flash trend with a post-by date of 2026-10-23.",
+      "confidence": "medium"
+     },
+     "saturation": {
+      "score": 3,
+      "evidence": [
+       "100% posted this week",
+       "stage: peaking",
+       "acceleration: -3",
+       "durability: flash"
+      ],
+      "rationale": "It is peaking with decelerating growth and very high recent creator activity, so a late entry would be crowded and short-lived.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "needsReview",
+     "evidence": [
+      "sound: null",
+      "#brandrisk"
+     ],
+     "rationale": "No audio or lyrics are carried, only a hashtag. Fight clips and reactions may contain explicit language, which cannot be verified, so ambiguity means needsReview."
+    },
+    "feasibilityClass": "infeasible"
+   },
+   "timing": {
+    "basis": "conditional median given 5 d on board",
+    "postBy": "2026-10-23T08:24:15.053Z",
+    "leadDays": 5,
+    "stayDays": 11,
+    "endOfLife": "2026-10-28T08:24:15.053Z",
+    "leadAssumed": true,
+    "postByPassed": false,
+    "remainingDays": 7,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  },
+  {
+   "trendId": "top-79097494",
+   "name": "2026 Singapore Grand Prix",
+   "status": "vetoed",
+   "finalScore": null,
+   "lifecycle": "peaking",
+   "vetoes": [
+    {
+     "code": "V-UNPRODUCIBLE",
+     "reason": "format depends on real people, live events or licensed footage our pipeline cannot produce",
+     "needsReview": false
+    },
+    {
+     "code": "V-ORIGIN",
+     "reason": "Origin is a real event, but the evidence gives no creator provenance beyond the clips. F1 and driver footage is licensed IP, and a brand using it needs clearance, so this is flagged for review.",
+     "evidence": [
+      "scope: Global",
+      "clips: @f1, @f__zine, @nothfound33, @kimssvsp"
+     ],
+     "needsReview": true
+    }
+   ],
+   "judgement": {
+    "origin": {
+     "verdict": "needsReview",
+     "evidence": [
+      "scope: Global",
+      "clips: @f1, @f__zine, @nothfound33, @kimssvsp"
+     ],
+     "rationale": "Origin is a real event, but the evidence gives no creator provenance beyond the clips. F1 and driver footage is licensed IP, and a brand using it needs clearance, so this is flagged for review."
+    },
+    "safety": {
+     "verdict": "pass",
+     "evidence": [
+      "Creators post race recaps, driver interviews, celebrity sightings and crowd clips"
+     ],
+     "rationale": "Sports coverage with no harmful content in the evidence. The sprint crash is mentioned but is not graphic content."
+    },
+    "culture": {
+     "verdict": "pass",
+     "evidence": [
+      "category: sport",
+      "celebrities like Kim Kardashian and Jang Wonyoung spotted"
+     ],
+     "rationale": "No religious or cultural sensitivity is evident. Celebrity gossip is not a Gulf cultural issue in itself."
+    },
+    "profile": {
+     "mechanic": "Creators post race recaps, driver interviews, celebrity sightings and crowd clips centred on Verstappen's win, Russell's sprint crash, the Norris/Piastri McLaren drama and celebrities such as Kim Kardashian and Jang Wonyoung.",
+     "unknowns": [
+      "Gulf engagement",
+      "Gulf creator presence",
+      "Whether the trend has a reusable format beyond the event",
+      "Rights status of race footage"
+     ],
+     "whatItIs": "A topical sports-event trend: creators post recaps, interviews, celebrity sightings and crowd clips from the 2026 F1 Singapore Grand Prix.",
+     "languages": [
+      "EN"
+     ],
+     "confidence": "medium",
+     "whySpreading": "Measured: 49 creators / 67 sampled videos, 99% posted this week. The driver is news and event coverage, with big accounts such as @f1 at 4200000 views. Counter growth is +0.17%/day, and lifecycle stage is peaking with durability flash.",
+     "originAndMeaning": "Tied to a real F1 event, tagged #singaporegp. No coded or slang meaning is evident. Evidence does not say where the trend started beyond the event itself."
+    },
+    "criteria": {
+     "gulf": {
+      "score": 3,
+      "evidence": [
+       "scope: Global",
+       "lang: EN",
+       "no Gulf creators among the clips"
+      ],
+      "rationale": "Nothing in the evidence points to the Gulf. It is a Singapore event with global coverage, and no Gulf text or creators appear.",
+      "confidence": "medium"
+     },
+     "brand": {
+      "score": 3,
+      "evidence": [
+       "Creators post ... celebrity sightings and crowd clips",
+       "McLaren teammate drama between Norris and Piastri"
+      ],
+      "rationale": "Riding driver rivalry and celebrity gossip risks looking opportunistic and unlicensed, and it does not fit the Refined Wit persona. It sits poorly with Samsung's Open, Bold, Authentic character.",
+      "confidence": "medium"
+     },
+     "product": {
+      "score": 2,
+      "feature": "none",
+      "product": "none",
+      "evidence": [
+       "products: []",
+       "adaptations: []"
+      ],
+      "rationale": "No product link exists. Any mapping, for example Galaxy S26 Ultra camera zoom at a race, would be forced and would depend on real event footage.",
+      "confidence": "medium",
+      "catalogMatch": false
+     },
+     "audience": {
+      "score": 5,
+      "evidence": [
+       "category: sport",
+       "99% posted this week"
+      ],
+      "rationale": "F1 has broad appeal, but the evidence gives no Gulf audience data, so the fit is unknown and neutral.",
+      "confidence": "low"
+     },
+     "platform": {
+      "score": 4,
+      "evidence": [
+       "Carried 2d past its last fresh sighting",
+       "postByPassed: true",
+       "durability: flash"
+      ],
+      "rationale": "It is TikTok-native, but the post-by date has passed (2026-10-21T09:22:26.407Z) and durability is flash, so a timely entry is unlikely.",
+      "confidence": "high"
+     },
+     "saturation": {
+      "score": 2,
+      "evidence": [
+       "49 creators / 67 sampled videos",
+       "@f1 4200000 views",
+       "lifecycle stage: peaking"
+      ],
+      "rationale": "Dominated by official F1 and large creators at peak, with an expiring window. A brand entry would add little.",
+      "confidence": "medium"
+     }
+    },
+    "audioExplicit": {
+     "verdict": "pass",
+     "evidence": [
+      "sound: null",
+      "clips sound: #singaporegp"
+     ],
+     "rationale": "No audio track or lyrics are carried; the 'sound' is only a hashtag. Nothing explicit is evidenced, though lyrics are not measured by the radar."
+    },
+    "feasibilityClass": "infeasible"
+   },
+   "timing": {
+    "basis": "conditional median given 11 d on board",
+    "postBy": "2026-10-21T09:22:26.407Z",
+    "leadDays": 5,
+    "stayDays": 15,
+    "endOfLife": "2026-10-26T09:22:26.407Z",
+    "leadAssumed": true,
+    "postByPassed": true,
+    "remainingDays": 5,
+    "stayFromHistory": true
+   },
+   "promptVersion": "profile-v1.1-2026-10-21",
+   "model": "claude-sonnet-5-5"
+  }
+ ]
+}
