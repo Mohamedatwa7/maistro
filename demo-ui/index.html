@@ -1741,6 +1741,7 @@ function applyServerPieces(pieces){
    else if(dl.st!==status||dl.ver!=='v'+st.version.n){dl.st=status;dl.ver='v'+st.version.n;changed++}
    if(st.decision){
     if(status==='approved'){dl.appr={name:st.decision.name,info:st.decision.role,at:fmtStamp(st.decision.at)};
+     if(k==='mood'&&st.decision.details&&p.mood)p.mood.selection=st.decision.details;
      if(st.documents){dl.appr.lm=st.documents.line_manager?{name:'Line-manager approval',...st.documents.line_manager}:dl.appr.lm;dl.appr.adlcp=st.documents.adlcp?{name:'ADLCP approval',...st.documents.adlcp}:dl.appr.adlcp}}
     if(status==='rejected')dl.rej=esc(st.decision.reason||'');
    }
@@ -1876,6 +1877,19 @@ async function stageGen(pid,sid,changes){
    attachTo(p,sid,artifact,sg.agent);
    delete GEN.busy[key];studioRefresh();
    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip(sg.agent,1)}<div style="font-size:12.5px"><b>${sg.agent}</b> delivered ${esc(delivTitle(sid,artifact))}.</div></div>`);
+   return;
+  }
+  /* 6.2: the moodboard is a visual DIRECTION first, then a set of tiles */
+  if(sid==='mood'&&useJobs()&&!changes){
+   GEN.busy[key]='Art director is writing the visual direction…';studioRefresh();
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'mood',pieceId:p.id,userInput,piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));
+   if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
+   if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the render could not be submitted');
+   GEN.busy[key]='Soul is rendering the four-tile set…';
+   p.jobs=p.jobs||{};p.jobs['g:mood']={jobId:sd.job.id,meta:{}};saveGenerated();
+   delete CHECKS[p.id+':mood'];
+   jobPoll(p.id,'mood',sd.job.id,0);
    return;
   }
   /* image/video stages: director → higgsfield */
@@ -2246,6 +2260,37 @@ function rRefControl(p){
  </div>`;
 }
 /* ---------- regeneration chat — under every generated piece ---------- */
+/* 6.2 — a moodboard SET: the visual direction, four tiles, the automated check flags, the human's selection */
+const CHECKS={};
+async function loadChecks(pid,sid){
+ try{const r=await authFetch('/api/studio?checks='+encodeURIComponent(pid)+'&stage='+encodeURIComponent(sid));const d=await r.json().catch(()=>({}));if(r.ok){CHECKS[pid+':'+sid]=(d.checks||[])[0]||null;studioRefresh()}}catch(e){}
+}
+function rMoodSet(p){
+ const m=p.mood,d=m.direction||{};
+ const key=p.id+':mood';
+ if(CHECKS[key]===undefined){CHECKS[key]=null;loadChecks(p.id,'mood')}
+ const chk=CHECKS[key];
+ const flagsFor=i=>{const r=chk&&chk.results&&chk.results.images&&chk.results.images.find(x=>x.index===i);return r?r:null};
+ const sel=(m.selection&&m.selection.selectedImages)||[];
+ return `
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+   ${m.images.map((im,i)=>{const r=flagsFor(i);return `<div class="card" style="overflow:hidden;position:relative${sel.includes(i)?';outline:2px solid var(--gold)':''}">
+    <img ${mediaAttrs(im,'url')} alt="Moodboard tile ${i+1}" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#000">
+    <div style="padding:8px 10px"><div class="mono dim" style="font-size:10px">TILE ${i+1}${im.tag?' · '+esc(im.tag).toUpperCase():''}</div>
+     <div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">${r?(r.pass?badge('go','CHECKS PASSED'):r.needsReview?badge('gold','NEEDS A LOOK'):badge('alert','FLAGGED')):chk===null?badge('muted','CHECKING…'):badge('muted','NO CHECK')}${sel.includes(i)?badge('gold','SELECTED'):''}</div>
+     ${r&&r.flags&&r.flags.length?`<div class="dim" style="font-size:11px;margin-top:4px">${r.flags.map(f=>esc(f)).join(' · ')}</div>`:''}</div></div>`}).join('')}
+  </div>
+  <div style="margin-top:12px;border:1px solid var(--hairline);border-radius:12px;padding:12px;background:rgba(0,0,0,.35)">
+   <span class="kick">Visual direction${d.leadingPrinciple?' · '+esc(d.leadingPrinciple):''}</span>
+   <div class="grid2e" style="margin-top:8px;font-size:12.5px;line-height:1.6">
+    ${[['Setting',d.setting],['Lighting',d.lighting],['Mood',d.mood],['Styling',d.styling],['Wardrobe',d.wardrobe],['Composition',d.compositionStyle],['Camera',d.cameraFeel],['Trend adaptation',d.trendAdaptation]].filter(([,v])=>v).map(([k,v])=>`<div><b style="color:#bae6fd">${k}:</b> <span dir="auto">${esc(v)}</span></div>`).join('')}
+   </div>
+   ${(d.palette||[]).length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${d.palette.map(c=>`<span class="mono" style="font-size:10px;padding:3px 8px;border-radius:99px;border:1px solid var(--hairline);background:${esc(c.hex)}22"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${esc(c.hex)};margin-right:5px;vertical-align:middle"></span>${esc(c.name)} ${esc(c.hex)} · ${esc(c.role)}</span>`).join('')}</div>`:''}
+   ${m.directionVersion?`<p class="mono dim" style="font-size:10px;margin-top:8px">${esc(m.directionVersion)}${chk?' · check '+esc(chk.prompt_version||'')+(chk.passed?' passed':' flagged'):''}</p>`:''}
+  </div>
+  ${m.selection&&m.selection.annotations?`<p class="dim" style="font-size:12px;margin-top:8px"><b style="color:#6ee7b9">Reviewer:</b> ${esc(m.selection.annotations)}</p>`:''}
+  ${dirNote(m)}${p.studio?regenBox(p,'mood'):''}`;
+}
 function regenBox(p,sid){
  const key=genKey(p,sid);
  const sg=STAGES[BOT_STAGE_IDX[sid]-1];
@@ -3196,7 +3241,7 @@ function stageArtifact(p,n){
  if(n>p.stage)return head(badge('muted','QUEUED'))+`<p class="dim" style="font-size:12.5px">Waiting for stage 0${p.stage} to clear. ${s.agent} picks this up automatically.</p>`;
  const done=n<p.stage?badge('go','FINAL · IN PRODUCTION CENTER'):badge('ai','IN PROGRESS');
  switch(s.id){
-  case 'mood':return head(done)+(p.mood?(p.mood.imageUrl?`
+  case 'mood':return head(done)+(p.mood?(p.mood.images&&p.mood.images.length?rMoodSet(p):p.mood.imageUrl?`
    <img class="gen-media" ${mediaAttrs(p.mood,'imageUrl')} alt="Generated moodboard">${dirNote(p.mood)}${p.studio?regenBox(p,'mood'):''}`:`
    <div class="mood">${p.mood.tiles.map(t=>`<div style="background:linear-gradient(135deg,${t[0]},${t[1]})"><span>${t[2]}</span></div>`).join('')}</div>
    <p class="dim" style="font-size:12.5px;line-height:1.65;margin-top:12px">${p.mood.note}</p>`):'');
@@ -3388,6 +3433,9 @@ function openApprove(id){
    <label class="upl"><span class="u1">Line manager approval</span><span class="u2">PDF / e-mail export — stored privately with a checksum</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.eml,.msg" onchange="uplOk(this,'line_manager')"></label>
    <label class="upl"><span class="u1">ADLCP approval</span><span class="u2">Signed document — stored privately with a checksum</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.eml,.msg" onchange="uplOk(this,'adlcp')"></label>
   </div>`:''}
+  ${d.stage==='mood'&&pr.mood&&pr.mood.images?`<div class="f-field"><label>Select the tiles that set the direction (one or more)</label>
+   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${pr.mood.images.map((im,i)=>`<label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" class="ap-sel" value="${i}" checked> Tile ${i+1}${im.tag?' · '+esc(im.tag):''}</label>`).join('')}</div></div>
+   <div class="f-field" style="margin-top:12px"><label>Annotations for later stages (optional)</label><input class="inp-l" id="ap-annot" placeholder="e.g. keep the warm rim light, less clutter in the setting"></div>`:''}
   <div class="f-field" style="margin-top:14px"><label>Your name</label><input class="inp-l" id="ap-name" placeholder="Full name" value="${esc((AUTH.member&&AUTH.member.name)||'')}"></div>
   ${AUTH.member?`<div class="f-field" style="margin-top:12px"><label>Signed in as</label><div class="mono dim" style="font-size:11px;padding:8px 0">${esc(AUTH.member.email)} · ${esc(AUTH.member.role.replace('_',' '))}</div><input type="hidden" id="ap-role" value="${esc(AUTH.member.role)}"></div>`:
   `<div class="f-field" style="margin-top:12px"><label>Your role</label><select class="inp-l" id="ap-role">${(d.stage==='final'?[['line_manager','Line manager'],['adlcp_approver','ADLCP approver'],['admin','Admin']]:[['reviewer','Reviewer'],['line_manager','Line manager'],['adlcp_approver','ADLCP approver'],['admin','Admin']]).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>`}
@@ -3409,7 +3457,10 @@ async function confirmApprove(id){
  const d=DELIVS.find(x=>x.id===id);
  const docs=ups.length===2?{line_manager:JSON.parse(ups[0].dataset.doc),adlcp:JSON.parse(ups[1].dataset.doc)}:undefined;
  const go=$('#ap-go');if(go){go.disabled=true;go.textContent='Recording…'}
- const srv=await recordDecision(d,{decision:'approved',name,role,info,documents:docs});
+ const sels=[...document.querySelectorAll('#modal .ap-sel')].filter(c=>c.checked).map(c=>+c.value);
+ const details=d.stage==='mood'&&sels.length?{selectedImages:sels,annotations:(($('#ap-annot')||{}).value||'').trim()||null}:undefined;
+ if(d.stage==='mood'&&document.querySelectorAll('#modal .ap-sel').length&&!sels.length){const err=$('#ap-err');if(err)err.textContent='Select at least one tile.';return}
+ const srv=await recordDecision(d,{decision:'approved',name,role,info,documents:docs,details});
  if(!srv.ok){
   if(go){go.disabled=false;go.textContent='Record approval'}
   const err=$('#ap-err');if(err)err.textContent='Not recorded — '+srv.error;
@@ -3419,6 +3470,7 @@ async function confirmApprove(id){
  d.appr={name,info:role+(info?' · '+info:''),at:fmtStamp(srv.data.decidedAt||Date.now()),versionId:srv.data.versionId};
  d.ver='v'+(srv.data.version||1);
  if(docs){d.appr.lm=docs.line_manager;d.appr.adlcp=docs.adlcp}
+ if(details){const pp=PROJECTS.find(x=>x.id===d.proj);if(pp&&pp.mood)pp.mood.selection=details}
  saveGenerated();
  closeModal();$('#view').innerHTML=rStudio();reveal();
  const isQC=d.stage==='qc';

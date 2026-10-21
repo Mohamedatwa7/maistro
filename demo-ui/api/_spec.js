@@ -64,6 +64,15 @@ function inferLanguages(markets) {
   return ar ? ['en', 'ar'] : ['en'];
 }
 
+/** Postgres stores jsonb with its own key order, so equality is decided on a
+ *  canonical form (keys sorted recursively), never on JSON.stringify of the
+ *  object as it came back. */
+function canonical(v) {
+  if (Array.isArray(v)) return '[' + v.map(canonical).join(',') + ']';
+  if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + canonical(v[k])).join(',') + '}';
+  return JSON.stringify(v === undefined ? null : v);
+}
+
 /** Write a new version when the derived spec differs from the latest stored one. */
 async function syncSpec(legacyId, opts = {}) {
   const spec = await buildSpec(legacyId);
@@ -71,7 +80,7 @@ async function syncSpec(legacyId, opts = {}) {
   const last = await queryRows('creative_specs', `select=id,version,spec&piece_id=eq.${q(spec.pieceId)}&order=version.desc&limit=1`);
   const prev = last[0] || null;
   const { stages: _s, ...head } = spec;
-  const same = prev && JSON.stringify(prev.spec) === JSON.stringify(spec);
+  const same = prev && canonical(prev.spec) === canonical(spec);
   if (same) return { pieceId: spec.pieceId, version: prev.version, changed: false };
   const version = (prev ? prev.version : 0) + 1;
   await insertRows('creative_specs', [{ piece_id: spec.pieceId, version, spec, changed_by: opts.memberId || null, change_note: opts.note || null }]);
@@ -85,4 +94,4 @@ async function latestSpec(legacyId) {
   return rows[0] || null;
 }
 
-module.exports = { buildSpec, syncSpec, latestSpec, summarise };
+module.exports = { buildSpec, syncSpec, latestSpec, summarise, canonical };

@@ -26,6 +26,7 @@ const ROUTES = {
   members: 'members',
   jobs: 'jobs',
   kb: 'kb',
+  studio: 'studio',
 };
 
 module.exports = async (req, res) => {

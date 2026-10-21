@@ -62,6 +62,7 @@ function fakePostgrest(base = 'https://sb.test') {
     if (table === 'trend_snapshots') r.id = r.id || rows.length + 1;
     if (table === 'trend_scores' || table === 'trend_decisions' || table === 'reconciliation_reports' || table === 'kb_documents' || table === 'generation_records' || table === 'creative_specs' || table === 'prompt_registry') r.id = r.id || rows.length + 1;
     if (table === 'kb_documents') { r.active = r.active !== undefined ? r.active : true; r.created_at = now(); }
+    if (table === 'stage_checks') { r.id = r.id || rows.length + 1; r.at = now(); }
     if (table === 'members') { r.active = r.active !== undefined ? r.active : true; r.created_at = r.created_at || now(); r.updated_at = now(); }
     return r;
   }

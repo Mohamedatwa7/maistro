@@ -34,5 +34,14 @@ test('syncSpec: a piece gets a spec from its plan; a new stage version changes i
     const latest = await latestSpec('gen-spec1');
     assert.equal(latest.version, 5); assert.equal(latest.spec.stages.thumb.approved.version, 2); assert.equal(latest.spec.stages.thumb.approved.by, 'N'); assert.equal(latest.spec.stages.thumb.lastRejection, null, 'the approved version carries no rejection');
     assert.equal(await syncSpec('gen-nope'), null);
+    // jsonb comes back with its own key order: still "unchanged"
+    const { canonical } = require('../../api/_spec.js');
+    const stored = pg.tables.creative_specs.at(-1);
+    const reorder = (v) => (Array.isArray(v) ? v.map(reorder) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).reverse().map((k) => [k, reorder(v[k])])) : v);
+    const shuffled = reorder(stored.spec);
+    assert.notEqual(JSON.stringify(shuffled), JSON.stringify(stored.spec), 'the shuffled copy stringifies differently');
+    assert.equal(canonical(shuffled), canonical(stored.spec));
+    stored.spec = shuffled;
+    const again = await syncSpec('gen-spec1'); assert.equal(again.changed, false, 'key order alone never makes a new version');
   } finally { f.restore(); pieces.restore(); decisions.restore(); delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; }
 });

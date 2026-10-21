@@ -31,7 +31,8 @@ function normalizeRequest(b = {}) {
   const aspect_ratio = ratios.includes(b.aspect_ratio) ? b.aspect_ratio : '16:9';
   const ref = typeof b.ref === 'string' && /^https:\/\//.test(b.ref) ? b.ref : null;
   const duration = Math.min(30, Math.max(4, parseInt(b.duration, 10) || 5));
-  return { kind, prompt, resolution, aspect_ratio, ref, duration };
+  const batch = kind === 'image' && Number(b.batch) === 4 ? 4 : 1; // SOUL V2 batch_size is 1 or 4
+  return { kind, prompt, resolution, aspect_ratio, ref, duration, batch };
 }
 
 // Error classification from the documented status codes (HIGGSFIELD.md §1):
@@ -64,7 +65,7 @@ function providerError(r, body) {
 async function submit(reqBody, opts = {}) {
   const creds = credentials();
   if (!creds) throw Object.assign(new Error('HF_CREDENTIALS is not configured'), { status: 503 });
-  const { kind, prompt, resolution, aspect_ratio, ref, duration } = normalizeRequest(reqBody);
+  const { kind, prompt, resolution, aspect_ratio, ref, duration, batch } = normalizeRequest(reqBody);
   const idem = opts.idempotencyKey ? { 'Idempotency-Key': String(opts.idempotencyKey).slice(0, 255) } : {};
 
   if (kind === 'image' && ref) {
@@ -96,7 +97,7 @@ async function submit(reqBody, opts = {}) {
   // documented body; the SDK's subscribe() is not used so that timeouts,
   // retries and headers are ours and the path is testable with recordings.
   const input = kind === 'image'
-    ? { prompt, aspect_ratio, resolution: resolution === '480p' ? '720p' : resolution, batch_size: 1 }
+    ? { prompt, aspect_ratio, resolution: resolution === '480p' ? '720p' : resolution, batch_size: batch }
     : { prompt, aspect_ratio, resolution, duration, generate_audio: true };
   const r = await fetchT(`${API}/${MODELS[kind]}`, {
     method: 'POST',
