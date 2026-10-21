@@ -28,6 +28,8 @@ function fakePostgrest(base = 'https://sb.test') {
       else if (k === 'limit') limit = Number(v);
       else if (k === 'on_conflict') onConflict = v.split(',');
       else {
+        if (v === 'not.is.null') { filters.push({ col: k, op: 'notnull' }); continue; }
+        if (v === 'is.null') { filters.push({ col: k, op: 'isnull' }); continue; }
         const m = v.match(/^(eq|in|lte|gte)\.(.*)$/s);
         if (!m) throw new Error(`fake-postgrest: unsupported filter ${k}=${v}`);
         filters.push({ col: k, op: m[1], val: m[1] === 'in' ? m[2].replace(/^\(|\)$/g, '').split(',').map(decodeURIComponent) : m[2] });
@@ -36,6 +38,8 @@ function fakePostgrest(base = 'https://sb.test') {
     return { table, filters, order, limit, select, onConflict };
   }
   const matches = (row, f) => f.every(({ col, op, val }) => {
+    if (op === 'notnull') return row[col] != null;
+    if (op === 'isnull') return row[col] == null;
     if (op === 'eq') return String(row[col]) === String(val);
     if (op === 'in') return val.includes(String(row[col]));
     if (row[col] == null) return false;
@@ -54,6 +58,7 @@ function fakePostgrest(base = 'https://sb.test') {
     if (table === 'jobs') { r.state = r.state || 'queued'; r.attempts = r.attempts || 0; r.created_at = r.created_at || now(); r.provider_ref = r.provider_ref || null; }
     if (table === 'qc_results') r.created_at = now();
     if (table === 'trend_snapshots') r.id = r.id || rows.length + 1;
+    if (table === 'trend_scores' || table === 'trend_decisions' || table === 'reconciliation_reports') r.id = r.id || rows.length + 1;
     if (table === 'members') { r.active = r.active !== undefined ? r.active : true; r.created_at = r.created_at || now(); r.updated_at = now(); }
     return r;
   }
@@ -68,7 +73,7 @@ function fakePostgrest(base = 'https://sb.test') {
     const rows = t(p.table);
     if (method === 'GET') {
       let out = rows.filter((r) => matches(r, p.filters));
-      if (p.order) { const [col, dir] = p.order.split('.'); out.sort((a, b) => (a[col] < b[col] ? -1 : a[col] > b[col] ? 1 : 0) * (dir === 'desc' ? -1 : 1)); }
+      if (p.order) { const [col, dir] = p.order.split(',')[0].split('.'); out.sort((a, b) => { const x = a[col], y = b[col]; if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (x < y ? -1 : x > y ? 1 : 0) * (dir === 'desc' ? -1 : 1); }); }
       out = out.slice(0, p.limit).map((r) => project(r, p.select));
       return new Response(JSON.stringify(out), { status: 200, headers: { 'content-type': 'application/json' } });
     }

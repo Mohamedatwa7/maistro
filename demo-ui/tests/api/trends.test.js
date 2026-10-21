@@ -242,7 +242,7 @@ test('cache: a raw (?all=1) miss stores no curation; the next curated read withi
     ['api.anthropic.com', () => { claude++; return anthropicReply({ selected: [{ id: 'setup-line-then-deadpan-punchline-caption-reveal', reason: 'r', hashtags: [] }] }); }],
     pg.route,
   ]);
-  const h = api('trends.js', { ANTHROPIC_API_KEY: 'k', TRENDRADAR_AGENT_KEY: 'agent-key', TRENDRADAR_BASE_URL: 'https://tr.test', CRON_SECRET: 'cron', ...SBC });
+  const h = api('trends.js', { ANTHROPIC_API_KEY: 'k', TRENDRADAR_AGENT_KEY: 'agent-key', TRENDRADAR_BASE_URL: 'https://tr.test', CRON_SECRET: 'cron', MAISTRO_TREND_SCORING: '0', ...SBC }); // scoring is tested in tests/trends
   try {
     let r = res(); await h.handler(req({ query: { all: '1' } }), r);
     assert.equal(upstream, 1); assert.equal(claude, 0); assert.deepEqual(pg.tables.trends_cache[0].payload.curated, []);

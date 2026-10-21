@@ -371,11 +371,26 @@ module.exports = async (req, res) => {
         }
         await writeCache({ ...board, curated, curatedBy });
         const snap = await writeSnapshots(board);
-        return res.status(200).json({ ok: true, refreshed: true, source: board.source, boardTotal: board.total, curated: curated.length, curatedBy, snapshots: snap, at: new Date().toISOString() });
+        // 5.4: veto-then-score the board (judgements cached per trend × board × prompt version)
+        let scoring = null;
+        if (cacheConfigured() && process.env.MAISTRO_TREND_SCORING !== '0') {
+          try { const { scoreBoard } = require('../_trends/engine.js'); scoring = (await scoreBoard(board)).summary; }
+          catch (e) { scoring = { error: String(e.message || e).slice(0, 200) }; }
+        }
+        return res.status(200).json({ ok: true, refreshed: true, source: board.source, boardTotal: board.total, curated: curated.length, curatedBy, snapshots: snap, scoring, at: new Date().toISOString() });
       } catch (e) {
         await markCacheError(e.message || e);
         return res.status(502).json({ ok: false, refreshed: false, error: String(e.message || e) });
       }
+    }
+    // 5.5: the scored view (ranked / rejected / needs review) for session holders
+    if (String(q.view || '') === 'scored') {
+      const { requireSession } = require('../_auth.js');
+      if (!requireSession(req, res)) return;
+      res.setHeader('Cache-Control', 'no-store');
+      if (!cacheConfigured()) return res.status(503).json({ error: 'storage is not configured' });
+      try { const { latestScores } = require('../_trends/engine.js'); return res.status(200).json(await latestScores()); }
+      catch (e) { return res.status(502).json({ error: String(e.message || e) }); }
     }
     let board = null, cache = { hit: false, stale: false, fetchedAt: null, ageS: null };
     const cached = await readCache();
