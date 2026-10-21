@@ -3,13 +3,27 @@
   "private": true,
   "dependencies": {
     "@anthropic-ai/sdk": "^0.70.0",
-    "@higgsfield/client": "^0.2.6"
+    "@higgsfield/client": "^0.2.6",
+    "next": "15.5.28",
+    "react": "19.1.1",
+    "react-dom": "19.1.1"
   },
   "scripts": {
-    "test": "node --test \"tests/**/*.test.js\"",
-    "check": "node --check api/trends.js && node --check api/hermes.js && node --check api/director.js && node --check api/higgsfield.js && node --check api/qc-f1x8.js && node --check api/ingest.js && node --check api/projects.js && node --check api/sentiment.js && node --check api/track.js && node --check api/upload.js && node --check api/translate.js"
+    "test": "node --test \"tests/**/*.test.js\" \"tests/**/*.test.ts\"",
+    "check": "node --check \"api/[route].js\" && node --check api/_handlers/trends.js && node --check api/_handlers/hermes.js && node --check api/_handlers/director.js && node --check api/_handlers/higgsfield.js && node --check api/_handlers/qc-f1x8.js && node --check api/_handlers/ingest.js && node --check api/_handlers/projects.js && node --check api/_handlers/sentiment.js && node --check api/_handlers/track.js && node --check api/_handlers/upload.js && node --check api/_handlers/translate.js && node --check api/_handlers/login.js && node --check api/_handlers/health.js",
+    "dev": "next dev",
+    "prebuild": "node scripts/sync-legacy.mjs",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit"
   },
   "engines": {
     "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "24.7.0",
+    "@types/react": "19.1.17",
+    "@types/react-dom": "19.1.11",
+    "typescript": "5.9.3"
   }
 }

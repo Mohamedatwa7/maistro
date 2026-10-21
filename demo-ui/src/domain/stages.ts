@@ -1,0 +1,108 @@
+// The content-piece stage model (ARCHITECTURE_TARGET §3). Pure: no I/O, no
+// framework. Everything the server enforces about ordering and approvals
+// lives here and is unit-tested; services call these functions and persist
+// the result.
+
+export const STAGE_KINDS = ["plan", "mood", "thumb", "brief", "board", "draft", "qc", "final"] as const;
+export type StageKind = (typeof STAGE_KINDS)[number];
+
+export const STAGE_STATES = ["locked", "ready", "generating", "generated", "rejected", "approved"] as const;
+export type StageState = (typeof STAGE_STATES)[number];
+
+export const ORIGINS = ["hermes_dispatch", "external_hermes", "studio"] as const;
+export type Origin = (typeof ORIGINS)[number];
+
+export const ROLES = ["admin", "creator", "reviewer", "line_manager", "adlcp_approver", "viewer"] as const;
+export type Role = (typeof ROLES)[number];
+
+export type StageSnapshot = { kind: StageKind; state: StageState };
+
+export const stagePosition = (kind: StageKind): number => STAGE_KINDS.indexOf(kind);
+
+/** What must already be approved before `kind` may be generated. */
+export function prerequisites(kind: StageKind): StageKind[] {
+  switch (kind) {
+    case "plan": return [];
+    case "mood": return ["plan"];
+    case "thumb": return ["plan"];
+    case "brief": return ["plan"];
+    case "board": return ["plan"];
+    case "draft": return ["plan", "brief", "board"];
+    case "qc": return ["draft"]; // QC needs a generated draft, approval of the draft is the QC itself
+    case "final": return ["qc"];
+  }
+}
+
+/** Which stages become `ready` given the current snapshot. External pushes
+ *  arrive in any order and are reviewed as they come, so for that origin every
+ *  stage is ready once the plan exists. */
+export function readyStages(stages: StageSnapshot[], origin: Origin): StageKind[] {
+  const state = new Map(stages.map((s) => [s.kind, s.state]));
+  const done = (k: StageKind) => state.get(k) === "approved" || (k === "draft" && state.get(k) === "generated");
+  const out: StageKind[] = [];
+  for (const kind of STAGE_KINDS) {
+    const st = state.get(kind) ?? "locked";
+    if (st !== "locked" && st !== "ready") continue;
+    if (origin === "external_hermes") { if (kind === "plan" || done("plan")) out.push(kind); continue; }
+    if (prerequisites(kind).every(done)) out.push(kind);
+  }
+  return out;
+}
+
+export type Transition =
+  | { type: "generate" }
+  | { type: "generated" }
+  | { type: "failed" }
+  | { type: "approve"; role: Role; approverId: string; generatedBy: string | null; documents: { line_manager: boolean; adlcp: boolean } }
+  | { type: "reject"; reason: string }
+  | { type: "regenerate" }
+  | { type: "reopen"; role: Role };
+
+export type TransitionResult = { ok: true; next: StageState } | { ok: false; code: string; message: string };
+
+/** The single place that decides whether a stage transition is allowed. */
+export function transition(kind: StageKind, from: StageState, t: Transition): TransitionResult {
+  const no = (code: string, message: string): TransitionResult => ({ ok: false, code, message });
+  switch (t.type) {
+    case "generate":
+      if (from !== "ready" && from !== "rejected") return no("not_ready", `${kind} is ${from}; it can only be generated when ready or rejected`);
+      return { ok: true, next: "generating" };
+    case "generated":
+      if (from !== "generating") return no("not_generating", `${kind} is ${from}; a job result can only land on a generating stage`);
+      return { ok: true, next: "generated" };
+    case "failed":
+      if (from !== "generating") return no("not_generating", `${kind} is ${from}`);
+      return { ok: true, next: "ready" };
+    case "regenerate":
+      if (from !== "generated" && from !== "rejected") return no("not_regenerable", `${kind} is ${from}; only a generated or rejected stage can be regenerated`);
+      return { ok: true, next: "generating" };
+    case "reject":
+      if (from !== "generated") return no("not_reviewable", `${kind} is ${from}; only a generated stage can be rejected`);
+      if (!t.reason || !t.reason.trim()) return no("reason_required", "a rejection needs a written reason");
+      return { ok: true, next: "rejected" };
+    case "approve": {
+      if (from !== "generated") return no("not_reviewable", `${kind} is ${from}; only a generated stage can be approved`);
+      if (t.generatedBy && t.generatedBy === t.approverId && t.role !== "admin") return no("self_approval", "a member cannot approve a version they generated");
+      if (kind === "final") {
+        if (!t.documents.line_manager || !t.documents.adlcp) return no("documents_required", "final needs the line-manager and ADLCP documents attached to this version");
+        if (!["line_manager", "adlcp_approver", "admin"].includes(t.role)) return no("role_required", "final can only be approved by a line manager or ADLCP approver");
+      } else if (!["reviewer", "line_manager", "adlcp_approver", "admin"].includes(t.role)) {
+        return no("role_required", `${t.role} cannot approve stages`);
+      }
+      return { ok: true, next: "approved" };
+    }
+    case "reopen":
+      if (from !== "approved") return no("not_approved", `${kind} is ${from}`);
+      if (t.role !== "admin") return no("role_required", "only an admin can reopen an approved stage");
+      return { ok: true, next: "ready" };
+  }
+}
+
+/** Piece status derived from its stages (never stored independently). */
+export function pieceStatus(stages: StageSnapshot[]): "planning" | "in_production" | "in_review" | "approved" {
+  const state = new Map(stages.map((s) => [s.kind, s.state]));
+  if ((state.get("plan") ?? "locked") !== "approved") return "planning";
+  if (state.get("final") === "approved") return "approved";
+  if ([...state.values()].some((s) => s === "generated")) return "in_review";
+  return "in_production";
+}
