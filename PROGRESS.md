@@ -91,7 +91,23 @@ The user approved the audit with "approve all changes that will make it better" 
 
 Phase 3 complete. Next: Phase 4, milestone M1 (security quick wins in the current code: auth gate on spend endpoints, SSRF allow-list, escaping, timeouts, ingest idempotency, staleness banners, CRON_SECRET), each change behind the characterization suite and deployed to a preview first.
 
+## Phase 4, milestone M1: security quick wins (commits f4fed8a..abb0ed4, production from dad31d0)
+
+Done-when per `MIGRATION_PLAN.md` M1: characterization tests pass; preview verified; production promoted.
+
+Status: **PASSED** by checker. `main` fast-forwarded to the branch tip (abb0ed4).
+
+- Commits, one per change: bounded outbound HTTP with timeouts/retries and pinned function durations; escaping of every interpolated campaign, deliverable and approval field (`esc` now covers `>"'`); F1X8 proxy SSRF allow-list (media hosts only); constant-time bearer checks and cron detection by `CRON_SECRET`; `/api/ingest` content idempotency; trend-feed and performance empty/unreachable/stale states with a data-age pill; interim single-password login (HttpOnly cookie) gating hermes, director, higgsfield, qc-f1x8, upload, translate; legacy LangGraph engine archived to `legacy/engine` with its CI retired; README rewritten.
+- `npm test`: 49 tests, 49 pass (up from 34). `npm run check`: exit 0.
+- Production probes (checker, no app password, so stopped at the 401s): `GET /api/login` 200 `{"configured":true,"authenticated":false}`; `POST` to hermes, director, higgsfield, upload, translate and qc-f1x8 without a cookie all 401 `{"error":"login required"}`; `POST /api/ingest` without a key 401; `GET /api/trends` 200 count 10 curatedBy claude; `GET /api/track?days=14` 200; `GET /` 200.
+- Preview deployments sit behind Vercel Authentication and report `configured:false` because preview env vars cannot be set until the repo is git-connected; the builder recorded that as a manual step for the owner in `REBUILD_LOG.md`.
+
+Next: M2, Next.js shell and data layer, starting with migrations and the service-side campaign store.
+
 ## For the user to know (no action required unless you disagree)
+
+- **Manual step from M1:** connect the GitHub repo to the Vercel project (Vercel dashboard, project settings, Git) and add the preview environment variables, so previews get real config and releases stop depending on a developer's working tree. Details in `REBUILD_LOG.md`.
+- **App password:** the interim login password lives only in Vercel env; neither session has it, by design.
 
 - **M1 changes how releases happen:** production deploys move from the CLI working tree to git-connected Vercel with previews (ADR-009).
 - **ADR-003 roles:** the builder's proposal stands until you amend it.
