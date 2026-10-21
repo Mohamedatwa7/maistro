@@ -2,7 +2,7 @@
 
 Strangler approach (ADR-009): ma1stro.com keeps working at every step; each milestone is independently shippable to a Vercel preview, verified end to end, then promoted. Critical and High audit findings come first. Effort is for one engineer; "risk" is the chance of a visible regression; every milestone names its rollback.
 
-**Status (2026-10-21):** M0, M1 and M2 are code complete and in production (M2's done-when awaits the owner's first member sign-in and one Studio click-through; stage ORDER enforcement is deferred to M3). M4's agent-API source, request schemas and `trends_cache` with refresh-on-read are live; its hourly cron and all of M3 wait on the Pro-plan decision. M6 early items (Gulf time, RTL) are live. Everything else is open.
+**Status (2026-10-21):** M0–M3 are code complete and in production (Pro plan since 2026-10-21: minute jobs tick, hourly trends refresh). M2's done-when awaits the owner's first member sign-in and one Studio click-through; M3's done-when (a render completing with the tab closed) awaits the owner's first live generation. M4 is complete except the Hermes-side zod schemas (the hand-rolled validator stands in). M6 early items (Gulf time, RTL) are live. M5, M7–M10 are open.
 
 | # | Milestone | Scope (audit ids) | Done when | Risk | Rollback |
 |---|---|---|---|---|---|
