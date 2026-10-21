@@ -168,10 +168,15 @@ Status: **PASSED** by checker (code review plus probes; no live document upload,
 
 Status: **PASSED** by checker against the handlers. The route table lists all 13 handlers with the same auth split the code enforces: session cookie on hermes, director, higgsfield, qc-f1x8, upload, translate (exactly the six that call `requireSession`); ingest key on `/api/ingest`, `/api/sentiment` POST and `/api/track?store=1`; `CRON_SECRET` for the daily cron. New sections for health, login, track, translate and upload are present; the validation contract paragraph states 400 for hermes and 422 for director and ingest with `problems[]`; no section mentions maistro-demo.vercel.app and the base URL is ma1stro.com.
 
-## [GATE] Owner items blocking M2 part 2 (only the user can provide these)
+## M2 part 1 applied: migrations 001-006 on Maistro's Supabase (log 7b50e15; REBUILD_LOG Q-006 answered)
 
-1. **Supabase connection string and anon key** (REBUILD_LOG Q-006): set `MAISTRO_DATABASE_URL` (direct Postgres connection string of Maistro's Supabase project) so `db/migrate.mjs` can apply migrations 001-006, and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for the browser client. Give them to either session or add them to Vercel env; neither session can read them from Vercel.
+Status: **PASSED** for what the checker can reproduce without the secrets. The owner gave the builder the session-pooler connection string, the anon key and the service-role key. `vercel env ls production` now lists `MAISTRO_DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and `SUPABASE_ANON_KEY` (added 2026-10-21, encrypted). No `.env` file is tracked (`.env.local` is ignored), no connection string with a password appears anywhere in the tree, and `db/migrate.mjs` only reads the URL from the environment and never prints it. The migration runner records every file in `schema_migrations` inside a transaction, so a re-run is a no-op. Migration 006 creates the private buckets `assets`, `approvals` and `refs-private` with `on conflict do nothing`, which makes the upload handler's on-the-fly bucket creation redundant (harmless 409, as the builder noted). Not reproduced here: the PostgREST checks on the new tables, because the checker has no service-role key by design; the builder reports all ten tables answer. `/api/health` does not list the three new names because its checked list is fixed and production has not been redeployed since the env add; the next deploy should extend that list.
+
+## [GATE] Owner items (only the user can do these)
+
+1. **Rotate the pasted secrets** (new, from 7b50e15): the database password, the anon key and the service-role key were pasted in chat. Reset the database password (Supabase, Project Settings, Database, Reset) and rotate the keys when convenient, then re-add them with `vercel env add`. Until then they stay valid; this is hygiene, not an outage.
 2. **Vercel plan decision** (REBUILD_LOG Q-002): the project is on Hobby (12 functions per deployment, daily crons only, 300 s max). The builder recommends upgrading to Pro before M3, the jobs tick, which needs more frequent crons. Say yes or no.
+3. ~~Supabase connection string and anon key (Q-006)~~ — answered 2026-10-21; migrations applied.
 
 ## For the user to know (no action required unless you disagree)
 
