@@ -70,12 +70,30 @@ Status: **PASSED on substance at 585aaa1, with two documentation gaps** handed b
 - Gap 1: ADRs 005 through 011 (7 of 11) have only Context / Decision / Consequences; the Options section is missing.
 - Gap 2: ADR-008 cites no audit ids; ADR-005 cites only C-01.
 
-## [GATE] Waiting for the user
+Both gaps closed by the builder in 91f088b (Options sections on ADRs 005-011; ADR-005 now cites C-01, C-03; ADR-008 cites D-01). Phase 2 gate: **approved by the user** in the builder's session.
 
-Phase 3 (safety net: characterization, golden and contract tests, CI, baselines) does not start until the user approves Phase 2. Suggested reading: `ARCHITECTURE_TARGET.md` sections 1, 3 and 7 (roles proposal in ADR-003 needs the user's input), then `MIGRATION_PLAN.md`.
+## Phase 3: safety net (branch `rebuild/phase-0-recon`, commit 7b6c0c4)
 
-## Open items for the user
+Acceptance criteria: characterization, golden and contract tests on recorded fixtures (never against live providers), CI running them on every push/PR touching `demo-ui/`, and measured baselines.
 
-- **Phase 2 [GATE]:** approve `ARCHITECTURE_TARGET.md`, the ADRs and `MIGRATION_PLAN.md`, or say what to change. ADR-003 (roles) explicitly awaits your amendment.
+Status: **PASSED** by checker.
+
+- `demo-ui/tests/` added: 4 API suites (trends, generation, ingest/projects, track/sentiment), 3 page suites (performance, studio, smoke wrapper), `helpers.js`, and 4 recorded fixtures (kymah page after the heal, track 14d, sentiment snapshot, 402 twin rows with a frozen golden of 374 survivors). Fixtures README states the capture date, trimming and anonymisation; the suite blanks every provider env var.
+- `npm test` locally: 34 tests, 34 pass, 0 fail, about 4 s. The statement-timeout lines in the output are the recorded failure fixtures being replayed, not a live DB.
+- `npm run check` (node --check on all 11 functions): exit 0.
+- CI: `.github/workflows/demo-ui.yml` (npm ci, check, test on Node 24, provider envs blanked) ran on the push: run 39584419594, success, 16 s.
+- `BASELINES.md`: page and API latency (edge hit vs cold), generation/QC durations from code constants and the Oct 20-21 runs, call counts per content piece, suite size and runtime. Cold `/api/trends` at 28.6 s and cold `/api/track?days=60` at 51-80 s are the two numbers Phase 7 must beat.
+- No change to `index.html` or `api/*.js` in the Phase 3 commit (package.json gained scripts and engines; package-lock committed; .gitignore +1).
+
+## Gates from here on
+
+The user approved the audit with "approve all changes that will make it better" and asked not to be asked again (recorded in `REBUILD_LOG.md` D-004). Both sessions therefore treat the phase gates as approved and proceed; the checker still verifies every milestone against its done-when row in `MIGRATION_PLAN.md` before the next one starts.
+
+Phase 3 complete. Next: Phase 4, milestone M1 (security quick wins in the current code: auth gate on spend endpoints, SSRF allow-list, escaping, timeouts, ingest idempotency, staleness banners, CRON_SECRET), each change behind the characterization suite and deployed to a preview first.
+
+## For the user to know (no action required unless you disagree)
+
+- **M1 changes how releases happen:** production deploys move from the CLI working tree to git-connected Vercel with previews (ADR-009).
+- **ADR-003 roles:** the builder's proposal stands until you amend it.
 - **State lives only in browser localStorage** (key `maistro-gen-v2`) for studio campaigns, approvals, rejections and the ADLCP attachment (file name only, no bytes). Flagged Critical, assigned to the Phase 1 audit.
 - **`vercel env pull`** is blocked for the builder session, so production credentials stay out of reach there by design.
