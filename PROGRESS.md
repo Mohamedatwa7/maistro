@@ -104,6 +104,22 @@ Status: **PASSED** by checker. `main` fast-forwarded to the branch tip (abb0ed4)
 
 Next: M2, Next.js shell and data layer, starting with migrations and the service-side campaign store.
 
+## Phase 4, milestone M2 part 1: Next.js shell and data layer (commits 317ab78..19e48ee, production live, main at tip)
+
+Done-when per `MIGRATION_PLAN.md` M2: login works; a Studio campaign created in the legacy UI is visible in the database.
+
+Status: **PART 1 PASSED** by checker; **part 2 blocked on the owner** (see below).
+
+- Shipped: Next.js 15.5.28 strangler shell owns ma1stro.com (`/` rewrites to a build-time copy of the legacy `index.html`, assets from `public/`, security headers); the twelve legacy endpoints consolidated behind one function `api/[route].js` → `api/_handlers/*` with identical URLs and shapes, because the Vercel project is on the Hobby plan (12 functions per deployment; the first new route could not deploy; ADR-004/009 amended); `/api/health`; `src/domain/stages.ts` state machine with 7 TypeScript tests; `db/migrations/001-006` plus `db/migrate.mjs` written but **not applied**.
+- Local: `npm test` 58/58; `npm run typecheck` exit 0; `npm run build` (prebuild syncs the legacy page) exit 0. CI now type-checks and builds the shell; the run for a2d15e5 failed on the `.ts` import specifier issue and the follow-up 19e48ee run is green on both main and the branch.
+- Production probes: `GET /` 200 with title "MAISTRO — A→Z Content Creation Platform", `X-Frame-Options: DENY`, HSTS set; `GET /api/health` 200 `ok:true` with the configured-provider map; `GET /api/nope` 404 `unknown route`; `GET /api/login` 200 configured/unauthenticated; `GET /api/trends` 200 count 10 curatedBy claude; `GET /api/track?days=14` 200 with 89 posts; `POST /api/hermes` without cookie 401; `HEAD /assets/landing-smoke.png` 200 image/png.
+- Not yet verifiable: "campaign visible in the database" needs the migrations applied, which needs the connection string below.
+
+## [GATE] Owner items blocking M2 part 2 (only the user can provide these)
+
+1. **Supabase connection string and anon key** (REBUILD_LOG Q-006): set `MAISTRO_DATABASE_URL` (direct Postgres connection string of Maistro's Supabase project) so `db/migrate.mjs` can apply migrations 001-006, and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for the browser client. Give them to either session or add them to Vercel env; neither session can read them from Vercel.
+2. **Vercel plan decision** (REBUILD_LOG Q-002): the project is on Hobby (12 functions per deployment, daily crons only, 300 s max). The builder recommends upgrading to Pro before M3, the jobs tick, which needs more frequent crons. Say yes or no.
+
 ## For the user to know (no action required unless you disagree)
 
 - **Manual step from M1:** connect the GitHub repo to the Vercel project (Vercel dashboard, project settings, Git) and add the preview environment variables, so previews get real config and releases stop depending on a developer's working tree. Details in `REBUILD_LOG.md`.
