@@ -164,7 +164,7 @@ test('documented error classes: a concurrency 400 and a 503 retry with backoff u
     row.next_poll_at = new Date(Date.now() - 1000).toISOString();
     r = await W.get({ id: row.id }); assert.equal(r.body.job.state, 'running');
     assert.equal(W.hf.lastHeaders['Idempotency-Key'], row.id, 'every attempt replays the same key');
-    for (const [status, body, pattern] of [[403, { detail: 'Not enough credits' }, /insufficient credits/], [422, { detail: [{ msg: 'prompt too long' }] }, /validation failed/], [400, { detail: 'invalid aspect ratio' }, /Higgsfield 400/]]) {
+    for (const [status, body, pattern] of [[403, { detail: 'Not enough credits' }, /insufficient credits/], [422, { detail: [{ msg: 'prompt too long' }] }, /validation failed/], [400, { detail: [{ loc: ['aspect_ratio'], msg: 'invalid' }] }, /Higgsfield 400/]]) {
       W.hf.reject = { status, body };
       r = await W.post({ pieceId: 'gen-j1', stage: 'board', kind: 'higgsfield_image', payload: { prompt: 'p', meta: {} } });
       assert.equal(r.body.job.state, 'failed', String(status)); assert.match(r.body.job.error, pattern);
@@ -173,6 +173,8 @@ test('documented error classes: a concurrency 400 and a 503 retry with backoff u
     }
     const { classify } = require('../../api/_adapters/higgsfield.js');
     assert.equal(classify(423, 'blocked').retryable, true); assert.equal(classify(401, '').retryable, false); assert.equal(classify(404, '').retryable, false);
+    assert.equal(classify(400, 'Something transient').retryable, true, 'a plain-string 400 retries within the cap (no wording dependence)');
+    assert.equal(classify(400, [{ msg: 'bad field' }]).retryable, false, 'a validation list is permanent');
   } finally { W.restore(); }
 });
 

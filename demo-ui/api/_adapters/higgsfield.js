@@ -41,6 +41,11 @@ function normalizeRequest(b = {}) {
 function classify(status, detail) {
   const text = Array.isArray(detail) ? JSON.stringify(detail) : String(detail || '');
   if (status === 400 && /concurrent/i.test(text)) return { retryable: true, code: 'concurrency', message: `Higgsfield concurrency limit reached — will retry (${text.slice(0, 120)})` };
+  // The docs warn against deciding on the wording of `detail`. A 400 whose
+  // detail is a plain string (concurrency, transient rejection) is retried
+  // within the submit cap under the same Idempotency-Key — it costs nothing;
+  // only a validation list (field errors) is treated as permanent.
+  if (status === 400 && !Array.isArray(detail)) return { retryable: true, code: 'rejected', message: `Higgsfield 400: ${text.slice(0, 160) || 'request rejected'} — will retry` };
   if (status === 423 || status === 503 || status === 500 || status === 502 || status === 504) return { retryable: true, code: 'provider_unavailable', message: `Higgsfield ${status}: ${text.slice(0, 160) || 'temporarily unavailable'} — will retry` };
   if (status === 403) return { retryable: false, code: 'insufficient_credits', message: `Higgsfield refused: insufficient credits (${text.slice(0, 120) || '403'}) — top up the account` };
   if (status === 401) return { retryable: false, code: 'auth', message: 'Higgsfield rejected the credentials (401)' };

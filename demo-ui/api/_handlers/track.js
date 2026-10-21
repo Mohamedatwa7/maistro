@@ -32,8 +32,8 @@
 // (post_url first, a single JSON field only where the URL has no account),
 // and page along the published_at index, never ORDER BY id.
 
-const { insertRow } = require('../_supabase.js');
-const { bearerMatches, isCron: isCronRequest } = require('../_auth.js');
+const { insertRow, queryRows } = require('../_supabase.js');
+const { requireSession, bearerMatches, isCron: isCronRequest } = require('../_auth.js');
 const { fetchT } = require('../_http.js');
 
 const DAYS_MAX = 90;
@@ -205,6 +205,72 @@ function dedupeTwins(rows) {
   return [...best.values()];
 }
 
+// Exact row count of a PostgREST filter without transferring rows
+// (HEAD + Prefer: count=exact → Content-Range: 0-0/N).
+async function countRows(base, H, path) {
+  const r = await fetchT(`${base}/rest/v1/${path}`, { method: 'HEAD', headers: { ...H, Prefer: 'count=exact', 'Range-Unit': 'items', Range: '0-0' } }, { timeoutMs: 30000, retries: 2 });
+  if (!r.ok && r.status !== 206 && r.status !== 416) throw new Error(`count failed (${r.status}) for ${path.split('?')[0]}`);
+  const cr = r.headers.get('content-range') || '';
+  const m = cr.match(/\/(\d+|\*)$/);
+  return m && m[1] !== '*' ? Number(m[1]) : null;
+}
+
+const TRACKER_PLATFORM = { x: 'twitter' };
+async function reconcile(days, R, get, H, base) {
+  const { out, commentsSeen, commentsMatched, commentsPartial } = R;
+  const since = new Date(Date.now() - days * 864e5).toISOString();
+  const floor = new Date(Date.now() - (days + 3) * 864e5).toISOString();
+  const excl = ['unpacked', 'roster', 'ifold'].map((x) => `&external_id=not.like.${x}${encodeURIComponent('\\_')}*`).join('');
+  const report = { days, since, commentFloor: floor, at: new Date().toISOString(), posts: {}, sums: {}, comments: {}, boundary: {}, freshness: {}, checks: {} };
+
+  // R-1 / R-2: posts and sums per platform, reader vs database
+  for (const [plat, filter] of Object.entries(PLATFORM_FILTERS)) {
+    const mine = out.filter((p) => (TRACKER_PLATFORM[p.platform] || p.platform) === plat);
+    let db = null, err = null;
+    try { db = await countRows(base, H, `social_posts?select=external_id&${filter}&published_at=gte.${since}`); } catch (e) { err = e.message; }
+    report.posts[plat] = { reader: mine.length, db, ...(err ? { error: err } : {}), equal: db != null && db === mine.length };
+    const sum = (k) => mine.reduce((s, p) => s + (+(p.metrics || {})[k] || 0), 0);
+    report.sums[plat] = { views: sum('views'), likes: sum('likes'), commentsCount: sum('comments'), shares: sum('shares') };
+  }
+  report.checks.R1_posts = Object.values(report.posts).every((x) => x.equal);
+
+  // R-3: raw comments in the comment window
+  let dbSeen = null;
+  try { dbSeen = await countRows(base, H, `social_comments?select=id&published_at=gte.${floor}${excl}`); } catch (e) { report.comments.seenError = e.message; }
+  // R-4: canonical-id matches (lower bound; alias forms are the gap)
+  const ids = out.map((p) => p.postId);
+  let dbMatchedCanonical = 0;
+  try {
+    for (let i = 0; i < ids.length; i += 40) {
+      const chunk = ids.slice(i, i + 40).map(encodeURIComponent).join(',');
+      dbMatchedCanonical += (await countRows(base, H, `social_comments?select=id&external_post_id=in.(${chunk})&published_at=gte.${floor}`)) || 0;
+    }
+  } catch (e) { report.comments.matchedError = e.message; dbMatchedCanonical = null; }
+  const deduped = out.reduce((s, p) => s + p.comments.length, 0);
+  report.comments = { ...report.comments, seen: commentsSeen, dbSeen, partial: commentsPartial, matched: commentsMatched, dbMatchedCanonical, aliasOnly: dbMatchedCanonical == null ? null : commentsMatched - dbMatchedCanonical, deduped, twinsRemoved: commentsMatched - deduped, matchRate: commentsSeen ? +(commentsMatched / commentsSeen).toFixed(4) : null };
+  report.checks.R3_commentsSeen = !commentsPartial && dbSeen != null && dbSeen === commentsSeen;
+  report.checks.R4_matchedLowerBound = dbMatchedCanonical != null && dbMatchedCanonical <= commentsMatched;
+
+  // R-7: window boundary — rolling (the page), calendar Asia/Dubai, calendar UTC
+  const dayKey = (iso, tz) => new Date(iso).toLocaleDateString('en-CA', { timeZone: tz });
+  const cutoff = (tz) => { const d = new Date(Date.now() - (days - 1) * 864e5); return dayKey(d.toISOString(), tz); };
+  const rolling = out.filter((p) => p.postedAt && Date.now() - new Date(p.postedAt) <= days * 864e5).length;
+  const calDubai = out.filter((p) => p.postedAt && dayKey(p.postedAt, 'Asia/Dubai') >= cutoff('Asia/Dubai')).length;
+  const calUtc = out.filter((p) => p.postedAt && dayKey(p.postedAt, 'UTC') >= cutoff('UTC')).length;
+  const edge = out.filter((p) => p.postedAt && Math.abs(new Date(p.postedAt) - new Date(since)) <= 864e5).map((p) => ({ postId: p.postId, platform: p.platform, postedAt: p.postedAt }));
+  report.boundary = { rolling, calendarDubai: calDubai, calendarUtc: calUtc, withinADayOfSince: edge };
+
+  // R-9: freshness per platform
+  for (const p of out) {
+    const f = report.freshness[p.platform] = report.freshness[p.platform] || { newestPost: null, newestComment: null };
+    if (p.postedAt && (!f.newestPost || p.postedAt > f.newestPost)) f.newestPost = p.postedAt;
+    for (const c of p.comments) if (c.at && (!f.newestComment || c.at > f.newestComment)) f.newestComment = c.at;
+  }
+  report.checks.R6_postsUniqueById = new Set(ids).size === ids.length;
+  report.ok = Boolean(report.checks.R1_posts && report.checks.R3_commentsSeen && report.checks.R4_matchedLowerBound && report.checks.R6_postsUniqueById);
+  return report;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   const base = process.env.TRACK_SUPABASE_URL;
@@ -217,6 +283,16 @@ module.exports = async (req, res) => {
   const authorized = bearerMatches(headers.authorization, ingestKey);
   const q = req.query || {};
   const wantStore = isCron || (authorized && String(q.store || '') === '1');
+
+  // The latest stored reconciliation report (session holders: the ops view)
+  if (String(q.reconcile || '') === 'latest') {
+    if (!requireSession(req, res)) return;
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+      const rows = await queryRows('reconciliation_reports', 'select=id,at,days,ok,report&order=at.desc&limit=14');
+      return res.status(200).json({ count: rows.length, reports: rows });
+    } catch (e) { return res.status(502).json({ error: e.message }); }
+  }
 
   // A cold-cache page can trip the tracker DB's 8s statement timeout; the
   // failed attempt warms the buffers, so retry before giving up (same
@@ -350,6 +426,15 @@ module.exports = async (req, res) => {
     }
     const { out, commentsSeen, commentsMatched, commentsPartial } = R;
 
+    // 7.0 reconciliation (PERFORMANCE_RECONCILIATION.md §2): the same rows
+    // counted two ways — by this reader and by the database itself — plus
+    // the definitional differences made visible. Ingest key or cron only;
+    // never cached; never writes.
+    if (String(q.reconcile || '') === '1' && (isCron || authorized)) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(200).json(await reconcile(days, R, get, H, base));
+    }
+
     // Daily snapshot into Maistro's own sentiment_posts (append-only; the
     // /api/sentiment reader keeps the newest row per post).
     let stored = null;
@@ -374,6 +459,20 @@ module.exports = async (req, res) => {
       }
     }
 
+    // 7.0: the cron run also reconciles the window it just read and keeps
+    // the report as a row, so accuracy is a daily measured series.
+    let reconciled = null;
+    if (isCron) {
+      try {
+        const rep = await reconcile(days, R, get, H, base);
+        await insertRow('reconciliation_reports', { days, ok: rep.ok, report: rep });
+        reconciled = { ok: rep.ok, checks: rep.checks };
+      } catch (e) {
+        console.error('[track] reconciliation failed:', e.message);
+        reconciled = { error: e.message };
+      }
+    }
+
     res.setHeader('Cache-Control', commentsPartial ? 'no-store' : 's-maxage=600, stale-while-revalidate=86400');
     return res.status(200).json({
       source: 'samsungtrack DB (daily Apify schedule — no duplicate pulls)',
@@ -382,6 +481,7 @@ module.exports = async (req, res) => {
       count: out.length,
       comments: { seen: commentsSeen, matched: commentsMatched, partial: commentsPartial },
       stored,
+      reconciled,
       timings,
       posts: out,
     });
