@@ -97,7 +97,7 @@ test('higgsfield: credentials gate, validation, v2 status mapping, v1 reference 
 
 test('qc-f1x8: validation, submit proxies the asset as multipart, GET maps backend errors', async () => {
   const f = mockFetch([
-    ['https://cdn.test/final.mp4', () => new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { 'content-type': 'video/mp4' } })],
+    ['https://d3u0tzju9qaucj.cloudfront.net/final.mp4', () => new Response(new Uint8Array([1, 2, 3]), { status: 200, headers: { 'content-type': 'video/mp4' } })],
     ['/api/analyze/video/submit', async (u, init) => { assert.ok(init.body instanceof FormData); assert.equal(init.body.get('role'), 'creative_director'); assert.equal(init.body.get('title'), 'Piece — Final'); return json({ job_id: 'job-1234' }); }],
     ['/api/job/job-1234', () => json({ status: 'error', error: 'model crashed' })],
     ['/api/job/job-5678', () => json({ status: 'analyzing' })],
@@ -106,8 +106,22 @@ test('qc-f1x8: validation, submit proxies the asset as multipart, GET maps backe
   try {
     let r = res(); await h.handler(req({ method: 'GET', query: { job: 'x' } }), r); assert.equal(r.statusCode, 400);
     r = res(); await h.handler(req({ method: 'POST', body: { kind: 'video', assetUrl: 'http://insecure' } }), r); assert.equal(r.statusCode, 422);
-    r = res(); await h.handler(req({ method: 'POST', body: { kind: 'video', assetUrl: 'https://cdn.test/final.mp4', title: 'Piece — Final', description: 'brief' } }), r);
+    r = res(); await h.handler(req({ method: 'POST', body: { kind: 'video', assetUrl: 'https://d3u0tzju9qaucj.cloudfront.net/final.mp4', title: 'Piece — Final', description: 'brief' } }), r);
     assert.deepEqual(r.body, { job_id: 'job-1234' });
+    // SSRF guard (M1): only media hosts are fetched
+    for (const bad of ['https://169.254.169.254/latest/meta-data', 'https://evil.test/x.mp4', 'https://user:pw@d3u0tzju9qaucj.cloudfront.net/x', 'https://cloudfront.net.evil.test/x']) {
+      r = res(); await h.handler(req({ method: 'POST', body: { kind: 'video', assetUrl: bad } }), r);
+      assert.equal(r.statusCode, 422, bad); assert.match(r.body.error, /not an allowed media host/);
+    }
+    const { assetHostAllowed } = h.handler;
+    assert.equal(assetHostAllowed('https://maistro.supabase.co/storage/v1/object/public/refs/x.jpg'), false, 'Supabase host only when SUPABASE_URL is set');
+    process.env.SUPABASE_URL = 'https://maistro.supabase.co';
+    assert.equal(assetHostAllowed('https://maistro.supabase.co/storage/v1/object/public/refs/x.jpg'), true);
+    delete process.env.SUPABASE_URL;
+    process.env.QC_ASSET_HOSTS = 'media.partner.test';
+    assert.equal(assetHostAllowed('https://media.partner.test/a.png'), true);
+    assert.equal(assetHostAllowed('https://sub.media.partner.test/a.png'), false, 'exact host unless the entry starts with a dot');
+    delete process.env.QC_ASSET_HOSTS;
     r = res(); await h.handler(req({ method: 'GET', query: { job: 'job-1234' } }), r);
     assert.deepEqual(r.body, { status: 'error', error: 'model crashed' }, 'backend error passes through as HTTP 200 {status:error}');
     r = res(); await h.handler(req({ method: 'GET', query: { job: 'job-5678' } }), r);

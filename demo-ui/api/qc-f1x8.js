@@ -16,6 +16,24 @@ const { fetchT } = require('./_http.js');
 const BASE = process.env.MAISTRO_F1X8_BASE_URL
   || 'https://mohamedymay7--fixation-api-fastapi-app.modal.run';
 
+// SSRF guard (M1, AUDIT C-14): the proxy downloads `assetUrl` server-side, so
+// it must only ever fetch from the hosts that hold generated media — the
+// Higgsfield CDN (CloudFront) and Higgsfield itself, S3, and Maistro's own
+// Supabase storage. Anything else (private ranges, metadata services, the
+// open internet) is refused before a byte is fetched. Extend with
+// QC_ASSET_HOSTS="suffix1,suffix2" when a new provider host appears.
+const DEFAULT_ASSET_HOSTS = ['.cloudfront.net', '.higgsfield.ai', '.amazonaws.com'];
+function assetHostAllowed(assetUrl) {
+  let u;
+  try { u = new URL(assetUrl); } catch { return false; }
+  if (u.protocol !== 'https:' || u.username || u.password) return false;
+  const host = u.hostname.toLowerCase();
+  const extra = String(process.env.QC_ASSET_HOSTS || '').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
+  const supa = (() => { try { return process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).hostname.toLowerCase() : null; } catch { return null; } })();
+  if (supa && host === supa) return true;
+  return [...DEFAULT_ASSET_HOSTS, ...extra].some((suf) => (suf.startsWith('.') ? host.endsWith(suf) : host === suf));
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -38,6 +56,10 @@ module.exports = async (req, res) => {
       const kind = b.kind === 'video' ? 'video' : 'image';
       const assetUrl = String(b.assetUrl || '');
       if (!/^https:\/\//.test(assetUrl)) return res.status(422).json({ error: 'assetUrl (https) is required' });
+      if (!assetHostAllowed(assetUrl)) {
+        console.warn('[qc-f1x8] refused asset host', (() => { try { return new URL(assetUrl).hostname; } catch { return '?'; } })());
+        return res.status(422).json({ error: 'assetUrl host is not an allowed media host' });
+      }
 
       const ar = await fetchT(assetUrl, {}, { timeoutMs: 60000 });
       if (!ar.ok) return res.status(502).json({ error: `could not fetch asset (${ar.status})` });
@@ -66,3 +88,5 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: e.message || 'F1X8 proxy failed' });
   }
 };
+
+module.exports.assetHostAllowed = assetHostAllowed; // exposed for tests
