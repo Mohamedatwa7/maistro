@@ -934,6 +934,7 @@ function reveal(){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIn
 function doLogin(){
  $('#login').classList.add('out');
  document.body.classList.remove('locked');
+ loadPieces();
  if(!location.hash||location.hash==='#')location.hash='#/';
  route();
 }
@@ -1269,6 +1270,7 @@ async function dispatchTrend(id){
    map:{product:plan.product,msg:plan.msg,angle:plan.angle}};
   PROJECTS.unshift(p);STATE.proj=p.id;STATE.stageSel=null;
   location.hash='#/studio';studioRefresh();
+  syncStage(p,'plan',plan);
   const order=['mood','thumb','brief','board','final','qc'];
   for(let i=0;i<order.length;i++){
    const sid=order[i],sg=STAGES.find(s=>s.id===sid);
@@ -1279,6 +1281,7 @@ async function dispatchTrend(id){
    p[sid]=artifact;
    DELIVS.unshift({id:'d-'+p.id+'-'+sid,proj:p.id,stage:sid,title:delivTitle(sid,artifact),ver:'v1',by:sg.agent,at:'Just now',st:'pending'});
    saveGenerated();studioRefresh();
+   syncStage(p,sid,artifact);
    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip(sg.agent,1)}<div style="font-size:12.5px"><b>${sg.agent}</b> uploaded ${esc(delivTitle(sid,artifact))} for <b>${esc(p.title)}</b>.</div></div>`);
   }
   saveGenerated();studioRefresh();
@@ -1368,6 +1371,7 @@ async function cpPlan(payload,direction){
    platforms:plan.platforms,th:plan.th,src:payload,
    map:{product:plan.product,msg:plan.msg,angle:plan.angle}});
   delete p.planning;delete PLAN.busy[p.id];
+  syncStage(p,'plan',plan);
   BOT.payload=payload;BOT.step='menu';
   saveGenerated();
   cpSay(`Campaign <b>“${esc(p.title)}”</b> is set — ${esc(p.product)}, key message “${esc(plan.msg)}”. The create-boxes below are unlocked: open any stage, tell it what you want <b>in plain words</b>, and hit Generate — the AI Creative Director turns your words into a professional prompt, keeps every piece visually consistent with the ones before it, and fills the placeholder with the real result.`);
@@ -1439,6 +1443,95 @@ function qcFixes(p){
  return {score:R.score,fixes,revisionBrief:rb,summary:v.summary||''};
 }
 function genKey(p,sid){return p.id+':'+sid}
+/* ---------- M2 part 2 (b): write-through to the campaign store ----------
+   Every artifact the page produces is also recorded as a version on the
+   server (POST /api/pieces), and every approval or rejection is decided by
+   the server (POST /api/decisions) before the page shows it. localStorage
+   stays a cache; on login the server's pieces are read back (loadPieces). */
+const SYNC={err:{},warned:false};
+function storeMeta(p){
+ return {title:p.title,product:p.product,msg:p.map&&p.map.msg,angle:p.map&&p.map.angle,markets:p.markets,platforms:p.platforms,
+  trendId:p.trendId,trendName:p.trend,origin:p.external?'external_hermes':p.studio?'studio':'hermes_dispatch'};
+}
+function storeProducer(sid,artifact){
+ if(sid==='qc')return artifact&&artifact.real?'f1x8':'claude';
+ if(artifact&&artifact.videoUrl)return 'higgsfield_seedance';
+ if(artifact&&artifact.imageUrl)return 'higgsfield_soul';
+ return 'claude';
+}
+/* QC results carry deep-analysis blobs; heatmaps already live outside the
+   artifact (QCHEAT). Strip anything that is not needed to re-render. */
+function storeArtifact(sid,artifact){
+ if(sid!=='qc'||!artifact||!artifact.real)return artifact;
+ const runs={};
+ for(const [k,r] of Object.entries(artifact.runs||{})){const {heatmap,attention_heatmap,...rest}=r||{};runs[k]=rest}
+ return {real:true,runs,avg:artifact.avg};
+}
+async function syncStage(p,sid,artifact){
+ if(!p||p.external||p.planning)return null;
+ const key=p.id+':'+sid;
+ try{
+  const r=await authFetch('/api/pieces',{method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({pieceId:p.id,stage:sid,artifact:storeArtifact(sid,artifact),piece:storeMeta(p),producedBy:storeProducer(sid,artifact)})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+  delete SYNC.err[key];
+  const dl=DELIVS.find(x=>x.id==='d-'+p.id+'-'+sid);
+  if(dl&&d.version)dl.ver='v'+d.version;
+  return d;
+ }catch(e){
+  SYNC.err[key]=e.message;
+  if(!SYNC.warned){SYNC.warned=true;toast(`<b style="color:#fbbf24">Not saved to the server:</b> <span style="font-size:12.5px">${esc(e.message)} — the piece stays in this browser only until the next successful save.</span>`)}
+  return null;
+ }
+}
+async function recordDecision(d,body){
+ const r=await authFetch('/api/decisions',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({pieceId:d.proj,stage:d.stage,...body})});
+ const j=await r.json().catch(()=>({}));
+ return r.ok?{ok:true,data:j}:{ok:false,error:j.error||('HTTP '+r.status),code:j.code};
+}
+/* Read-through: the server's pieces win over the browser cache. External
+   (Hermes-pushed) pieces keep coming through /api/projects. */
+function applyServerPieces(pieces){
+ let changed=0;
+ for(const sp of pieces||[]){
+  if(sp.origin==='external_hermes')continue;
+  const kinds=Object.keys(sp.stages||{}).filter(k=>sp.stages[k].version);
+  let p=PROJECTS.find(x=>x.id===sp.id);
+  if(!p){
+   const plan=sp.stages.plan&&sp.stages.plan.version?sp.stages.plan.version.payload:null;
+   p={id:sp.id,generated:true,studio:sp.origin==='studio',stage:1,title:sp.title,product:sp.product,markets:sp.markets||[],platforms:sp.platforms||[],
+    th:(plan&&plan.th)||['#0a0a0b','#1f2937'],trend:sp.trend||sp.title,trendId:sp.trendId||null,map:{product:sp.product,msg:sp.msg||'',angle:sp.angle||''}};
+   PROJECTS.push(p);changed++;
+  }
+  for(const k of kinds){
+   const st=sp.stages[k];
+   if(k!=='plan'){p[k]=st.version.payload;p.stage=Math.max(p.stage||1,Math.min((BOT_STAGE_IDX[k]||0)+1,7))}
+   if(k==='plan')continue;
+   const id='d-'+p.id+'-'+k;
+   let dl=DELIVS.find(x=>x.id===id);
+   const status=st.state==='approved'?'approved':st.state==='rejected'?'rejected':'pending';
+   if(!dl){dl={id,proj:p.id,stage:k,title:delivTitle(k,st.version.payload),ver:'v'+st.version.n,by:GEN_AGENT[k]||'Hermes',at:fmtStamp(st.version.at),st:status};DELIVS.unshift(dl);changed++}
+   else if(dl.st!==status||dl.ver!=='v'+st.version.n){dl.st=status;dl.ver='v'+st.version.n;changed++}
+   if(st.decision){
+    if(status==='approved'){dl.appr={name:st.decision.name,info:st.decision.role,at:fmtStamp(st.decision.at)};
+     if(st.documents){dl.appr.lm=st.documents.line_manager?{name:'Line-manager approval',...st.documents.line_manager}:dl.appr.lm;dl.appr.adlcp=st.documents.adlcp?{name:'ADLCP approval',...st.documents.adlcp}:dl.appr.adlcp}}
+    if(status==='rejected')dl.rej=esc(st.decision.reason||'');
+   }
+  }
+ }
+ if(changed)saveGenerated();
+ return changed;
+}
+async function loadPieces(){
+ try{
+  const r=await fetch('/api/pieces');
+  if(!r.ok)return;
+  const d=await r.json();
+  if(applyServerPieces(d.pieces)&&location.hash.replace(/^#\//,'').split('/')[0]==='studio'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rStudio();reveal()}
+ }catch(e){/* offline or storage not configured — the cache stands */}
+}
 function attachTo(p,sid,artifact,by){
  p[sid]=artifact;
  p.stage=Math.max(p.stage,Math.min(BOT_STAGE_IDX[sid]+1,7));
@@ -1453,6 +1546,7 @@ function attachTo(p,sid,artifact,by){
    ver:artifact.version||'v1',by:by,at:'Just now',st:'pending'});
  }
  saveGenerated();
+ syncStage(p,sid,artifact);
 }
 function genCtx(p){
  const ctx={};
@@ -1733,6 +1827,7 @@ function qcFinishIfSettled(p){
  if(ex){ex.title=title;ex.at='Just now'}
  else DELIVS.unshift({id,proj:p.id,stage:'qc',title,ver:'v1',by:'F1X8',at:'Just now',st:'pending'});
  saveGenerated();
+ syncStage(p,'qc',p.qc);
 }
 /* Resume any renders / F1X8 analyses that were in flight when the page was
    last closed — job ids are persisted on the project, so a reload (or a
@@ -2957,13 +3052,15 @@ function openApprove(id){
    <label class="upl"><span class="u1">ADLCP approval</span><span class="u2">Signed document — stored privately with a checksum</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.eml,.msg" onchange="uplOk(this,'adlcp')"></label>
   </div>`:''}
   <div class="f-field" style="margin-top:14px"><label>Your name</label><input class="inp-l" id="ap-name" placeholder="Full name"></div>
-  <div class="f-field" style="margin-top:12px"><label>Role · team · relevant information</label><input class="inp-l" id="ap-info" placeholder="e.g. Content lead · KSA/UAE · s.almansouri@samsung.com"></div>
+  <div class="f-field" style="margin-top:12px"><label>Your role</label><select class="inp-l" id="ap-role">${(d.stage==='final'?[['line_manager','Line manager'],['adlcp_approver','ADLCP approver'],['admin','Admin']]:[['reviewer','Reviewer'],['line_manager','Line manager'],['adlcp_approver','ADLCP approver'],['admin','Admin']]).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>
+  <div class="f-field" style="margin-top:12px"><label>Team · relevant information</label><input class="inp-l" id="ap-info" placeholder="e.g. Content lead · KSA/UAE · s.almansouri@samsung.com"></div>
+  <div id="ap-err" style="font-size:12px;color:#fda4af;margin-top:8px"></div>
   <div class="mrow"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
-   <button class="btn btn-go btn-sm" onclick="confirmApprove('${id}')">Record approval</button></div>`;
+   <button class="btn btn-go btn-sm" id="ap-go" onclick="confirmApprove('${id}')">Record approval</button></div>`;
  $('#modal-back').classList.add('open');
 }
-function confirmApprove(id){
- const name=$('#ap-name').value.trim(),info=$('#ap-info').value.trim();
+async function confirmApprove(id){
+ const name=$('#ap-name').value.trim(),info=$('#ap-info').value.trim(),role=($('#ap-role')||{}).value||'reviewer';
  const ups=[...document.querySelectorAll('#modal .upl')];
  if(ups.some(u=>u.classList.contains('busy')))return;
  if(!name||!info||ups.some(u=>!u.classList.contains('ok')||!u.dataset.doc)){
@@ -2972,12 +3069,18 @@ function confirmApprove(id){
   return;
  }
  const d=DELIVS.find(x=>x.id===id);
- d.st='approved';
- d.appr={name,info,at:'Just now'};
- if(ups.length===2){
-  d.appr.lm=JSON.parse(ups[0].dataset.doc);
-  d.appr.adlcp=JSON.parse(ups[1].dataset.doc);
+ const docs=ups.length===2?{line_manager:JSON.parse(ups[0].dataset.doc),adlcp:JSON.parse(ups[1].dataset.doc)}:undefined;
+ const go=$('#ap-go');if(go){go.disabled=true;go.textContent='Recording…'}
+ const srv=await recordDecision(d,{decision:'approved',name,role,info,documents:docs});
+ if(!srv.ok){
+  if(go){go.disabled=false;go.textContent='Record approval'}
+  const err=$('#ap-err');if(err)err.textContent='Not recorded — '+srv.error;
+  return;
  }
+ d.st='approved';
+ d.appr={name,info:role+(info?' · '+info:''),at:fmtStamp(srv.data.decidedAt||Date.now()),versionId:srv.data.versionId};
+ d.ver='v'+(srv.data.version||1);
+ if(docs){d.appr.lm=docs.line_manager;d.appr.adlcp=docs.adlcp}
  saveGenerated();
  closeModal();$('#view').innerHTML=rStudio();reveal();
  const isQC=d.stage==='qc';
@@ -2989,18 +3092,28 @@ function openReject(id){
   <h3>Reject — ${esc(pr.title)}</h3>
   <p class="msub">${esc(d.title)}. Your reason is sent back to ${esc(d.by)}, who reworks the deliverable and re-uploads it here.</p>
   <div class="f-field"><label>Reason for rejection</label><textarea id="rj-reason" rows="4" placeholder="What needs to change before this can pass?"></textarea></div>
+  <div class="f-field" style="margin-top:12px"><label>Your name</label><input class="inp-l" id="rj-name" placeholder="Full name"></div>
+  <div id="rj-err" style="font-size:12px;color:#fda4af;margin-top:8px"></div>
   <div class="mrow"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
-   <button class="btn btn-alert btn-sm" onclick="confirmReject('${id}')">Send back</button></div>`;
+   <button class="btn btn-alert btn-sm" id="rj-go" onclick="confirmReject('${id}')">Send back</button></div>`;
  $('#modal-back').classList.add('open');
 }
-function confirmReject(id){
- const r=$('#rj-reason').value.trim();
+async function confirmReject(id){
+ const r=$('#rj-reason').value.trim(),name=(($('#rj-name')||{}).value||'').trim();
  if(!r){$('#rj-reason').style.borderColor='rgba(251,113,133,.7)';return}
+ if(!name){const el=$('#rj-name');if(el)el.style.borderColor='rgba(251,113,133,.7)';return}
  const d=DELIVS.find(x=>x.id===id);
+ const go=$('#rj-go');if(go){go.disabled=true;go.textContent='Recording…'}
+ const srv=await recordDecision(d,{decision:'rejected',name,role:'reviewer',reason:r});
+ if(!srv.ok){
+  if(go){go.disabled=false;go.textContent='Send back'}
+  const err=$('#rj-err');if(err)err.textContent='Not recorded — '+srv.error;
+  return;
+ }
  d.st='rejected';d.rej=esc(r);
  saveGenerated();
  closeModal();$('#view').innerHTML=rStudio();reveal();
- toast(`<b style="color:#fda4af">Rejected.</b> <span style="font-size:12.5px">Reason routed to ${esc(d.by)} — a reworked version will re-enter the Production Center.</span>`);
+ toast(`<b style="color:#fda4af">Rejected.</b> <span style="font-size:12.5px">The reason is recorded on this version; the next version re-enters the Production Center for review.</span>`);
 }
 $('#modal-back').addEventListener('click',e=>{if(e.target.id==='modal-back')closeModal()});
 
