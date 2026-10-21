@@ -44,7 +44,7 @@ test('performance: header shows DATA AS OF the newest post/comment and STALE whe
   try {
     await new Promise((r) => setTimeout(r, 50));
     let html = X.rPerformance();
-    assert.match(html, /DATA AS OF \d{2} Oct 2026 \d{2}:\d{2}:\d{2} UTC/);
+    assert.match(html, /DATA AS OF \d{2} Oct 2026 \d{2}:\d{2} UTC/);
     assert.ok(!/STALE ·/.test(html), 'fixture is fresh relative to the frozen clock');
     assert.match(html, /CONSUMER SENTIMENT TRACKER · LIVE/);
     // age everything by 10 days → stale
