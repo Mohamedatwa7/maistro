@@ -65,10 +65,18 @@ test('stageArtifact: studio piece shows a create box for an empty stage and the 
   } finally { X.restore(); }
 });
 
-test('esc escapes only & and < (AUDIT D-02 — a quote in a title survives into attributes)', () => {
+test('esc escapes & < > " \' (M1 fix for AUDIT D-02) and a hostile campaign title cannot inject markup', () => {
   const X = loadPage();
   try {
-    assert.equal(X.esc('a<b&"c\'d>'), 'a&lt;b&amp;"c\'d>');
+    assert.equal(X.esc('a<b&"c\'d>'), 'a&lt;b&amp;&quot;c&#39;d&gt;');
+    const p = piece(X, { title: '<img src=x onerror=alert(1)>', product: 'P"', trend: 'T' });
+    X.STATE.proj = p.id;
+    X.DELIVS.unshift({ id: 'd-' + p.id + '-brief', proj: p.id, stage: 'brief', title: 'Brief <script>', ver: 'v1', by: 'Quill<', at: 'Just now', st: 'approved', appr: { name: 'Eve<svg onload=1>', info: 'i', at: 'now' } });
+    const html = X.rStudio();
+    assert.ok(!html.includes('<img src=x onerror'), 'title is escaped in the studio header and tabs');
+    assert.ok(!html.includes('<svg onload'), 'approver name is escaped in the Production Center');
+    assert.ok(!html.includes('Brief <script>'), 'deliverable title is escaped');
+    assert.ok(html.includes('&lt;img src=x onerror=alert(1)&gt;'));
     assert.equal(X.fmt(1234567), '1.2M'); assert.equal(X.fmt(950), '950'); assert.equal(X.pct(0.0349), '3.5%');
   } finally { X.restore(); }
 });

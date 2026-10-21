@@ -870,7 +870,7 @@ const CAL=[
 const $=s=>document.querySelector(s);
 const fmt=n=>{const a=Math.abs(n);if(a>=1e6)return (n/1e6).toFixed(a<1e7&&n%1e6!==0?1:0).replace(/\.0$/,'')+'M';if(a>=1e3)return (n/1e3).toFixed(a<1e4&&n%1e3!==0?1:0).replace(/\.0$/,'')+'K';return String(n)};
 const pct=x=>{const p=x*100;return (p>=9.5?Math.round(p):+p.toFixed(1))+'%'};
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const plat=p=>`<span class="plat"><i style="background:${PLAT[p].c}"></i>${PLAT[p].n}</span>`;
 const badge=(tone,txt)=>`<span class="b b-${tone}">${txt}</span>`;
 const agentChip=(name,working)=>`<span class="agent"><span class="av">${name[0]}${working?'<span class="w"></span>':''}</span><span class="nm">${name}</span></span>`;
@@ -2620,7 +2620,7 @@ function rTrends(){
     :'';
    return `<div class="card hov click p5 rv" onclick="trendToggle('${t.id}')">
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
-     <div><h3 style="font-size:17px">${t.name}</h3>
+     <div><h3 style="font-size:17px">${esc(t.name)}</h3>
       <div style="display:flex;gap:8px;margin-top:7px;flex-wrap:wrap;align-items:center">${plat(t.platform)}<span class="dim mono" style="font-size:10.5px">${t.markets.join(' · ')}</span>${badge('muted',t.type.toUpperCase())}${t.fitTag?badge('ai',t.fitTag):''}</div></div>
      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">${velB}${stB}</div>
     </div>
@@ -2711,14 +2711,14 @@ function stageArtifact(p,n){
   case 'draft':return head(done)+(p.draft?`
    ${p.draft.videoUrl?`<video controls playsinline src="${p.draft.videoUrl}" style="width:100%;max-width:640px;border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}
    <div class="pipe-item" style="margin-bottom:14px"><span class="thumb" style="background:linear-gradient(120deg,${p.th[0]},${p.th[1]})"></span>
-    <div><b style="color:#fff">${p.title} · first draft ${p.draft.version}</b> <span class="dim mono" style="font-size:10.5px">· ${p.draft.dur}</span>
+    <div><b style="color:#fff">${esc(p.title)} · first draft ${esc(p.draft.version)}</b> <span class="dim mono" style="font-size:10.5px">· ${p.draft.dur}</span>
      <div class="dim" style="font-size:11.5px;margin-top:3px">${p.draft.audio}</div></div></div>
    <div style="display:flex;gap:8px;flex-wrap:wrap">${p.draft.variants.map(v=>badge(v.st==='ready'?'go':'gold',`${v.a} · ${v.l} · ${v.k.toUpperCase()}`)).join('')}${badge('gold','AWAITING F1X8 CHECK')}</div>
    ${dirNote(p.draft)}${p.studio?regenBox(p,'draft'):''}`:'');
   case 'final':return head(done)+(p.final?`
    ${p.final.videoUrl?`<video controls playsinline src="${p.final.videoUrl}" style="width:100%;max-width:640px;border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}
    <div class="pipe-item" style="margin-bottom:14px"><span class="thumb" style="background:linear-gradient(120deg,${p.th[0]},${p.th[1]})"></span>
-    <div><b style="color:#fff">${p.title} · ${p.final.version}</b> <span class="dim mono" style="font-size:10.5px">· ${p.final.dur}</span>
+    <div><b style="color:#fff">${esc(p.title)} · ${esc(p.final.version)}</b> <span class="dim mono" style="font-size:10.5px">· ${p.final.dur}</span>
      <div class="dim" style="font-size:11.5px;margin-top:3px">${p.final.audio}</div></div></div>
    <span class="kick">Variants</span>
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:9px">${p.final.variants.map(v=>badge(v.st==='ready'?'go':'gold',`${v.a} · ${v.l} · ${v.k.toUpperCase()}`)).join('')}${p.final.qcRevised?badge('go','F1X8 FIXES IMPLEMENTED'):''}</div>
@@ -2788,14 +2788,14 @@ function rStudio(){
    <span class="pill"><span class="dot"></span>${pend} DELIVERABLES AWAITING DECISION</span></div>
   ${rPathways()}
 
-  <div class="tabs">${PROJECTS.map(x=>`<button class="${x.id===STATE.proj?'on':''}" onclick="projSet('${x.id}')">${x.title}<span class="dim mono" style="font-size:9px;margin-left:7px">0${x.stage}/07</span></button>`).join('')}</div>
+  <div class="tabs">${PROJECTS.map(x=>`<button class="${x.id===STATE.proj?'on':''}" onclick="projSet('${x.id}')">${esc(x.title)}<span class="dim mono" style="font-size:9px;margin-left:7px">0${x.stage}/07</span></button>`).join('')}</div>
 
   <div class="card p5" style="margin-bottom:16px">
    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
     <div class="pipe-item"><span class="thumb" style="background:linear-gradient(120deg,${p.th[0]},${p.th[1]})"></span>
-     <div><h3 style="font-size:17px">${p.title}</h3>
+     <div><h3 style="font-size:17px">${esc(p.title)}</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:5px;align-items:center">
-       ${badge('ai','TREND · '+p.trend.toUpperCase())}<span class="dim mono" style="font-size:10.5px">${p.product} · ${p.markets.join(' · ')}</span>${p.platforms.map(plat).join(' ')}</div></div></div>
+       ${badge('ai','TREND · '+esc(p.trend.toUpperCase()))}<span class="dim mono" style="font-size:10.5px">${esc(p.product)} · ${p.markets.map(esc).join(' · ')}</span>${p.platforms.map(plat).join(' ')}</div></div></div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
      ${p.studio?rRefControl(p):''}
      <div class="stage-dots">${STAGES.map(s=>`<i class="${s.n<p.stage?'done':s.n===p.stage?'cur':''}"></i>`).join('')}</div>
@@ -2821,9 +2821,9 @@ function rStudio(){
     const sg=STAGES.find(s=>s.id===d.stage);
     return `<div class="pc-row">
      <span class="pc-ico" style="background:linear-gradient(120deg,${pr.th[0]},${pr.th[1]})">${sg.id.toUpperCase()}</span>
-     <div class="meta"><div class="ttl">${pr.title} — ${d.title}</div>
-      <div class="sub">Stage 0${sg.n} · ${sg.l} · uploaded by ${d.by} · ${d.at} · ${d.ver}</div>
-      ${d.st==='approved'?`<div class="pc-appr">Approved by <b style="color:#fff">${d.appr.name}</b> (${d.appr.info}) · ${d.appr.at}${d.appr.lm?`<br>LM approval: <span class="mono">${d.appr.lm}</span> · ADLCP: <span class="mono">${d.appr.adlcp}</span>`:''}</div>`:''}
+     <div class="meta"><div class="ttl">${esc(pr.title)} — ${esc(d.title)}</div>
+      <div class="sub">Stage 0${sg.n} · ${sg.l} · uploaded by ${esc(d.by)} · ${esc(d.at)} · ${esc(d.ver)}</div>
+      ${d.st==='approved'?`<div class="pc-appr">Approved by <b style="color:#fff">${esc(d.appr.name)}</b> (${esc(d.appr.info)}) · ${esc(d.appr.at)}${d.appr.lm?`<br>LM approval: <span class="mono">${esc(d.appr.lm)}</span> · ADLCP: <span class="mono">${esc(d.appr.adlcp)}</span>`:''}</div>`:''}
       ${d.st==='rejected'?`<div class="pc-note">Rejected — ${d.rej}</div>`:''}</div>
      <div class="acts">
       ${d.st==='pending'?`<button class="btn btn-go btn-sm" onclick="openApprove('${d.id}')">Approve</button><button class="btn btn-alert btn-sm" onclick="openReject('${d.id}')">Reject</button>`:
@@ -2841,8 +2841,8 @@ function uplOk(inp,lab){const el=inp.closest('.upl');el.classList.add('ok');el.q
 function openApprove(id){
  const d=DELIVS.find(x=>x.id===id),pr=PROJECTS.find(x=>x.id===d.proj);
  $('#modal').innerHTML=`
-  <h3>Approve — ${pr.title}</h3>
-  <p class="msub">${d.title}. ${d.stage==='final'?'Approval is recorded against your name with both sign-off documents attached.':'Approval is recorded against your name.'}</p>
+  <h3>Approve — ${esc(pr.title)}</h3>
+  <p class="msub">${esc(d.title)}. ${d.stage==='final'?'Approval is recorded against your name with both sign-off documents attached.':'Approval is recorded against your name.'}</p>
   ${d.stage==='final'?`<div class="grid-2f">
    <label class="upl"><span class="u1">Line manager approval</span><span class="u2">PDF / e-mail export — click to attach</span><input type="file" onchange="uplOk(this,'LM-approval')"></label>
    <label class="upl"><span class="u1">ADLCP approval</span><span class="u2">Signed document — click to attach</span><input type="file" onchange="uplOk(this,'ADLCP-approval')"></label>
@@ -2876,8 +2876,8 @@ function confirmApprove(id){
 function openReject(id){
  const d=DELIVS.find(x=>x.id===id),pr=PROJECTS.find(x=>x.id===d.proj);
  $('#modal').innerHTML=`
-  <h3>Reject — ${pr.title}</h3>
-  <p class="msub">${d.title}. Your reason is sent back to ${d.by}, who reworks the deliverable and re-uploads it here.</p>
+  <h3>Reject — ${esc(pr.title)}</h3>
+  <p class="msub">${esc(d.title)}. Your reason is sent back to ${esc(d.by)}, who reworks the deliverable and re-uploads it here.</p>
   <div class="f-field"><label>Reason for rejection</label><textarea id="rj-reason" rows="4" placeholder="What needs to change before this can pass?"></textarea></div>
   <div class="mrow"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
    <button class="btn btn-alert btn-sm" onclick="confirmReject('${id}')">Send back</button></div>`;
@@ -2890,7 +2890,7 @@ function confirmReject(id){
  d.st='rejected';d.rej=esc(r);
  saveGenerated();
  closeModal();$('#view').innerHTML=rStudio();reveal();
- toast(`<b style="color:#fda4af">Rejected.</b> <span style="font-size:12.5px">Reason routed to ${d.by} — a reworked version will re-enter the Production Center.</span>`);
+ toast(`<b style="color:#fda4af">Rejected.</b> <span style="font-size:12.5px">Reason routed to ${esc(d.by)} — a reworked version will re-enter the Production Center.</span>`);
 }
 $('#modal-back').addEventListener('click',e=>{if(e.target.id==='modal-back')closeModal()});
 
@@ -2915,7 +2915,7 @@ function sprPreview(ev,cap,acc){
    <div style="position:absolute;left:10px;right:52px;bottom:12px;color:#fff">
     <div id="spr-prev-acc" style="font-size:11.5px;font-weight:600">${acc}</div>
     <div id="spr-prev-cap" style="font-size:10px;line-height:1.5;color:rgba(255,255,255,.9);margin-top:4px;max-height:44px;overflow:hidden">${esc(cap)}</div>
-    <div style="font-size:9px;color:rgba(255,255,255,.7);margin-top:5px">♫ original sound — ${ev.product}</div>
+    <div style="font-size:9px;color:rgba(255,255,255,.7);margin-top:5px">♫ original sound — ${esc(ev.product)}</div>
    </div>
   </div>`;
  return `
@@ -2959,7 +2959,7 @@ function renderSprModal(ev,cap,pref){
   <div style="margin-bottom:16px">
    <span class="kick accent">Post preview</span>
    <div style="margin-top:10px">${sprPreview(ev,cap,accSel)}</div>
-   <p class="dim" style="font-size:11px;margin-top:9px;text-align:center">${ev.product} · ${ev.mkt} · ${new Date(ev.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · ${ev.time} GST</p>
+   <p class="dim" style="font-size:11px;margin-top:9px;text-align:center">${esc(ev.product)} · ${esc(ev.mkt)} · ${new Date(ev.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · ${ev.time} GST</p>
   </div>
   <div class="f-field"><label>Platform</label>
    <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -3027,7 +3027,7 @@ function rCalendar(){
     <div class="card p5">
      <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
       <div><span class="kick accent">Selected post</span><h3 style="font-size:18px;margin-top:8px">${sel.t}</h3>
-       <div class="dim" style="font-size:12px;margin-top:4px">${sel.product} · ${sel.mkt}</div></div>
+       <div class="dim" style="font-size:12px;margin-top:4px">${esc(sel.product)} · ${esc(sel.mkt)}</div></div>
       ${sel.st==='published'?badge('go','PUBLISHED'):sel.st==='ready'?badge('ai','READY — APPROVED'):sel.st==='in-production'?badge('gold','IN PRODUCTION'):badge('c','SCHEDULED')}
      </div>
      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${sel.plats.map(plat).join(' ')}</div>
