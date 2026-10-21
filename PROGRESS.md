@@ -115,6 +115,17 @@ Status: **PART 1 PASSED** by checker; **part 2 blocked on the owner** (see below
 - Production probes: `GET /` 200 with title "MAISTRO — A→Z Content Creation Platform", `X-Frame-Options: DENY`, HSTS set; `GET /api/health` 200 `ok:true` with the configured-provider map; `GET /api/nope` 404 `unknown route`; `GET /api/login` 200 configured/unauthenticated; `GET /api/trends` 200 count 10 curatedBy claude; `GET /api/track?days=14` 200 with 89 posts; `POST /api/hermes` without cookie 401; `HEAD /assets/landing-smoke.png` 200 image/png.
 - Not yet verifiable: "campaign visible in the database" needs the migrations applied, which needs the connection string below.
 
+## Phase 4, milestone M4 core: trends on Trend Radar's agent API (commit 11fd89e, production live, main at tip 3983778)
+
+Done-when per `MIGRATION_PLAN.md` M4: feed shows age; a re-pushed stage creates a new version; external agent unchanged. The versioning part belongs to M2 part 2 (zod ingest) and is not in this drop.
+
+Status: **PASSED** by checker for the two criteria in scope.
+
+- `/api/trends` now reads Trend Radar's agent API (Vercel host of trend-radar, same database; kymah.com sits behind Cloudflare and is not deployable from this machine) with the page scrape as fallback. Upstream, the agent projection gained clips and sound commercial-use (trend-radar main 0747bd5).
+- Local: `npm test` 61/61; CI green on main and the branch for 3983778.
+- Production: `GET /api/trends` 200, source "TrendRadar agent API", live true, boardGeneratedAt 2026-10-21T08:25:58Z, boardTotal 38, curatedBy claude, count 10; every trend keeps id, name, samsungFit, sound, clips and the other UI fields (external agent contract unchanged) and gains the additive trendId, onBrand, brief, products; fit scores 60-82, 8 of 10 sounds cleared, clips on all 10. `?all=1` returns 38.
+- Feed shows age: the Trends header pill renders "LIVE · TRENDRADAR · BOARD 21 Oct 2026, 12:25 GST" (Asia/Dubai per ADR-011) with no STALE pill while the board is under 36 h old. Headless render check: all 11 cards present in the DOM with the right names; they paint only after the scroll-reveal observer fires, which headless Chrome skipped this run, so the screenshot shows the KPI deck and header but not the grid. Not a product issue.
+
 ## [GATE] Owner items blocking M2 part 2 (only the user can provide these)
 
 1. **Supabase connection string and anon key** (REBUILD_LOG Q-006): set `MAISTRO_DATABASE_URL` (direct Postgres connection string of Maistro's Supabase project) so `db/migrate.mjs` can apply migrations 001-006, and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for the browser client. Give them to either session or add them to Vercel env; neither session can read them from Vercel.
