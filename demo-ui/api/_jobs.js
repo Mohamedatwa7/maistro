@@ -42,25 +42,37 @@ async function createJob({ legacyId, stage, kind, payload = {}, piece = {}, memb
   const { piece: p, stages } = await ensurePiece(legacyId, piece);
   const s = stages.find((x) => x.kind === stage);
   const isRender = RENDER_KINDS.includes(kind);
+  let nextStageState = null;
   if (isRender) {
     // Order (A-05, M3): the legacy page is soft — prerequisites must exist;
     // the new pages will pass strict:true and require them approved.
     const met = prerequisitesMet(stages.map((x) => ({ kind: x.kind, state: x.state })), stage, { strict: Boolean(payload.strict), origin: p.origin });
     if (met !== true) throw new StoreError(409, 'prerequisites', `${stage} needs ${met.join(', ')} first`);
     if (s.state === 'approved') throw new StoreError(409, 'approved_immutable', `${stage} is approved; reopen it before regenerating`);
-    // a never-touched stage whose prerequisites exist counts as ready
-    const from = s.state === 'locked' ? 'ready' : s.state;
+    // a never-touched stage whose prerequisites exist counts as ready; a stage
+    // left `generating` by a job that is no longer live counts as ready too
+    let from = s.state === 'locked' ? 'ready' : s.state;
+    if (from === 'generating') {
+      const live = await queryRows('jobs', `select=id&stage_id=eq.${q(s.id)}&state=in.(queued,running)&limit=1`);
+      if (!live.length) from = 'ready';
+    }
     const t = transition(stage, from, { type: from === 'generated' ? 'regenerate' : 'generate' });
     if (!t.ok) throw new StoreError(409, t.code, t.message);
-    await patchRows('stages', `id=eq.${q(s.id)}`, { state: t.next });
+    nextStageState = t.next;
   } else if (!s.current_version_id && !payload.assetUrl) {
     throw new StoreError(409, 'no_version', `${stage} has nothing to analyse yet`);
   }
+  // the row first, the stage second: a failed insert leaves nothing behind,
+  // and a failed stage patch is recorded on the row instead of stranding the stage
   const [job] = await insertRows('jobs', [{
     piece_id: p.id, stage_id: s.id, kind, state: 'queued', attempts: 0,
     payload: { ...payload, pieceId: legacyId, stage, generatedBy: member ? member.id : null },
     next_poll_at: nowIso(),
   }], { returning: true });
+  if (nextStageState) {
+    try { await patchRows('stages', `id=eq.${q(s.id)}`, { state: nextStageState }); }
+    catch (e) { await finish(job, { state: 'failed', error: `stage could not be set generating: ${String(e.message || e).slice(0, 200)}` }); throw new StoreError(502, 'stage_patch', e.message); }
+  }
   // try to submit right away (bounded); the tick picks it up otherwise
   await advance(job).catch(() => null);
   const fresh = await getJob(job.id);
@@ -138,7 +150,12 @@ async function fail(job, state, error) {
 
 async function pollRender(job) {
   const st = await higgsfield.status(job.provider_ref, job.payload.v || 0);
-  if (st.status === 'completed' && (st.video || (st.images && st.images.length))) {
+  if (st.status === 'completed' && !(st.video || (st.images && st.images.length))) {
+    // the provider says done but handed back no media: that never improves with polling
+    await fail(job, 'failed', 'provider reported completed without any output');
+    return 'failed';
+  }
+  if (st.status === 'completed') {
     const meta = job.payload.meta || {};
     const stage = job.payload.stage;
     const isVideo = job.kind === 'higgsfield_video';

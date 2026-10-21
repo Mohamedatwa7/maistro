@@ -159,3 +159,27 @@ test('the claim is conditional: a row that is not due, or already taken, is not 
     assert.equal(r.body.job.id, row.id);
   } finally { W.restore(); }
 });
+
+test('peer items: a stage stranded in generating by a dead job is treated as ready; a completed status with no media fails at once', async () => {
+  const W = world();
+  try {
+    await seedPlan(W);
+    // strand the stage: generating, but no queued/running job for it
+    W.pg.tables.stages.find((s) => s.kind === 'thumb').state = 'generating';
+    let r = await W.post({ pieceId: 'gen-j1', stage: 'thumb', kind: 'higgsfield_image', payload: { prompt: 'p', ref: 'https://ref/x.jpg', meta: {} } });
+    assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(r.body.job.state, 'running');
+    // with a live job for the stage the second request is refused (not_ready), not double-started
+    r = await W.post({ pieceId: 'gen-j1', stage: 'thumb', kind: 'higgsfield_image', payload: { prompt: 'p', ref: 'https://ref/x.jpg', meta: {} } });
+    assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'not_ready');
+    // completed without output → failed, stage back to ready
+    const row = W.pg.tables.jobs[0];
+    row.next_poll_at = new Date(Date.now() - 1000).toISOString(); W.hf.status = 'completed';
+    W.f.restore();
+    const f2 = mockFetch([['/v1/job-sets/jobset000001', () => json({ jobs: [{ status: 'completed', results: {} }] })], W.pg.route]);
+    try {
+      r = await W.get({ id: row.id });
+      assert.equal(r.body.job.state, 'failed'); assert.match(r.body.job.error, /without any output/);
+      assert.equal(W.pg.tables.stages.find((s) => s.kind === 'thumb').state, 'ready');
+    } finally { f2.restore(); }
+  } finally { W.restore(); }
+});
