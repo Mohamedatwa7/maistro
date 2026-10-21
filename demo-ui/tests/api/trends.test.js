@@ -1,7 +1,7 @@
 // Characterization: GET /api/trends — kymah page → normalised feed, curation fallback, filters, caching.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { fixture, req, res, api, mockFetch, text, anthropicReply } = require('../helpers');
+const { fixture, req, res, api, mockFetch, json, text, anthropicReply } = require('../helpers');
 
 const page = fixture('kymah-page.html');
 
@@ -103,4 +103,73 @@ test('kymah unreachable or changed → 502 with no-store', async () => {
     assert.match(r.body.error, /flight payload/);
     assert.equal(r.headers['cache-control'], 'no-store');
   } finally { f.restore(); restore(); }
+});
+
+// ---- M4: Trend Radar agent API as the primary source, page scrape as fallback ----
+const agentFeed = () => fixture('agent-trends.json');
+
+test('agent API primary: shape unchanged plus additive fields; board metadata propagated; CORS/cache as before', async () => {
+  let authHeader;
+  const f = mockFetch([
+    ['/api/agent/trends', (u, init) => { authHeader = init.headers.authorization; return json(agentFeed()); }],
+    ['https://www.kymah.com/', () => { throw new Error('scrape must not run when the agent API answers'); }],
+  ]);
+  const { handler, restore } = api('trends.js', { ANTHROPIC_API_KEY: undefined, TRENDRADAR_AGENT_KEY: 'agent-key', TRENDRADAR_BASE_URL: 'https://tr.test' });
+  try {
+    const r = res();
+    await handler(req({ query: { all: '1' } }), r);
+    assert.equal(r.statusCode, 200);
+    assert.equal(authHeader, 'Bearer agent-key');
+    assert.equal(r.body.source, 'TrendRadar agent API');
+    assert.equal(r.body.live, true);
+    assert.equal(r.body.boardGeneratedAt, agentFeed().generatedAt);
+    assert.equal(r.body.boardTotal, agentFeed().total);
+    assert.equal(r.body.count, 12);
+    const t = r.body.trends[0];
+    for (const k of ['id', 'name', 'status', 'region', 'lang', 'category', 'samsungFit', 'momentumPerDay', 'viewsPerWeek', 'avgEngagementPct', 'stayingPower', 'mechanic', 'why', 'tags', 'sound', 'clips']) assert.ok(k in t, k);
+    for (const k of ['trendId', 'onBrand', 'signalStrength', 'brief', 'products']) assert.ok(k in t, 'additive ' + k);
+    assert.equal(t.id, 'setup-line-then-deadpan-punchline-caption-reveal', 'ids stay the name slugs the external agent filters on');
+    assert.equal(t.trendId, 'snd-7686644251815332639');
+    assert.deepEqual(t.samsungFit, { strength: 'strong', score: 82, ownableBeat: 'deadpan caption riff with Galaxy AI/Flip product as punchline', rationale: 'Live caption-riff wave; Galaxy Flip fold or Circle to Search as deadpan punchline.', raw: 'Live caption-riff wave; Galaxy Flip fold or Circle to Search as deadpan punchline.' });
+    assert.equal(t.momentumPerDay, 1); assert.equal(t.viewsPerWeek, 965000); assert.equal(t.stayingPower, 'ongoing');
+    assert.equal(t.sound.title, 'original sound - djprincelex');
+    assert.ok(Array.isArray(t.clips));
+    assert.equal(r.headers['cache-control'], 's-maxage=900, stale-while-revalidate=3600');
+    assert.equal(r.headers['access-control-allow-origin'], '*');
+  } finally { f.restore(); restore(); }
+});
+
+test('agent API down → the page scrape answers (source says so); live:false from the agent is passed through', async () => {
+  const page = fixture('kymah-page.html');
+  let f = mockFetch([
+    ['/api/agent/trends', () => text('{"error":"read_failed"}', 500)],
+    ['https://www.kymah.com/', () => text(page)],
+  ]);
+  let h = api('trends.js', { ANTHROPIC_API_KEY: undefined, TRENDRADAR_AGENT_KEY: 'agent-key', TRENDRADAR_BASE_URL: 'https://tr.test' });
+  try {
+    const r = res(); await h.handler(req({ query: { all: '1' } }), r);
+    assert.equal(r.statusCode, 200); assert.equal(r.body.source, 'TrendRadar (kymah.com)'); assert.equal(r.body.count, 12);
+  } finally { f.restore(); h.restore(); }
+  f = mockFetch([['/api/agent/trends', () => json({ ...agentFeed(), live: false })]]);
+  h = api('trends.js', { ANTHROPIC_API_KEY: undefined, TRENDRADAR_AGENT_KEY: 'agent-key', TRENDRADAR_BASE_URL: 'https://tr.test' });
+  try {
+    const r = res(); await h.handler(req({ query: { all: '1' } }), r);
+    assert.equal(r.body.live, false, 'the consumer must know it is reading the snapshot');
+  } finally { f.restore(); h.restore(); }
+});
+
+test('no agent key → scrape path exactly as before; an empty board is a 200 with count 0, not a 502', async () => {
+  let f = mockFetch([['https://www.kymah.com/', () => text(fixture('kymah-page.html'))]]);
+  let h = api('trends.js', { ANTHROPIC_API_KEY: undefined, TRENDRADAR_AGENT_KEY: undefined });
+  try {
+    const r = res(); await h.handler(req({ query: { all: '1' } }), r);
+    assert.equal(r.body.source, 'TrendRadar (kymah.com)'); assert.equal(r.body.count, 12);
+  } finally { f.restore(); h.restore(); }
+  f = mockFetch([['/api/agent/trends', () => json({ live: true, generatedAt: '2026-10-21T08:00:00.000Z', total: 0, trends: [] })]]);
+  h = api('trends.js', { ANTHROPIC_API_KEY: undefined, TRENDRADAR_AGENT_KEY: 'k', TRENDRADAR_BASE_URL: 'https://tr.test' });
+  try {
+    const r = res(); await h.handler(req(), r);
+    assert.equal(r.statusCode, 200); assert.deepEqual([r.body.count, r.body.curatedBy, r.body.boardTotal], [0, 'none', 0]);
+    assert.equal(r.headers['cache-control'], 's-maxage=300, stale-while-revalidate=900');
+  } finally { f.restore(); h.restore(); }
 });

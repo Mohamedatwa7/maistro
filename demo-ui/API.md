@@ -10,8 +10,14 @@ Two endpoints back the demo site and are also public for external consumers
 
 ## GET /api/trends — pull Samsung-fit trends
 
-Scrapes TrendRadar (kymah.com) live, keeps only trends that passed its Samsung
-relevance gate, and returns them normalized. Responses are edge-cached for 15
+Reads TrendRadar's agent API (the published board, bearer `TRENDRADAR_AGENT_KEY`;
+since 2026-10-21) and falls back to scraping kymah.com's page payload when the
+API is unavailable; returns the board normalized. The response also carries
+`live` (false = TrendRadar answered from its build-time snapshot),
+`boardGeneratedAt` (when the board was published) and `boardTotal`; each
+trend additionally carries `trendId` (TrendRadar's id), `onBrand`,
+`signalStrength`, the editorial `brief` and scored `products` when the agent
+API answered. An empty board is `200 {count: 0}`, not an error. Responses are edge-cached for 15
 minutes (`s-maxage=900, stale-while-revalidate=3600`). CORS is open (`*`).
 
 ### Query parameters

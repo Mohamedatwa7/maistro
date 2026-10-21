@@ -24,16 +24,15 @@ test('trends: a failed request renders FEED UNREACHABLE with the reason', async 
   } finally { X.restore(); }
 });
 
-test('trends: a live feed older than 6 h carries a STALE pill; a fresh one does not', async () => {
-  const page = fixture('kymah-page.html');
-  const feed = (fetchedAt) => ({ source: 'TrendRadar (kymah.com)', fetchedAt, curatedBy: 'rules', count: 1, trends: [{ id: 't', name: 'T', status: 'peaking', region: 'Global', lang: 'EN', category: 'c', samsungFit: { strength: 'fit', score: 50, ownableBeat: null, rationale: null, raw: null }, momentumPerDay: 1, viewsPerWeek: null, avgEngagementPct: null, stayingPower: null, mechanic: null, why: null, tags: [], sound: null, clips: [] }] });
-  for (const [at, stale] of [['2026-10-21T02:00:00.000Z', true], ['2026-10-21T09:30:00.000Z', false]]) {
+test('trends: a board older than 36 h carries a STALE pill and the header shows the board time; a fresh one does not', async () => {
+  const feed = (boardGeneratedAt) => ({ source: 'TrendRadar agent API', fetchedAt: '2026-10-21T09:59:00.000Z', live: true, boardGeneratedAt, boardTotal: 1, curatedBy: 'rules', count: 1, trends: [{ id: 't', name: 'T', status: 'peaking', region: 'Global', lang: 'EN', category: 'c', samsungFit: { strength: 'fit', score: 50, ownableBeat: null, rationale: null, raw: null }, momentumPerDay: 1, viewsPerWeek: null, avgEngagementPct: null, stayingPower: null, mechanic: null, why: null, tags: [], sound: null, clips: [] }] });
+  for (const [at, stale] of [['2026-10-19T08:00:00.000Z', true], ['2026-10-21T08:25:58.000Z', false]]) {
     const X = loadPage({ fetchImpl: async (u) => (String(u).includes('/api/trends') ? json(feed(at)) : new Promise(() => {})), hash: '#/trends' });
     try {
       await new Promise((r) => setTimeout(r, 30));
       const html = X.rTrends();
       assert.equal(/STALE · \d+H OLD/.test(html), stale, at);
-      assert.match(html, /LIVE · TRENDRADAR/);
+      assert.match(html, /LIVE · TRENDRADAR · BOARD \d{2} Oct 2026 \d{2}:\d{2} UTC/);
     } finally { X.restore(); }
   }
 });

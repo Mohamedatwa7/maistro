@@ -1140,10 +1140,10 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ---------- live trends — TrendRadar (kymah.com) via /api/trends ---------- */
-const LIVE={on:false,fetchedAt:null,source:null,empty:false,error:null};
-/* feed age in hours; null when unknown */
-const liveAgeH=()=>LIVE.fetchedAt?(Date.now()-new Date(LIVE.fetchedAt))/36e5:null;
-const TREND_STALE_H=6;
+const LIVE={on:false,fetchedAt:null,boardAt:null,source:null,empty:false,error:null};
+/* age of the BOARD (published once a day by TrendRadar) when known, else of the fetch; hours */
+const liveAgeH=()=>{const t=LIVE.boardAt||LIVE.fetchedAt;return t?(Date.now()-new Date(t))/36e5:null};
+const TREND_STALE_H=36;
 function radarSpark(vel){
  const g=1+Math.max(-.08,Math.min(.35,(vel||0)/100));
  return Array.from({length:14},(_,k)=>Math.max(2,Math.round(30*Math.pow(g,k-6))));
@@ -1181,14 +1181,14 @@ async function loadLiveTrends(){
   LIVE.error=null;
   if(!d.trends||!d.trends.length){
    /* the board can legitimately be thin or empty (2026-10-20: one trend); say so instead of spinning forever */
-   TRENDS.length=0;LIVE.on=true;LIVE.empty=true;LIVE.fetchedAt=d.fetchedAt||new Date().toISOString();LIVE.source=d.source;
+   TRENDS.length=0;LIVE.on=true;LIVE.empty=true;LIVE.fetchedAt=d.fetchedAt||new Date().toISOString();LIVE.boardAt=d.boardGeneratedAt||null;LIVE.source=d.source;
    if(location.hash.replace(/^#\//,'').split('/')[0]==='trends'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rTrends();reveal()}
    return;
   }
   LIVE.empty=false;
   TRENDS.length=0;
   d.trends.forEach((t,i)=>TRENDS.push(radarToTrend(t,i)));
-  LIVE.on=true;LIVE.fetchedAt=d.fetchedAt;LIVE.source=d.source;
+  LIVE.on=true;LIVE.fetchedAt=d.fetchedAt;LIVE.boardAt=d.boardGeneratedAt||null;LIVE.source=d.source;
   if(location.hash.replace(/^#\//,'').split('/')[0]==='trends'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rTrends();reveal()}
   /* no toast on the landing page — it would sit on top of the ENTER THE PLATFORM link */
   if(location.hash.replace(/^#\//,'').split('/')[0]) toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Hermes',1)}<div style="font-size:12.5px"><b>Hermes</b> pulled <b>${d.count} Samsung-fit trends</b> live from <b>TrendRadar</b> (kymah.com).</div></div>`);
@@ -2651,7 +2651,7 @@ function rTrends(){
  return `
  <section>
   <div class="section-head"><div><span class="kick accent">${LIVE.on?'01 · Samsung-fit feed · TrendRadar':'01 · Scout feed, scored + cleared'}</span><h2>Trend Analysis</h2></div>
-   ${trendStalePill()}<span class="pill"><span class="dot"></span>${LIVE.on?`LIVE · TRENDRADAR (KYMAH.COM) · UPDATED ${new Date(LIVE.fetchedAt).toUTCString().slice(17,22)} UTC`:'SCANNING 4 PLATFORMS · 4 MARKETS · REFRESH 15M'}</span></div>
+   ${trendStalePill()}<span class="pill"><span class="dot"></span>${LIVE.on?`LIVE · TRENDRADAR · BOARD ${new Date(LIVE.boardAt||LIVE.fetchedAt).toUTCString().slice(5,22)} UTC`:'SCANNING 4 PLATFORMS · 4 MARKETS · REFRESH 15M'}</span></div>
   <div class="kpis c4" style="margin-bottom:18px">
    <div class="card kpi p4"><span class="kick">Live trends</span><div class="v num">${TRENDS.length}</div><div class="hint">${rising} rising · ${TRENDS.length-rising} flat or declining</div></div>
    ${kpi2}

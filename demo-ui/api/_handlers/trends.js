@@ -18,6 +18,88 @@ const { fetchT } = require('../_http.js');
 const SOURCE = 'https://www.kymah.com/';
 const MODEL = 'claude-opus-4-8';
 
+// Primary source (M4, ADR-005): Trend Radar's agent API — read-only,
+// bearer-gated, fit-ranked, carries the editorial brief, scored products,
+// reference clips and the sound's commercial-use read. The page scrape below
+// stays as the fallback when the key is missing or the API fails, so the feed
+// never goes blank because one path broke (2026-10-20 lesson). Collection is
+// never triggered: this is a GET of the published board.
+const AGENT_BASE = (process.env.TRENDRADAR_BASE_URL || 'https://trend-radar-iota-one.vercel.app').replace(/\/$/, '');
+
+function parseGrowth(g) {
+  const m = String(g || '').match(/([+\-−]?[\d.]+)\s*%/);
+  return m ? parseFloat(m[1].replace('−', '-')) : null;
+}
+
+// AgentTrend → the shape this endpoint has always returned (API.md), plus
+// additive fields the agent carries that the page never had.
+function normalizeAgent(t) {
+  const fit = t.fit || null;
+  const snd = t.sound || null;
+  const cu = (snd && snd.commercialUse) || null;
+  const score = fit && typeof fit.strength === 'number' ? fit.strength : null;
+  return {
+    id: slug(t.name || t.id || 'trend'),
+    name: t.name || null,
+    status: t.stage || null,
+    region: t.scope === 'global' ? 'Global' : (t.scope || null),
+    lang: (t.lang || '').toUpperCase() || null,
+    category: t.category || t.kind || null,
+    samsungFit: {
+      strength: score != null && score >= 70 ? 'strong' : 'fit',
+      score,
+      ownableBeat: fit ? fit.beat || null : null,
+      rationale: fit ? fit.reason || null : null,
+      raw: fit ? fit.reason || null : null,
+    },
+    momentumPerDay: parseGrowth(t.growth),
+    viewsPerWeek: parseCount(t.viewsWk),
+    avgEngagementPct: typeof t.eng === 'number' ? t.eng : null,
+    stayingPower: t.durabilityClass || null,
+    mechanic: (t.brief && t.brief.mechanic) || (t.format && t.format.mechanic) || null,
+    why: t.why || null,
+    tags: Array.isArray(t.tags) ? t.tags.filter(Boolean) : [],
+    sound: snd && snd.title ? {
+      title: snd.title,
+      author: snd.author || null,
+      musicId: snd.musicId || null,
+      cue: snd.cue || null,
+      cleared: cu ? cu.cleared === true : false,
+      clearedCheckedAt: cu ? cu.checkedAt || null : null,
+    } : null,
+    clips: (t.clips || []).slice(0, 4).map((c) => ({
+      handle: c.handle || null,
+      poster: c.poster || null,
+      views: parseCount(c.views),
+      vid: c.vid || null,
+      sound: c.sound || null,
+    })),
+    // additive (agent API only)
+    trendId: t.id || null,
+    onBrand: typeof t.onBrand === 'boolean' ? t.onBrand : null,
+    signalStrength: typeof t.signalStrength === 'number' ? t.signalStrength : null,
+    brief: t.brief || null,
+    products: Array.isArray(t.products) ? t.products : [],
+  };
+}
+
+async function agentTrends() {
+  const key = process.env.TRENDRADAR_AGENT_KEY;
+  if (!key) return null;
+  const r = await fetchT(`${AGENT_BASE}/api/agent/trends?limit=200`, {
+    headers: { authorization: `Bearer ${key}`, accept: 'application/json', 'user-agent': 'MaistroDemo/1.0' },
+  }, { timeoutMs: 20000, retries: 1 });
+  if (!r.ok) throw new Error(`agent API responded ${r.status}`);
+  const d = await r.json();
+  if (!d || !Array.isArray(d.trends)) throw new Error('agent API returned no trends array');
+  return {
+    live: d.live !== false,
+    boardGeneratedAt: d.generatedAt || null,
+    total: typeof d.total === 'number' ? d.total : d.trends.length,
+    trends: d.trends.map(normalizeAgent).filter((t) => t.name),
+  };
+}
+
 function parseCount(s) {
   if (!s) return null;
   const m = String(s).trim().match(/^([\d.]+)\s*([KMB])?$/i);
@@ -185,13 +267,29 @@ async function claudeCurate(trends) {
 module.exports = async (req, res) => {
   try {
     const q = req.query || {};
-    const r = await fetchT(SOURCE, {
-      headers: { 'user-agent': 'Mozilla/5.0 (compatible; MaistroDemo/1.0)', accept: 'text/html' },
-    }, { timeoutMs: 20000, retries: 1 });
-    if (!r.ok) throw new Error(`kymah.com responded ${r.status}`);
-    const html = await r.text();
-    let trends = extractTrendStore(html).map(normalize).filter((t) => t.name);
-    if (!trends.length) throw new Error('no trends found in payload');
+    let trends = null, source = null, live = true, boardGeneratedAt = null, total = null;
+    try {
+      const a = await agentTrends();
+      if (a) { trends = a.trends; source = 'TrendRadar agent API'; live = a.live; boardGeneratedAt = a.boardGeneratedAt; total = a.total; }
+    } catch (e) {
+      console.warn('[trends] agent API failed, falling back to the page scrape:', e.message);
+    }
+    if (!trends) {
+      const r = await fetchT(SOURCE, {
+        headers: { 'user-agent': 'Mozilla/5.0 (compatible; MaistroDemo/1.0)', accept: 'text/html' },
+      }, { timeoutMs: 20000, retries: 1 });
+      if (!r.ok) throw new Error(`kymah.com responded ${r.status}`);
+      const html = await r.text();
+      trends = extractTrendStore(html).map(normalize).filter((t) => t.name);
+      source = 'TrendRadar (kymah.com)';
+      total = trends.length;
+    }
+    if (!trends.length) {
+      // an empty board is a state, not an error (the page renders BOARD EMPTY)
+      res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=900');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.status(200).json({ source, fetchedAt: new Date().toISOString(), live, boardGeneratedAt, boardTotal: 0, curatedBy: 'none', count: 0, trends: [] });
+    }
 
     let curatedBy = 'none';
     if (!q.all) {
@@ -212,8 +310,11 @@ module.exports = async (req, res) => {
     res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(200).json({
-      source: 'TrendRadar (kymah.com)',
+      source,
       fetchedAt: new Date().toISOString(),
+      live,
+      boardGeneratedAt,
+      boardTotal: total,
       curatedBy,
       count: trends.length,
       trends,
@@ -223,3 +324,5 @@ module.exports = async (req, res) => {
     res.status(502).json({ error: String(err.message || err) });
   }
 };
+
+module.exports.normalizeAgent = normalizeAgent; // exposed for tests

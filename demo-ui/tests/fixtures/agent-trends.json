@@ -1,0 +1,1619 @@
+{
+ "generatedAt": "2026-10-21T08:25:58.646Z",
+ "live": true,
+ "total": 38,
+ "trends": [
+  {
+   "id": "snd-7686644251815332639",
+   "name": "Setup line then deadpan punchline caption reveal",
+   "kind": "trend",
+   "stage": "peaking",
+   "growth": "+1%/day",
+   "category": "entertainment",
+   "scope": "global",
+   "lang": "en",
+   "onBrand": true,
+   "fit": {
+    "strength": 82,
+    "beat": "deadpan caption riff with Galaxy AI/Flip product as punchline",
+    "reason": "Live caption-riff wave; Galaxy Flip fold or Circle to Search as deadpan punchline."
+   },
+   "signalStrength": 70,
+   "durabilityClass": "ongoing",
+   "viewsWk": "965K",
+   "eng": 10.9,
+   "sound": {
+    "title": "original sound - djprincelex",
+    "author": null,
+    "cue": "beat drop or spoken line timed to the caption switching from setup to punchline",
+    "musicId": "7686644251815332639",
+    "commercialUse": {
+     "cleared": true,
+     "checkedAt": "2026-10-21T09:37:41.385Z"
+    }
+   },
+   "clips": [
+    {
+     "vid": "7693452843465985286",
+     "handle": "@creator",
+     "views": "784K",
+     "sound": "original sound - djprincelex",
+     "role": "top",
+     "poster": "https://p19-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/oUBuAoExHFDfoEKEQqEDjtfOQqENgGHPBUEjgR~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=AyxMyBzwPnF082bK21%2FmNvDy0H8%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    },
+    {
+     "vid": "7693449910326250770",
+     "handle": "@creator",
+     "views": "86K",
+     "sound": "original sound - djprincelex",
+     "role": null,
+     "poster": "https://p16-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/ooEi4t88jVQi2oDtCeMJa5XTdfIiAAPQfkP5QI~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=bSoiGlyG3qgzkYOverVC6nD3jaY%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    }
+   ],
+   "format": null,
+   "why": "Measured: 93 creators / 95 sampled videos, 71% posted this week, adoption accelerating. Carried 2d past its last fresh sighting — population counter +0.56%/day.",
+   "tags": [],
+   "firstSeen": "2026-10-01T09:35:28.096Z",
+   "runsSeen": 5,
+   "brief": {
+    "microTrend": "Setup line then deadpan punchline caption reveal",
+    "mechanic": "One locked static shot of a subject or object holds the frame the entire time. A setup line appears as on-screen text, then without any cut the caption swaps to a short deadpan punchline that reframes the opening line as a joke or flex. The whole payoff is the text swap timed to the audio beat, not the camera.",
+    "adaptations": [
+     {
+      "cta": "Caption asks 'what's your phone secretly doing right now' and invites stitches showing other hands-free Flip setups.",
+      "dos": [
+       "Keep the shot genuinely static for the full setup line, any micro-movement breaks trust in the format",
+       "Let the punchline be about the prop, not a camera spec",
+       "Use a real mundane subject, overly polished scenes read as an ad"
+      ],
+      "hook": "Setup text reads 'POV: my phone can't multitask' over a static shot of a propped phone doing three things at once on its cover screen.",
+      "idea": "Prop the half-folded Flip on a table so both hands are free, record a single locked shot of a mundane moment (a coffee, a messy desk, a dead-looking plant), setup caption appears, then the punchline caption reveals the Flip itself was the twist, e.g. the phone was secretly the one filming its own flex the whole time.",
+      "line": "Foldable",
+      "donts": [
+       "Never zoom or rack focus mid-shot, the format is locked-static by definition",
+       "Don't make the punchline about picture quality",
+       "Don't cut between setup and punchline, the swap must happen live over one continuous shot"
+      ],
+      "insight": "The format's humour depends on total camera stillness so the viewer trusts the text swap, not the edit, did the work. A phone that can prop itself into a perfectly static shot with zero rig is the one piece of hardware audiences never question is 'staged.'",
+      "product": "Galaxy Z Flip8",
+      "soundUse": "Use the trend's own deadpan comedic timing sound or a trending stitch-friendly silence-then-beat audio; the punchline caption should land exactly on the beat drop or the audio's comedic pause, not before or after.",
+      "execution": [
+       "Lock the Flip half-folded on a flat surface, cover screen or inner screen facing the subject",
+       "Frame a single static shot: cluttered desk, multitasking cover screen, or a plant that's clearly dead",
+       "Setup caption appears: an innocent, earnest claim about the subject",
+       "Hold the shot, no movement, for 2 to 3 seconds of silence or ambient audio",
+       "Caption swaps to the deadpan punchline that flips the setup into a joke or a flex",
+       "Hold 1 more second on the punchline before cut to black or loop point"
+      ],
+      "samsungify": "The half-folded stand is the only way to get a hands-free locked static shot without a tripod, mount, or a second person; the joke setup requires total stillness and nobody is holding anything.",
+      "onScreenText": "setup: 'this is just a phone on a table' / punchline: 'this is a tripod now'",
+      "featureMoment": "The viewer notices the shot never wobbles or cuts despite clearly being propped on a desk with no visible stand, the half-fold doing the holding is the quiet reveal in the comments."
+     },
+     {
+      "cta": "Ask viewers to screen-record their own Watch number next to a confident setup line and tag it back.",
+      "dos": [
+       "Use a real logged metric, not a made-up number",
+       "Keep the Watch face legible in frame so the punchline reads as proof",
+       "Let the joke be self-deprecating more often than flexing, it reads more native"
+      ],
+      "hook": "Setup text: 'I worked SO hard today' over a static shot of a Watch face face-up on a desk.",
+      "idea": "Static shot of a wrist mid-workout or mid-nap, setup caption makes an earnest claim about effort or rest, punchline caption reveals the actual Watch data (steps, sleep score, recovery) that deflates or flexes the claim.",
+      "line": "Watch",
+      "donts": [
+       "Don't animate the Watch face or add effects, stillness is the format",
+       "Don't make the punchline a product feature list",
+       "Never fake the data point, the format's whole joke depends on it reading as true"
+      ],
+      "insight": "Deadpan punchline formats land hardest when the punchline is verifiable, not just funny. A wearable that quietly logged the truth while you weren't performing for camera is the built-in fact-checker the joke needs.",
+      "product": "Galaxy Watch9",
+      "soundUse": "Sync the caption swap to the same comedic pause used across the trend's sound; keep the room audio minimal so the silence sells the deadpan.",
+      "execution": [
+       "Static shot of wrist or Watch face resting on a surface, no hand movement",
+       "Setup caption: an earnest or boastful claim about the day",
+       "Hold the frame in silence for the setup beat",
+       "Caption swaps to the actual Watch metric that contradicts or confirms the claim as a flex",
+       "Hold on the number for the punchline beat",
+       "Let it loop back to the setup line"
+      ],
+      "samsungify": "The Watch is the only object in frame that can supply a real, checkable number as the punchline; the joke's credibility rests on data a phone camera can't generate.",
+      "onScreenText": "setup: 'slept like a baby' / punchline: 'sleep score: 41'",
+      "featureMoment": "The viewer reads the punchline caption land directly over the visible Watch face, the real sleep score or step count is the twist, not a performance."
+     },
+     {
+      "cta": "Caption invites 'screenshot your fridge's actual suggestion right now' and stitch it against your own setup line.",
+      "dos": [
+       "Use the screen's real live content as the punchline, not an invented line",
+       "Keep the shot tight on the screen so it reads legible",
+       "Pick mundane, relatable setups about food, not brand claims"
+      ],
+      "hook": "Setup text: 'we're eating healthy tonight' over a static shot of the Family Hub screen.",
+      "idea": "Static shot of the fridge's Family Hub screen, setup caption makes a claim about what's for dinner or who's cooking, punchline caption reveals the screen's actual suggestion or inventory read as the deadpan twist.",
+      "line": "Home",
+      "donts": [
+       "Don't narrate over it, text-only punchline is the format",
+       "Don't dress up the screen content to look more dramatic than it is",
+       "Avoid making the fridge the butt of a joke about itself, it should supply the honest twist, not be mocked"
+      ],
+      "insight": "The format rewards objects that can plausibly 'answer' the setup line without a person speaking. A fridge screen that displays its own suggestion is a built-in punchline generator the joke can point the camera at honestly.",
+      "product": "Bespoke AI Fridge",
+      "soundUse": "Keep the kitchen ambient sound as the bed, swap caption on the trend's standard comedic pause point in the audio.",
+      "execution": [
+       "Static shot locked on the Family Hub screen, nothing else in frame",
+       "Setup caption: an earnest claim about tonight's dinner plans",
+       "Hold the frame as the screen sits passively",
+       "Caption swaps to whatever the screen is actually showing, inventory, expiry alert, or a recipe suggestion, read as the punchline",
+       "Hold the beat on the screen before cutting"
+      ],
+      "samsungify": "Only this screen can supply a real, visible on-screen suggestion or inventory list as the punchline prop; it's the one kitchen object that can talk back.",
+      "onScreenText": "setup: 'cooking a fresh meal tonight' / punchline: 'fridge: use the milk, it expires today'",
+      "featureMoment": "The viewer sees the exact on-screen text or suggestion the Family Hub is already displaying double as the punchline, no graphic added after the fact."
+     }
+    ],
+    "onBrand": [
+     "Format is accelerating fast (+340%, 71% of sample posted this week) so early native participation reads as culture, not an ad",
+     "The locked-static, no-edit mechanic rewards products that can hold a shot or supply a real data point, which plays directly to Foldable stands, Watch metrics, and smart-home screens",
+     "Deadpan text-only humour is low-production and highly duettable, matching how Gulf and global youth audiences already remix comedic formats"
+    ]
+   },
+   "products": []
+  },
+  {
+   "id": "snd-7689273697034685198",
+   "name": "Thank You Baby money reaction meme",
+   "kind": "trend",
+   "stage": "peaking",
+   "growth": "+2%/day",
+   "category": "entertainment",
+   "scope": "global",
+   "lang": "en",
+   "onBrand": true,
+   "fit": {
+    "strength": 80,
+    "beat": "brand-hop meme riff with Galaxy product as deadpan money-reaction prop",
+    "reason": "Live brand-hop wave; Galaxy AI edit or Flip reveal as deadpan punchline works"
+   },
+   "signalStrength": 70,
+   "durabilityClass": "flash",
+   "viewsWk": "4.5M",
+   "eng": 21.3,
+   "sound": {
+    "title": "original sound - drebabygums",
+    "author": null,
+    "cue": "\"Thank you baby\" (sung line that lands as the punchline over the reveal)",
+    "musicId": "7689273697034685198",
+    "commercialUse": {
+     "cleared": true,
+     "checkedAt": "2026-10-15T08:46:56.897Z"
+    }
+   },
+   "clips": [
+    {
+     "vid": "7692526114316504334",
+     "handle": "@creator",
+     "views": "2.6M",
+     "sound": "original sound - drebabygums",
+     "role": "top",
+     "poster": "https://p19-common-sign.tiktokcdn-us.com/tos-useast5-p-0068-tx/ocdV9DUJ1HB8TbhBA4iiwvBnCYAIMRgIIdfYpK~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=bQVZxcQr8ZnRxWzyd9Ea6iRDYw8%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    },
+    {
+     "vid": "7691517834567879967",
+     "handle": "@creator",
+     "views": "1.7M",
+     "sound": "original sound - drebabygums",
+     "role": "earliest-observed",
+     "poster": "https://p16-common-sign.tiktokcdn-us.com/tos-useast8-p-0068-tx2/oEfABUY9cqO8QAEfhE8FzEBDB5FAvQR7LxVAGE~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=Oc4dbx44eeaznuG%2BmYxwyO%2BxpkM%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    }
+   ],
+   "format": null,
+   "why": "Measured: 93 creators / 96 sampled videos, 58% posted this week. Carried 2d past its last fresh sighting — population counter +2.14%/day.",
+   "tags": [],
+   "firstSeen": "2026-10-06T09:43:21.103Z",
+   "runsSeen": 6,
+   "brief": {
+    "microTrend": "Thank You Baby money reaction meme",
+    "mechanic": "Creator sets an everyday scenario in on-screen text in a single locked static shot, then the clip pays off on the sung line Thank You Baby as the punchline, synced to hands reaching for or counting money. No camera movement or cuts, the joke lands purely on the audio drop matching the caption's setup.",
+    "adaptations": [
+     {
+      "cta": "Caption asks 'what's your version of this' and invites duets with the same static propped setup.",
+      "dos": [
+       "Keep the shot dead static, any camera motion kills the deadpan",
+       "Make the caption setup mundane and specific, not dramatic",
+       "Let the audio drop do all the comedic work, no reaction face"
+      ],
+      "hook": "Text on screen: 'when he finally pays you back' over a static table shot, phone just... standing there with no one touching it.",
+      "idea": "Set the caption up as someone owing you money or handing over cash through a shared Samsung Wallet / cash-swap moment, phone propped half-folded hands-free on the table so both hands are free to count or receive the money on the beat drop.",
+      "line": "Foldable",
+      "donts": [
+       "Don't show the phone being propped or adjusted on camera, it should look like it's just there",
+       "Don't add zooms or cuts on the punchline, the format is one locked take",
+       "Don't force a branded product in hand, the cash/money is the only prop"
+      ],
+      "insight": "The format's whole joke depends on a locked, untouched static shot, any wobble or handheld shake breaks the deadpan setup. Creators already hunt for a free surface or stack of books to rest the phone on; a phone that stands itself up at the right angle removes that friction entirely.",
+      "product": "Galaxy Z Flip8",
+      "soundUse": "Hard sync: the sung line Thank You Baby must land in the exact frame the hand touches the cash, cut nothing before it, hold nothing after more than a beat.",
+      "execution": [
+       "Open on a static table-level shot, phone already standing on its own, nobody adjusting it",
+       "Caption types on screen: the everyday setup (allowance, bet payout, friend owing lunch money)",
+       "Hold the static shot for a beat, deadpan, no movement",
+       "Hand enters frame holding cash or a phone with a payment confirmation",
+       "Audio drops on Thank You Baby exactly as the hand reaches or starts counting",
+       "Hold on the final static frame for a half-second after the punchline lands"
+      ],
+      "samsungify": "The half-folded FlexCam stands on its own on the table at the exact eye-line height the format needs, so both hands are free for the money beat with nobody holding the phone or propping it on a cup.",
+      "onScreenText": "when he said keep the change. لما قال خليه عندك",
+      "featureMoment": "The viewer notices the phone is upright on the table with nothing propping it and no hand touching it, the FlexCam half-fold is doing that invisibly before the punchline even starts."
+     },
+     {
+      "cta": "Ask viewers to share their 'notification that saved the day' in the comments.",
+      "dos": [
+       "Keep the wrist and watch face the entire frame, no extra motion",
+       "Make sure the notification is a real, readable payment confirmation, not a fake graphic",
+       "Time the light-up precisely, timing is the whole joke"
+      ],
+      "hook": "Text: 'when the refund hits before you even asked' over a static shot of a wrist resting on a table.",
+      "idea": "Caption sets up a scenario where a Samsung Wallet tap-to-pay or a watch notification is the thing that pays off, wrist raises into frame right as the sung line drops, confirming the payment buzz landed.",
+      "line": "Watch",
+      "donts": [
+       "Don't narrate or caption what the notification says, let it stay visual",
+       "Don't add a reaction shot of a face, breaks the static rule",
+       "Don't turn it into a product demo of watch features beyond the one notification"
+      ],
+      "insight": "The joke's engine is the gap between a boring stated setup and an absurdly perfect-timed payoff. A watch buzz that visibly lands in that exact beat gives the format a second layer of 'perfect timing' without adding any new footage or cuts.",
+      "product": "Galaxy Watch9",
+      "soundUse": "Sync the watch's notification light-up to land one frame before or exactly on the sung line, treat it as the visual stinger for the audio punchline.",
+      "execution": [
+       "Static shot locked on a wrist resting flat on a table, watch face visible",
+       "Caption types the everyday setup, something trivial and relatable",
+       "Hold, deadpan, nothing happening",
+       "Watch face lights up with a payment notification right as the audio hits",
+       "Wrist lifts slightly into frame as the sung line plays",
+       "Hold the final still frame on the lit watch face"
+      ],
+      "samsungify": "A watch notification buzz is a real, silent on-body cue a creator can time precisely to the audio drop, something a phone buried in a pocket can't deliver in the same static frame.",
+      "onScreenText": "when the money actually comes through. وصلت الفلوس فعلا",
+      "featureMoment": "The viewer sees the Watch face light up with a payment confirmation at the exact instant the audio drops, the notification itself becomes the punchline's visual proof."
+     }
+    ],
+    "onBrand": [
+     "The format is pure audio-timing comedy, rewarding products that can hit a precise cue silently and visually, which plays to Samsung's on-device notification and FlexCam strengths rather than any camera spec",
+     "Global stage-peaking growth means low-friction, no-edit formats travel fastest, both adaptations require zero extra production beyond what creators already do",
+     "The format's deadpan static-shot discipline is a natural fit for showing product behaviour (self-standing fold, silent notification) without ever breaking the single-take rule that makes the joke land"
+    ]
+   },
+   "products": []
+  },
+  {
+   "id": "snd-7683619692979751687",
+   "name": "Captioned Portrait Punchline Meme",
+   "kind": "trend",
+   "stage": "peaking",
+   "growth": "+2%/day",
+   "category": "entertainment",
+   "scope": "global",
+   "lang": "en",
+   "onBrand": true,
+   "fit": {
+    "strength": 78,
+    "beat": "brand-hop meme riff using Galaxy AI portrait edit as the punchline",
+    "reason": "Riff wave fits Galaxy AI portrait edit as the punchline twist."
+   },
+   "signalStrength": 70,
+   "durabilityClass": "ongoing",
+   "viewsWk": "1.3M",
+   "eng": 29.6,
+   "sound": {
+    "title": "original sound - allezzftbl",
+    "author": null,
+    "cue": null,
+    "musicId": "7683619692979751687",
+    "commercialUse": {
+     "cleared": true,
+     "checkedAt": "2026-10-19T08:49:38.855Z"
+    }
+   },
+   "clips": [
+    {
+     "vid": "7695506338067139872",
+     "handle": "@creator",
+     "views": "1.3M",
+     "sound": "original sound - allezzftbl",
+     "role": "top",
+     "poster": "https://p19-common-sign.tiktokcdn-us.com/tos-useast2a-i-photomode-euttp/343e368ba343419093a623a6584ff73b~tplv-photomode-image.jpeg?dr=9616&x-expires=1792569600&x-signature=1aLFvRtzqPweMCsG%2BN2d5gdKaZU%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=9b759fb9&idc=useast5&ftpl=1"
+    },
+    {
+     "vid": "7689350327040068884",
+     "handle": "@creator",
+     "views": "224K",
+     "sound": "original sound - allezzftbl",
+     "role": "earliest-observed",
+     "poster": "https://p16-common-sign.tiktokcdn-us.com/tos-alisg-i-photomode-sg/a4f3ad4313644355bf631e22726a6256~tplv-photomode-image.jpeg?dr=9616&x-expires=1792569600&x-signature=VbyKzV2k74ETtW70OesCs%2BoA%2BI8%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=9b759fb9&idc=useast5&ftpl=1"
+    }
+   ],
+   "format": null,
+   "why": "Measured: 61 creators / 92 sampled videos, 23% posted this week. Carried 2d past its last fresh sighting — population counter +1.87%/day.",
+   "tags": [],
+   "firstSeen": "2026-10-10T09:15:41.845Z",
+   "runsSeen": 8,
+   "brief": {
+    "microTrend": "Captioned portrait punchline meme",
+    "mechanic": "A single static image sits locked on screen while two or three text captions build in sequence like a dialogue or dramatic quote, landing on a punchline or wistful line. No cuts, no camera movement; the whole joke rides on the escalating text revealed over the sound.",
+    "adaptations": [
+     {
+      "cta": "Caption asks 'send me your worst photo, I'll make it a painting' to invite submissions and remixes in comments.",
+      "dos": [
+       "Keep the restyle subtle enough that it still half-reads as a real old photo",
+       "Pick a genuinely mundane source photo, the gap between grandeur and banality is the joke",
+       "Let the static image breathe, no zoom or pan added"
+      ],
+      "hook": "A caption reads 'found this painting of my ancestor' over what is obviously your own restyled phone photo, before the punchline reveals it's you from 2019.",
+      "idea": "Take an old, slightly embarrassing or dramatic personal photo, use on-device Generative Edit to restyle it into a painting-like portrait, then run the format's caption escalation over the restyled still as if it were the old master painting everyone's been using.",
+      "line": "AI",
+      "donts": [
+       "Never show the edit happening on screen, it breaks the deadpan",
+       "Don't caption-drop the product name, the format has zero brand language in it",
+       "Avoid an image so obviously AI-generated that it reads as a filter demo instead of a joke"
+      ],
+      "insight": "The format's humor depends on the image reading as found, not made; any visible edit tool or watermark instantly kills the deadpan. A creator who can restyle their own photo invisibly gets a funnier, more personal punchline than recycling the same stock paintings everyone else uses.",
+      "product": "Galaxy AI (Generative Edit / Photo Assist)",
+      "soundUse": "Use the trend's own ambient or dramatic audio bed under the captions; no voiceover, let the text and the sound alone carry escalation, cut nothing.",
+      "execution": [
+       "Pick an awkward or overly serious personal photo sitting in the camera roll",
+       "Run Generative Edit to restyle it into an oil-painting or vintage-photo look, nothing else changed",
+       "Lock the restyled image on screen, full stop, no cropping or pan",
+       "Caption one lands: a faux-reverent description of 'the painting'",
+       "Caption two lands: a detail that undercuts it",
+       "Caption three lands: the punchline revealing it's the creator, dated and ordinary",
+       "Hold on the final caption for a beat before the loop restarts"
+      ],
+      "samsungify": "Generative Edit restyles the photo entirely on-device, no watermark, no third-party app logo sitting in the corner to break the joke's deadpan format.",
+      "onScreenText": "this portrait of my great aunt, the detail..., it's me in 2019 after one tequila",
+      "featureMoment": "The viewer sees a convincingly old-looking portrait, then the final caption reveals the restyled photo was a selfie from a few years back, the restyle doing the work the joke needs invisibly."
+     },
+     {
+      "cta": "Ask viewers to request a sketch subject in the comments for the next one, turning the format into a recurring series.",
+      "dos": [
+       "Keep the sketch intentionally rough, polish undercuts the joke",
+       "Match the captioning rhythm and font style the format already uses",
+       "Post it as a one-off still, never a drawing timelapse"
+      ],
+      "hook": "A rough, flat sketch sits on screen captioned like a gallery placard, before the punchline undercuts the whole premise.",
+      "idea": "Sketch a deliberately bad or deadpan portrait of a friend, pet, or situation on the Tab, then run the same caption-escalation format over the sketch instead of a found photo or painting.",
+      "line": "Tab",
+      "donts": [
+       "Don't show the stylus or the app interface, it reframes the video as a tutorial",
+       "Never over-render the sketch into something that looks professionally finished",
+       "Don't explain the joke in the caption text, let the escalation do it"
+      ],
+      "insight": "The format has a growth problem precisely because the image pool is limited and recognizable; the next wave of creators in this format differentiate by supplying an original image rather than another recycled painting, and a drawing tool is the fastest way to generate one.",
+      "product": "Galaxy Tab S11",
+      "soundUse": "Keep the trend's ambient or dramatic music bed exactly as used elsewhere in the format; do not add narration over it.",
+      "execution": [
+       "Sketch something deliberately flat and amateur, a pet, a coworker, a breakup scene",
+       "Export the sketch as a single static still",
+       "Lock it on screen, no pan or zoom",
+       "Caption one lands: an overly formal description as if describing fine art",
+       "Caption two lands: a specific, petty detail",
+       "Caption three lands: the punchline, often self-deprecating about the drawing quality itself",
+       "Hold the final frame"
+      ],
+      "samsungify": "The large canvas and pen make the sketch itself fast enough to produce same-day, so the format becomes original content instead of recycled stock images everyone's seen before.",
+      "onScreenText": "self portrait, 2026, the brushwork, I cannot draw hands",
+      "featureMoment": "The viewer watches a clearly hand-drawn, imperfect sketch get treated with mock-reverent captions, the joke's originality coming from the fact nobody has seen this specific bad drawing before."
+     }
+    ],
+    "onBrand": [
+     "Format is entirely text-and-stillness driven, which rewards genuinely original source images over recycled ones, a gap Samsung's on-device creation tools can fill without breaking the deadpan",
+     "Zero reliance on camera movement or specs keeps every adaptation about participation in the joke, not equipment",
+     "Trend is already past peak and declining, so the brief favors fast, low-production entries over anything requiring a shoot or crew"
+    ]
+   },
+   "products": [
+    {
+     "product": "Galaxy AI",
+     "line": "AI",
+     "reason": "Portrait Studio restyles a single photo into the stylised punchline look the meme format runs on, no third-party app needed.",
+     "score": 68
+    }
+   ]
+  },
+  {
+   "id": "snd-7678818228084853511",
+   "name": "POV Sudden Betrayal or Twist Reveal",
+   "kind": "trend",
+   "stage": "peaking",
+   "growth": "+4%/day",
+   "category": "entertainment",
+   "scope": "global",
+   "lang": "mixed",
+   "onBrand": true,
+   "fit": {
+    "strength": 78,
+    "beat": "Galaxy AI generative edit reveal twist",
+    "reason": "Twist reveal is a generated AI-edit hook—Galaxy AI powers the on-screen surprise cut."
+   },
+   "signalStrength": 70,
+   "durabilityClass": "ongoing",
+   "viewsWk": "183K",
+   "eng": 17.1,
+   "sound": {
+    "title": "original sound - eldanieloko",
+    "author": null,
+    "cue": null,
+    "musicId": "7678818228084853511",
+    "commercialUse": {
+     "cleared": true,
+     "checkedAt": "2026-10-15T08:46:58.643Z"
+    }
+   },
+   "clips": [
+    {
+     "vid": "7694080553607335188",
+     "handle": "@creator",
+     "views": "72K",
+     "sound": "original sound - eldanieloko",
+     "role": "top",
+     "poster": "https://p19-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/og2fDe8MoIRBjkVIs3X0vjebGCYAiQs1XECNIA~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=52glUXzbzeFe%2F2ppaKehJ73VDZQ%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    },
+    {
+     "vid": "7693394826254912774",
+     "handle": "@creator",
+     "views": "46K",
+     "sound": "original sound - eldanieloko",
+     "role": "earliest-observed",
+     "poster": "https://p19-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/oYCfAtXiILMcPINOgVIG3fe8gTIxAkh1DgRV1j~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=KyOUtqPjU8qmOwKH0UcJuF0v4ko%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    }
+   ],
+   "format": null,
+   "why": "Measured: 87 creators / 91 sampled videos, 46% posted this week. Carried 2d past its last fresh sighting — population counter +4.26%/day.",
+   "tags": [],
+   "firstSeen": "2026-10-06T09:43:21.103Z",
+   "runsSeen": 7,
+   "brief": {
+    "microTrend": "POV caption-mismatch reveal",
+    "mechanic": "A relatable POV caption sets up a scenario, then the footage cuts to an unrelated reaction clip or static image that visually punchlines the setup; the joke lands entirely on the gap between the caption's premise and the absurd payoff image, usually on one static or looping shot.",
+    "adaptations": [
+     {
+      "cta": "Caption asks 'what's on your cover screen rn' and invites duets where people reveal their own payoff image on snap.",
+      "dos": [
+       "Keep the setup caption boring and relatable, the flatter the better",
+       "Make the snap audible and sharp, it has to read as the cut",
+       "Pick a payoff image as unhinged as the best examples in the trend"
+      ],
+      "hook": "Caption reads 'POV: your best friend texts the group chat about you' over a normal cover-screen selfie, then a hard snap-shut cut reveals a feral payoff image filling the cover screen.",
+      "idea": "Use the fold itself as the punchline hinge: the caption sets up the betrayal while the phone is open showing a normal scene on the cover screen, then you snap it shut and the cover screen becomes the absurd payoff image.",
+      "line": "Foldable",
+      "donts": [
+       "Don't show the phone brand or UI chrome, keep focus on the cover screen content only",
+       "Don't add extra cuts after the snap, one hinge motion is the whole edit",
+       "Don't explain the joke in a voiceover, the caption and image carry it"
+      ],
+      "insight": "The format's whole joke engine is a hard mismatch cut between setup and payoff. Creators currently fake that cut with editing software; a device that performs the cut as a physical gesture turns the edit itself into the bit, which is catnip for a format built on the edit being the punchline.",
+      "product": "Galaxy Z Flip8",
+      "soundUse": "Use the trend's own sting or meme audio, timed so the snap-shut sound effect lands exactly on the audio's punch beat; no voiceover needed.",
+      "execution": [
+       "Caption appears over the open Flip8 held normally, cover screen showing a mundane scene (texting, scrolling)",
+       "Setup line delivered deadpan to camera, phone upright",
+       "Hard snap: fold the phone shut in one motion, audio sting hits on the snap",
+       "Cover screen now displays the absurd payoff image full-screen, held static",
+       "Caption's punchline text appears over the payoff image",
+       "Hold for a beat, no further movement, let the mismatch read",
+       "Optional: flip back open to reset for a loop"
+      ],
+      "samsungify": "The cover screen is a second, physically switchable canvas; the snap of the hinge IS the edit, no cut needed in post because the fold does the reveal in-camera.",
+      "onScreenText": "POV: she said 'we need to talk' and this is what she sent. لما قالت لازم نتكلم وبعتت هالصورة",
+      "featureMoment": "The viewer watches the phone physically snap shut and the cover screen instantly become the punchline image, the fold itself performing the scene-cut the format usually needs an edit for."
+     },
+     {
+      "cta": "Caption invites 'send me your most unhinged caption idea and I'll generate the payoff', turning the comment section into a request queue.",
+      "dos": [
+       "Make the edit genuinely strange, not just a filter, matching the format's absurdist tone",
+       "Keep the original photo mundane so the transformation reads as the twist",
+       "Credit it as AI-made only lightly, let the joke carry the post"
+      ],
+      "hook": "Caption sets up 'POV: you ask who ate the last slice' over a normal fridge photo, then the same photo reappears with you generatively edited into a cartoon raccoon mid-bite.",
+      "idea": "Build the payoff image itself on-device: use Generative Edit to warp a normal photo into the absurd punchline (deadnamed-by-a-friend caption pays off with an AI-restyled group photo where you've been edited into a cartoon villain), posted with the edit visible as part of the joke.",
+      "line": "AI",
+      "donts": [
+       "Don't use a real person's likeness in the edited payoff without consent",
+       "Don't over-polish the edit into something that looks like a stock render, keep it scrappy like the trend's native images",
+       "Don't turn the caption into a product pitch, the generation is a tool not the subject"
+      ],
+      "insight": "The weakest point of this format is that everyone draws payoff images from the same shrinking pool of viral reaction pics, so a custom-generated payoff is instantly fresher and funnier than the same five recurring images, and on-device generation removes the watermark tell that would otherwise flag it as AI-made.",
+      "product": "Galaxy AI (Generative Edit)",
+      "soundUse": "Keep the same trend audio under both halves uninterrupted, the sound doesn't pause for the edit, reinforcing that the payoff is instant.",
+      "execution": [
+       "Setup caption appears over an ordinary static photo of the real scene",
+       "Beat of silence, static hold, exactly as the format expects",
+       "Hard cut to the same photo, now generatively edited with an absurd element added",
+       "Punchline caption text lands over the edited image",
+       "Hold static, no further motion, let the edit be studied",
+       "Optional text overlay: 'made this in 4 seconds' as a soft feature nod"
+      ],
+      "samsungify": "On-device generative edit with no third-party app and no watermark means the absurd payoff image can be custom-made for the specific caption instead of recycled from the same meme-image pool everyone else uses.",
+      "onScreenText": "POV: you ask who ate the last slice and get this as a response. مين اكل القطعة الاخيرة وردوا عليا كذا",
+      "featureMoment": "The viewer sees the exact same original photo reappear transformed, an absurd generative element inserted seamlessly with no visible watermark or seams, in the same beat a recycled meme image would normally appear."
+     }
+    ],
+    "onBrand": [
+     "The format's entire joke is a hard visual mismatch cut, which Samsung can perform physically (the fold) or generatively (on-device AI) rather than just filming it",
+     "Stage-peaking growth at +64% with near half of sampled videos posted this week means timing favors a fast, low-production response over a polished campaign",
+     "The format rewards personalization and freshness of the payoff image, which plays directly to on-device generative tools no competitor offers without a visible watermark"
+    ]
+   },
+   "products": [
+    {
+     "product": "Galaxy Z Flip8",
+     "line": "Foldable",
+     "reason": "Flex Mode half-fold lets a creator plant the phone hands-free, flip the FlexWindow toward themselves, then snap it open as the physical reveal beat of the twist",
+     "score": 74
+    },
+    {
+     "product": "Galaxy AI",
+     "line": "AI",
+     "reason": "Generative Edit/Photo Assist lets creators restyle and recolour a scene mid-clip to sell the sudden twist without third-party apps or watermarks",
+     "score": 68
+    }
+   ]
+  },
+  {
+   "id": "snd-7618726403697134356",
+   "name": "Wash Day Hair Transformation Labels",
+   "kind": "trend",
+   "stage": "peaking",
+   "growth": "+3%/day",
+   "category": "beauty",
+   "scope": "global",
+   "lang": "en",
+   "onBrand": true,
+   "fit": {
+    "strength": 78,
+    "beat": "generative before/after edit reveal of hair transformation",
+    "reason": "Galaxy AI photo edit/generative reveal nails the before/after transformation label twist."
+   },
+   "signalStrength": 70,
+   "durabilityClass": "ongoing",
+   "viewsWk": "4.7M",
+   "eng": 9,
+   "sound": {
+    "title": "original sound - user8yhr0r6nax",
+    "author": null,
+    "cue": "cut lands on each new on-screen label (Sucio/Lavado/Peinado or Lavado/Seco/Alisado) as the hair stage changes",
+    "musicId": "7618726403697134356",
+    "commercialUse": {
+     "cleared": true,
+     "checkedAt": "2026-10-19T08:47:16.291Z"
+    }
+   },
+   "clips": [
+    {
+     "vid": "7694893511736298773",
+     "handle": "@creator",
+     "views": "1.0M",
+     "sound": "original sound - user8yhr0r6nax",
+     "role": "top",
+     "poster": "https://p16-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/o8DBsBAA6viAYI7aEbAk5AG2aJEvEYAOnwinq~tplv-tiktokx-dmt-logom:tos-alisg-i-0068/oUBMEAFOAxJhdAAnqBSwCDAniQaPL5YcAisIE.image?dr=9634&x-expires=1792569600&x-signature=mPmuMUlAIIR%2FwdBd5qokQNh%2FwRU%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    },
+    {
+     "vid": "7694366452014501134",
+     "handle": "@creator",
+     "views": "852K",
+     "sound": "original sound - user8yhr0r6nax",
+     "role": "earliest-observed",
+     "poster": "https://p19-common-sign.tiktokcdn-us.com/tos-useast5-p-0068-tx/oAt1PA9fekEUKEQVujFfHCAF4wbKD6QdjcDkIT~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=2CtMq4pfkYJDAYrX8jJPW923BBU%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    }
+   ],
+   "format": null,
+   "why": "Measured: 83 creators / 93 sampled videos, 45% posted this week, adoption accelerating. Carried 2d past its last fresh sighting — population counter +2.98%/day.",
+   "tags": [],
+   "firstSeen": "2026-10-08T09:30:31.498Z",
+   "runsSeen": 9,
+   "brief": {
+    "microTrend": "Wash day stage-label montage",
+    "mechanic": "Locked multi-cut montage of a single wash day, each clip stamped with a text label (dirty/wet, washed, dried, styled) and cut on the beat drop so the sequence reads as a timeline of transformation rather than a single reveal.",
+    "adaptations": [
+     {
+      "cta": "Caption asks 'which stage is your hair at rn' and invites a stitch with their own stage breakdown.",
+      "dos": [
+       "Keep the labels identical in style to the trend's own stamp format",
+       "Let the propped angle stay static through the whole sequence for consistency",
+       "Show the wet-hands reality, that's the proof point"
+      ],
+      "hook": "Hands soaking wet, reaching for detangler, phone already rolling on its own with nobody touching it.",
+      "idea": "Prop the half-folded Flip on the bathroom counter so both hands stay free through the whole wash, towel-dry and detangle stages, no one holding the phone or repositioning a tripod between cuts.",
+      "line": "Foldable",
+      "donts": [
+       "Don't cut away to show someone adjusting the phone, it breaks the hands-free claim",
+       "Don't add a phone close-up or spec callout, the hinge behaviour should read as incidental",
+       "Never narrate the feature, let the prop-and-walk-away speak for itself"
+      ],
+      "insight": "The format demands four or five clean stage cuts, but wash day is also the one routine where your hands are never free, wet, product-covered, detangling. The creators who nail the format are the ones who solved that logistics problem, and a phone that stands itself up solves it without a prop.",
+      "product": "Galaxy Z Flip8",
+      "soundUse": "Use the trend's standard beat-drop audio, cut exactly on each drop to the next stage label as the mechanic dictates, no deviation from the established cut points.",
+      "execution": [
+       "Flip propped half-folded on the bathroom counter facing the mirror before water touches hair",
+       "Stage 1: wet/dirty hair label stamped as the shampoo starts",
+       "Reach over and tap the cover screen to start the next clip without touching the main display",
+       "Stage 2: washed, hair slicked and dripping, label stamps on the beat",
+       "Towel-dry hands-free, reposition the half-fold slightly for the drying angle",
+       "Stage 3: dried label stamps as diffuser or towel comes down",
+       "Final stage: styled reveal, label stamps on the last beat drop"
+      ],
+      "samsungify": "The hinge lets the phone stand itself up at sink height without a tripod, mount or a dry hand to hit record between every stage, the one wash-day constraint every creator actually has.",
+      "onScreenText": "wash day, stage by stage. يوم الغسيل خطوة بخطوة",
+      "featureMoment": "The viewer sees the phone standing upright on its own hinge at sink-level with zero mount in frame, hands fully wet and busy, proof no one stepped out to hit record between stages."
+     },
+     {
+      "cta": "Ask followers to show their own 'parallel laundry' moment during wash day.",
+      "dos": [
+       "Keep the dryer cutaway under two seconds, it's a detail not a feature demo",
+       "Make sure the towel-to-dryer action looks incidental, not staged for the brand"
+      ],
+      "hook": "Towel goes from soaking to the dryer the second it comes off your head, same wash day, same reset.",
+      "idea": "Tie the montage's 'dried' stage to the actual laundry routine happening in parallel, a split-screen or quick cutaway showing towels or the robe cycling in the Bespoke dryer while hair air-dries, positioning wash day as a whole-routine reset, not just hair.",
+      "line": "Home",
+      "donts": [
+       "Don't linger on the dryer's settings or controls, that reads as an ad insert",
+       "Don't replace a hair stage with an appliance stage, hair must stay the spine of the montage"
+      ],
+      "insight": "Wash day content is implicitly about a full reset, not just hair, viewers doing their own wash day are usually also doing towels same-day. Showing the appliance mid-cycle in the background grounds the routine in a real home instead of a styled set.",
+      "product": "Bespoke AI Washer/Dryer",
+      "soundUse": "Keep the main beat-drop track dominant; let the dryer's end chime poke through naturally under the final stage cut rather than competing with the beat.",
+      "execution": [
+       "Stage 2 (washed) cut includes a glimpse of the wet towel tossed toward the laundry area",
+       "Quick cutaway: towel going into the Bespoke dryer, cycle starting on the display",
+       "Return to the main montage for stage 3 (dried) hair",
+       "Final styled stage includes the dryer's end-of-cycle chime audible in the background"
+      ],
+      "samsungify": "The Bespoke AI Dryer's cycle display and quiet operation let it sit visibly running in the background of a bathroom-adjacent shot without needing its own scene, a real appliance doing a real task the stage label already implies.",
+      "onScreenText": "wash day isn't just the hair. يوم الغسيل مو بس للشعر",
+      "featureMoment": "The viewer catches the Bespoke dryer's cycle screen lit and counting down in a single cutaway shot, confirming it's actually running the towel load in real time alongside the hair routine."
+     }
+    ],
+    "onBrand": [
+     "Rides a format that is accelerating now (+350%, 45% posted this week) rather than inventing a new one",
+     "The format's real bottleneck, hands-free recording through a wet multi-stage routine, is a genuine foldable use case, not a forced fit",
+     "Keeps hair and the stage-label mechanic as the unmistakable spine, Samsung products sit inside the routine rather than replacing it"
+    ]
+   },
+   "products": [
+    {
+     "product": "Galaxy AI",
+     "line": "AI",
+     "reason": "Generative Edit + Photo Assist can restyle or caption before/after stills for the transformation reveal without a third-party app or watermark",
+     "score": 62
+    },
+    {
+     "product": "Galaxy Z Flip8",
+     "line": "Foldable",
+     "reason": "FlexWindow cover screen lets you preview the reveal framing while the phone is propped hands-free during a multi-step wash routine",
+     "score": 58
+    }
+   ]
+  },
+  {
+   "id": "snd-7688362521883495188",
+   "name": "Outfit or Look Transition Reveal Edit",
+   "kind": "trend",
+   "stage": "peaking",
+   "growth": "+4%/day",
+   "category": "other",
+   "scope": "global",
+   "lang": "en",
+   "onBrand": true,
+   "fit": {
+    "strength": 72,
+    "beat": "outfit/look reveal transition timed to Galaxy AI edit cut",
+    "reason": "Beat-synced before/after reveal rides Galaxy AI generative edit as the transformation cue."
+   },
+   "signalStrength": 70,
+   "durabilityClass": "ongoing",
+   "viewsWk": "4.3M",
+   "eng": 17.7,
+   "sound": {
+    "title": "original sound - kaannnaa",
+    "author": null,
+    "cue": null,
+    "musicId": "7688362521883495188",
+    "commercialUse": {
+     "cleared": true,
+     "checkedAt": "2026-10-18T06:56:15.151Z"
+    }
+   },
+   "clips": [
+    {
+     "vid": "7696875582218341652",
+     "handle": "@creator",
+     "views": "2.0M",
+     "sound": "original sound - kaannnaa",
+     "role": "top",
+     "poster": "https://p16-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/okfiyG4uaAAi93DIGIVY4ZAuUmPw51jSBCIQi7~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=3Qj0aViVgdLiwZBYFCsrBLvTYqc%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    },
+    {
+     "vid": "7696488981160054034",
+     "handle": "@creator",
+     "views": "622K",
+     "sound": "original sound - kaannnaa",
+     "role": "earliest-observed",
+     "poster": "https://p16-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/o4D9GaEUrgwkRtG4rFPWu8fQgYMECIAeHA8efO~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=0U5GSMtGsu0Z2j4QTCnOlkPPtUU%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    }
+   ],
+   "format": null,
+   "why": "Measured: 73 creators / 96 sampled videos, 47% posted this week. Carried 2d past its last fresh sighting — population counter +3.57%/day.",
+   "tags": [],
+   "firstSeen": "2026-10-16T07:58:52.843Z",
+   "runsSeen": 5,
+   "brief": {
+    "microTrend": "Outfit/look transition reveal edit",
+    "mechanic": "Video opens on a plain, everyday look mid-lip-sync or mid-sentence, then hard-cuts on a beat to a transformed outfit or styled scene using a whip, hand-cover or multi-cut to mask the switch. The payoff is the reveal landing exactly on the beat, with each cut escalating further.",
+    "adaptations": [
+     {
+      "cta": "Caption asks 'guess how many takes' and invites a duet using the same propped angle.",
+      "dos": [
+       "Show the propped phone in frame at least once so the hands-free trick reads as real",
+       "Keep the escalation honest, each cut should visibly add to the last look",
+       "Use a flat surface at chest height so the angle looks intentional, not accidental"
+      ],
+      "hook": "Phone is sitting on the counter at a weird angle, flexed open like a little tent, and you whip past it mid-sentence in your pajamas.",
+      "idea": "Do the transition with the Flip propped half-folded on the table, hands free for the whip and the outfit change, no one holding the phone for either half of the reveal.",
+      "line": "Foldable",
+      "donts": [
+       "Don't hide the phone entirely, the whole point is the hands-free proof",
+       "Don't add a visible tripod or stand, it kills the folded-phone trick",
+       "Don't over-light the second look so much it reads as a studio setup"
+      ],
+      "insight": "The format's magic trick is that the switch looks impossible, no visible rig, no visible help. Viewers are quietly auditioning HOW it was shot as much as watching the outfit, so a phone that visibly needs no hands reinforces the illusion instead of giving it away.",
+      "product": "Galaxy Z Flip8",
+      "soundUse": "Cut hard on the drop or the lyric hit the trend audio is built around; the whip motion should land one frame before the beat, not on it, so the reveal itself lands on the beat.",
+      "execution": [
+       "Open on the Flip half-folded on a shelf, cover screen showing the framing, you in the plain look mid-lip-sync",
+       "Do the first beat of the line, then whip past the phone toward the closet, hands completely free",
+       "Quick multi-cut: shoes, jacket, accessory, each change in a different corner of the room",
+       "Land back in frame on the final beat of the audio, outfit complete, phone never touched",
+       "Hold the pose for the escalation beat, then glance at the propped phone and laugh"
+      ],
+      "samsungify": "The cover screen plus FlexCam means the phone frames and starts the take on its own; a slab phone needs a tripod or a second person for a hands-free whip, which breaks the one-take illusion the format depends on.",
+      "onScreenText": "nobody touched the phone. ما حد لمس الموبايل",
+      "featureMoment": "The viewer sees the phone standing on its own, half-open, with nobody adjusting it between the plain look and the reveal, proving the whole transition was shot hands-free."
+     },
+     {
+      "cta": "Ask viewers to spot the detail before commenting, drives rewatches.",
+      "dos": [
+       "Keep the band swap subtle, a quiet detail beats a loud one in this format",
+       "Match the band to the outfit's accent color, not its dominant color, for a sharper eye-catch"
+      ],
+      "hook": "Last whip of the edit and the camera catches the watch band has changed color to match the new fit.",
+      "idea": "Use the Watch's own color-matched band swap as one of the transition beats, the final cut lands on the outfit plus a band that now matches it.",
+      "line": "Watch",
+      "donts": [
+       "Don't make the band swap the headline cut, it should read as a bonus not the main reveal",
+       "Don't force a band change on an outfit with no clear accent color to match"
+      ],
+      "insight": "Escalating transitions live or die on finding one more thing to change that the viewer didn't expect; a watch is on-wrist in both the before and after shot, so swapping its band is a free extra beat nobody has to stage separately.",
+      "product": "Galaxy Watch9",
+      "soundUse": "Save the band reveal for the very last beat of the escalating audio, the smallest payoff after the biggest visual change.",
+      "execution": [
+       "Plain look, Watch visible on wrist with a neutral band, mid-sentence setup line",
+       "First whip cut to outfit change, band still neutral",
+       "Second cut escalates the styling further",
+       "Final whip lands on full look, camera holds a half-second on the wrist where the band now matches the outfit",
+       "Pose holds on the last beat of the audio"
+      ],
+      "samsungify": "Quick-release bands swap in seconds without tools, so the accessory itself can be part of the reveal choreography rather than a prop someone has to explain.",
+      "onScreenText": "even the watch changed. حتى الساعة تغيرت",
+      "featureMoment": "On the final landing beat the camera dips to the wrist and the viewer clocks the band color now matches the outfit, a detail that wasn't there in the opening shot."
+     },
+     {
+      "cta": "Caption invites 'try it in your smallest room' to spread the one-room challenge angle.",
+      "dos": [
+       "Keep the restyled backdrop believable and low-saturation so it doesn't read as an obvious filter",
+       "Disclose the edit in caption, part of this format's charm is viewers clocking the trick afterward"
+      ],
+      "hook": "Same room, four looks, four completely different backdrops, and you never left the house.",
+      "idea": "Use Generative Edit on-device right after filming to clean the background between whip cuts so each location in the escalating reveal looks like a different styled scene, posted straight from the gallery with no third-party app.",
+      "line": "AI",
+      "donts": [
+       "Don't restyle the person, only the background, or it stops being an outfit transition",
+       "Don't stack more than one AI-edited background per cut, it gets busy and loses the beat-sync clarity"
+      ],
+      "insight": "The escalation gimmick plateaus fast once outfits run out of drama, so creators now escalate the scene instead of just the clothes; doing that convincingly from one room, without a studio, is the actual blocker most people hit.",
+      "product": "Galaxy AI",
+      "soundUse": "Keep the original escalating trend audio untouched since the edit is visual, cut backdrop changes on each beat the outfit changes.",
+      "execution": [
+       "Film all whip-cut looks in the same corner of one room, plain to styled",
+       "Immediately after export, run Generative Edit on each cut to swap the backdrop, street, gala step-repeat, neutral studio sweep, matching the escalation of the outfit",
+       "Reassemble the cuts in order, landing the final reveal on the most dramatic backdrop",
+       "Post from gallery straight to the app with no added filter layer"
+      ],
+      "samsungify": "On-device restyling with no watermark means the background changes hold up to a duet or stitch without flagging as an obvious filter, keeping the illusion intact the way the format demands.",
+      "onScreenText": "one room, four scenes. غرفة وحدة، أربع مشاهد",
+      "featureMoment": "The viewer sees four backdrops that look shot on location but the geotag and caption make clear it was one room, the edit happening visibly fast enough to be part of the reveal rather than hidden post-production."
+     }
+    ],
+    "onBrand": [
+     "Format's core trick is a hands-free, rig-free illusion of a seamless switch, which a propped foldable genuinely enables rather than fakes",
+     "Escalation is the engine of the trend and Samsung's ecosystem offers real extra beats, a band swap, a scene change, not just outfit changes",
+     "Stage is peaking with high weekly output, a low-friction single-device adaptation fits creators turning these around fast"
+    ]
+   },
+   "products": [
+    {
+     "product": "Galaxy Z Flip8",
+     "line": "Foldable",
+     "reason": "FlexCam half-fold stands on its own so the outfit-change snap transition can be hands-free with no tripod needed to hit the beat.",
+     "score": 78
+    },
+    {
+     "product": "Galaxy Z Fold8",
+     "line": "Foldable",
+     "reason": "Cover-screen self-preview with Dual Recording lets the creator see and frame the transition pose from the unfolded side before the reveal.",
+     "score": 68
+    },
+    {
+     "product": "Galaxy AI",
+     "line": "AI",
+     "reason": "Portrait Studio's film-look restyle lets creators give each 'look' in the transition a distinct visual treatment on-device without a separate editing app.",
+     "score": 66
+    }
+   ]
+  },
+  {
+   "id": "snd-7688073970768234513",
+   "name": "Multi Cut Hype Edits (Pyro Slowed)",
+   "kind": "trend",
+   "stage": "peaking",
+   "growth": "+0%/day",
+   "category": "entertainment",
+   "scope": "global",
+   "lang": "en",
+   "onBrand": true,
+   "fit": {
+    "strength": 65,
+    "beat": "fast-cut generative edit reveal timed to beat drop, Galaxy AI as the twist",
+    "reason": "Beat-synced multi-cut edit can showcase Galaxy AI generative transitions as the reveal twist."
+   },
+   "signalStrength": 70,
+   "durabilityClass": "ongoing",
+   "viewsWk": "6.7M",
+   "eng": 16.7,
+   "sound": {
+    "title": "pyro - slowed",
+    "author": null,
+    "cue": null,
+    "musicId": "7688073970768234513",
+    "commercialUse": {
+     "cleared": false,
+     "checkedAt": "2026-10-19T07:09:48.146Z"
+    }
+   },
+   "clips": [
+    {
+     "vid": "7697651469314477345",
+     "handle": "@creator",
+     "views": "2.2M",
+     "sound": "pyro - slowed",
+     "role": "top",
+     "poster": "https://p16-common-sign.tiktokcdn-us.com/tos-useast2a-p-0037-euttp/oIImNHMGVDjtfEDLIcfxjAQ7IGkTepDgnjQUDr~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=CVWH5uTBCeX%2Bmhk265r87CvSvZU%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    },
+    {
+     "vid": "7697431269013032206",
+     "handle": "@creator",
+     "views": "725K",
+     "sound": "pyro - slowed",
+     "role": "earliest-observed",
+     "poster": "https://p19-common-sign.tiktokcdn-us.com/tos-useast5-p-0068-tx/oMpXaD2IFIsICxXBi1WwuHB9i6fBAAQjXI2Sgw~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=40ZBO0ieSjH6EXxndQ1gZ3Oz1p0%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    }
+   ],
+   "format": null,
+   "why": "Measured: 41 creators / 95 sampled videos, 40% posted this week, adoption accelerating. Carried 2d past its last fresh sighting — population counter +0.22%/day.",
+   "tags": [],
+   "firstSeen": "2026-10-16T07:58:52.843Z",
+   "runsSeen": 3,
+   "brief": {
+    "microTrend": "Multi-cut hype edit (slowed pyro)",
+    "mechanic": "Editor strings together several unrelated clips of one subject in quick, beat-synced cuts over a slowed instrumental, building from a calm opener to a flashier final shot; there is no narrative, the payoff is pure accumulated style.",
+    "adaptations": [
+     {
+      "cta": "Caption asks 'which clip was the self-shot one' and invite guesses before revealing.",
+      "dos": [
+       "Keep the propped shot visually indistinguishable from the other clips, no flexing the phone itself",
+       "Use the stand only for a beat that needs both hands free, dance step, trick, pose"
+      ],
+      "hook": "A calm opening shot: the subject alone, phone propped on its own hinge, no one holding it.",
+      "idea": "Make the subject's own phone part of the cut list: the Flip stands half-folded on a table or ledge so the subject can hit a pose or move hands-free, and that exact clip becomes one of the beats in the edit.",
+      "line": "Foldable",
+      "donts": [
+       "Don't show the hand folding or propping the phone on screen, that's setup not the edit",
+       "Don't linger on the device, it should read as absence of a camera operator, not a product shot"
+      ],
+      "insight": "These edits are a flex of access and control over your own image, every clip is curated to look effortless. A phone that visibly needs no one holding it reinforces that effortlessness instead of breaking it.",
+      "product": "Galaxy Z Flip8",
+      "soundUse": "Cut the propped-phone beat on a quieter bar of the slowed instrumental so it reads as the calm opener before the louder beats land later.",
+      "execution": [
+       "Prop the Flip half-folded on a ledge, table or dashboard, cover screen facing the subject",
+       "Subject walks into frame, hits one clean pose or beat, phone catches it alone",
+       "Cut that clip into the edit as the calm opener beat",
+       "Build the rest of the edit from other unrelated clips of the subject as normal",
+       "Land the flashiest clip last on the instrumental's biggest hit",
+       "Final frame holds on the propped Flip, now empty, as the edit ends"
+      ],
+      "samsungify": "The Flip's half-fold stand is the only way the subject gets a hands-free, camera-operator-free shot of themselves for the edit, so the phone itself becomes one of the cool beats rather than the tool behind all of them.",
+      "onScreenText": "shot one of these myself. no one behind the camera",
+      "featureMoment": "Viewer sees the Flip standing upright on its own hinge with nobody behind it while the subject performs the opening beat, then recognizes that exact shot reappear inside the edit."
+     },
+     {
+      "cta": "Ask viewers to guess the peak number before the next clip reveals it.",
+      "dos": [
+       "Keep the flash short, under a second, so it reads as a cut not a stat card",
+       "Only use this for subjects whose edit is already about physical performance"
+      ],
+      "hook": "Between two slow-motion training clips, a half-second flash of a heart-rate number climbing.",
+      "idea": "For athlete or workout-subject edits, drop one beat that's a screen-recording of the Watch's live stats, pace, heart rate, rep count, cut in as a flash-frame between the cinematic clips.",
+      "line": "Watch",
+      "donts": [
+       "Don't use this for non-physical subjects, a creator or product edit has no reason to show heart rate",
+       "Don't hold the stat on screen long enough to look like an ad graphic"
+      ],
+      "insight": "These edits sell the idea that the subject's cool is backed by real effort. A genuine stat flashed mid-edit works like proof-of-work inside a format built entirely on vibes.",
+      "product": "Galaxy Watch9",
+      "soundUse": "Sync the stat flash-cut precisely to a transient hit in the slowed instrumental, treat it like any other beat-cut, not a graphic overlay.",
+      "execution": [
+       "Record training or match footage as usual across multiple unrelated clips",
+       "Screen-record the Watch face at the moment of peak exertion separately",
+       "Edit the stat flash to land on a sharp beat hit, half a second, no longer",
+       "Surround it with the usual slow-build cinematic clips",
+       "Save the highest number for the final, flashiest beat of the edit"
+      ],
+      "samsungify": "Only a wrist-worn tracker gives you a real, unscripted data readout to cut in as a beat, a number a rival phone camera simply does not generate.",
+      "onScreenText": "the numbers don't lie",
+      "featureMoment": "A quick flash-cut shows the Watch screen mid-session, the number visibly climbing, before snapping back to the cinematic footage."
+     },
+     {
+      "cta": "Invite a duet or stitch showing your own rescued clip, before and after.",
+      "dos": [
+       "Only use this to fix lighting or grade mismatch, never to fabricate a scene that didn't happen",
+       "Keep the restyled clip's content real, just visually matched"
+      ],
+      "hook": "One of the coolest-looking shots in the edit is secretly the most ordinary clip the subject had.",
+      "idea": "Take one ordinary clip from the subject's camera roll and run it through Portrait Studio to give it the same graded, cinematic look as the rest of the edit's clips, then cut it in seamlessly as just another beat.",
+      "line": "AI",
+      "donts": [
+       "Don't use this to manufacture a dramatic moment that wasn't actually filmed",
+       "Don't oversell it as a filter, the point is it disappears into the edit"
+      ],
+      "insight": "Multi-cut edits live and die on visual consistency, one dull-looking clip breaks the hype momentum. Letting creators rescue an otherwise-unusable clip means more raw footage survives into the final cut instead of being dropped.",
+      "product": "Galaxy AI (Portrait Studio)",
+      "soundUse": "No special sync needed beyond matching the clip to its beat position like any other cut in the edit.",
+      "execution": [
+       "Pick an ordinary, flatly-lit clip that otherwise fits the subject's story",
+       "Run Portrait Studio on-device to match its grade to the rest of the edit's footage",
+       "Drop the restyled clip into the cut list among the other beats",
+       "Caption or comment-reveal which clip was the rescued one after the edit posts"
+      ],
+      "samsungify": "On-device restyling means the subject can match a raw, flat clip to the trailer-grade look of their best footage without a third-party app or a watermark breaking the edit's seamlessness.",
+      "onScreenText": "guess which clip almost didn't make the cut",
+      "featureMoment": "A before/after split shows the flat original clip next to the graded version now sitting indistinguishably inside the finished edit."
+     }
+    ],
+    "onBrand": [
+     "Edit format is creator-tool native, giving Samsung's on-device and hands-free features a real functional role instead of a camera flex",
+     "Stage is accelerating with real weekly creator adoption, a low-risk moment to seed participation before saturation",
+     "Format spans entertainment, sport and creator content, matching Samsung's cross-line ecosystem rather than a single product push"
+    ]
+   },
+   "products": [
+    {
+     "product": "Galaxy Z Fold8",
+     "line": "Foldable",
+     "reason": "My FanCam auto-tracks and reframes the chosen subject through the pyro/crowd chaos, letting one creator generate multiple reframed angles for the multi-cut edit without a camera operator.",
+     "score": 68
+    },
+    {
+     "product": "Galaxy AI",
+     "line": "AI",
+     "reason": "Generative Edit + Photo Assist lets creators restyle and recut clips into the slowed pyro-hype aesthetic entirely on-device, matching the fast iterative editing this trend demands.",
+     "score": 63
+    }
+   ]
+  },
+  {
+   "id": "snd-7680157780221184017",
+   "name": "CapCut Pioneer Template (multi-angle selfie flip)",
+   "kind": "trend",
+   "stage": "peaking",
+   "growth": "+1%/day",
+   "category": "other",
+   "scope": "global",
+   "lang": "en",
+   "onBrand": true,
+   "fit": {
+    "strength": 60,
+    "beat": "multi-angle selfie flip as Flip/Fold beat-drop reveal",
+    "reason": "Beat-drop flip cue can time a Galaxy Flip fold-reveal transition."
+   },
+   "signalStrength": 70,
+   "durabilityClass": "ongoing",
+   "viewsWk": null,
+   "eng": 21.3,
+   "sound": {
+    "title": "Hide It",
+    "author": "SWAE",
+    "cue": null,
+    "musicId": "7680157780221184017",
+    "commercialUse": {
+     "cleared": false,
+     "checkedAt": "2026-10-20T07:16:59.862Z"
+    }
+   },
+   "clips": [
+    {
+     "vid": "7689878512617950477",
+     "handle": "@creator",
+     "views": "273K",
+     "sound": "Hide It",
+     "role": "top",
+     "poster": null
+    },
+    {
+     "vid": "7689305653399129375",
+     "handle": "@creator",
+     "views": "164K",
+     "sound": "Hide It",
+     "role": "earliest-observed",
+     "poster": null
+    }
+   ],
+   "format": null,
+   "why": "Measured: 71 creators / 92 sampled videos, 2% posted this week.",
+   "tags": [],
+   "firstSeen": "2026-10-06T09:43:21.103Z",
+   "runsSeen": 15,
+   "brief": {
+    "microTrend": "Multi-angle selfie flip montage",
+    "mechanic": "Creator shoots the same self in rapid-fire settings (bedroom, bathroom, car, hallway), cutting on hair flips and pose changes synced to beat drops in a reusable CapCut template, the pleasure is the rhythm of the cut and the multiplicity of the subject, not a single reveal.",
+    "adaptations": [
+     {
+      "cta": "Caption: 'try it hands-free and tag me' to invite duets that copy the propping, not just the pose.",
+      "dos": [
+       "Show the prop moment at least once so viewers register it's hands-free, not just assume a tripod",
+       "Keep the cut speed identical to the original template, don't slow down to show off the phone",
+       "Pick settings with a believable flat or ledge surface so the prop reads as natural, not staged"
+      ],
+      "hook": "Same five seconds, five rooms, but your hands are empty in every single one.",
+      "idea": "Use the half-folded Flip propped on its own hinge in every single setting (bedroom shelf, car cupholder, bathroom sink edge, locker ledge) so both hands are free for the pose and hair flip on every cut, no one holding the phone in any clip.",
+      "line": "Foldable",
+      "donts": [
+       "Don't linger on the phone itself between cuts, it breaks the rhythm the template depends on",
+       "Don't swap in a studio tripod shot, the whole point is no extra gear",
+       "Don't over-explain the feature in text over every clip, one caption line is enough"
+      ],
+      "insight": "The template's whole joke is 'I did this everywhere,' which means the creator is secretly solving a logistics problem (who's filming me in the car, in the bathroom, in the hallway) in every single location. A phone that free-stands removes the one friction point that stops people attempting the harder, more-locations version of the trend.",
+      "product": "Galaxy Z Flip8",
+      "soundUse": "Keep the trend's original beat-drop edit untouched, cut on every flip and drop exactly like the template, the hands-free framing is additive and never slows the rhythm.",
+      "execution": [
+       "Open on bedroom: Flip half-folded on a shelf, creator steps into frame hands-free for the first pose",
+       "Hard cut on the beat to bathroom: Flip propped on the sink ledge, same flip-and-pose, zero hands on the phone",
+       "Cut to car: Flip balanced in the cupholder angled up, pose happens mid-seat",
+       "Cut to school hallway: Flip propped against a locker base, final flip lands on the beat drop",
+       "Quick recap flash of all four propped positions in one corner collage",
+       "End on the strongest pose held a beat longer than the cuts before it"
+      ],
+      "samsungify": "A slab phone needs a hand or a tripod in every setting; the Flip stands on its own hinge anywhere flat, so the whole multi-location premise of the template gets easier to pull off solo.",
+      "onScreenText": "4 rooms, 0 hands on my phone. ٤ أماكن، ولا مرة مسكت الموبايل",
+      "featureMoment": "In every setting the viewer sees the phone already standing on its own, hinge bent, before the creator steps into frame, no hand ever touches it during the pose."
+     },
+     {
+      "cta": "Ask 'guess which one is the real room' in the caption to drive comment guesses.",
+      "dos": [
+       "Keep the reveal honest and quick, the surprise is the hook, not a deception to sustain",
+       "Match the restyle intensity across all four so none looks obviously fake next to the others",
+       "Use real on-device edits, not a pre-made filter pack"
+      ],
+      "hook": "Same bedroom, four completely different vibes, same five seconds.",
+      "idea": "Do a second pass of the same template where one setting per video is swapped on-device, bedroom wall recoloured, a poster removed, a messy desk cleaned, so each location in the montage looks intentionally different without actually changing rooms.",
+      "line": "AI",
+      "donts": [
+       "Don't hide the reveal entirely, claiming four real rooms invites callouts",
+       "Don't over-edit into an unrecognizable scene, the gag only works if it's clearly the same space, reimagined",
+       "Don't slow the main montage down to show the editing process, keep that to the one quick flash"
+      ],
+      "insight": "Not everyone has four distinct rooms (bedroom, bathroom, car, hallway) that look good on camera; creators with one small room want the multi-setting payoff anyway. Letting them fake the variety convincingly, in their own gallery, is a real access problem the template creates for anyone without a varied house.",
+      "product": "Galaxy AI (Generative Edit)",
+      "soundUse": "Same template audio, unedited; add a short sound dip only on the before/after reveal frame to flag the twist without killing the beat-drop cuts.",
+      "execution": [
+       "Film the full template in one room only, same pose changes and flips as always",
+       "Open Generative Edit between cuts to shift wall color, lighting tone, or remove clutter for each 'setting'",
+       "Stitch the four restyled takes into the same rapid-cut rhythm as the original template",
+       "Flash a quick before/after of the one real room next to its four edited versions",
+       "Finish on the full four-cut montage playing at full speed, indistinguishable from a multi-location shoot"
+      ],
+      "samsungify": "The edit happens on-device in the gallery app the creator already has open, no separate app, no watermark, so the restyled cut can post the same day as the original take.",
+      "onScreenText": "all 4 scenes, 1 actual room. الأربع مشاهد بغرفة وحدة بس",
+      "featureMoment": "The viewer sees a quick before/after flash: the same bedroom corner, then recoloured and restyled into four distinct looks, confirming it's one room edited, not four rooms filmed."
+     }
+    ],
+    "onBrand": [
+     "Multi-location montage format rewards solo creators who can rig the shot fast in a new place every few seconds, a real logistics problem the Flip's self-standing hinge solves without extra gear",
+     "Template is peaking now, participation needs to be fast and low-friction, both adaptations use features already on the device with no new app or workflow to learn",
+     "The format's currency is rhythm and variety across cuts, not image quality, so the brief stays on hands-free behaviour and on-device restyling rather than any camera spec"
+    ]
+   },
+   "products": [
+    {
+     "product": "Galaxy Z Flip8",
+     "line": "Foldable",
+     "reason": "The half-fold FlexCam stands itself up so the multi-angle flip sequence can be staged hands-free between shots, matching the template's repeated angle-switch mechanic.",
+     "score": 78
+    },
+    {
+     "product": "Galaxy Z Fold8",
+     "line": "Foldable",
+     "reason": "Dual Recording shows both the cover and main screens at once, letting creators preview the flip transition live as they build the multi-angle sequence.",
+     "score": 68
+    },
+    {
+     "product": "Galaxy AI",
+     "line": "AI",
+     "reason": "Portrait Studio's film-look restyle lets creators apply a consistent stylized look across each angle cut in the template without a third-party app.",
+     "score": 60
+    }
+   ]
+  },
+  {
+   "id": "snd-7678257386833857302",
+   "name": "Reaction clip with caption setup and punchline text",
+   "kind": "trend",
+   "stage": "peaking",
+   "growth": "+5%/day",
+   "category": "entertainment",
+   "scope": "global",
+   "lang": "en",
+   "onBrand": true,
+   "fit": {
+    "strength": 60,
+    "beat": "caption riff punchline over generated scene",
+    "reason": "Caption/punchline device transfers to a Galaxy AI edit reveal as the joke."
+   },
+   "signalStrength": 70,
+   "durabilityClass": "ongoing",
+   "viewsWk": "1.6M",
+   "eng": 19.3,
+   "sound": {
+    "title": "The WORST 808s known to man",
+    "author": null,
+    "cue": null,
+    "musicId": "7678257386833857302",
+    "commercialUse": {
+     "cleared": true,
+     "checkedAt": "2026-10-17T09:06:03.333Z"
+    }
+   },
+   "clips": [
+    {
+     "vid": "7694362068958317844",
+     "handle": "@creator",
+     "views": "521K",
+     "sound": "The WORST 808s known to man",
+     "role": "top",
+     "poster": "https://p16-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/oM6TRQiIIAw11KYv83iqHJ7LaZcyyCArBAfIA4~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=gcv9kw8xoS6QiMxoerppiUpqlXU%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    },
+    {
+     "vid": "7693728535210462494",
+     "handle": "@creator",
+     "views": "234K",
+     "sound": "The WORST 808s known to man",
+     "role": "earliest-observed",
+     "poster": "https://p19-common-sign.tiktokcdn-us.com/tos-useast8-p-0068-tx2/okWgQqED3ZfIW4ACOVzLIrUQt7FfkjAiqeCQmA~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=PFHmPtIMlgjfACMPK2eBERQWjBg%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    }
+   ],
+   "format": null,
+   "why": "Measured: 89 creators / 92 sampled videos, 28% posted this week. Carried 2d past its last fresh sighting — population counter +5.12%/day.",
+   "tags": [],
+   "firstSeen": "2026-10-06T09:43:21.103Z",
+   "runsSeen": 6,
+   "brief": {
+    "microTrend": "Reaction clip with caption setup and punchline text",
+    "mechanic": "Creator overlays a dry, relatable setup caption on top of a chaotic or unhinged reaction clip, then lets a worst-808s sound hit as the footage plays out, the joke landing purely from the mismatch between flat text and unhinged visual with zero dialogue needed.",
+    "adaptations": [
+     {
+      "cta": "Caption 'send this to the group chat' and bait people to stitch their own propped-phone reaction.",
+      "dos": [
+       "Let the prop angle be visibly imperfect, a too-clean setup reads as a product demo",
+       "Keep the caption dry and flat, overacting the text kills the mismatch"
+      ],
+      "hook": "Phone sits folded at a right angle on the table, caption appears, then the room loses it on cue.",
+      "idea": "Use FlexCam's half-fold stand so the group gets both hands free for the actual reaction, then caption the propped phone itself as the setup line, like 'when you set the phone down and regret everything.'",
+      "line": "Foldable",
+      "donts": [
+       "Never show someone adjusting or holding the phone mid-clip, it breaks the hands-free bit",
+       "Don't narrate the joke out loud, the caption has to do all the work"
+      ],
+      "insight": "The format's humor depends on the reaction being unposed and unhinged; the moment someone is visibly holding a phone to capture it, the chaos reads as staged. A phone that stands itself up removes the one thing that kills the bit.",
+      "product": "Galaxy Z Flip8",
+      "soundUse": "The worst 808 hit lands exactly on the chaos peak, no voiceover; let room audio run under it so the laugh is real.",
+      "execution": [
+       "Prop the Flip8 half-folded on the table, cover screen facing the group",
+       "Caption appears over the live view: the dry setup line",
+       "Group does whatever unhinged thing the caption set up, phone untouched",
+       "808 hits on the chaotic peak of the reaction",
+       "Someone glances at the propped phone mid-laugh, breaking slightly",
+       "Cut to the saved clip with the caption now baked in as text overlay"
+      ],
+      "samsungify": "The cover screen lets the group see themselves reacting in real time without anyone holding the phone, so the reaction stays genuine instead of someone awkwardly aiming a camera mid-chaos.",
+      "onScreenText": "when you leave the phone propped up and forget it's recording. لما تنسى إن الكاميرا شغالة",
+      "featureMoment": "The viewer sees the phone standing on its own at a half-fold angle with nobody holding it, cover screen showing the live reaction back to the group as it happens."
+     },
+     {
+      "cta": "Ask 'guess the peak BPM before you scroll' in the caption to bait comments.",
+      "dos": [
+       "Only use this when the reaction is genuinely physical, a fright, a surprise, a dare",
+       "Keep the graph unedited so the spike timing looks real"
+      ],
+      "hook": "Calm resting BPM on screen, caption drops, then the number rockets as the 808 hits.",
+      "idea": "Caption the setup as a dare or jump-scare prank on a friend, then let the Watch's heart-rate screen-recording be the punchline instead of a face reaction, caption reading like 'bro's heart rate during the prank.'",
+      "line": "Watch",
+      "donts": [
+       "Don't use this for jokes with no real adrenaline moment, the spike will look fake",
+       "Never add a voiceover explaining the number, let it sit silently as the punchline"
+      ],
+      "insight": "Viewers are getting fatigued on performed shock faces in reaction clips; a number spiking in real time is reaction footage that can't be faked, which is exactly the kind of twist that keeps a worn-out format feeling fresh.",
+      "product": "Galaxy Watch9",
+      "soundUse": "808 hits exactly as the BPM spikes on screen, cut hard on the beat, no voiceover needed.",
+      "execution": [
+       "Setup caption appears over a friend wearing the Watch, resting BPM visible and calm",
+       "The prank or chaotic moment happens off to the side, friend unaware",
+       "808 hits the instant the prank lands",
+       "Screen-recorded BPM graph spikes hard right as the sound drops",
+       "Cut back to the friend's actual face reaction a half second later",
+       "Freeze on the peak number next to their shocked face as the closing frame"
+      ],
+      "samsungify": "A live heart-rate number is a reaction nobody can fake or act out, it is the one piece of footage immune to the 'that looked staged' comment this format always gets.",
+      "onScreenText": "his heart rate during the prank vs his face. دقات قلبه وقت الفزعة",
+      "featureMoment": "The viewer watches the Watch's heart-rate number jump on screen in the same instant the 808 hits, before the friend's face even reacts."
+     }
+    ],
+    "onBrand": [
+     "Caption-driven humor with zero dialogue is a format Samsung devices can physically participate in rather than just film",
+     "Global reach with no regional lift needed, both adaptations travel as-is",
+     "The format's growth is declining, making low-lift product-native entries the right move instead of a heavy campaign"
+    ]
+   },
+   "products": []
+  },
+  {
+   "id": "snd-7689214017718650932",
+   "name": "Pink Blush confident strut and pose",
+   "kind": "trend",
+   "stage": "peaking",
+   "growth": "+1%/day",
+   "category": "fashion",
+   "scope": "global",
+   "lang": "en",
+   "onBrand": true,
+   "fit": {
+    "strength": 60,
+    "beat": "confident strut filmed/timed as a Flip beat-drop reveal moment",
+    "reason": "Pose-strut trend rides on beat-drop cue; Flip/Fold reveal can carry the device."
+   },
+   "signalStrength": 70,
+   "durabilityClass": "flash",
+   "viewsWk": "207K",
+   "eng": 18.9,
+   "sound": {
+    "title": "Pink Blush (Remix) [feat. Megan Thee Stallion]",
+    "author": "Dolly Babe",
+    "cue": "beat drop on the Megan Thee Stallion verse where the hips/attitude pose lands",
+    "musicId": "7689214017718650932",
+    "commercialUse": {
+     "cleared": false,
+     "checkedAt": "2026-10-16T08:39:26.404Z"
+    }
+   },
+   "clips": [
+    {
+     "vid": "7693141974806842655",
+     "handle": "@creator",
+     "views": "207K",
+     "sound": "Pink Blush (Remix) [feat. Megan Thee Stallion]",
+     "role": "recent-top",
+     "poster": "https://p16-common-sign.tiktokcdn-us.com/tos-useast8-p-0068-tx2/oU98C7DiIqXfUNjQiADcBIYYIAc1CxB8ITAiiA~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=cdC4dKh1kL4HRRcwJcISnrjUieQ%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    },
+    {
+     "vid": "7690060333259558158",
+     "handle": "@creator",
+     "views": "81K",
+     "sound": "Pink Blush (Remix) [feat. Megan Thee Stallion]",
+     "role": "earliest-observed",
+     "poster": "https://p19-common-sign.tiktokcdn-us.com/tos-useast5-p-0068-tx/o8ilSM3iZTrnV4aBEUX4MjPh3iIBCig4sbEWA~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=dNmOkWhuXUWwoOchEKrIkQPTNZ0%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    }
+   ],
+   "format": null,
+   "why": "Measured: 69 creators / 86 sampled videos, 28% posted this week. Carried 2d past its last fresh sighting — population counter +1.23%/day.",
+   "tags": [],
+   "firstSeen": "2026-10-06T09:43:21.103Z",
+   "runsSeen": 12,
+   "brief": {
+    "microTrend": "Confident strut-and-pose beat sync",
+    "mechanic": "Single locked-off phone shot, usually a driveway or a hallway, where the creator walks toward camera in a fit, hits a hair flip or body roll on the Pink Blush remix drop, and lands on a hands-up or sassy final pose held for the last beat.",
+    "adaptations": [
+     {
+      "cta": "End caption asking 'rate my pose 1-10' and invite a duet reaction stitched next to it.",
+      "dos": [
+       "Keep the frame locked and low, no handheld wobble",
+       "Use a real driveway or hallway, not a styled set",
+       "Let the final pose hold in silence for a beat before cutting"
+      ],
+      "hook": "The phone is already standing on the ledge before she even steps into frame, no tripod, no hand.",
+      "idea": "Prop the half-folded phone on the driveway ledge or step at strut height, hands-free, so the whole walk-to-pose plays out without anyone holding the camera.",
+      "line": "Foldable",
+      "donts": [
+       "Don't show the phone being set up or adjusted, the whole trick is it looks untouched",
+       "Don't add extra cuts or multiple angles, the format is one unbroken take",
+       "Don't let the prop angle look staged or tripod-like, it should read as a phone that just happens to be standing there"
+      ],
+      "insight": "The format's appeal is that it looks like nobody helped, one person, one take, main character energy. The instant a visible tripod or a second person holding the phone enters frame, that illusion breaks. A phone that stands up by itself keeps the take believably solo.",
+      "product": "Galaxy Z Flip8",
+      "soundUse": "Cut nothing, this trend lives or dies on hitting the hair flip on the pre-drop and the pose exactly on the drop; use the Pink Blush remix at full length and just nail the timing.",
+      "execution": [
+       "Open on the empty driveway, phone already folded and propped on the step ledge",
+       "Creator walks in from off-frame in the fit, no visible rig",
+       "Hits the strut on the beat buildup, hair flip on the pre-drop",
+       "Lands the hands-up pose exactly on the remix drop",
+       "Holds the pose for two beats, staring down the lens",
+       "Quick cut to the phone being picked up off the ledge, confirming it was unmanned the whole time"
+      ],
+      "samsungify": "FlexCam lets the Flip8 stand on its own at the exact low angle the strut needs; a slab phone needs a tripod or a friend holding it, which breaks the one-take, nobody-else-in-it energy of this format.",
+      "onScreenText": "nobody filmed this but me",
+      "featureMoment": "The closing cut shows a hand reaching down and picking the half-folded phone up off the ledge, proving the entire strut was shot with nobody holding it."
+     },
+     {
+      "cta": "Caption 'what song do you hype yourself up to' to pull comments and duets of other people's pre-game ritual.",
+      "dos": [
+       "Make the pre-strut moment look unguarded, not posed for camera",
+       "Keep the cut from Buds-out to strut-start fast and clean",
+       "Use real lighting, not a ring light setup"
+      ],
+      "hook": "She's mouthing the words with her eyes closed, Buds in, phone not even up yet, then she yanks them out and the strut starts.",
+      "idea": "Film the getting-ready-to-strut moment where the creator is mouthing the Pink Blush remix off their Buds before the phone even starts recording, then rips the Buds out right as the strut begins.",
+      "line": "Buds",
+      "donts": [
+       "Don't make the Buds removal look like product placement, keep it incidental",
+       "Don't oversell the transformation with a filter change",
+       "Don't drag out the pre-strut beat past a couple seconds, it's a cold open not the main event"
+      ],
+      "insight": "A big chunk of the appeal is the confidence-building ritual before the pose, people clearly psyching themselves up. Showing the actual private pre-game, headphones in, world blocked out, makes the eventual public confidence feel earned rather than performed cold.",
+      "product": "Galaxy Buds4 Pro",
+      "soundUse": "Keep it silent or room-tone only during the Buds-in moment so her lip-sync looks private, then hard-cut to the Pink Blush remix at full volume the instant the strut starts.",
+      "execution": [
+       "Open close on the creator with Buds in, eyes closed, mouthing the remix lyrics silently",
+       "Catch her building the nerve, little shoulder sway, no camera energy yet",
+       "She opens her eyes, rips the Buds out in one motion",
+       "Immediately steps back, phone is already propped and rolling",
+       "Strut begins on the beat, hair flip on cue",
+       "Lands the pose, same hands-up finish"
+      ],
+      "samsungify": "Buds4 Pro's seamless switch means the remix keeps playing in her ears off her Watch or phone right up to the second she starts filming, so the pre-strut hype moment is real, not performed to a backing track added later.",
+      "onScreenText": "the 10 seconds before I became delulu confident",
+      "featureMoment": "The viewer sees her physically remove the Buds mid-breath and the ambient hallway sound cut in right as the strut starts, the private hype becoming the public performance in one cut."
+     }
+    ],
+    "onBrand": [
+     "The format is peaking now on a single repeatable gesture, perfect window for a lightweight participation rather than a campaign build",
+     "Global and genre-agnostic, works for any creator with a driveway or hallway and zero production budget",
+     "The one-take, nobody-helped quality of the trend is a natural fit for a phone that can prop and film itself without breaking the illusion"
+    ]
+   },
+   "products": [
+    {
+     "product": "Galaxy Z Flip8",
+     "line": "Foldable",
+     "reason": "FlexCam half-fold props itself at strut height so the full confident walk-and-pose sequence shoots hands-free without a tripod.",
+     "score": 78
+    },
+    {
+     "product": "Galaxy Z Fold8",
+     "line": "Foldable",
+     "reason": "My FanCam auto-tracks the subject through the strut and pose, auto-reframing as they move down the walk.",
+     "score": 74
+    }
+   ]
+  },
+  {
+   "id": "snd-7678338544116435730",
+   "name": "Upside Down Hand Transition",
+   "kind": "trend",
+   "stage": "peaking",
+   "growth": "+2%/day",
+   "category": "other",
+   "scope": "global",
+   "lang": "en",
+   "onBrand": true,
+   "fit": {
+    "strength": 60,
+    "beat": "generative transition cue timed to Galaxy AI edit reveal",
+    "reason": "Hand-flip transition cue can time a Galaxy AI generative reveal or Flip fold twist."
+   },
+   "signalStrength": 70,
+   "durabilityClass": "ongoing",
+   "viewsWk": "558K",
+   "eng": 16.1,
+   "sound": {
+    "title": "original sound - hellemdebas",
+    "author": null,
+    "cue": "the beat hit where the hand flips over, syncing the turn to the drop",
+    "musicId": "7678338544116435730",
+    "commercialUse": {
+     "cleared": true,
+     "checkedAt": "2026-10-21T09:37:39.677Z"
+    }
+   },
+   "clips": [
+    {
+     "vid": "7690920977202515221",
+     "handle": "@creator",
+     "views": "1.1M",
+     "sound": "original sound - hellemdebas",
+     "role": "top",
+     "poster": "https://p19-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/o8FEVRbeIPuEcZuCn3iDfBcRPoAFAA6gAgJqQI~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=2uZyrtUwuVveRFH5KxHSi1rW%2FZc%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    },
+    {
+     "vid": "7693274410047819022",
+     "handle": "@creator",
+     "views": "380K",
+     "sound": "original sound - hellemdebas",
+     "role": "recent-top",
+     "poster": "https://p16-common-sign.tiktokcdn-us.com/tos-useast5-p-0068-tx/o4AAmjEIEDgqoZxfdAFSE0Di5GBGHEAlDCARAe~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=DyNh%2FoFZ50CIFqqmiqJspvNZzxg%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    }
+   ],
+   "format": null,
+   "why": "Measured: 89 creators / 97 sampled videos, 26% posted this week, adoption accelerating. Carried 2d past its last fresh sighting — population counter +2.08%/day.",
+   "tags": [],
+   "firstSeen": "2026-09-28T09:07:50.452Z",
+   "runsSeen": 8,
+   "brief": {
+    "microTrend": "Hand-flip transition reveal",
+    "mechanic": "Creator reaches a hand toward the lens palm up, then flips it or claps as the camera cuts, revealing a new look, outfit or character on the other side. The flip syncs exactly to the beat drop so the cut reads as one continuous upside-down motion.",
+    "adaptations": [
+     {
+      "cta": "Caption asks 'guess what's propping it up' and invite stitches showing the propping setup.",
+      "dos": [
+       "Keep the propped phone fully in frame at the start so the hands-free setup reads as real",
+       "Rehearse the flip-to-beat timing dry before filming, the sync sells the whole trend",
+       "Let the prop angle be a little imperfect, a too-perfect tripod look reads as staged"
+      ],
+      "hook": "Hand comes toward a phone that's just standing there on its own, palm up, no one touching it.",
+      "idea": "Use the half-folded phone propped on the table as the hands-free camera for the flip, so both of the creator's hands are free to do the actual flip-and-reveal instead of one hand holding the phone.",
+      "line": "Foldable",
+      "donts": [
+       "Never show a hand sneaking into frame to adjust the phone mid-take",
+       "Don't add a visible tripod or stand, the self-standing fold is the entire point",
+       "Skip any phone-spec talk in the caption, it kills the reveal's momentum"
+      ],
+      "insight": "The trend's whole trick is selling an impossible continuous motion through the cut; any wobble or hand re-grip breaks the illusion. Creators doing this well already prop phones against random objects to free their hands, so a phone that free-stands natively removes the one thing fighting the format.",
+      "product": "Galaxy Z Flip8",
+      "soundUse": "Cut precisely on the beat drop; the hand flip, the camera cut and the drop are one single moment, no cut before or after it.",
+      "execution": [
+       "Open on the Z Flip8 half-folded on a table, propped at a tent angle, frame locked on the creator",
+       "Creator steps into frame, both hands empty, palm raised toward the lens",
+       "Beat builds, hand holds position, anticipation beat in the track",
+       "On the beat drop, hand flips over or claps, creator reveal happens in the same motion",
+       "Cut lands exactly on the drop, new outfit or makeup revealed",
+       "Hold two counts on the reveal, hands now free to gesture or frame the look",
+       "Quick zoom-free push-in just by stepping closer to the propped phone",
+       "End on the final pose, phone still untouched on the table"
+      ],
+      "samsungify": "A slab phone needs a hand or a tripod; the Flip stands itself open at a tent angle, freeing both hands for the one gesture the whole trend hinges on.",
+      "onScreenText": "nobody's holding this phone. محدش ماسك التليفون",
+      "featureMoment": "The viewer sees the phone standing open on a table with nobody holding it, both of the creator's hands visibly free and empty right up to the flip."
+     },
+     {
+      "cta": "Ask followers which background fits the reveal better and to duet their own flip with a matching edited scene.",
+      "dos": [
+       "Keep the original unedited flip clip in the post too, so the edit reads as a bonus not a replacement",
+       "Match the edited background tone to the actual reveal theme, random scenery breaks the joke"
+      ],
+      "hook": "Same flip, same hand, but the room behind the reveal has completely changed too.",
+      "idea": "After posting the flip reveal, use Generative Edit to swap just the background behind the reveal side to match the new look's theme, posted as a quick before/after of the edit itself.",
+      "line": "AI",
+      "donts": [
+       "Don't over-edit the person themselves, only the background should change",
+       "Avoid stacking multiple edits in one post, one clean background swap is the whole bit"
+      ],
+      "insight": "Once a hand-flip reveal blows up, the next wave of posts are duets and remakes pushing the gimmick further; a second scene-level transformation layered onto the same gesture is the natural next escalation this audience is already hunting for.",
+      "product": "Galaxy AI",
+      "soundUse": "Reuse the original trend audio's beat-drop moment as the cut point between original and edited clip.",
+      "execution": [
+       "Post the original hand-flip reveal as usual",
+       "Follow up with 'wait I fixed the background too'",
+       "Show the original clip side by side with the edited version",
+       "Use Generative Edit to restyle the reveal-side background to match the new character or outfit theme",
+       "Flip back and forth between original and edited background on screen",
+       "Caption explains it took one tap, no green screen, no app"
+      ],
+      "samsungify": "On-device background restyling with no watermark lets the reveal extend past the outfit into the whole scene, something screen-recorded filter apps can't do cleanly after the fact.",
+      "onScreenText": "same flip, new world. نفس الحركة، خلفية جديدة",
+      "featureMoment": "The viewer watches the same reveal frame restyle its background instantly on-device, no green screen, no second app, no logo stamped on the result."
+     }
+    ],
+    "onBrand": [
+     "Trend is accelerating at the stage-peak point where a native hardware or software angle still reads as participation, not a forced ad",
+     "The format's core tension, selling an impossible continuous motion, is solved by genuine product behaviour (self-standing fold) rather than a camera flex",
+     "Global reach and beauty/transformation audience overlap strongly with Galaxy AI's on-device creative tools, giving a credible second-wave remix angle"
+    ]
+   },
+   "products": [
+    {
+     "product": "Galaxy Z Flip8",
+     "line": "Foldable",
+     "reason": "FlexCam half-fold props the phone at the transition angle so both hands are free to do the flip motion instead of holding the camera.",
+     "score": 83
+    },
+    {
+     "product": "Galaxy Z Fold8",
+     "line": "Foldable",
+     "reason": "My FanCam auto-tracks and reframes the subject through the whipped hand transition without anyone touching the phone.",
+     "score": 74
+    }
+   ]
+  },
+  {
+   "id": "snd-7686747525743479559",
+   "name": "Bad Day Outfit Check",
+   "kind": "trend",
+   "stage": "peaking",
+   "growth": "+1%/day",
+   "category": "other",
+   "scope": "global",
+   "lang": "en",
+   "onBrand": false,
+   "fit": {
+    "strength": 48,
+    "beat": null,
+    "reason": "Human mood/fit-check performance; no transferable device for a generated remake."
+   },
+   "signalStrength": 70,
+   "durabilityClass": "ongoing",
+   "viewsWk": "50K",
+   "eng": 19.2,
+   "sound": {
+    "title": "original sound - singerbashirmahar0",
+    "author": null,
+    "cue": null,
+    "musicId": "7686747525743479559",
+    "commercialUse": {
+     "cleared": true,
+     "checkedAt": "2026-10-21T09:37:37.433Z"
+    }
+   },
+   "clips": [
+    {
+     "vid": "7687820945771351317",
+     "handle": "@creator",
+     "views": "159K",
+     "sound": "original sound - singerbashirmahar0",
+     "role": "top",
+     "poster": "https://p19-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/oIAwfqRdijKJAiNaTAUI8gBo5y7sBZB6EIHfRo~tplv-tiktokx-origin.image?dr=9636&x-expires=1792569600&x-signature=6Uae56363pCny5D0ptyos26iiV0%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    },
+    {
+     "vid": "7688754261110443282",
+     "handle": "@creator",
+     "views": "14K",
+     "sound": "original sound - singerbashirmahar0",
+     "role": null,
+     "poster": "https://p16-common-sign.tiktokcdn-us.com/tos-alisg-i-photomode-sg/c727563a67bd4b1dab8e814426d4e5ac~tplv-photomode-image.jpeg?dr=9616&x-expires=1792569600&x-signature=mTC4eIifKKFmjDQvZ4rMn5UIg%2Fk%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=9b759fb9&idc=useast5&ftpl=1"
+    }
+   ],
+   "format": null,
+   "why": "Measured: 55 creators / 70 sampled videos, 17% posted this week. Carried 2d past its last fresh sighting — population counter +0.85%/day.",
+   "tags": [],
+   "firstSeen": "2026-09-25T08:32:29.483Z",
+   "runsSeen": 3,
+   "brief": {
+    "microTrend": "Bad Day Outfit Check",
+    "mechanic": "Creator starts with a blurry or shaky opening shot implying motion or a bad mood, then cuts to a single locked shot where they pose confidently in a simple, neat, authoritative looking outfit, often with sunglasses or a sharp kurta, demonstrating the firm look despite the bad day caption.",
+    "adaptations": [],
+    "onBrand": []
+   },
+   "products": []
+  }
+ ]
+}
