@@ -202,11 +202,32 @@ Open items (none blocks this drop):
 2. **Self-claimed role** stays open for part (c), as agreed.
 3. Minor: `syncStage` is fire-and-forget, so an approval clicked within a second of generation can hit 409 `no_version`; the error is shown and a retry succeeds. Awaiting the sync before enabling the approve button would remove it.
 
+## M2 part 2 (c): member sign-in through Supabase Auth, roles, invitations (commit 9851f76, log 4a2af0e; ADR-003)
+
+Status: **PASSED** by checker for everything reproducible without a real member. The "login works" half of the M2 done-when row closes when the owner signs in once with the magic link (owner steps below).
+
+- Tests: `npm test` 87/87 green here; typecheck and check clean (check covers `members.js` and `_members.js`). CI was running for 4a2af0e at verification time.
+- `api/_auth.js`: cookie formats `exp.mac` (password) and `exp.memberB64.mac` (member), the MAC covers everything before it, base64url cannot contain a dot so the split is unambiguous; `readSession` rejects an edited payload, an expired cookie and a MAC under another secret (constant-time compare); `requireSession` sets `req.member`; `requireRole` answers 403 `member_required` for password sessions and 403 `role_required` for the wrong role.
+- `api/_members.js` and `login.js`: the access token is verified against GoTrue `/auth/v1/user` with the anon key, the members row is looked up by the auth user id, bootstrap admins come from `MAISTRO_ADMIN_EMAILS`, strangers get 403 `not_a_member`, inactive members too; the password path is unchanged while `MAISTRO_APP_PASSWORD` is set and answers 401 "retired" when unset.
+- `api/_handlers/members.js`: admin-only through `requireRole`; invite goes through GoTrue `/auth/v1/invite` with the service role and creates the members row with the role; 409 on an existing member, 422 on bad e-mail or role, self-deactivation refused; PATCH changes role, active and name.
+- `decisions.js`: a member session supplies role and name, the claimed role is ignored (test: a signed-in viewer claiming admin gets 409 `role_required`); `generated_by` is recorded on pieces POST so `self_approval` can fire; `MAISTRO_REQUIRE_MEMBER=1` answers 403 `member_required` to password sessions.
+- `index.html`: AUTH config from GET `/api/login`; the magic-link button hides when not configured; a returning `#access_token` is exchanged at boot and scrubbed with `history.replaceState`; approve and reject modals pre-fill the member's name and lock the role for members; the Members sidebar entry shows only for admins.
+- Production: `/` byte-identical to the committed `index.html` (sha256 dafd0a4e…, 299988 bytes); health ok; GET `/api/login` reports magicLink true, password true, the public anon key and the project URL; POST with a junk token 401, wrong password 401; `/api/members` GET and POST 401 without a cookie.
+
+Open items for the builder (1 should land before the team is onboarded):
+
+1. **A member cookie carries its role for 30 days and is never re-checked.** `requireRole` trusts the role inside the signed cookie, so a member whose role is lowered or who is deactivated through PATCH keeps the old rights until the cookie expires. Re-read the members row (active, role) in `requireRole` for members and decisions, or shorten the member TTL, or put a members version/updated_at in the cookie and compare.
+2. Minor: an admin can change their own role through PATCH (the page disables it, the server does not), which can lock the last admin out. Refuse self-demotion like self-deactivation.
+3. Minor: `requestMagicLink` sends `create_user: true`, so anyone who reaches the login page can create an auth user (never a member). After the owner's first sign-in, turn off "Allow new users to sign up" in Supabase Auth, or switch to `create_user: false`; invitations keep working either way.
+
 ## [GATE] Owner items (only the user can do these)
 
-1. **Rotate the pasted secrets** (new, from 7b50e15): the database password, the anon key and the service-role key were pasted in chat. Reset the database password (Supabase, Project Settings, Database, Reset) and rotate the keys when convenient, then re-add them with `vercel env add`. Until then they stay valid; this is hygiene, not an outage.
-2. **Vercel plan decision** (REBUILD_LOG Q-002): the project is on Hobby (12 functions per deployment, daily crons only, 300 s max). The builder recommends upgrading to Pro before M3, the jobs tick, which needs more frequent crons. Say yes or no.
-3. ~~Supabase connection string and anon key (Q-006)~~ — answered 2026-10-21; migrations applied.
+1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
+2. **Click-through for the database half of M2:** while signed in, create one Studio campaign; the builder confirms it in the database.
+3. **After the team is invited** (Members entry in the sidebar, admins only): set `MAISTRO_REQUIRE_MEMBER=1` on Vercel so decisions need a member session, and later unset `MAISTRO_APP_PASSWORD` to retire the shared password. Also turn off "Allow new users to sign up" in Supabase Auth so only invited people get sign-in links.
+4. **Rotate the pasted secrets** (from 7b50e15): the database password, the anon key and the service-role key were pasted in chat. Reset the password (Supabase, Project Settings, Database) and rotate the keys when convenient, then re-add with `vercel env add`. Hygiene, not an outage.
+5. **Vercel plan decision** (REBUILD_LOG Q-002): Hobby (12 functions, daily crons, 300 s) versus Pro before M3, the jobs tick, which needs more frequent crons. Say yes or no.
+6. ~~Supabase connection string and anon key (Q-006)~~ answered 2026-10-21; migrations applied.
 
 ## For the user to know (no action required unless you disagree)
 
