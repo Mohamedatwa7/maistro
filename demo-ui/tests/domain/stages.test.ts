@@ -1,7 +1,7 @@
-// Domain rules (src/domain/stages.ts): the server-side state machine the audit found missing (A-05, B-03).
+// Domain rules (src/domain/stages.js): the server-side state machine the audit found missing (A-05, B-03).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { STAGE_KINDS, readyStages, transition, pieceStatus, type StageSnapshot } from "../../src/domain/stages.ts";
+import { STAGE_KINDS, readyStages, transition, pieceStatus, type StageSnapshot } from "../../src/domain/stages.js";
 
 const snap = (overrides: Partial<Record<(typeof STAGE_KINDS)[number], StageSnapshot["state"]>>): StageSnapshot[] =>
   STAGE_KINDS.map((kind) => ({ kind, state: overrides[kind] ?? "locked" }));

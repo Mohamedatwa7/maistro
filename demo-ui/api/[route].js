@@ -21,6 +21,8 @@ const ROUTES = {
   translate: 'translate',
   login: 'login',
   health: 'health',
+  pieces: 'pieces',
+  decisions: 'decisions',
 };
 
 module.exports = async (req, res) => {

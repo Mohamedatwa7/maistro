@@ -37,6 +37,12 @@ const STAGE_AGENTS = {
 // contract widened to the media shapes the Studio renders. A malformed push
 // fails at the door with the field paths, not in the website renderer later.
 const { validateArtifact } = require('../_schemas.js');
+// M2 part 2: every accepted push is also recorded in the campaign store
+// (content_pieces / stages / artifact_versions) so approvals and ADLCP
+// documents can bind to a real version. campaign_events stays the contract
+// GET /api/projects reads; the store write reports as `stored` and never
+// turns an accepted push into a failure.
+const { recordVersion } = require('../_store.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -99,7 +105,17 @@ module.exports = async (req, res) => {
       trend: trend || null,
       artifact,
     });
-    res.status(200).json({ ok: true, projectId, stage, agent: agentName });
+    let stored = false, storeError;
+    try {
+      const meta = stage === 'plan'
+        ? { origin: 'external_hermes', title: artifact.title, product: artifact.product, msg: artifact.msg, angle: artifact.angle, markets: artifact.markets, platforms: artifact.platforms, trendId: trend && trend.id, trendName: trend && trend.name }
+        : { origin: 'external_hermes' };
+      await recordVersion(projectId, stage, artifact, { piece: meta, producedBy: 'external_hermes' });
+      stored = true;
+    } catch (e) {
+      storeError = `${e.code || 'store'}: ${String((e && e.message) || e).slice(0, 200)}`;
+    }
+    res.status(200).json({ ok: true, projectId, stage, agent: agentName, stored, ...(storeError ? { storeError } : {}) });
   } catch (err) {
     res.status(502).json({ error: String((err && err.message) || err) });
   }
