@@ -4,5 +4,12 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.70.0",
     "@higgsfield/client": "^0.2.6"
+  },
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.js\"",
+    "check": "node --check api/trends.js && node --check api/hermes.js && node --check api/director.js && node --check api/higgsfield.js && node --check api/qc-f1x8.js && node --check api/ingest.js && node --check api/projects.js && node --check api/sentiment.js && node --check api/track.js && node --check api/upload.js && node --check api/translate.js"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

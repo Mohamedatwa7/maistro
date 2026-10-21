@@ -1,0 +1,486 @@
+{
+ "source": "samsungtrack DB (daily Apify schedule — no duplicate pulls)",
+ "fetchedAt": "2026-10-20T08:05:59.427Z",
+ "days": 14,
+ "count": 20,
+ "comments": {
+  "seen": 85,
+  "matched": 72,
+  "partial": false
+ },
+ "stored": null,
+ "timings": [
+  {
+   "q": "social_posts:instagram",
+   "rows": 33,
+   "ms": 414,
+   "attempts": 1
+  },
+  {
+   "q": "social_posts:tiktok",
+   "rows": 33,
+   "ms": 118,
+   "attempts": 1
+  },
+  {
+   "q": "social_posts:facebook",
+   "rows": 14,
+   "ms": 493,
+   "attempts": 1
+  },
+  {
+   "q": "social_posts:twitter",
+   "rows": 14,
+   "ms": 75,
+   "attempts": 1
+  },
+  {
+   "q": "social_comments:undefined",
+   "rows": 85,
+   "ms": 74,
+   "attempts": 1
+  }
+ ],
+ "posts": [
+  {
+   "postId": "7698366818993409288",
+   "platform": "tiktok",
+   "account": "samsunggulf",
+   "caption": "The sound of fitting in effortlessly. 🤌 #GalaxyZFold8 #TooSlim",
+   "url": "https://www.tiktok.com/@samsunggulf/video/7698366818993409288",
+   "postedAt": "2026-10-19T13:15:00+00:00",
+   "mediaType": "video",
+   "metrics": {
+    "views": 322,
+    "likes": 25,
+    "comments": 3,
+    "shares": null,
+    "er": 0.08695652173913043,
+    "thumb": "https://p19-common-sign.tiktokcdn-us.com/tos-alisg-v-89e0aa-sg/ok0sYjfEAv7bAQHIZKFVSLGDAQklAGe7fCrfMz~tplv-tiktokx-origin.image?dr=9636&x-expires=1792627200&x-signature=x%2BSDlBiX8aULLS4Njj2E3DNJ1Qo%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+   },
+   "comments": []
+  },
+  {
+   "postId": "4010224933581751982",
+   "platform": "instagram",
+   "account": "samsunggulf",
+   "caption": "Streaming on a tiny screen? Couldn’t be us. 🍿 Unfold #GalaxyZFold8 for the big-screen moment. Drop your comfort film in the comments. 🎬",
+   "url": "https://www.instagram.com/p/DenLlR7jgau/",
+   "postedAt": "2026-10-18T13:15:02+00:00",
+   "mediaType": "Video",
+   "metrics": {
+    "views": 1894,
+    "likes": 50,
+    "comments": 3,
+    "shares": null,
+    "er": 0.0279831045406547,
+    "thumb": "https://scontent-muc2-1.cdninstagram.com/v/t51.82787-15/852644195_18630868018041603_2311009280462254395_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=109&ig_cache_key=NDAxMDIyNDkzMzU4MTc1MTk4MjE4NjMwODY4MDE1MDQxNjAz.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkNMSVBTLnhwaWRzLjEwODAuc2RyLnZpZGVvX2RlZmF1bHRfY292ZXJfZnJhbWUuQzMifQ%3D%3D&_nc_ohc=OqWWQgwd-VQQ7kNvwHvNLEK&_nc_oc=AdqzBE07unkZuMFKqWpa1jYQARjd30gV8N5dAQyOV01RWCbhv3R81uDD5V2Li_o63Puimd3c3U1kcih43xd7dlO5&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent-muc2-1.cdninstagram.com&_nc_gid=5KSJa4DNdxI6lrR_ekhxJA&_nc_ss=7a20f&oh=00_AQNhjX9VwjKJb-bpcsAqFpL2OIzAVlSaMyGroH1QBq3CWA&oe=6ADB34D0"
+   },
+   "comments": []
+  },
+  {
+   "postId": "7697995756011031828",
+   "platform": "tiktok",
+   "account": "samsunggulf",
+   "caption": "Streaming on a tiny screen? Couldn’t be us. 🍿 Unfold #GalaxyZFold8 for the big-screen moment. Drop your comfort film in the comments. 🎬",
+   "url": "https://www.tiktok.com/@samsunggulf/video/7697995756011031828",
+   "postedAt": "2026-10-18T13:15:00+00:00",
+   "mediaType": "video",
+   "metrics": {
+    "views": 430,
+    "likes": 35,
+    "comments": 6,
+    "shares": 2,
+    "er": 0.1,
+    "thumb": "https://p19-common-sign.tiktokcdn-us.com/tos-alisg-v-89e0aa-sg/oMfAOGeILAqLVxgQ5QJy7LS5A8IBLZfAGfGYjp~tplv-tiktokx-origin.image?dr=9636&x-expires=1792627200&x-signature=yI9U3W%2FAC1IvF9E%2F4iLHVRsZdak%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+   },
+   "comments": []
+  },
+  {
+   "postId": "4009799186216051135",
+   "platform": "instagram",
+   "account": "samsunggulf",
+   "caption": "Reposted from @heythasni:\n\nCreating with clay, guided by every detail on my Galaxy Z Fold8.🤍✨\n\n#galaxyzfold8 \n#teamgalaxy #foldablephone",
+   "url": "https://www.instagram.com/p/Delqx1zDuG_/",
+   "postedAt": "2026-10-18T06:30:03+00:00",
+   "mediaType": "Video",
+   "metrics": {
+    "views": 1619,
+    "likes": 19,
+    "comments": 2,
+    "shares": null,
+    "er": 0.012970969734403953,
+    "thumb": "https://scontent-ams2-1.cdninstagram.com/v/t51.82787-15/852515261_18630762550041603_7065339003946377410_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=104&ig_cache_key=NDAwOTc5OTE4NjIxNjA1MTEzNTE4NjMwNzYyNTQ3MDQxNjAz.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkNMSVBTLnhwaWRzLjEwODAuc2RyLnZpZGVvX2RlZmF1bHRfY292ZXJfZnJhbWUuQzMifQ%3D%3D&_nc_ohc=1e3GJfEQdkYQ7kNvwHZV0yI&_nc_oc=AdrrHLMLhxPUCLjQYs4kDsgD_matXUvzKwLD0T9TsxIfMX8mworm6GQBAYn0kZ1eSkIFU9ZW92AZX6G76ckNBpDF&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent-ams2-1.cdninstagram.com&_nc_gid=0MkgD6R7TzdrQlW0ePsOIQ&_nc_ss=7a20f&oh=00_AQMbYfdKZHZWYfzoB43nXw_fDRswiNlTLCR-TdXTRqVgzw&oe=6ADB1E04"
+   },
+   "comments": []
+  },
+  {
+   "postId": "7697891251252759809",
+   "platform": "tiktok",
+   "account": "samsunggulf",
+   "caption": "Reposted from @heythasni: Creating with clay, guided by every detail on my Galaxy Z Fold8.🤍✨ #galaxyzfold8 #teamgalaxy #foldablephone",
+   "url": "https://www.tiktok.com/@samsunggulf/video/7697891251252759809",
+   "postedAt": "2026-10-18T06:30:00+00:00",
+   "mediaType": "video",
+   "metrics": {
+    "views": 339,
+    "likes": 12,
+    "comments": 1,
+    "shares": 1,
+    "er": 0.04129793510324484,
+    "thumb": "https://p19-common-sign.tiktokcdn-us.com/tos-alisg-v-89e0aa-sg/oQEAU1rvWCjA9gePwuIEDiiBOZB0DaAuWfF12c~tplv-tiktokx-origin.image?dr=9636&x-expires=1792627200&x-signature=t0BixnXGHym3Zj6J%2FOTbGl4LtH4%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+   },
+   "comments": []
+  },
+  {
+   "postId": "4009184119932860431",
+   "platform": "instagram",
+   "account": "samsunggulf",
+   "caption": "Galaxy Z Fold8 just makes sense ✨️ in many ways 😉\n\n#GalaxyZFold8 #Samsung",
+   "url": "https://www.instagram.com/p/Deje7crvDgP/",
+   "postedAt": "2026-10-17T15:00:01+00:00",
+   "mediaType": "Video",
+   "metrics": {
+    "views": 4947,
+    "likes": 87,
+    "comments": 14,
+    "shares": null,
+    "er": 0.020416413988275723,
+    "thumb": "https://scontent-ams2-1.cdninstagram.com/v/t51.71878-15/848455276_28332361499799169_3837935838156143264_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=106&ig_cache_key=NDAwOTE4NDExOTkzMjg2MDQzMQ%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkNMSVBTLnhwaWRzLjY0MC5zZHIudmlkZW9fZGVmYXVsdF9jb3Zlcl9mcmFtZS5DMyJ9&_nc_ohc=L08XGXDZecMQ7kNvwHThHml&_nc_oc=Adp0_e0YyHPWCjg48uaZLwfnsQqE6zzHmfS_2oB1GOnH_QEhyTUIp9LXL2u8fRoB_RYvvVimCQsFGg1DaCNj65s6&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent-ams2-1.cdninstagram.com&_nc_gid=pF3vRMmT2HJNuRagFrvYsg&_nc_ss=7a20f&oh=00_AQNHRESbCGn34W2WwjjdboDwhoU0wzZtS8tbEKfZ3jtPYw&oe=6ADB43FE"
+   },
+   "comments": []
+  },
+  {
+   "postId": "7697149969752427828",
+   "platform": "tiktok",
+   "account": "samsunggulf",
+   "caption": "Galaxy Z Fold8 just makes sense ✨️ in many ways 😉 \n\n#GalaxyZFold8 #Samsung",
+   "url": "https://www.tiktok.com/@samsunggulf/video/7697149969752427828",
+   "postedAt": "2026-10-17T15:00:00+00:00",
+   "mediaType": "video",
+   "metrics": {
+    "views": 724,
+    "likes": 46,
+    "comments": 2,
+    "shares": 1,
+    "er": 0.06767955801104972,
+    "thumb": "https://p16-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/oUaABAtDHYBBiTiEAFRGRA4mEcxIAPiYslWMA~tplv-tiktokx-origin.image?dr=9636&x-expires=1792540800&x-signature=q%2B4WK8HMjsGq64U1H9dnAb0Rp5Y%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+   },
+   "comments": []
+  },
+  {
+   "postId": "7697163320591224065",
+   "platform": "tiktok",
+   "account": "samsunggulf",
+   "caption": "The whole library without the back pain. Your bookshelf just became pocket-sized. 😏\n\n#GalaxyZFold8 #TooSlim",
+   "url": "https://www.tiktok.com/@samsunggulf/video/7697163320591224065",
+   "postedAt": "2026-10-17T12:00:00+00:00",
+   "mediaType": "video",
+   "metrics": {
+    "views": 1210,
+    "likes": 73,
+    "comments": 4,
+    "shares": 5,
+    "er": 0.06776859504132231,
+    "thumb": "https://p16-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/o00iRFZEEIDEg40RdRfGEAOARAG5qDUeBAZYCB~tplv-tiktokx-origin.image?dr=9636&x-expires=1792540800&x-signature=hbdvHKfS44XGLTUH3PKiB9Lo6f8%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+   },
+   "comments": []
+  },
+  {
+   "postId": "1537948405033978",
+   "platform": "facebook",
+   "account": "SamsungGulf",
+   "caption": "Matching your Galaxy Z Fold8 to your fit? Always. 💅✨\n\n #GalaxyZFold8",
+   "url": "https://www.facebook.com/SamsungGulf/posts/pfbid02764irGFbfHEDkt7B6g21RFNQxi4wDj1msZcskkyECFm517KWaod52mrzAMhAH9hl",
+   "postedAt": "2026-10-16T15:30:02+00:00",
+   "mediaType": "post",
+   "metrics": {
+    "views": null,
+    "likes": 75,
+    "comments": 8,
+    "shares": 5,
+    "er": null,
+    "thumb": null
+   },
+   "comments": [
+    {
+     "author": "user8_0",
+     "text": "",
+     "likes": 0,
+     "at": "2026-10-17T11:32:47+00:00",
+     "sentiment": "neu"
+    },
+    {
+     "author": "user8_1",
+     "text": "​🚨 SAMSUNG MEGA OFFER! 🚨\nBuy a Samsung S series today and get a ✨ FREE GREEN LINE ✨ exactly after 1 year! (100% Guaranteed!) 🟢📱\nFeeling lucky? You might even get a Red Line combo! 🔴\nWarranty support after 1 year? Absolutely ZERO! 🚫\nBought the phone outside India? Congratulations, you just purchased a very expensive piece of electronic waste! 🗑️👏\nThank you Samsung, for turning our premium displays into colorful barcodes! 🤣👇Absolutely unacceptable from @SamsungIndia! My Galaxy S23 (bought in UAE) got the infamous #RedLine hardware defect with ZERO physical damage. CEO desk rejected the free replacement and demands ₹12kfor YOUR manufacturing flaw! Is this your \"Global Brand\" promise?",
+     "likes": 0,
+     "at": "2026-10-17T06:42:30+00:00",
+     "sentiment": "neu"
+    },
+    {
+     "author": "user8_2",
+     "text": "PLS DONT BUY/ PURCHAGE SAMSUNG PRODUCTS DONT WASTE UR MONEY ON SAMSUNG DEVICES .\nAs a Samsung USER for LAST 19 YEARS +. I Never Expected This Type of NEGLIGENCE from a Brand I Trusted for So long time  Unfortunately, I am Now facing the Network Problem  Issues  on my New   Samsung 8 Ultra 512 GB. On Both NETWORK, Wifi NETWORK and SIM NETWORK. For LOYAL and HARDCORE SAMSUNG USERS, This is Extremely DISAPPOINTING. When Customers STAY With a BRAND FOR 19 YEARS +, they expect QUALITY, ACCOUNTABILITY &  AFTER-SALES PROPER SUPPORT —Not to feel Ignored When Such issues occurs.Honestly this experience has made me question on  Samsung’s Commitment to its loyal Customers. I am Seriously considering Switching from Samsung to another brand.\nSo Pls dont purchase samsung mobile\n I Already Purchaged 8 ultra 512 GB on  August 2026.\nI have Very bad Experience \nNo worth for money \nAlways facing Network problems \nAll aps are buffering and Company Refuse to Solve the problem after many times Visited authorized samsung service center they said that is  third party app problem \n\nWow \nGoogle search \nGmail\nFacebook \nInstagram \nYouTube \nAll are buffering takes time to open Minutes & Minutes \n\nAll are pre-installed aap without Google  Android phone not worked \nhows that possible they all are Third Party Aap \nI installed\n Ajio Aap \nAmazon AAP\nTelegram Aap\nMyntra Aap\nJiohotstar Aap\nNetflix Aap \nAmazone prime Aap\nWynk Music Aap\n\n From play store \nAll apps are buffering .So Incredibly frustrating  when multiple aaps keep buffering or loading slowly at the same time .\nAlways Network Problem issues\nNot a single Aap working properly \nAlways takes time to open aap bec of Network problem in both mode Wi-Fi and  Sim Network \n\nAuthorised samsung service center technical    team self diagnosis and accepted YES  Handset have Network problem issues But Higher team denied to replace/ Exchange the handset\n\nSo pls don't waste ur money on samsung devices",
+     "likes": 0,
+     "at": "2026-10-16T20:14:07+00:00",
+     "sentiment": "neg"
+    },
+    {
+     "author": "user8_3",
+     "text": "Boss I am telling Bangladesh is a common man, I do not have to edit your New Series Phone. So guys can greet me a New Phone Pls please📲🎁🙏🙏🇧🇩",
+     "likes": 0,
+     "at": "2026-10-16T18:06:21+00:00",
+     "sentiment": "neu"
+    },
+    {
+     "author": "user8_4",
+     "text": "",
+     "likes": 0,
+     "at": "2026-10-16T15:48:06+00:00",
+     "sentiment": "neu"
+    }
+   ]
+  },
+  {
+   "postId": "2111117465094692931",
+   "platform": "x",
+   "account": null,
+   "caption": "Matching your Galaxy Z Fold8 to your fit? Always. 💅✨\n\n #GalaxyZFold8 https://t.co/2rVK4D2yz1",
+   "url": "https://x.com/SamsungGulf/status/2111117465094692931",
+   "postedAt": "2026-10-16T15:30:01+00:00",
+   "mediaType": "video",
+   "metrics": {
+    "views": 1284,
+    "likes": 6,
+    "comments": 1,
+    "shares": 2,
+    "er": 0.007009345794392523,
+    "thumb": "{\"mediaUrlHttps\":\"https://pbs.twimg.com/media/HUvja67XUAEbzLy.jpg\",\"type\":\"photo\",\"id\":\"2111030901987561473\"}"
+   },
+   "comments": []
+  },
+  {
+   "postId": "7697277774230342928",
+   "platform": "tiktok",
+   "account": "samsunggulf",
+   "caption": "Keep conversations flowing in Arabic and more, with up to 22 languages supported by Live Translate on Galaxy Z Fold8. ✨ #GalaxyAI #GalaxyZFold8 #LiveTranslate #Samsung",
+   "url": "https://www.tiktok.com/@samsunggulf/video/7697277774230342928",
+   "postedAt": "2026-10-16T14:48:44+00:00",
+   "mediaType": "video",
+   "metrics": {
+    "views": 360,
+    "likes": 39,
+    "comments": 3,
+    "shares": null,
+    "er": 0.11666666666666667,
+    "thumb": "https://p16-common-sign.tiktokcdn-us.com/tos-alisg-v-89e0aa-sg/ooDEvASPEFEaA0AgI9YDpQKHjfOAlvqS1BxfCV~tplv-tiktokx-origin.image?dr=9636&x-expires=1792454400&x-signature=vQrmgUHVUeopW2pnm%2FYP88eeB9Y%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast8"
+   },
+   "comments": []
+  },
+  {
+   "postId": "1537908865037932",
+   "platform": "facebook",
+   "account": "SamsungGulf",
+   "caption": "Keep conversations flowing in Arabic and more, with up to 22 languages supported by Live Translate on Galaxy Z Fold8. ✨\n\n#GalaxyAI #GalaxyZFold8 #LiveTranslate #Samsung",
+   "url": "https://www.facebook.com/reel/3113626208827382/",
+   "postedAt": "2026-10-16T14:48:40+00:00",
+   "mediaType": "post",
+   "metrics": {
+    "views": null,
+    "likes": 50,
+    "comments": 7,
+    "shares": 5,
+    "er": null,
+    "thumb": null
+   },
+   "comments": [
+    {
+     "author": "user11_0",
+     "text": "Boss I am telling Bangladesh is a common man, I do not have to edit your New Series Phone. So guys can greet me a New Phone Pls please📲🎁🙏🙏🙏🇧🇩🇧🇩🇧🇩",
+     "likes": 0,
+     "at": "2026-10-16T18:07:30+00:00",
+     "sentiment": "neu"
+    },
+    {
+     "author": "user11_1",
+     "text": "Boss I am telling Bangladesh is a common man, I do not have to edit your New Series Phone. So guys can greet me a New Phone Pls please",
+     "likes": 0,
+     "at": "2026-10-16T18:07:12+00:00",
+     "sentiment": "neu"
+    },
+    {
+     "author": "user11_2",
+     "text": "Boss I am telling Bangladesh is a common man, I do not have to edit your New Series Phone. So guys can greet me a New Phone Pls please📲🎁🙏🙏🇧🇩",
+     "likes": 0,
+     "at": "2026-10-16T18:07:04+00:00",
+     "sentiment": "neu"
+    },
+    {
+     "author": "user11_3",
+     "text": "",
+     "likes": 0,
+     "at": "2026-10-16T14:52:31+00:00",
+     "sentiment": "neu"
+    },
+    {
+     "author": "user11_4",
+     "text": "",
+     "likes": 0,
+     "at": "2026-10-16T14:51:07+00:00",
+     "sentiment": "neu"
+    }
+   ]
+  },
+  {
+   "postId": "4009268621381064372",
+   "platform": "instagram",
+   "account": "samsunggulf",
+   "caption": "Keep conversations flowing in Arabic and more, with up to 22 languages supported by Live Translate on Galaxy Z Fold8. ✨\n\n#GalaxyAI #GalaxyZFold8 #LiveTranslate #Samsung",
+   "url": "https://www.instagram.com/p/DejyJGyida0/",
+   "postedAt": "2026-10-16T14:48:32+00:00",
+   "mediaType": "Video",
+   "metrics": {
+    "views": 4642,
+    "likes": 81,
+    "comments": 7,
+    "shares": null,
+    "er": 0.018957345971563982,
+    "thumb": "https://scontent-ord5-2.cdninstagram.com/v/t51.82787-15/852160178_18630112891041603_195393916714424698_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=102&ig_cache_key=NDAwOTI2ODYyMTM4MTA2NDM3MjE4NjMwMTEyODg4MDQxNjAz.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkNMSVBTLnhwaWRzLjEwODAuc2RyLnZpZGVvX2RlZmF1bHRfY292ZXJfZnJhbWUuQzMifQ%3D%3D&_nc_ohc=d-kcB6s_PmUQ7kNvwG28QdZ&_nc_oc=Ado3qqF0DeWLON4fiqnMh6ovHKHowveDENjprSeG6g0n3zmJkC_RrF_BAvuY2MWAnYk&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent-ord5-2.cdninstagram.com&_nc_gid=Yuri60r4yl6oJGdnKujD4w&_nc_ss=7a20f&oh=00_AQOZv60ndP4UJlYmwa95r5_g5eAN8GmbR17URFKn-A6oiA&oe=6ADB1B99"
+   },
+   "comments": []
+  },
+  {
+   "postId": "2111106921755300197",
+   "platform": "x",
+   "account": null,
+   "caption": "Keep conversations flowing in Arabic and more, with up to 22 languages supported by Live Translate on Galaxy Z Fold8. ✨\n\n#GalaxyAI #GalaxyZFold8 #LiveTranslate #Samsung https://t.co/XFgU62xIZH",
+   "url": "https://x.com/SamsungGulf/status/2111106921755300197",
+   "postedAt": "2026-10-16T14:48:07+00:00",
+   "mediaType": "video",
+   "metrics": {
+    "views": 1200,
+    "likes": 5,
+    "comments": 3,
+    "shares": 3,
+    "er": 0.009166666666666667,
+    "thumb": "{\"mediaUrlHttps\":\"https://pbs.twimg.com/amplify_video_thumb/2111106885881319424/img/dsZw16m1bN_xPS5i.jpg\",\"type\":\"video\",\"id\":\"2111106885881319424\"}"
+   },
+   "comments": [
+    {
+     "author": "user13_0",
+     "text": "@SamsungGulf Caution before purchasing Samsung products. See how @SamsungIndia damaged a perfectly fine phone, and when asked to take accountability and fix it, how they replied. According to their policy, Samsung has the right to potentially harm customers' phone &amp; decline to repair them https://t.co/zekkw7CF1L",
+     "likes": 0,
+     "at": "2026-10-18T11:40:56+00:00",
+     "sentiment": "pos"
+    }
+   ]
+  },
+  {
+   "postId": "7697277060154215700",
+   "platform": "tiktok",
+   "account": "samsunggulf",
+   "caption": "Adding to cart is my love language. 🛍️💖\n\n #GalaxyZFold8 ",
+   "url": "https://www.tiktok.com/@samsunggulf/video/7697277060154215700",
+   "postedAt": "2026-10-16T14:46:16+00:00",
+   "mediaType": "video",
+   "metrics": {
+    "views": 1494,
+    "likes": 117,
+    "comments": 6,
+    "shares": 3,
+    "er": 0.08433734939759036,
+    "thumb": "https://p19-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/oUOBa3nADRUBBT6MAAAILZfxChAiSOi1wEuIoO~tplv-tiktokx-origin.image?dr=9636&x-expires=1792454400&x-signature=IHtDXcJNJulUl4qi2In6usXBSw8%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast8"
+   },
+   "comments": []
+  },
+  {
+   "postId": "4009153919920801066",
+   "platform": "instagram",
+   "account": "samsunggulf",
+   "caption": "Your next Galaxy experience is just a tap away. Try the all-new Galaxy Z Fold8 series and My FanCam on your phone with Try Galaxy.\n\nDownload now: trygalaxy.com",
+   "url": "https://www.instagram.com/p/DejYD-uvoUq/",
+   "postedAt": "2026-10-16T11:00:07+00:00",
+   "mediaType": "Video",
+   "metrics": {
+    "views": 7614,
+    "likes": 91,
+    "comments": 5,
+    "shares": null,
+    "er": 0.01260835303388495,
+    "thumb": "https://instagram.fcgh5-1.fna.fbcdn.net/v/t51.71878-15/851503277_1779899149884232_265582967605428499_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=110&_nc_map=urlgen_bucketless&ig_cache_key=NDAwOTE1MzkxOTkyMDgwMTA2NjM2NjgwNTc2MjY2ODA1NzM%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkNMSVBTLnhwaWRzLjY0MC5zZHIudmlkZW9fbmZyYW1lX2NvdmVyX2ZyYW1lLkMzIn0%3D&_nc_ohc=PF-IHSKxzScQ7kNvwEVNgpY&_nc_oc=AdouFogVgKEJy8Py1zfAHQSo2bE4IEzxKi1STU2UR6TGD4wQK8HoRzav_fx3KcCkkpDESpVvncvVcFR2CCT5tLxS&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=instagram.fcgh5-1.fna&_nc_gid=LRqhMS2GhQJoyI98LAYf6Q&_nc_ss=7a20f&oh=00_AQMZGlftdsClfqmV_PA_mEJ7G9QLpMZ-Da41SBvhIhOuzQ&oe=6ADB3CCD"
+   },
+   "comments": []
+  },
+  {
+   "postId": "7697150792330923270",
+   "platform": "tiktok",
+   "account": "samsunggulf",
+   "caption": "Your next Galaxy experience is just a tap away. Try the all-new Galaxy Z Fold8 series and My FanCam on your phone with Try Galaxy.\n\nDownload now: trygalaxy.com",
+   "url": "https://www.tiktok.com/@samsunggulf/video/7697150792330923270",
+   "postedAt": "2026-10-16T11:00:00+00:00",
+   "mediaType": "video",
+   "metrics": {
+    "views": 556,
+    "likes": 41,
+    "comments": 2,
+    "shares": null,
+    "er": 0.07733812949640288,
+    "thumb": "https://p16-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/oIoAaEI4fxGArhAvvaAeLLjDeBoAGVQEiNIlr2~tplv-tiktokx-origin.image?dr=9636&x-expires=1792454400&x-signature=kZ4fi5TbhXZlQB6STVgOUuILTd8%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast8"
+   },
+   "comments": []
+  },
+  {
+   "postId": "2111048243916513654",
+   "platform": "x",
+   "account": "SamsungGulf",
+   "caption": "Learn more: https://t.co/oqIZ0lBBnB",
+   "url": "https://x.com/SamsungGulf/status/2111048243916513654",
+   "postedAt": "2026-10-16T10:54:57+00:00",
+   "mediaType": "text",
+   "metrics": {
+    "views": 195,
+    "likes": 1,
+    "comments": null,
+    "shares": null,
+    "er": 0.005128205128205128,
+    "thumb": null
+   },
+   "comments": []
+  },
+  {
+   "postId": "7697161451894492417",
+   "platform": "tiktok",
+   "account": "samsunggulf",
+   "caption": "If your pocket can’t fit everything… don’t buy new pants 😭 Get a #GalaxyZFold8 and save some room for the rest 🤏🏻📱\n\n#TooSlim",
+   "url": "https://www.tiktok.com/@samsunggulf/video/7697161451894492417",
+   "postedAt": "2026-10-16T07:18:19+00:00",
+   "mediaType": "video",
+   "metrics": {
+    "views": 381,
+    "likes": 25,
+    "comments": 2,
+    "shares": null,
+    "er": 0.07086614173228346,
+    "thumb": "https://p16-common-sign.tiktokcdn-us.com/tos-alisg-p-0037/okfQkWD5EFAeIiEosAEoAzIAD35ifjYRVN7DA2~tplv-tiktokx-origin.image?dr=9636&x-expires=1792454400&x-signature=y3X9TaJsrvf70HO18PSx6WJEYfg%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast8"
+   },
+   "comments": []
+  },
+  {
+   "postId": "4009039842021284292",
+   "platform": "instagram",
+   "account": "samsunggulf",
+   "caption": "Beach days, date night, fashion week, playoff season—or just your average Tuesday. The world has officially unfolded. Welcome to the new normal.\n\n#GalaxyAI #GalaxyZFold8Ultra #GalaxyZFold8 #GalaxyZFlip8\n\nFind your Foldable: samsung.com",
+   "url": "https://www.instagram.com/p/Dei-H7aERnE/",
+   "postedAt": "2026-10-16T07:13:59+00:00",
+   "mediaType": "Video",
+   "metrics": {
+    "views": 2010,
+    "likes": 39,
+    "comments": 2,
+    "shares": null,
+    "er": 0.020398009950248756,
+    "thumb": "https://scontent-fco2-1.cdninstagram.com/v/t51.82787-15/849211865_18629994745041603_5385483100188577950_n.jpg?stp=dst-jpg_e15_tt6&_nc_cat=106&ig_cache_key=NDAwOTAzOTg0MjAyMTI4NDI5MjE4NjI5OTk0NzQ4MDQxNjAz.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6IkNMSVBTLnhwaWRzLjIxNjAuc2RyLnZpZGVvX2RlZmF1bHRfY292ZXJfZnJhbWUuQzMifQ%3D%3D&_nc_ohc=reI7go_jEdIQ7kNvwHMltdA&_nc_oc=AdrhGdp04i04fWG5iU1edCabzQ9enxSEX-5KQyfGaLUcnxQ9RWZT3LFQWuQoEQ5WYEE&_nc_ad=z-m&_nc_cid=1020&_nc_zt=23&_nc_ht=scontent-fco2-1.cdninstagram.com&_nc_gid=rmkQK9gnja4rumZPpTS7-g&_nc_ss=7a20f&oh=00_AQPBKJa9G7L-FYHZANAKdF2FiAABNCn757a0VzqGolfv4w&oe=6ADB3211"
+   },
+   "comments": []
+  }
+ ]
+}

@@ -1,0 +1,45 @@
+# Product CI for the live app (demo-ui/): syntax check of every serverless
+# function, the characterization/golden/contract test suite on recorded
+# fixtures (no network, no paid APIs, never touches kymah), on every push and
+# pull request that touches demo-ui/. Added 2026-10-21 (Phase 3 safety net).
+name: demo-ui
+
+on:
+  push:
+    paths:
+      - "demo-ui/**"
+      - ".github/workflows/demo-ui.yml"
+  pull_request:
+    paths:
+      - "demo-ui/**"
+      - ".github/workflows/demo-ui.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: demo-ui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: demo-ui/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - name: Syntax check every function
+        run: npm run check
+      - name: Tests (characterization, golden, contract on fixtures)
+        run: npm test
+        env:
+          # The suite must never reach a real provider; any env a developer has
+          # locally is irrelevant here, and the tests set what they need.
+          ANTHROPIC_API_KEY: ""
+          HF_CREDENTIALS: ""
+          SUPABASE_URL: ""
+          SUPABASE_SERVICE_ROLE_KEY: ""
+          TRACK_SUPABASE_URL: ""
+          TRACK_SUPABASE_KEY: ""
+          MAISTRO_INGEST_KEY: ""

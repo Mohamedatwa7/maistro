@@ -31,3 +31,4 @@ Thumbs.db
 # Vercel
 .vercel/
 package-lock.json
+!demo-ui/package-lock.json
