@@ -32,3 +32,4 @@ Thumbs.db
 .vercel/
 package-lock.json
 !demo-ui/package-lock.json
+.langgraph_api/
