@@ -13,7 +13,7 @@
 //   artifact: { ... }     // stage-shaped payload, see API.md
 // }
 
-const { insertEvent, queryRows } = require('./_supabase.js');
+const { insertEvent, queryRows } = require('../_supabase.js');
 
 // Idempotency (M1, AUDIT C-11): an agent that retries a push must not create
 // a second event. Without a schema change the key is the content itself —
@@ -26,7 +26,7 @@ function stable(v) {
   if (v && typeof v === 'object') return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + stable(v[k])).join(',') + '}';
   return JSON.stringify(v);
 }
-const { bearerMatches } = require('./_auth.js');
+const { bearerMatches } = require('../_auth.js');
 
 const STAGE_AGENTS = {
   plan: 'Hermes', mood: 'Muse', thumb: 'Pixel', brief: 'Quill',

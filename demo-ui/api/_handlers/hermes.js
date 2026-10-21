@@ -6,8 +6,8 @@
 // UI one by one, exactly like the real agent chain would deliver them.
 
 const Anthropic = require('@anthropic-ai/sdk');
-const { requireSession } = require('./_auth.js');
-const { PRODUCTS_PROMPT, BRAND_PROMPT } = require('./_brand');
+const { requireSession } = require('../_auth.js');
+const { PRODUCTS_PROMPT, BRAND_PROMPT } = require('../_brand');
 
 const MODEL = 'claude-opus-4-8';
 

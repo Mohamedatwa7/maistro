@@ -15,8 +15,8 @@
 //   note   — 1-2 plain-English sentences shown to the user (what & why)
 
 const Anthropic = require('@anthropic-ai/sdk');
-const { requireSession } = require('./_auth.js');
-const { PRODUCTS_PROMPT, BRAND_PROMPT } = require('./_brand');
+const { requireSession } = require('../_auth.js');
+const { PRODUCTS_PROMPT, BRAND_PROMPT } = require('../_brand');
 
 const MODEL = 'claude-opus-4-8';
 

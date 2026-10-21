@@ -32,9 +32,9 @@
 // (post_url first, a single JSON field only where the URL has no account),
 // and page along the published_at index, never ORDER BY id.
 
-const { insertRow } = require('./_supabase.js');
-const { bearerMatches, isCron: isCronRequest } = require('./_auth.js');
-const { fetchT } = require('./_http.js');
+const { insertRow } = require('../_supabase.js');
+const { bearerMatches, isCron: isCronRequest } = require('../_auth.js');
+const { fetchT } = require('../_http.js');
 
 const DAYS_MAX = 90;
 const FALLBACK_DAYS = 14; // cron snapshot window when the full read fails or is partial

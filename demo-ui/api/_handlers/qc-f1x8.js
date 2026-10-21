@@ -1,5 +1,5 @@
-const { fetchT } = require('./_http.js');
-const { requireSession } = require('./_auth.js');
+const { fetchT } = require('../_http.js');
+const { requireSession } = require('../_auth.js');
 // Quality Check — real F1X8 integration (the user's Modal-hosted engagement
 // scoring backend, contract: packages/contracts/openapi/f1x8.yaml).
 //

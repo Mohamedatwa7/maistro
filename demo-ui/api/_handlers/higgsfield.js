@@ -1,5 +1,5 @@
-const { fetchT } = require('./_http.js');
-const { requireSession } = require('./_auth.js');
+const { fetchT } = require('../_http.js');
+const { requireSession } = require('../_auth.js');
 // Studio Create — Higgsfield generation proxy.
 // POST {kind:'video'|'image', prompt, ...} → submits a generation, returns
 //   {request_id, status} immediately (no long polling in a lambda).

@@ -1,5 +1,5 @@
-const { fetchT } = require('./_http.js');
-const { requireSession } = require('./_auth.js');
+const { fetchT } = require('../_http.js');
+const { requireSession } = require('../_auth.js');
 // POST /api/translate — same mechanism as samsungtrack's translate route:
 // the free Google Translate gtx endpoint, auto-detect → English.
 // Body: { text, targetLang? } → { translatedText, detectedLanguage }

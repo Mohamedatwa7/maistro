@@ -47,7 +47,7 @@ function api(file, env = {}) {
     saved[k] = process.env[k];
     if (v === undefined) delete process.env[k]; else process.env[k] = v;
   }
-  const abs = path.join(ROOT, 'api', file);
+  const abs = path.join(ROOT, 'api', file.startsWith('_') || file.startsWith('[') ? file : path.join('_handlers', file));
   for (const k of Object.keys(require.cache)) if (k.startsWith(path.join(ROOT, 'api'))) delete require.cache[k];
   const handler = require(abs);
   const restore = () => { for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } };

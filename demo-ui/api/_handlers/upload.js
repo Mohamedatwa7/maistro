@@ -1,5 +1,5 @@
-const { fetchT } = require('./_http.js');
-const { requireSession } = require('./_auth.js');
+const { fetchT } = require('../_http.js');
+const { requireSession } = require('../_auth.js');
 // POST /api/upload — stores a product reference photo in Supabase Storage
 // (public bucket "refs") and returns its public URL. The client downsizes the
 // image to ≤1600px JPEG before sending, so bodies stay well under limits.

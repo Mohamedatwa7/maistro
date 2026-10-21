@@ -2,7 +2,7 @@
 // agent has pushed via /api/ingest. The Maistro website polls this and renders
 // each campaign's stages as they arrive.
 
-const { listEvents } = require('./_supabase.js');
+const { listEvents } = require('../_supabase.js');
 
 const STAGE_ORDER = ['mood', 'thumb', 'brief', 'board', 'final', 'qc'];
 

@@ -1,4 +1,4 @@
-const { fetchT } = require('./_http.js');
+const { fetchT } = require('../_http.js');
 // GET /api/trends — pulls trends from TrendRadar (kymah.com) and returns the
 // TOP 10 director-safe, Samsung-fit trends, curated by Claude.
 //

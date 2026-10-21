@@ -4,7 +4,7 @@
 //   GET    /api/login   → { authenticated: boolean, configured: boolean }
 //   POST   /api/login   { password } → 204 + Set-Cookie, or 401 / 503
 //   DELETE /api/login   → 204, cookie cleared
-const { bearerMatches, makeSessionCookieValue, verifySession, sessionCookieHeader } = require('./_auth.js');
+const { bearerMatches, makeSessionCookieValue, verifySession, sessionCookieHeader } = require('../_auth.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');

@@ -16,8 +16,8 @@
 //
 // GET (public): latest snapshot per post, newest posts first.
 
-const { insertRow, listRows } = require('./_supabase.js');
-const { bearerMatches } = require('./_auth.js');
+const { insertRow, listRows } = require('../_supabase.js');
+const { bearerMatches } = require('../_auth.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
