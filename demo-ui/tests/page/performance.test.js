@@ -74,3 +74,17 @@ test('radarToTrend maps the API shape to the card shape (platform always tiktok,
     assert.equal(t.m.er, 0.075);
   } finally { X.restore(); }
 });
+
+test('critical alerts and drill-downs fold the same author+text pasted under several posts into one row (peer finding, 2026-10-21)', () => {
+  const X = loadPage({ hash: '#/performance' });
+  try {
+    const cmt = (likes) => ({ author: 'complainant', text: 'Dear Samsung Pakistan Management, I am writing to formally complain about customer service', likes, at: '2026-10-21T09:00:00Z', sentiment: 'neg' });
+    const post = (id, likes) => ({ postId: id, platform: 'instagram', account: '@samsunggulf', caption: 'c', url: 'u', postedAt: '2026-10-21T08:00:00Z', metrics: { views: 10, likes: 1, comments: 1, shares: 0, er: 0.2 }, comments: [cmt(likes)] });
+    X.SENTI.posts.push(post('ig-1', 2), post('ig-2', 5));
+    const html = X.rPerformance();
+    const panel = html.slice(html.indexOf('<span class="kick accent">Critical alerts</span>'), html.indexOf('Comment health — week on week'));
+    assert.equal((panel.match(/formally complain/g) || []).length, 1, 'one alert row, not two');
+    assert.match(panel, /× 2 POSTS/);
+    assert.equal(X.sentiFoldAcross(X.allComments(X.SENTI.posts)).filter((c) => c.author === 'complainant').map((c) => c.likes)[0], 5, 'the most-liked copy survives');
+  } finally { X.restore(); }
+});

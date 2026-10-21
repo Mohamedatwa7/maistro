@@ -2017,6 +2017,15 @@ function sentiDedupe(cmts){
  }
  return [...best.values()];
 }
+/* The per-post collapse above cannot see the same author pasting the same
+   text under several posts; lists that flatten comments across posts
+   (critical alerts, drill-downs) fold those too and say how many posts. */
+function sentiFoldAcross(cmts){
+ const out=sentiDedupe(cmts),seen=new Map();
+ for(const c of cmts){const k=String(c.author||'').trim().toLowerCase()+'|'+String(c.text||'').replace(/\s+/g,' ').trim();seen.set(k,(seen.get(k)||new Set()).add(c.postId))}
+ for(const c of out){const k=String(c.author||'').trim().toLowerCase()+'|'+String(c.text||'').replace(/\s+/g,' ').trim();c.across=(seen.get(k)||new Set()).size}
+ return out;
+}
 function sentiCompose(){
  const track=SENTI.track,snap=SENTI.snap;
  let posts;
@@ -2216,7 +2225,7 @@ function rCommentRow(c){
    <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.55">
     ${c.platform&&PLAT[c.platform]?plat(c.platform):''} <b style="font-size:12px">${esc(c.author||'')}</b>
     <span dir="auto" style="color:var(--text);unicode-bidi:plaintext"> ${esc(c.text||'')}</span>
-    ${c.likes!=null?`<span class="mono dim" style="font-size:10px"> · ${fmt(c.likes)} ♥</span>`:''}
+    ${c.likes!=null?`<span class="mono dim" style="font-size:10px"> · ${fmt(c.likes)} ♥</span>`:''}${c.across>1?`<span class="mono dim" style="font-size:9px;margin-left:5px">× ${c.across} POSTS</span>`:''}
     ${fl.map(f=>`<span class="mono" style="font-size:9px;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-left:5px">⚑ ${f.l.toUpperCase()}</span>`).join('')}
     ${trBits(c.text)}
    </div>${sentiBadge(c.sentiment)}</div>`;
@@ -2225,7 +2234,7 @@ function rCommentRow(c){
 function kpiDrill(kind){
  STATE.kpiDrill=kind;
  const list=pfPosts(),s=pfStats(list),cmts=allComments(list);
- const byLikes=cmts.slice().sort((a,b)=>(b.likes||0)-(a.likes||0));
+ const byLikes=sentiFoldAcross(cmts).sort((a,b)=>(b.likes||0)-(a.likes||0));
  const postRow=p=>{const m=p.metrics||{};return `
   <div class="qc-run-row" style="align-items:flex-start">
    <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.55">
@@ -2291,7 +2300,7 @@ function rReviewsDash(list,s){
   <text x="100" y="92" text-anchor="middle" fill="${health[1]}" font-size="9" font-family="JetBrains Mono" letter-spacing="2">${health[0]}</text></svg>`;
 
  /* 2 — critical alerts */
- const alerts=cmts.map(c=>({c,fl:stFlags(c.text)})).filter(x=>x.fl.length)
+ const alerts=sentiFoldAcross(cmts).map(c=>({c,fl:stFlags(c.text)})).filter(x=>x.fl.length)
   .sort((a,b)=>(b.c.likes||0)-(a.c.likes||0)).slice(0,6);
 
  /* 3 — week-on-week health trend (8 weeks) */
@@ -2343,7 +2352,7 @@ function rReviewsDash(list,s){
   <div class="card p5"><span class="kick accent">Critical alerts</span>
    ${alerts.length?alerts.map(({c,fl})=>`<div class="qc-risk" style="margin-top:9px">
      <div style="font-size:12px;line-height:1.55"><b>${esc(c.author||'')}</b> <span class="dim" dir="auto" style="unicode-bidi:plaintext">${esc((c.text||'').slice(0,110))}${(c.text||'').length>110?'…':''}</span>${trBits(c.text)}</div>
-     <div style="margin-top:4px">${fl.map(f=>`<span class="mono" style="font-size:9px;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-right:4px">⚑ ${f.l.toUpperCase()}</span>`).join('')}${c.platform&&PLAT[c.platform]?plat(c.platform):''}</div>
+     <div style="margin-top:4px">${fl.map(f=>`<span class="mono" style="font-size:9px;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-right:4px">⚑ ${f.l.toUpperCase()}</span>`).join('')}${c.platform&&PLAT[c.platform]?plat(c.platform):''}${c.across>1?`<span class="mono dim" style="font-size:9px;margin-left:5px">× ${c.across} POSTS</span>`:''}</div>
     </div>`).join(''):`<p class="dim" style="font-size:12.5px;margin-top:12px">No refund, technical, support or competitor flags in this view. 🎉</p>`}
   </div>
  </div>
