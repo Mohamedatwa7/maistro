@@ -247,7 +247,7 @@ Open item for the builder (minor):
 
 ## Pro plan: hourly trends cron; raw-miss cache fix (commit ca41ee2, log 8f24ffe)
 
-Status: **PASSED** by checker, with the first real cron run still to observe (next run 15:15 UTC).
+Status: **PASSED** by checker. First real cron run observed: a cache-busted read at 15:23 UTC returned `cache.hit:true`, `fetchedAt 2026-10-21T15:15:24Z`, count 10, curatedBy claude, so the 15:15 UTC run refreshed the stored board and its curation; the board itself is still the 08:25 UTC upstream publication, as expected. The first `trend_snapshots` rows were written by the same run (the cron response carries the count; only the service role can read the table).
 
 - Tests: `npm test` 92/92 green here; typecheck and check clean. The new test covers the raw-miss storing no curation, the next curated hit curating once and writing back with the row's `fetched_at`, and the cron refreshing unconditionally. CI queued for 8f24ffe at verification time; the M4 run before it passed.
 - `vercel crons ls` on the linked project lists both crons: `/api/track` at 06:30 daily and `/api/trends` at 15 past every hour. The deploy carrying an hourly schedule was accepted, which only Pro allows, so the plan question Q-002 is closed by the deploy itself.
