@@ -154,6 +154,20 @@ Status: **PASSED** by checker.
 - Local: `npm test` 69/69 (new test at the end of `tests/page/performance.test.js`). Served `/` byte-identical to the branch (second fetch; the builder's first probe had hit a cold edge).
 - Full render with production data: the "Dear Samsung Pakistan Management…" alert appears once in Critical Alerts with "× 2 POSTS". In rendered markup (embedded data excluded) the text occurs 3 times on the base page: the single alert row plus the two per-post sections. Triggering `kpiDrill('alerts')` adds exactly one row (4 total) with its own "× 2 POSTS" label, so the drill lists it once; `kpiDrill('cmts')` (most-liked) adds none.
 
+## Interim fixes for A-02 and B-02: approval documents stored, simulated QC labelled (commit 6ff8ac1, log 32483ce, production live, main at tip)
+
+Status: **PASSED** by checker (code review plus probes; no live document upload, since the checker has no app password).
+
+- A-02: `POST /api/upload` with `kind:"document"` stores the line-manager and ADLCP sign-offs in the private `approvals` bucket (bucket created with `public:false`, `x-upsert:false`), accepts pdf/jpeg/png/webp/eml/msg up to 3 MB, and returns `{path, sha256, size, contentType, name, at}` with no public URL. `GET /api/upload?path=` signs a 600 s URL. Both require the session. Path handling reviewed: the regex `^documents/\d{4}/[a-z0-9]+-[a-z0-9]{6}\.[a-z]{3,4}$` is anchored, allows no slash, dot-segment or percent sequence beyond the single extension dot, and the bucket name is hard-coded, so the path cannot be steered to another bucket or object. `name` is stripped of control characters, capped at 160 and escaped on render.
+- Client: `uplOk` uploads on file pick and stores the result in `dataset.doc`; `confirmApprove` refuses while any upload is busy or lacks a stored document; `d.appr.lm` / `d.appr.adlcp` are now objects; `docLabel` renders name, 8-character checksum and an OPEN link that fetches a signed URL; legacy string records render as "name only". The gate is still client-side until the approvals table exists (A-05 remains open).
+- B-02: the built-in generator's qc stage no longer invents a reviewer; its map returns `{f1x8, f1x8Note, simulated:true, human:null, humanNote:null}` and the Studio labels it "Pre-flight estimate (Claude) — not an F1X8 result" with AWAITING HUMAN REVIEW. The ingest qc schema now has `human` / `humanNote` optional and `simulated` optional, so external pushers are unaffected.
+- Local: `npm test` 73/73. Production: `/` byte-identical to the branch; `/api/upload` 401 without a session on POST and on GET `?path=`; 405 on PUT; `/api/health` ok.
+- Minor, not blocking: `/api/upload` still sets `Access-Control-Allow-Origin: *` although it is session-gated; harmless because a wildcard origin cannot carry the HttpOnly cookie, but it can be dropped in the React rebuild.
+
+## Docs: API.md regenerated (commit eef920f, log 541ced7; AUDIT G-05)
+
+Status: **PASSED** by checker against the handlers. The route table lists all 13 handlers with the same auth split the code enforces: session cookie on hermes, director, higgsfield, qc-f1x8, upload, translate (exactly the six that call `requireSession`); ingest key on `/api/ingest`, `/api/sentiment` POST and `/api/track?store=1`; `CRON_SECRET` for the daily cron. New sections for health, login, track, translate and upload are present; the validation contract paragraph states 400 for hermes and 422 for director and ingest with `problems[]`; no section mentions maistro-demo.vercel.app and the base URL is ma1stro.com.
+
 ## [GATE] Owner items blocking M2 part 2 (only the user can provide these)
 
 1. **Supabase connection string and anon key** (REBUILD_LOG Q-006): set `MAISTRO_DATABASE_URL` (direct Postgres connection string of Maistro's Supabase project) so `db/migrate.mjs` can apply migrations 001-006, and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for the browser client. Give them to either session or add them to Vercel env; neither session can read them from Vercel.
