@@ -1,4 +1,5 @@
 const { fetchT } = require('./_http.js');
+const { requireSession } = require('./_auth.js');
 // POST /api/translate — same mechanism as samsungtrack's translate route:
 // the free Google Translate gtx endpoint, auto-detect → English.
 // Body: { text, targetLang? } → { translatedText, detectedLanguage }
@@ -10,6 +11,7 @@ module.exports = async (req, res) => {
     res.setHeader('Allow', 'POST, OPTIONS');
     return res.status(405).json({ error: 'method not allowed' });
   }
+  if (!requireSession(req, res)) return;
   try {
     const b = req.body || {};
     const text = String(b.text || '').slice(0, 1500);

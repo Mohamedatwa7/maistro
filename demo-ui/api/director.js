@@ -15,6 +15,7 @@
 //   note   — 1-2 plain-English sentences shown to the user (what & why)
 
 const Anthropic = require('@anthropic-ai/sdk');
+const { requireSession } = require('./_auth.js');
 const { PRODUCTS_PROMPT, BRAND_PROMPT } = require('./_brand');
 
 const MODEL = 'claude-opus-4-8';
@@ -117,6 +118,7 @@ module.exports = async (req, res) => {
     res.setHeader('Allow', 'POST, OPTIONS');
     return res.status(405).json({ error: 'method not allowed' });
   }
+  if (!requireSession(req, res)) return;
   if (!process.env.ANTHROPIC_API_KEY) {
     return res.status(503).json({ error: 'ANTHROPIC_API_KEY is not configured' });
   }

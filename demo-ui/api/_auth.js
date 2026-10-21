@@ -31,4 +31,60 @@ function isCron(req) {
   return /^vercel-cron/i.test(String(headers['user-agent'] || ''));
 }
 
-module.exports = { bearerMatches, isCron };
+// ---- interim app session (M1, AUDIT D-01) -------------------------------
+// Until Supabase Auth lands (ADR-003, milestone M2) the app is gated by ONE
+// shared password: POST /api/login sets an HttpOnly cookie carrying an
+// expiry and an HMAC over it; every endpoint that spends money or writes
+// storage calls requireSession(). The cookie carries no identity (there is
+// none yet), so approvals stay unattributed — that is M2's job, not this.
+const SESSION_COOKIE = 'maistro_session';
+const SESSION_TTL_S = 30 * 24 * 3600;
+
+function sign(secret, payload) {
+  return crypto.createHmac('sha256', String(secret)).update(payload).digest('base64url');
+}
+
+function makeSessionCookieValue(secret, nowMs = Date.now(), ttlS = SESSION_TTL_S) {
+  const exp = Math.floor(nowMs / 1000) + ttlS;
+  return `${exp}.${sign(secret, String(exp))}`;
+}
+
+function parseCookies(header) {
+  const out = {};
+  for (const part of String(header || '').split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return out;
+}
+
+function verifySession(cookieHeader, secret, nowMs = Date.now()) {
+  if (!secret) return false;
+  const v = parseCookies(cookieHeader)[SESSION_COOKIE];
+  if (!v) return false;
+  const [expS, mac] = v.split('.');
+  if (!/^\d+$/.test(expS || '') || !mac) return false;
+  if (Number(expS) * 1000 < nowMs) return false;
+  const expect = Buffer.from(sign(secret, expS));
+  const got = Buffer.from(mac);
+  return expect.length === got.length && crypto.timingSafeEqual(expect, got);
+}
+
+function sessionCookieHeader(value, maxAgeS = SESSION_TTL_S) {
+  return `${SESSION_COOKIE}=${value}; Path=/; Max-Age=${maxAgeS}; HttpOnly; Secure; SameSite=Lax`;
+}
+
+// Gate for request handlers: true when the session is valid, otherwise the
+// 401 is already written. Fails CLOSED when the secret is not configured.
+function requireSession(req, res) {
+  const secret = process.env.MAISTRO_SESSION_SECRET;
+  if (!secret) {
+    res.status(503).json({ error: 'login is not configured on the server (MAISTRO_SESSION_SECRET)' });
+    return false;
+  }
+  if (verifySession((req.headers || {}).cookie, secret)) return true;
+  res.status(401).json({ error: 'login required' });
+  return false;
+}
+
+module.exports = { bearerMatches, isCron, makeSessionCookieValue, verifySession, sessionCookieHeader, requireSession, SESSION_COOKIE, SESSION_TTL_S };

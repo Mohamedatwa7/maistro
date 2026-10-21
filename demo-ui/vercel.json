@@ -32,6 +32,9 @@
     },
     "api/translate.js": {
       "maxDuration": 15
+    },
+    "api/login.js": {
+      "maxDuration": 10
     }
   },
   "crons": [

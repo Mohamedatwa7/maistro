@@ -1,4 +1,5 @@
 const { fetchT } = require('./_http.js');
+const { requireSession } = require('./_auth.js');
 // POST /api/upload — stores a product reference photo in Supabase Storage
 // (public bucket "refs") and returns its public URL. The client downsizes the
 // image to ≤1600px JPEG before sending, so bodies stay well under limits.
@@ -11,6 +12,7 @@ module.exports = async (req, res) => {
     res.setHeader('Allow', 'POST, OPTIONS');
     return res.status(405).json({ error: 'method not allowed' });
   }
+  if (!requireSession(req, res)) return;
   const base = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!base || !key) return res.status(503).json({ error: 'storage is not configured' });

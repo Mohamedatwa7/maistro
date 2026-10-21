@@ -6,6 +6,7 @@
 // UI one by one, exactly like the real agent chain would deliver them.
 
 const Anthropic = require('@anthropic-ai/sdk');
+const { requireSession } = require('./_auth.js');
 const { PRODUCTS_PROMPT, BRAND_PROMPT } = require('./_brand');
 
 const MODEL = 'claude-opus-4-8';
@@ -129,6 +130,7 @@ module.exports = async (req, res) => {
     res.status(405).json({ error: 'POST only' });
     return;
   }
+  if (!requireSession(req, res)) return;
   const { stage, trend, project } = req.body || {};
   const spec = STAGES[stage];
   if (!spec) {

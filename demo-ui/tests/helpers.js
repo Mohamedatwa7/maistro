@@ -17,8 +17,17 @@ function fixture(name) {
   return name.endsWith('.json') ? JSON.parse(raw) : raw;
 }
 
-function req({ method = 'GET', body, query = {}, headers = {} } = {}) {
-  return { method, body, query, headers: Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v])) };
+// Every handler test runs with a valid interim session unless it opts out
+// (session: false) — the gate itself is tested in login.test.js.
+const TEST_SESSION_SECRET = 'test-session';
+function sessionCookie(secret = TEST_SESSION_SECRET, nowMs = Date.now()) {
+  const { makeSessionCookieValue, SESSION_COOKIE } = require(path.join(ROOT, 'api', '_auth.js'));
+  return `${SESSION_COOKIE}=${makeSessionCookieValue(secret, nowMs)}`;
+}
+function req({ method = 'GET', body, query = {}, headers = {}, session = true } = {}) {
+  const h = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
+  if (session && !h.cookie) h.cookie = sessionCookie();
+  return { method, body, query, headers: h };
 }
 
 function res() {
@@ -32,6 +41,7 @@ function res() {
 
 // Load a handler with a controlled environment. Keys set to undefined are deleted.
 function api(file, env = {}) {
+  env = { MAISTRO_SESSION_SECRET: TEST_SESSION_SECRET, ...env };
   const saved = {};
   for (const [k, v] of Object.entries(env)) {
     saved[k] = process.env[k];
@@ -133,4 +143,4 @@ function loadPage({ fetchImpl, hash = '#/', now = FROZEN_NOW } = {}) {
   return X;
 }
 
-module.exports = { ROOT, FIXTURES, fixture, req, res, api, mockFetch, json, text, anthropicReply, loadPage };
+module.exports = { ROOT, FIXTURES, fixture, req, res, api, mockFetch, json, text, anthropicReply, loadPage, sessionCookie, TEST_SESSION_SECRET };

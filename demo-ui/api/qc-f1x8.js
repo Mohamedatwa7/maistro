@@ -1,4 +1,5 @@
 const { fetchT } = require('./_http.js');
+const { requireSession } = require('./_auth.js');
 // Quality Check — real F1X8 integration (the user's Modal-hosted engagement
 // scoring backend, contract: packages/contracts/openapi/f1x8.yaml).
 //
@@ -38,6 +39,7 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
+  if (!requireSession(req, res)) return;
 
   try {
     if (req.method === 'GET') {

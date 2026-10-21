@@ -928,8 +928,34 @@ function doLogin(){
  if(!location.hash||location.hash==='#')location.hash='#/';
  route();
 }
-$('#login-form').addEventListener('submit',e=>{e.preventDefault();doLogin()});
-$('#login-samsung').addEventListener('click',doLogin);
+/* Interim gate (M1): one shared password → HttpOnly session cookie from
+   POST /api/login; every spend/write endpoint requires it. Supabase Auth +
+   roles replace this in M2. */
+function loginError(msg){
+ let el=document.getElementById('login-err');
+ if(!el){el=document.createElement('div');el.id='login-err';el.style.cssText='font-size:12px;color:#fda4af;margin-top:-6px';const f=$('#login-form');if(f)f.insertBefore(el,f.querySelector('button'))}
+ el.textContent=msg;
+}
+async function submitLogin(){
+ const pw=($('#l-pass')||{}).value||'';
+ if(!pw){loginError('Enter the workspace password.');const i=$('#l-pass');if(i&&i.focus)i.focus();return}
+ try{
+  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+  if(r.status===204){doLogin();return}
+  const d=await r.json().catch(()=>({}));
+  loginError(r.status===401?'Wrong password.':r.status===503?'Login is not configured on the server yet.':(d.error||('Login failed ('+r.status+')')));
+ }catch(e){loginError('Could not reach the server.')}
+}
+$('#login-form').addEventListener('submit',e=>{e.preventDefault();submitLogin()});
+$('#login-samsung').addEventListener('click',submitLogin);
+/* a valid session skips the overlay */
+(async()=>{try{const r=await fetch('/api/login');const d=await r.json();if(d&&d.authenticated)doLogin()}catch(e){}})();
+/* fetch for gated endpoints: a 401 means the session expired — back to the login screen */
+async function authFetch(url,init){
+ const r=await fetch(url,init);
+ if(r.status===401){toast('<span style="font-size:12.5px"><b style="color:#fda4af">Session expired</b> — log in again to continue.</span>');logout()}
+ return r;
+}
 
 /* ================= HERO — "Vibrant Pulse Glow" lego renderer =================
    Reimplemented per the 21st.dev preset: renderMode lego, bgMode solid,
@@ -1077,6 +1103,7 @@ function wsSelect(n){
 }
 document.addEventListener('click',e=>{const w=$('#ws');if(w&&w.classList.contains('open')&&!w.contains(e.target))w.classList.remove('open')});
 function logout(){
+ fetch('/api/login',{method:'DELETE'}).catch(()=>{});
  location.hash='';document.body.classList.remove('bare','sb-collapsed');
  document.body.classList.add('locked');
  const l=$('#login');if(l)l.classList.remove('out');
@@ -1180,7 +1207,7 @@ async function hermesCall(stage,trend,project){
  const t=setTimeout(()=>ctl.abort(),120000);   /* never hang the UI forever */
  let r;
  try{
-  r=await fetch('/api/hermes',{method:'POST',headers:{'Content-Type':'application/json'},
+  r=await authFetch('/api/hermes',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({stage,trend,project}),signal:ctl.signal});
  }catch(e){
   clearTimeout(t);
@@ -1530,7 +1557,7 @@ async function stageGen(pid,sid,changes){
    ctx.draft={prompt:(changes&&p.final?p.final.prompt:p.draft.prompt),note:p.draft.note||''};
    ctx.qc={score:fx.score,summary:fx.summary,fixes:fx.fixes,revisionBrief:fx.revisionBrief};
   }
-  const dr=await fetch('/api/director',{method:'POST',headers:{'Content-Type':'application/json'},
+  const dr=await authFetch('/api/director',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({stage:directorStage,userInput,campaign,context:ctx})});
   const dd=await dr.json().catch(()=>({}));
   if(!dr.ok||!dd.prompt)throw new Error(dd.error||('director responded '+dr.status));
@@ -1545,7 +1572,7 @@ async function stageGen(pid,sid,changes){
      thumbnail, which is a single hero visual by design */
   const useRef=!isVideo&&p.refImage&&sid==='thumb';
   GEN.busy[key]=(isVideo?'Seedance 2.5 is rendering the '+(sid==='final'?'revised cut':'first cut'):'Higgsfield is rendering the image'+(useRef?' from your product photo':''))+'…';studioRefresh();
-  const hr=await fetch('/api/higgsfield',{method:'POST',headers:{'Content-Type':'application/json'},
+  const hr=await authFetch('/api/higgsfield',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({kind:isVideo?'video':'image',prompt:dd.prompt,aspect_ratio:ar,resolution:res,duration:dur,
     ...(useRef?{ref:p.refImage}:{})})});
   const hd=await hr.json().catch(()=>({}));
@@ -1563,7 +1590,7 @@ function genPoll(pid,sid,reqId,meta,tries){
  if(tries>60){delete GEN.busy[key];GEN.err[key]='Generation timed out after 8 minutes — try again.';studioRefresh();return}
  GEN.timer[key]=setTimeout(async()=>{
   try{
-   const r=await fetch('/api/higgsfield?id='+encodeURIComponent(reqId)+(meta.v===1?'&v=1':''));
+   const r=await authFetch('/api/higgsfield?id='+encodeURIComponent(reqId)+(meta.v===1?'&v=1':''));
    const d=await r.json().catch(()=>({}));
    if(d.status==='completed'&&(d.video||(d.images&&d.images.length))){
     const p=PROJECTS.find(x=>x.id===pid);
@@ -1636,7 +1663,7 @@ async function qcRunAll(pid){
   const key=pid+':'+a.sid;
   if(QCRUN.state[key]&&QCRUN.state[key]!=='done'&&QCRUN.state[key]!=='error')continue;
   QCRUN.state[key]='submitting';delete QCRUN.err[key];
-  fetch('/api/qc-f1x8',{method:'POST',headers:{'Content-Type':'application/json'},
+  authFetch('/api/qc-f1x8',{method:'POST',headers:{'Content-Type':'application/json'},
    body:JSON.stringify({kind:a.kind,assetUrl:a.url,title:`${p.title} — ${QC_ASSET_LABELS[a.sid]}`,description:desc})})
   .then(r=>r.json().then(d=>({ok:r.ok,d})))
   .then(({ok,d})=>{
@@ -1656,7 +1683,7 @@ function qcPoll(pid,sid,jobId,tries){
  if(tries>180){QCRUN.state[key]='error';QCRUN.err[key]='F1X8 timed out after 30 minutes — resubmit.';studioRefresh();return}
  QCRUN.timer[key]=setTimeout(async()=>{
   try{
-   const r=await fetch('/api/qc-f1x8?job='+encodeURIComponent(jobId));
+   const r=await authFetch('/api/qc-f1x8?job='+encodeURIComponent(jobId));
    const d=await r.json().catch(()=>({}));
    if(d.status==='done'&&d.result){
     const p=PROJECTS.find(x=>x.id===pid);if(!p){delete QCRUN.state[key];return}
@@ -1735,7 +1762,7 @@ async function refUpload(pid,input){
    cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);
    cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
    const dataUrl=cv.toDataURL('image/jpeg',.88);
-   const r=await fetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},
+   const r=await authFetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({data:dataUrl.split(',')[1],contentType:'image/jpeg'})});
    const d=await r.json().catch(()=>({}));
    if(!r.ok||!d.url)throw new Error(d.error||'upload failed');
@@ -2157,7 +2184,7 @@ async function trDo(key){
  const text=TRTXT[key];if(!text||TRX[key]&&TRX[key].state==='busy')return;
  TRX[key]={state:'busy'};trRefresh();
  try{
-  const r=await fetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
+  const r=await authFetch('/api/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text})});
   const d=await r.json().catch(()=>({}));
   if(!r.ok||!d.translatedText)throw new Error(d.error||'translation failed');
   TRX[key]={state:'done',text:d.translatedText,lang:d.detectedLanguage};

@@ -1,4 +1,5 @@
 const { fetchT } = require('./_http.js');
+const { requireSession } = require('./_auth.js');
 // Studio Create — Higgsfield generation proxy.
 // POST {kind:'video'|'image', prompt, ...} → submits a generation, returns
 //   {request_id, status} immediately (no long polling in a lambda).
@@ -20,6 +21,7 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
+  if (!requireSession(req, res)) return;
 
   const creds = process.env.HF_CREDENTIALS;
   if (!creds || !creds.includes(':')) {
