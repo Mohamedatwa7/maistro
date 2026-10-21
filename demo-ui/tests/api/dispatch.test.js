@@ -27,7 +27,7 @@ test('health reports every configured name when all are present', async () => {
   const h = api('health.js', env);
   try {
     const r = res(); await h.handler(req({ session: false }), r);
-    assert.equal(r.statusCode, 200); assert.equal(r.body.ok, true); assert.deepEqual(r.body.missing, []);
+    assert.equal(r.statusCode, 200); assert.equal(r.body.ok, true); assert.deepEqual(r.body.missing, []); assert.deepEqual(Object.keys(r.body.features).sort(), ['MAISTRO_ADMIN_EMAILS', 'MAISTRO_APP_PASSWORD', 'MAISTRO_REQUIRE_MEMBER']);
     assert.equal(r.headers['cache-control'], 'no-store');
   } finally { h.restore(); }
 });

@@ -67,6 +67,18 @@ async function insertRows(table, rows, opts = {}) {
   return Array.isArray(j) ? j : [];
 }
 
+// Upsert: insert or overwrite the row(s) with the same conflict key.
+async function upsertRows(table, rows, onConflict) {
+  const c = config();
+  if (!c) throw new Error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not configured on the server');
+  const r = await fetchT(`${c.url}/rest/v1/${table}?on_conflict=${encodeURIComponent(onConflict)}`, {
+    method: 'POST',
+    headers: { apikey: c.key, Authorization: `Bearer ${c.key}`, 'Content-Type': 'application/json', Prefer: 'return=minimal,resolution=merge-duplicates' },
+    body: JSON.stringify(rows),
+  }, { timeoutMs: 15000 });
+  if (!r.ok) throw new Error(`supabase upsert into ${table} failed (${r.status}): ${(await r.text()).slice(0, 300)}`);
+}
+
 // Update the rows matching a PostgREST filter string; returns the updated rows.
 async function patchRows(table, params, patch) {
   const c = config();
@@ -84,4 +96,4 @@ async function patchRows(table, params, patch) {
 const insertEvent = (row) => insertRow('campaign_events', row);
 const listEvents = (limit) => listRows('campaign_events', 'project_id,stage,agent,trend,artifact,at', limit);
 
-module.exports = { insertEvent, listEvents, insertRow, listRows, queryRows, insertRows, patchRows };
+module.exports = { insertEvent, listEvents, insertRow, listRows, queryRows, insertRows, upsertRows, patchRows };

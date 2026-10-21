@@ -173,3 +173,63 @@ test('no agent key → scrape path exactly as before; an empty board is a 200 wi
     assert.equal(r.headers['cache-control'], 's-maxage=300, stale-while-revalidate=900');
   } finally { f.restore(); h.restore(); }
 });
+
+// ---- trends_cache (ADR-005, M4): refresh-on-read, served from the database, stale on outage ----
+const { fakePostgrest } = require('../fake-postgrest');
+const SBC = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k' };
+
+test('cache: the first read fills trends_cache with the raw and curated board; a read within the hour is served from it without any upstream or curation call', async () => {
+  const pg = fakePostgrest();
+  let upstream = 0, claude = 0;
+  const f = mockFetch([
+    ['/api/agent/trends', () => { upstream++; return json(agentFeed()); }],
+    ['api.anthropic.com', () => { claude++; return anthropicReply({ selected: [{ id: 'setup-line-then-deadpan-punchline-caption-reveal', reason: 'r', hashtags: ['deadpan'] }] }); }],
+    pg.route,
+  ]);
+  const h = api('trends.js', { ANTHROPIC_API_KEY: 'k', TRENDRADAR_AGENT_KEY: 'agent-key', TRENDRADAR_BASE_URL: 'https://tr.test', ...SBC });
+  try {
+    let r = res(); await h.handler(req(), r);
+    assert.equal(r.statusCode, 200); assert.equal(upstream, 1); assert.equal(claude, 1);
+    assert.deepEqual({ hit: r.body.cache.hit, stale: r.body.cache.stale }, { hit: false, stale: false });
+    assert.equal(r.body.curatedBy, 'claude'); assert.equal(r.body.count, 1);
+    const row = pg.tables.trends_cache[0];
+    assert.equal(row.id, 'board'); assert.equal(row.payload.raw.length, 12); assert.equal(row.payload.curated.length, 1); assert.equal(row.payload.curatedBy, 'claude'); assert.equal(row.source, 'TrendRadar agent API');
+    r = res(); await h.handler(req(), r);
+    assert.equal(upstream, 1, 'no second upstream call'); assert.equal(claude, 1, 'no second curation call');
+    assert.equal(r.body.cache.hit, true); assert.equal(r.body.curatedBy, 'claude'); assert.equal(r.body.trends[0].curatorNote, 'r');
+    assert.equal(r.body.boardGeneratedAt, agentFeed().generatedAt); assert.equal(r.body.boardTotal, agentFeed().total);
+    r = res(); await h.handler(req({ query: { all: '1' } }), r);
+    assert.equal(r.body.count, 12, '?all=1 serves the raw board from the cache'); assert.equal(upstream, 1);
+    r = res(); await h.handler(req({ query: { limit: '1', id: 'setup-line-then-deadpan-punchline-caption-reveal' } }), r);
+    assert.equal(r.body.count, 1, 'consumer filters still apply on a cache hit');
+  } finally { f.restore(); h.restore(); }
+});
+
+test('cache: an hour-old board is refreshed on read; when the refresh fails the cached board is served stale with the reason, not a 502', async () => {
+  const pg = fakePostgrest();
+  let upstream = 0; let fail = false;
+  const f = mockFetch([
+    ['/api/agent/trends', () => { upstream++; if (fail) return text('{"error":"down"}', 503); return json(agentFeed()); }],
+    ['https://www.kymah.com/', () => text('<html>changed</html>', 200)],
+    pg.route,
+  ]);
+  const h = api('trends.js', { ANTHROPIC_API_KEY: undefined, TRENDRADAR_AGENT_KEY: 'agent-key', TRENDRADAR_BASE_URL: 'https://tr.test', ...SBC });
+  try {
+    let r = res(); await h.handler(req(), r); assert.equal(upstream, 1); assert.equal(r.body.curatedBy, 'rules');
+    pg.tables.trends_cache[0].fetched_at = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+    r = res(); await h.handler(req(), r);
+    assert.equal(upstream, 2, 'stale row → refreshed'); assert.equal(r.body.cache.hit, false);
+    assert.ok(Date.now() - new Date(pg.tables.trends_cache[0].fetched_at).getTime() < 5000, 'row rewritten');
+    pg.tables.trends_cache[0].fetched_at = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+    fail = true;
+    r = res(); await h.handler(req(), r);
+    assert.equal(r.statusCode, 200, 'outage with a cached board is not a 502');
+    assert.equal(r.body.cache.stale, true); assert.match(r.body.cache.error, /no flight payload|kymah/); assert.equal(r.body.count >= 1, true);
+    assert.equal(r.headers['cache-control'], 's-maxage=120, stale-while-revalidate=600');
+    assert.match(pg.tables.trends_cache[0].error, /no flight payload|kymah/);
+    // no cached board at all → the historical 502
+    pg.tables.trends_cache.length = 0;
+    r = res(); await h.handler(req(), r);
+    assert.equal(r.statusCode, 502);
+  } finally { f.restore(); h.restore(); }
+});

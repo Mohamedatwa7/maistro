@@ -18,6 +18,68 @@ const { fetchT } = require('../_http.js');
 const SOURCE = 'https://www.kymah.com/';
 const MODEL = 'claude-opus-4-8';
 
+// trends_cache (ADR-005, M4): the last good board — raw and curated — lives
+// in Maistro's database. A read younger than CACHE_FRESH_S is served from
+// it (no upstream call, no curation call); older, the board is refreshed on
+// read and the cache rewritten; when the refresh fails the cached board is
+// served with stale:true instead of a 502. On the Hobby plan there is no
+// hourly cron, so refresh-on-read is the whole mechanism. Caching is skipped
+// when the database is not configured (tests, local runs).
+const { queryRows, upsertRows } = require('../_supabase.js');
+const CACHE_KEY = 'board';
+const CACHE_FRESH_S = 3600;
+const cacheConfigured = () => Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+async function readCache() {
+  if (!cacheConfigured()) return null;
+  try {
+    const rows = await queryRows('trends_cache', `select=*&id=eq.${CACHE_KEY}&limit=1`);
+    const row = rows[0];
+    if (!row || !row.payload || !Array.isArray(row.payload.raw)) return null;
+    return { ...row.payload, fetchedAt: row.fetched_at, ageS: Math.max(0, Math.round((Date.now() - new Date(row.fetched_at).getTime()) / 1000)), lastError: row.error || null };
+  } catch (e) {
+    console.warn('[trends] cache read failed:', e.message);
+    return null;
+  }
+}
+async function writeCache(payload, error) {
+  if (!cacheConfigured()) return;
+  try {
+    await upsertRows('trends_cache', [{ id: CACHE_KEY, payload, source: payload.source || null, board_generated_at: payload.boardGeneratedAt || null, fetched_at: new Date().toISOString(), error: error || null }], 'id');
+  } catch (e) {
+    console.warn('[trends] cache write failed:', e.message);
+  }
+}
+async function markCacheError(error) {
+  if (!cacheConfigured()) return;
+  try {
+    const { patchRows } = require('../_supabase.js');
+    await patchRows('trends_cache', `id=eq.${CACHE_KEY}`, { error: String(error).slice(0, 300) });
+  } catch (e) { /* the stale answer still goes out */ }
+}
+
+// Pull the board from upstream: agent API first, page scrape as fallback.
+async function fetchBoard() {
+  let trends = null, source = null, live = true, boardGeneratedAt = null, total = null;
+  try {
+    const a = await agentTrends();
+    if (a) { trends = a.trends; source = 'TrendRadar agent API'; live = a.live; boardGeneratedAt = a.boardGeneratedAt; total = a.total; }
+  } catch (e) {
+    console.warn('[trends] agent API failed, falling back to the page scrape:', e.message);
+  }
+  if (!trends) {
+    const r = await fetchT(SOURCE, {
+      headers: { 'user-agent': 'Mozilla/5.0 (compatible; MaistroDemo/1.0)', accept: 'text/html' },
+    }, { timeoutMs: 20000, retries: 1 });
+    if (!r.ok) throw new Error(`kymah.com responded ${r.status}`);
+    const html = await r.text();
+    trends = extractTrendStore(html).map(normalize).filter((t) => t.name);
+    source = 'TrendRadar (kymah.com)';
+    total = trends.length;
+  }
+  return { raw: trends, source, live, boardGeneratedAt, total };
+}
+
 // Primary source (M4, ADR-005): Trend Radar's agent API — read-only,
 // bearer-gated, fit-ranked, carries the editorial brief, scored products,
 // reference clips and the sound's commercial-use read. The page scrape below
@@ -267,38 +329,47 @@ async function claudeCurate(trends) {
 module.exports = async (req, res) => {
   try {
     const q = req.query || {};
-    let trends = null, source = null, live = true, boardGeneratedAt = null, total = null;
-    try {
-      const a = await agentTrends();
-      if (a) { trends = a.trends; source = 'TrendRadar agent API'; live = a.live; boardGeneratedAt = a.boardGeneratedAt; total = a.total; }
-    } catch (e) {
-      console.warn('[trends] agent API failed, falling back to the page scrape:', e.message);
+    let board = null, cache = { hit: false, stale: false, fetchedAt: null, ageS: null };
+    const cached = await readCache();
+    if (cached && cached.ageS < CACHE_FRESH_S) {
+      board = cached; cache = { hit: true, stale: false, fetchedAt: cached.fetchedAt, ageS: cached.ageS };
+    } else {
+      try {
+        board = await fetchBoard();
+        cache = { hit: false, stale: false, fetchedAt: new Date().toISOString(), ageS: 0 };
+      } catch (e) {
+        if (!cached) throw e;
+        // upstream is down but we hold a board: serve it, say so, remember why
+        board = cached; cache = { hit: true, stale: true, fetchedAt: cached.fetchedAt, ageS: cached.ageS, error: String(e.message || e) };
+        await markCacheError(e.message || e);
+      }
     }
-    if (!trends) {
-      const r = await fetchT(SOURCE, {
-        headers: { 'user-agent': 'Mozilla/5.0 (compatible; MaistroDemo/1.0)', accept: 'text/html' },
-      }, { timeoutMs: 20000, retries: 1 });
-      if (!r.ok) throw new Error(`kymah.com responded ${r.status}`);
-      const html = await r.text();
-      trends = extractTrendStore(html).map(normalize).filter((t) => t.name);
-      source = 'TrendRadar (kymah.com)';
-      total = trends.length;
-    }
+    const { source, live, boardGeneratedAt, total } = board;
+    let trends = board.raw.slice();
     if (!trends.length) {
       // an empty board is a state, not an error (the page renders BOARD EMPTY)
+      if (!cache.hit) await writeCache({ ...board, curated: [], curatedBy: 'none' });
       res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=900');
       res.setHeader('Access-Control-Allow-Origin', '*');
-      return res.status(200).json({ source, fetchedAt: new Date().toISOString(), live, boardGeneratedAt, boardTotal: 0, curatedBy: 'none', count: 0, trends: [] });
+      return res.status(200).json({ source, fetchedAt: new Date().toISOString(), live, boardGeneratedAt, boardTotal: 0, curatedBy: 'none', count: 0, trends: [], cache });
     }
 
     let curatedBy = 'none';
     if (!q.all) {
-      let picked = null;
-      try { picked = await claudeCurate(trends); curatedBy = picked ? 'claude' : 'rules'; }
-      catch { curatedBy = 'rules'; }
-      trends = picked || ruleCurate(trends);
+      if (cache.hit && Array.isArray(board.curated) && board.curated.length) {
+        trends = board.curated.slice(); curatedBy = board.curatedBy || 'rules';
+      } else {
+        let picked = null;
+        try { picked = await claudeCurate(trends); curatedBy = picked ? 'claude' : 'rules'; }
+        catch { curatedBy = 'rules'; }
+        trends = picked || ruleCurate(trends);
+        if (!cache.hit) await writeCache({ ...board, curated: trends, curatedBy });
+        else if (cache.stale) { /* keep the stored curation */ }
+      }
     } else {
       trends.sort((a, b) => (b.samsungFit.score || 0) - (a.samsungFit.score || 0));
+      // a raw read still refreshes the stored board (curation is filled on the next curated read)
+      if (!cache.hit) await writeCache({ ...board, curated: (cached && cached.curated) || [], curatedBy: (cached && cached.curatedBy) || 'none' });
     }
 
     // consumer filters kept for the external Hermes agent
@@ -307,17 +378,18 @@ module.exports = async (req, res) => {
     if (q.id) trends = trends.filter((t) => t.id === q.id);
     if (q.limit) trends = trends.slice(0, Math.max(1, parseInt(q.limit, 10) || trends.length));
 
-    res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=3600');
+    res.setHeader('Cache-Control', cache.stale ? 's-maxage=120, stale-while-revalidate=600' : 's-maxage=900, stale-while-revalidate=3600');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.status(200).json({
       source,
-      fetchedAt: new Date().toISOString(),
+      fetchedAt: cache.fetchedAt || new Date().toISOString(),
       live,
       boardGeneratedAt,
       boardTotal: total,
       curatedBy,
       count: trends.length,
       trends,
+      cache,
     });
   } catch (err) {
     res.setHeader('Cache-Control', 'no-store');

@@ -10,6 +10,7 @@ const UNIQUE = {
   artifact_versions: [['stage_id', 'version']],
   adlcp_documents: [['artifact_version_id', 'kind']],
   members: [['id'], ['email']],
+  trends_cache: [['id']],
 };
 
 function fakePostgrest(base = 'https://sb.test') {
@@ -70,9 +71,11 @@ function fakePostgrest(base = 'https://sb.test') {
       for (const raw of list) {
         const r = defaults(p.table, raw);
         const keys = UNIQUE[p.table] || [];
-        const dup = keys.some((cols) => rows.some((x) => cols.every((c) => String(x[c]) === String(r[c]))));
+        const dupRow = rows.find((x) => keys.some((cols) => cols.every((c) => String(x[c]) === String(r[c]))));
+        const dup = Boolean(dupRow);
         if (dup) {
           if (prefer.includes('ignore-duplicates')) continue;
+          if (prefer.includes('merge-duplicates')) { Object.assign(dupRow, raw); inserted.push(dupRow); continue; }
           return new Response(JSON.stringify({ code: '23505', message: `duplicate key value violates unique constraint on ${p.table}` }), { status: 409 });
         }
         if (p.table === 'approvals' && r.decision === 'approved' && rows.some((x) => x.artifact_version_id === r.artifact_version_id && x.decision === 'approved')) {

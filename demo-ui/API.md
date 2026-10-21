@@ -116,7 +116,12 @@ API is unavailable; returns the board normalized. The response also carries
 `boardGeneratedAt` (when the board was published) and `boardTotal`; each
 trend additionally carries `trendId` (TrendRadar's id), `onBrand`,
 `signalStrength`, the editorial `brief` and scored `products` when the agent
-API answered. An empty board is `200 {count: 0}`, not an error. Responses are edge-cached for 15
+API answered. An empty board is `200 {count: 0}`, not an error. The last good
+board (raw and curated) is kept in `trends_cache`: a read younger than an
+hour is served from it without touching Trend Radar or Claude, an older one
+refreshes the board on read, and when the refresh fails the cached board is
+served with `cache.stale: true` (and `cache.error`) instead of a `502`. The
+response's `cache` object is `{hit, stale, fetchedAt, ageS}`. Responses are edge-cached for 15
 minutes (`s-maxage=900, stale-while-revalidate=3600`). CORS is open (`*`).
 
 ### Query parameters
