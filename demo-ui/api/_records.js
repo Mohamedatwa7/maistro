@@ -5,6 +5,17 @@
 // the fact and a prompt change can be traced. Writes are best effort: a
 // record that cannot be written is logged, it never fails the generation.
 const { insertRows } = require('./_supabase.js');
+const crypto = require('node:crypto');
+
+/** The system text (brand + catalog) repeats on every call; it is reconstructible
+ *  from the prompt version and the knowledge-base fingerprint, so a record keeps
+ *  the user turn and a sha-256 of the full resolved prompt. */
+function compactPrompt(rec) {
+  if (!rec.resolvedPrompt) return rec;
+  const full = String(rec.resolvedPrompt);
+  const user = rec.userPrompt != null ? String(rec.userPrompt) : full;
+  return { ...rec, resolvedPrompt: user, params: { ...(rec.params || {}), promptSha256: crypto.createHash('sha256').update(full).digest('hex'), promptChars: full.length, ...(rec.kbFingerprint ? { kbFingerprint: rec.kbFingerprint } : {}) } };
+}
 
 const configured = () => Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 const registered = new Set();
@@ -21,6 +32,7 @@ async function registerPrompt(name, version, template, variables = [], note = nu
 /** Write one generation record. Returns the row id or null. */
 async function recordGeneration(rec) {
   if (!configured()) return null;
+  rec = compactPrompt(rec);
   const row = {
     piece_id: rec.pieceId || null, legacy_piece_id: rec.legacyPieceId || null, stage: rec.stage || null, shot_id: rec.shotId || null,
     kind: rec.kind, model: rec.model || null, prompt_name: rec.promptName || null, prompt_version: rec.promptVersion || null,

@@ -28,9 +28,13 @@ async function getDocument(kind, key) {
   return docs.find((d) => d.kind === kind && d.key === key) || null;
 }
 
-/** The prompt texts the generation handlers inject. */
+/** The prompt texts the generation handlers inject, plus a fingerprint of the
+ *  active documents (ids and versions) so a generation record can name the
+ *  knowledge-base state it was built from. */
 async function brandPrompts() {
-  return buildPrompts(await activeDocuments());
+  const docs = await activeDocuments();
+  const fp = docs.filter((d) => d.kind === 'brand_kb' || d.kind === 'product_catalog').map((d) => `${d.kind}:${d.key}@${d.version}${d.seeded ? ':seed' : ''}`).sort().join(',');
+  return { ...buildPrompts(docs), kbFingerprint: require('node:crypto').createHash('sha256').update(fp).digest('hex').slice(0, 16) };
 }
 
 /** Append a new active version of (kind, key); the previous version is

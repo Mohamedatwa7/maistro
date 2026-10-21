@@ -159,7 +159,8 @@ module.exports = async (req, res) => {
 
   try {
     const client = new Anthropic({ timeout: 110000, maxRetries: 1 }); // under the 120 s function limit
-    const system = systemPrompt(await brandPrompts());
+    const kb = await brandPrompts();
+    const system = systemPrompt(kb);
     const user =
       `You are ${spec.agent}. Today is ${new Date().toDateString()}.\n\n` +
       `TREND (from TrendRadar):\n${JSON.stringify(trend, null, 2)}\n\n` +
@@ -167,7 +168,7 @@ module.exports = async (req, res) => {
       `TASK: ${spec.instruction}`;
     registerPrompt(`hermes.${stage}`, PROMPT_VERSION, `SYSTEM:\n${systemPrompt({ PRODUCTS_PROMPT: '{{PRODUCTS_PROMPT}}', BRAND_PROMPT: '{{BRAND_PROMPT}}' })}\n\nUSER:\n{{agent}} {{date}} {{trend}} {{project}} TASK: ${spec.instruction}`, ['PRODUCTS_PROMPT', 'BRAND_PROMPT', 'agent', 'date', 'trend', 'project']);
     const t0 = Date.now();
-    const rec = { kind: 'claude', legacyPieceId: (project && project.id) || null, stage, model: MODEL, promptName: `hermes.${stage}`, promptVersion: PROMPT_VERSION, resolvedPrompt: `${system}\n\n${user}`, params: { max_tokens: 8000, thinking: 'adaptive' }, memberId: req.member ? req.member.id : null };
+    const rec = { kind: 'claude', legacyPieceId: (project && project.id) || null, stage, model: MODEL, promptName: `hermes.${stage}`, promptVersion: PROMPT_VERSION, resolvedPrompt: `${system}\n\n${user}`, userPrompt: user, kbFingerprint: kb.kbFingerprint, params: { max_tokens: 8000, thinking: 'adaptive' }, memberId: req.member ? req.member.id : null };
     let response;
     try {
       response = await client.messages.create({

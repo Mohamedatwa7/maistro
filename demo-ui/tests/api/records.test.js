@@ -18,6 +18,8 @@ test('hermes and director write a generation record (prompt name/version, resolv
     assert.equal(recs.length, 2);
     const hr = recs.find((x) => x.prompt_name === 'hermes.plan'), dr = recs.find((x) => x.prompt_name === 'director.mood');
     assert.equal(hr.kind, 'claude'); assert.equal(hr.status, 'succeeded'); assert.equal(hr.prompt_version, 'hermes-v1-2026-10-21'); assert.equal(hr.legacy_piece_id, 'gen-rec1'); assert.match(hr.resolved_prompt, /TREND \(from TrendRadar\)/); assert.ok(hr.latency_ms >= 0); assert.deepEqual(hr.usage, { input_tokens: 10, output_tokens: 10 });
+    assert.ok(!/SAMSUNG BRAND CREATIVE PLAYBOOK/.test(hr.resolved_prompt), 'the repeated system text is not stored; it is reconstructible from the prompt version and the knowledge-base fingerprint');
+    assert.match(hr.params.promptSha256, /^[0-9a-f]{64}$/); assert.ok(hr.params.promptChars > hr.resolved_prompt.length); assert.match(hr.params.kbFingerprint, /^[0-9a-f]{16}$/);
     assert.equal(dr.params.referenceImageAttached, false); assert.match(dr.resolved_prompt, /ARTIFACT TO CREATE: /);
     const prompts = pg.tables.prompt_registry;
     assert.deepEqual(prompts.map((p) => [p.name, p.version]).sort(), [['director.mood', 'director-v1-2026-10-21'], ['hermes.plan', 'hermes-v1-2026-10-21']]);

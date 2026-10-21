@@ -164,7 +164,8 @@ module.exports = async (req, res) => {
 
   try {
     const client = new Anthropic({ timeout: 55000, maxRetries: 1 }); // under the 60 s function limit
-    const system = systemPrompt(await brandPrompts());
+    const kb = await brandPrompts();
+    const system = systemPrompt(kb);
     registerPrompt(`director.${stage}`, PROMPT_VERSION, `SYSTEM:\n${systemPrompt({ PRODUCTS_PROMPT: '{{PRODUCTS_PROMPT}}', BRAND_PROMPT: '{{BRAND_PROMPT}}' })}\n\nUSER: ARTIFACT TO CREATE: ${spec.label} — for ${spec.target}; WHAT THIS ARTIFACT IS: ${spec.brief}; CAMPAIGN {{campaign}}; PRIOR {{prior}}; USER INPUT {{userInput}}`, ['PRODUCTS_PROMPT', 'BRAND_PROMPT', 'campaign', 'prior', 'userInput']);
     const t0 = Date.now();
     const rec = { kind: 'claude', legacyPieceId: (campaign && campaign.id) || null, stage, model: MODEL, promptName: `director.${stage}`, promptVersion: PROMPT_VERSION, params: { max_tokens: 2000, thinking: 'adaptive', referenceImageAttached: Boolean(campaign && campaign.referenceImageAttached) }, memberId: req.member ? req.member.id : null };
@@ -178,7 +179,7 @@ module.exports = async (req, res) => {
             `\nWHAT THE USER ASKED FOR (plain words, may be vague or empty — fill the gaps yourself):\n` +
             `"${String(userInput || '').trim() || '(they left it to you)'}"\n\n` +
             `Write the generation prompt and the user-facing note.`;
-    rec.resolvedPrompt = `${system}\n\n${userContent}`;
+    rec.resolvedPrompt = `${system}\n\n${userContent}`; rec.userPrompt = userContent; rec.kbFingerprint = kb.kbFingerprint;
     let response;
     try {
     response = await client.messages.create({
