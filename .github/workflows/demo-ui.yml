@@ -31,8 +31,12 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Syntax check every function
         run: npm run check
+      - name: Type check
+        run: npm run typecheck
       - name: Tests (characterization, golden, contract on fixtures)
         run: npm test
+      - name: Build the Next.js shell (legacy page copied in by prebuild)
+        run: npm run build
         env:
           # The suite must never reach a real provider; any env a developer has
           # locally is irrelevant here, and the tests set what they need.

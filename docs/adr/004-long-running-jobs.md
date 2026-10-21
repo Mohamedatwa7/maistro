@@ -14,4 +14,4 @@ Seedance renders take 1–3 minutes, F1X8 analyses 10–30 minutes; today the br
 Option 1. `jobs(state, next_poll_at, attempts)`; the tick polls due rows with bounded concurrency and exponential backoff; F1X8 (our own Modal app) gets a callback URL; Higgsfield webhooks are used if the account supports them, otherwise polled. The client subscribes to job state (SWR) and never talks to a provider directly.
 
 ## Consequences
-Needs a Vercel plan with minute-level crons (verify — open question Q-002); if unavailable, reconcile-on-open plus a 5-minute tick still works with slower completion detection.
+Needs a Vercel plan with minute-level crons. **Q-002 answered 2026-10-21: the project is on the Hobby plan** (12 serverless functions per deployment, crons once a day, 300 s max duration). On Hobby the design degrades to: provider webhooks (F1X8 is ours; Higgsfield if offered) + reconcile-on-open + the daily tick as a backstop — completion is detected when a user opens the piece, not within a minute. Upgrading to Pro (minute crons, more functions, 800 s) is the recommended path before M3 and is an owner decision; nothing in the code depends on it beyond the tick schedule.
