@@ -86,12 +86,12 @@ const market_context = [
 const platform_specs = [
   { key: 'tiktok', content: {
     ads: { verified: true, source: 'https://ads.tiktok.com/help/article/video-ads-specifications', aspect: ['9:16 ≥ 540×960', '16:9 ≥ 960×540', '1:1 ≥ 640×640'], formats: ['mp4', 'mov', 'mpeg', '3gp', 'avi'], maxSizeMB: 500, maxDuration: '10 min', minBitrateKbps: 516, safeZone: 'TikTok provides safe-zone template files separately for LTR and Arabic RTL layouts' },
-    organic: { verified: false, aspect: '9:16', resolution: '1080×1920', fps: '30', durationRange: '3 s – 10 min upload', sweetSpot: '9–15 s hook-led; ≤ 30 s', safeZone: 'keep the top ~160 px, bottom ~440 px and ~80 px sides clear (720×1280 template scale)', captionLimit: '2200 characters (unverified)' },
+    organic: { verified: false, aspect: '9:16', resolution: '1080×1920', fps: '30', durationRange: '3 s – 10 min upload', sweetSpot: '9–15 s hook-led; ≤ 30 s', sweetSpotS: [9, 30], maxHashtags: 5, safeZone: 'keep the top ~160 px, bottom ~440 px and ~80 px sides clear (720×1280 template scale)', captionLimit: '2200 characters (unverified)' },
     audioLoudness: null, gaps: ['organic article unreachable — verify caption limit, safe zone, sweet spot', 'loudness target', 'obtain the official RTL safe-zone template for Arabic overlays'],
   }, source: 'ads: TikTok Business Help Center (checker fetch 2026-10-21); organic: third-party guides — unverified' },
   { key: 'instagram_reels', content: {
     ads: { verified: true, source: 'https://www.facebook.com/business/ads-guide/update/video/instagram-reels', aspect: '9:16', recommendedResolution: '1440×2560', formats: ['mp4', 'mov'], maxSizeGB: 4, duration: '0 s – 15 min', frameRate: 'constant', primaryTextChars: 44, minWidthPx: { under30s: 250, over30s: 500 } },
-    organic: { verified: false, aspect: '9:16', resolution: '1080×1920', fps: '30', durationRange: '3 s – 3 min in-app (uploads up to 15 min)', sweetSpot: '7–15 s', safeZone: 'centre 1080×1420 area', captionLimit: '2200 characters (unverified)', cover: '1080×1920 (grid crop 1080×1420)' },
+    organic: { verified: false, aspect: '9:16', resolution: '1080×1920', fps: '30', durationRange: '3 s – 3 min in-app (uploads up to 15 min)', sweetSpot: '7–15 s', sweetSpotS: [7, 15], maxHashtags: 5, safeZone: 'centre 1080×1420 area', captionLimit: '2200 characters (unverified)', cover: '1080×1920 (grid crop 1080×1420)' },
     audioLoudness: null, gaps: ['organic caption limit, safe zone and cover crop unverified', 'loudness target'],
   }, source: 'ads: Meta ads guide (checker fetch 2026-10-21); organic: third-party guides — unverified' },
   { key: 'instagram_feed', content: {

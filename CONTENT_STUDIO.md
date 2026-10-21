@@ -37,6 +37,21 @@ Living document for Phase 6. Started 2026-10-21 with the 6.0 verification (`HIGG
 
 Open: 4:5/1:1 feed covers; typeface for the overlay (owner input 1); the composite is capped at 3 MB and PNG only.
 
+## 6.4 Brief — what ships
+
+| Decision | What | Why |
+|---|---|---|
+| Inputs | `briefContext()` (`api/_studio/brief.js`): the moodboard's current version + its approval (selected tiles, annotations), the thumbnail's current version (headline = hook line), the piece's trend (board entry from `trends_cache` + the latest judgement from `trend_scores`), the catalog entry (look, features, colours, availability, **approvedClaims**), the GCC market context, the platform rules, the brand voice and do/don't lists | The brief is written only from what earlier stages produced and what the KB says; nothing is invented |
+| Output | One schema-validated object, every field required: objective + success metric, audience + markets, trend hook + Samsung adaptation, key message, products with features, claims (claim / approved wording / disclaimer), CTA, tone, format (platform, format, aspect, target duration), language plan (on-screen, voice/captions, register gulf_arabic·msa·english·bilingual, rationale), audio (direction, music reference, licensing none·cleared·unknown), mandatories, do-nots, hashtags en/ar, caption en/ar, deadline | The spec's field list, as a contract the storyboard and QC can check against |
+| Stored artifact | Legacy page fields (objective, msg, markets, platforms, mandatories, deadline) + `spec` (the structured brief) + `briefVersion`, `moodApproved`, `thumbApproved`, `editedBy` | The Hermes/storyboard paths keep working; the structured spec is additive |
+| Code checks (`codeChecks()`) | `product_in_catalog`, `claims_approved` (every claim's approved wording must appear in the catalog's `approvedClaims` — with the list empty today, **any claim fails**, so the model is told to make none), `duration_sweet_spot` (builder defaults tiktok 9–30 s, reels 7–15 s, feed 5–60 s, stories 5–15 s; KB `organic.sweetSpotS` overrides), `hashtag_limit` (≤ 5, ≤ 3 stories/YouTube), `audio_licensed` (a named track must be `cleared`), `arabic_copy_present` (Gulf markets need an Arabic caption and hashtags), `mandatories_complete` (hero product, logo end-frame, audio rule), `deadline_realistic` (today → +14 d) | Numbers and mappings are computed in code, never by the model |
+| Copy check | One Sonnet call (`brief-copy-check-v1`, effort low): Arabic fluency native · mostly_native · literal · n/a with the phrases that read as translated; consistency with the moodboard direction; whether the hook uses the trend's actual mechanic | The three checks the spec asks for that need reading, kept as flags for the human |
+| Storage | `stage_checks` kind `copy` on the version: `{codeChecks[], copy, flags[], passed}`; `passed` = every code check and no literal Arabic / mood contradiction / missing mechanic | Same table and page badges as the vision checks |
+| Human edits | "Edit fields" on the page → `action: 'brief-edit'` → the edited spec is validated, stored as a **new manual version**, re-checked (code + copy), never overwritten | The spec's "edit fields directly, saved as a new version" |
+| Gate | 409 `prerequisites` without a moodboard; the moodboard's approval state is recorded, not enforced (builder default — owner to amend) | Keeps the demo flow usable before the first sign-off |
+
+Open: approved claims per device (owner input 2) — until they exist the brief carries no verifiable product claim; per-platform sweet spots unverified; the copy check is a flag, not a fluency guarantee (a native reviewer still signs).
+
 ## Open owner inputs (collected from the seed's `gaps`)
 
 1. Disclaimers by claim type and market; logo and end-card rules; overlay typeface.

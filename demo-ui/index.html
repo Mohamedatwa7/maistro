@@ -1870,6 +1870,19 @@ async function stageGen(pid,sid,changes){
   markets:p.markets,platforms:p.platforms,trend:p.trend,
   ...(p.refImage&&sid==='thumb'?{referenceImageAttached:true}:{})};
  try{
+  /* 6.4: the brief is written from the approved moodboard + thumbnail and checked in code */
+  if(sid==='brief'&&useJobs()){
+   if(!p.mood){throw new Error('Generate and approve the moodboard first — the brief is written from its direction.')}
+   GEN.busy[key]='Quill is writing the brief from the approved moodboard and thumbnail…';studioRefresh();
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'brief',pieceId:p.id,userInput,piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));
+   if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
+   attachTo(p,'brief',sd.artifact,'Quill',{recorded:{version:sd.version}});
+   CHECKS[p.id+':brief']=sd.checks&&sd.checks.codeChecks?{stage:'brief',passed:sd.checks.passed,results:sd.checks}:null;
+   delete GEN.busy[key];studioRefresh();
+   toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Quill',1)}<div style="font-size:12.5px"><b>Quill</b> delivered the brief (v${sd.version}) — ${sd.checks&&sd.checks.passed?'all checks passed':'some checks need a look'}.</div></div>`);
+   return;
+  }
   if(sid==='brief'||sid==='qc'){
    const sg=STAGES[BOT_STAGE_IDX[sid]-1];
    GEN.busy[key]=sg.agent+' is writing the '+sg.l.toLowerCase()+'…';studioRefresh();
@@ -2282,6 +2295,71 @@ function rRefControl(p){
 const CHECKS={};
 async function loadChecks(pid,sid){
  try{const r=await authFetch('/api/studio?checks='+encodeURIComponent(pid)+'&stage='+encodeURIComponent(sid));const d=await r.json().catch(()=>({}));if(r.ok){CHECKS[pid+':'+sid]=(d.checks||[])[0]||null;studioRefresh()}}catch(e){}
+}
+/* 6.4 — the brief: every field shown, checks as badges, human edits saved as a new version */
+const BRIEF_EDIT={};
+function rBrief(p){
+ const b=p.brief,sp=b.spec,key=p.id+':brief';
+ if(CHECKS[key]===undefined){CHECKS[key]=null;loadChecks(p.id,'brief')}
+ const chk=CHECKS[key],R=chk&&chk.results;
+ const li=(xs)=>`<ul style="margin:6px 0 0 18px;font-size:12.5px;line-height:1.9">${(xs||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+ const row=(k,v,extra='')=>`<div style="display:grid;grid-template-columns:150px 1fr;gap:10px;padding:7px 0;border-bottom:1px dashed var(--hairline);font-size:12.5px"><span class="kick" style="font-size:10.5px">${k}</span><div ${extra}>${v}</div></div>`;
+ if(BRIEF_EDIT[p.id]){
+  const e=BRIEF_EDIT[p.id];
+  const f=(id,label,val,rows=2,dir='')=>`<div class="f-field" style="margin-top:8px"><label>${label}</label><textarea class="inp-l" id="be-${id}" rows="${rows}" ${dir?`dir="${dir}"`:''} style="width:100%;font-family:var(--font-d);font-size:12.5px">${esc(val||'')}</textarea></div>`;
+  return `
+  <div class="pc-note" style="margin-bottom:10px">Editing the brief — your changes are saved as a new version (v${(parseInt(String(b.version||'v1').replace('v',''),10)||1)+1}) and re-checked; nothing is overwritten.</div>
+  ${f('objective','Objective',e.objective)}${f('successMetric','Success metric',e.successMetric,1)}${f('keyMessage','Key message',e.keyMessage,1)}${f('cta','Call to action',e.cta,1)}
+  ${f('hook','How Samsung adapts the trend',e.trendHook.samsungAdaptation)}
+  <div class="grid-2f"><div class="f-field" style="margin-top:8px"><label>Target duration (s)</label><input class="inp-l" id="be-dur" type="number" min="1" value="${e.format.targetDurationS}"></div><div class="f-field" style="margin-top:8px"><label>Deadline</label><input class="inp-l" id="be-deadline" value="${esc(e.deadline)}"></div></div>
+  ${f('captionEn','Caption (English)',e.caption.en,3)}${f('captionAr','Caption (Arabic)',e.caption.ar,3,'rtl')}
+  ${f('hashEn','Hashtags EN (comma-separated)',e.hashtags.en.join(', '),1)}${f('hashAr','Hashtags AR (comma-separated)',e.hashtags.ar.join(', '),1,'rtl')}
+  ${f('mandatories','Mandatories (one per line)',e.mandatories.join('\n'),4)}${f('doNots','Do-nots (one per line)',e.doNots.join('\n'),3)}
+  <div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-ai btn-sm" onclick="saveBriefEdit('${p.id}')">Save as new version</button><button class="btn btn-ghost btn-sm" onclick="delete BRIEF_EDIT['${p.id}'];studioRefresh()">Cancel</button></div>
+  ${GEN.err[p.id+':brief-edit']?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[p.id+':brief-edit'])}</div>`:''}`;
+ }
+ const cl=sp.claims&&sp.claims.length?`<table style="width:100%;font-size:12px;border-collapse:collapse"><tr class="dim"><th style="text-align:left;padding:3px 0">Claim</th><th style="text-align:left">Approved wording</th><th style="text-align:left">Disclaimer</th></tr>${sp.claims.map(c=>`<tr><td style="padding:3px 6px 3px 0">${esc(c.claim)}</td><td>${esc(c.approvedWording)}</td><td>${esc(c.disclaimer)}</td></tr>`).join('')}</table>`:`<span class="dim">No product claims${b.spec&&p.studio?' — none approved in the catalog yet':''}.</span>`;
+ const cc=R&&R.codeChecks?R.codeChecks:[];
+ return `
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+   ${badge('muted','BRIEF '+esc(b.version||'v1'))}${b.editedBy?badge('gold','HUMAN-EDITED'):''}${b.moodApproved===false?badge('gold','MOOD NOT YET APPROVED'):''}
+   ${R?(R.passed?badge('go','ALL CHECKS PASSED'):badge('alert','CHECKS NEED A LOOK')):chk===null?badge('muted','CHECKING…'):''}
+   ${p.studio?`<button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="BRIEF_EDIT['${p.id}']=JSON.parse(JSON.stringify(PROJECTS.find(x=>x.id==='${p.id}').brief.spec));studioRefresh()">✎ Edit fields</button>`:''}
+  </div>
+  ${cc.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${cc.map(c=>`<span title="${esc(c.detail)}">${badge(c.passed?'go':'alert',(c.passed?'✓ ':'✗ ')+c.code.replace(/_/g,' ').toUpperCase())}</span>`).join('')}</div>`:''}
+  ${R&&R.flags&&R.flags.length?`<div class="dim" style="font-size:11.5px;margin-bottom:10px">${R.flags.map(f=>esc(f)).join(' · ')}</div>`:''}
+  ${row('Objective',`${esc(sp.objective)}<div class="dim" style="margin-top:3px">Success metric: ${esc(sp.successMetric)}</div>`)}
+  ${row('Audience',`${esc(sp.audience.description)}<div style="margin-top:4px">${sp.audience.markets.map(m=>badge('muted',esc(m))).join(' ')}</div>`)}
+  ${row('Trend hook',`<b>${esc(sp.trendHook.mechanic)}</b><div style="margin-top:3px">${esc(sp.trendHook.samsungAdaptation)}</div>`)}
+  ${row('Key message',badge('ai','“'+esc(sp.keyMessage)+'”'))}
+  ${row('Products',sp.products.map(x=>`<b>${esc(x.name)}</b>${x.features.length?' — '+x.features.map(esc).join(', '):''}`).join('<br>'))}
+  ${row('Claims',cl)}
+  ${row('Call to action',esc(sp.cta))}${row('Tone',esc(sp.tone))}
+  ${row('Format',`${esc(sp.format.platform)} · ${esc(sp.format.format)} · ${esc(sp.format.aspectRatio)} · <b>${sp.format.targetDurationS} s</b>`)}
+  ${row('Language plan',`${esc(sp.languagePlan.register.replace('_',' '))} — on-screen: ${esc(sp.languagePlan.onScreenText)}; voice/captions: ${esc(sp.languagePlan.voiceoverOrCaptions)}<div class="dim" style="margin-top:3px">${esc(sp.languagePlan.rationale)}</div>`)}
+  ${row('Audio',`${esc(sp.audio.direction)}${sp.audio.musicReference?` · <b>${esc(sp.audio.musicReference)}</b> (${esc(sp.audio.licensing)})`:' · no track referenced'}`)}
+  ${row('Mandatories',li(sp.mandatories))}${row('Do-nots',li(sp.doNots))}
+  ${row('Hashtags',`<div>${sp.hashtags.en.map(h=>badge('c','#'+esc(h.replace(/^#/,'')))).join(' ')}</div><div dir="rtl" style="margin-top:4px;text-align:right">${sp.hashtags.ar.map(h=>badge('c','#'+esc(h.replace(/^#/,'')))).join(' ')}</div>`)}
+  ${row('Caption EN',esc(sp.caption.en))}${row('Caption AR',esc(sp.caption.ar),'dir="rtl" style="text-align:right;unicode-bidi:plaintext"')}
+  ${row('Deadline',esc(sp.deadline))}
+  ${p.studio?regenBox(p,'brief'):''}`;
+}
+async function saveBriefEdit(pid){
+ const p=PROJECTS.find(x=>x.id===pid);if(!p||!BRIEF_EDIT[pid])return;
+ const e=JSON.parse(JSON.stringify(BRIEF_EDIT[pid]));const v=(id)=>(($('#be-'+id)||{}).value||'');
+ const lines=(t)=>t.split(/\n/).map(x=>x.trim()).filter(Boolean),tags=(t)=>t.split(/[,،]/).map(x=>x.trim().replace(/^#/,'')).filter(Boolean);
+ e.objective=v('objective').trim();e.successMetric=v('successMetric').trim();e.keyMessage=v('keyMessage').trim();e.cta=v('cta').trim();e.trendHook.samsungAdaptation=v('hook').trim();
+ e.format.targetDurationS=parseInt(v('dur'),10)||e.format.targetDurationS;e.deadline=v('deadline').trim();
+ e.caption.en=v('captionEn').trim();e.caption.ar=v('captionAr').trim();e.hashtags.en=tags(v('hashEn'));e.hashtags.ar=tags(v('hashAr'));e.mandatories=lines(v('mandatories'));e.doNots=lines(v('doNots'));
+ try{
+  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'brief-edit',pieceId:p.id,spec:e,briefVersion:p.brief.briefVersion,piece:storeMeta(p)})});
+  const sd=await sr.json().catch(()=>({}));if(!sr.ok||!sd.artifact)throw new Error(sd.error||((sd.problems||[]).join('; '))||('studio responded '+sr.status));
+  delete BRIEF_EDIT[pid];delete GEN.err[pid+':brief-edit'];
+  attachTo(p,'brief',{...sd.artifact,version:'v'+sd.version},'You',{recorded:{version:sd.version}});
+  CHECKS[p.id+':brief']=sd.checks&&sd.checks.codeChecks?{stage:'brief',passed:sd.checks.passed,results:sd.checks}:null;
+  toast(`<span style="font-size:12.5px"><b style="color:#6ee7b9">Brief saved</b> as version ${sd.version} and re-checked — back for approval.</span>`);
+  studioRefresh();
+ }catch(err){GEN.err[pid+':brief-edit']=err.message;studioRefresh()}
 }
 /* 6.3 — the cover: image + headline overlay inside the safe zone (drawn by the page, never by the model) */
 function thumbAspectFor(p){const pl=(p.platforms||[]).map(x=>String(x).toLowerCase());if(!pl.length)return '16:9';return pl.some(x=>x==='youtube'||x==='x'||x==='twitter'||x==='facebook')?'16:9':'9:16'}
@@ -3320,7 +3398,7 @@ function stageArtifact(p,n){
    <div style="max-width:520px"><div class="thumb169" style="background:linear-gradient(120deg,${p.thumb.g[0]},${p.thumb.g[1]})">
     <span class="play">▶</span><div class="tt">${p.thumb.title}<div class="mono" style="font-size:10px;font-weight:400;letter-spacing:.14em;margin-top:5px;color:rgba(255,255,255,.75)">${p.thumb.sub.toUpperCase()}</div></div></div></div>
    <p class="dim" style="font-size:12px;margin-top:10px">Winning route of 3 tested — highest predicted tap-through in the first 2s window.</p>`):'');
-  case 'brief':return head(done)+(p.brief?`
+  case 'brief':return head(done)+(p.brief?p.brief.spec?rBrief(p):`
    <p style="font-size:13.5px;line-height:1.7">${p.brief.objective}</p>
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${badge('ai','“'+p.brief.msg+'”')}${p.brief.markets.map(m=>badge('muted',m)).join('')}${p.brief.platforms.map(x=>badge('c',PLAT[x].n.toUpperCase())).join('')}${badge('gold','DUE '+p.brief.deadline.toUpperCase())}</div>
    <hr class="hl"><span class="kick">Mandatories</span>
