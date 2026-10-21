@@ -259,3 +259,26 @@ test('cache: a raw (?all=1) miss stores no curation; the next curated read withi
     assert.ok(Date.now() - new Date(pg.tables.trends_cache[0].fetched_at).getTime() < 5000);
   } finally { f.restore(); h.restore(); }
 });
+
+test('snapshots (5.0): every fetched board writes one trend_snapshots row per well-formed trend with the computed-in-code signals; malformed records are rejected, not written; cache hits write nothing', async () => {
+  const pg = fakePostgrest();
+  const feed = agentFeed();
+  feed.trends.push({ id: 'broken', name: '' }); // no name → rejected
+  const f = mockFetch([['/api/agent/trends', () => json(feed)], pg.route]);
+  const h = api('trends.js', { ANTHROPIC_API_KEY: undefined, TRENDRADAR_AGENT_KEY: 'agent-key', TRENDRADAR_BASE_URL: 'https://tr.test', CRON_SECRET: 'cron', ...SBC });
+  try {
+    let r = res(); await h.handler(req({ query: { all: '1' } }), r);
+    assert.equal(r.statusCode, 200);
+    assert.equal(pg.tables.trend_snapshots.length, 12, '12 well-formed trends → 12 rows');
+    const row = pg.tables.trend_snapshots[0];
+    assert.equal(row.trend_id, 'snd-7686644251815332639'); assert.equal(row.stage, 'peaking'); assert.equal(row.growth_pct_per_day, 1); assert.equal(typeof row.eng, 'number');
+    assert.equal(row.fit_strength, 82); assert.equal(row.on_brand, true); assert.equal(row.views_wk, 965000); assert.equal(row.sound_music_id, '7686644251815332639');
+    assert.equal(row.board_generated_at, feed.generatedAt); assert.equal(row.source, 'TrendRadar agent API'); assert.ok(row.raw && row.raw.name);
+    r = res(); await h.handler(req(), r);
+    assert.equal(pg.tables.trend_snapshots.length, 12, 'a cache hit writes no snapshot');
+    r = res(); await h.handler(req({ headers: { authorization: 'Bearer cron' } }), r);
+    assert.equal(r.body.snapshots.written, 12); assert.equal(r.body.snapshots.rejected, 0, 'the nameless record was already dropped by the agent normaliser; the writer guard is exercised below');
+    assert.equal(pg.tables.trend_snapshots.length, 24, 'the cron refresh adds a second snapshot per trend');
+    assert.equal(h.handler.snapshotRow({ name: 'x' }, { fetchedAt: 'now' }), null, 'no id → rejected');
+  } finally { f.restore(); h.restore(); }
+});

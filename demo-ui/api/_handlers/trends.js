@@ -51,6 +51,34 @@ async function writeCache(payload, error, fetchedAt) {
     console.warn('[trends] cache write failed:', e.message);
   }
 }
+// Phase 5.0: every fetched board also lands as per-trend snapshot rows, so
+// lifecycle math (velocity, acceleration, age, days on board) is computed
+// in code from Maistro's own history. Records that fail the minimal schema
+// (a name and an id) are counted and logged, never written.
+const { insertRows } = require('../_supabase.js');
+function snapshotRow(t, meta) {
+  if (!t || typeof t !== 'object' || !t.name || !(t.trendId || t.id)) return null;
+  const n = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  return {
+    fetched_at: meta.fetchedAt, board_generated_at: meta.boardGeneratedAt || null, source: meta.source || 'unknown',
+    trend_id: String(t.trendId || t.id), name: String(t.name).slice(0, 300), stage: t.status || null, kind: t.kind || null, category: t.category || null,
+    growth_pct_per_day: n(t.momentumPerDay), eng: n(t.avgEngagementPct), views_wk: n(t.viewsPerWeek) == null ? null : Math.round(t.viewsPerWeek),
+    fit_strength: t.samsungFit && n(t.samsungFit.score) != null ? Math.round(t.samsungFit.score) : null,
+    on_brand: typeof t.onBrand === 'boolean' ? t.onBrand : null, signal_strength: n(t.signalStrength) == null ? null : Math.round(t.signalStrength),
+    durability: t.stayingPower || null, sound_music_id: t.sound && t.sound.musicId ? String(t.sound.musicId) : null,
+    sound_cleared: t.sound && typeof t.sound.cleared === 'boolean' ? t.sound.cleared : null,
+    raw: t,
+  };
+}
+async function writeSnapshots(board) {
+  if (!cacheConfigured() || !board || !Array.isArray(board.raw)) return { written: 0, rejected: 0 };
+  const meta = { fetchedAt: new Date().toISOString(), boardGeneratedAt: board.boardGeneratedAt, source: board.source };
+  const rows = []; let rejected = 0;
+  for (const t of board.raw) { const r = snapshotRow(t, meta); if (r) rows.push(r); else rejected++; }
+  if (rejected) console.warn(`[trends] ${rejected} malformed trend record(s) rejected from the snapshot`);
+  try { if (rows.length) await insertRows('trend_snapshots', rows); } catch (e) { console.warn('[trends] snapshot write failed:', e.message); return { written: 0, rejected, error: e.message }; }
+  return { written: rows.length, rejected };
+}
 async function markCacheError(error) {
   if (!cacheConfigured()) return;
   try {
@@ -342,7 +370,8 @@ module.exports = async (req, res) => {
           catch { curated = ruleCurate(board.raw); curatedBy = 'rules'; }
         }
         await writeCache({ ...board, curated, curatedBy });
-        return res.status(200).json({ ok: true, refreshed: true, source: board.source, boardTotal: board.total, curated: curated.length, curatedBy, at: new Date().toISOString() });
+        const snap = await writeSnapshots(board);
+        return res.status(200).json({ ok: true, refreshed: true, source: board.source, boardTotal: board.total, curated: curated.length, curatedBy, snapshots: snap, at: new Date().toISOString() });
       } catch (e) {
         await markCacheError(e.message || e);
         return res.status(502).json({ ok: false, refreshed: false, error: String(e.message || e) });
@@ -356,6 +385,7 @@ module.exports = async (req, res) => {
       try {
         board = await fetchBoard();
         cache = { hit: false, stale: false, fetchedAt: new Date().toISOString(), ageS: 0 };
+        await writeSnapshots(board);
       } catch (e) {
         if (!cached) throw e;
         // upstream is down but we hold a board: serve it, say so, remember why
@@ -421,3 +451,4 @@ module.exports = async (req, res) => {
 };
 
 module.exports.normalizeAgent = normalizeAgent; // exposed for tests
+module.exports.snapshotRow = snapshotRow;

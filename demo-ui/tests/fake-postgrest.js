@@ -53,6 +53,7 @@ function fakePostgrest(base = 'https://sb.test') {
     if (table === 'adlcp_documents') r.uploaded_at = now();
     if (table === 'jobs') { r.state = r.state || 'queued'; r.attempts = r.attempts || 0; r.created_at = r.created_at || now(); r.provider_ref = r.provider_ref || null; }
     if (table === 'qc_results') r.created_at = now();
+    if (table === 'trend_snapshots') r.id = r.id || rows.length + 1;
     if (table === 'members') { r.active = r.active !== undefined ? r.active : true; r.created_at = r.created_at || now(); r.updated_at = now(); }
     return r;
   }
