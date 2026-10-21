@@ -164,6 +164,21 @@ async function assetUrlFor(payload) {
 async function fail(job, state, error) {
   await finish(job, { state, error: String(error || '').slice(0, 300) });
   await jobRecord(job, { status: state === 'timed_out' ? 'timed_out' : /moderated|nsfw/i.test(String(error)) ? 'refused' : 'failed', error });
+  if (job.payload && job.payload.attachTo && RENDER_KINDS.includes(job.kind)) {
+    // 6.5: a failed keyframe marks its shot; the other shots keep rendering
+    try {
+      const { versionId, shot } = job.payload.attachTo;
+      const [v] = await queryRows('artifact_versions', `select=id,payload&id=eq.${q(versionId)}&limit=1`);
+      if (v && v.payload && Array.isArray(v.payload.shots) && v.payload.shots[shot - 1]) {
+        const shots = v.payload.shots.map((s) => ({ ...s }));
+        const prev = shots[shot - 1].keyframe;
+        shots[shot - 1] = { ...shots[shot - 1], keyframe: prev && prev.state === 'rendered' ? { ...prev, lastError: String(error || '').slice(0, 200) } : { state: 'failed', error: String(error || '').slice(0, 200), jobId: job.id, at: nowIso() } };
+        await patchRows('artifact_versions', `id=eq.${q(versionId)}`, { payload: { ...v.payload, shots } });
+      }
+    } catch (e) { console.warn('[jobs] shot failure could not be recorded:', e.message); }
+    await settleBoardStage(job);
+    return;
+  }
   if (RENDER_KINDS.includes(job.kind) && job.stage_id) {
     // the stage goes back to ready so the person can try again (domain: generating → failed → ready)
     const [s] = await queryRows('stages', `select=id,kind,state&id=eq.${q(job.stage_id)}&limit=1`);
@@ -208,6 +223,8 @@ async function pollRender(job) {
     }
     if (meta.direction) { artifact.direction = meta.direction; artifact.directionVersion = meta.directionVersion || null; }
     if (meta.overlay) { artifact.overlay = meta.overlay; artifact.textSide = meta.textSide || null; artifact.promptVersion = meta.promptVersion || null; artifact.moodApproved = Boolean(meta.moodApproved); }
+    // 6.5: a storyboard keyframe fills a shot slot on an existing version instead of making a new one
+    if (job.payload.attachTo && !isVideo) return attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage });
     let recorded;
     try {
       // the stage is `generating`; recordVersion needs a non-approved stage and sets `generated`
@@ -239,6 +256,47 @@ async function pollRender(job) {
   return 'running';
 }
 
+/** 6.5: no render job left alive on the stage → the storyboard is `generated` again. */
+async function settleBoardStage(job) {
+  const rows = await queryRows('jobs', `select=id,kind&stage_id=eq.${q(job.stage_id)}&state=in.(queued,running)&limit=50`);
+  const live = rows.filter((r) => RENDER_KINDS.includes(r.kind) && r.id !== job.id);
+  if (live.length) return false;
+  const [s] = await queryRows('stages', `select=id,state&id=eq.${q(job.stage_id)}&limit=1`);
+  if (s && s.state === 'generating') await patchRows('stages', `id=eq.${q(s.id)}`, { state: 'generated' });
+  return true;
+}
+
+/** 6.5: write a rendered keyframe into `payload.shots[n-1].keyframe` of the storyboard
+ *  version named by the job, keep the previous keyframe in the shot's history, queue the
+ *  vision check (anchored to the selected mood tiles and the previous shot's keyframe) and,
+ *  on the hook shot, the lightweight F1X8 check. The version number does not change. */
+async function attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage }) {
+  const { versionId, shot } = job.payload.attachTo;
+  const [v] = await queryRows('artifact_versions', `select=id,payload&id=eq.${q(versionId)}&limit=1`);
+  if (!v || !v.payload || !Array.isArray(v.payload.shots) || !v.payload.shots[shot - 1]) { await fail(job, 'failed', `storyboard version or shot ${shot} not found`); return 'failed'; }
+  const shots = v.payload.shots.map((s) => ({ ...s }));
+  const prev = shots[shot - 1].keyframe;
+  const keyframe = { state: 'rendered', url: sourceUrl, assetPath: copy ? copy.path : null, sha256: copy ? copy.sha256 : null, size: copy ? copy.size : null, jobId: job.id, prompt: meta.prompt || '', at: nowIso() };
+  shots[shot - 1] = { ...shots[shot - 1], keyframe, keyframeHistory: [...(shots[shot - 1].keyframeHistory || []), ...(prev && prev.state === 'rendered' ? [prev] : [])], review: null };
+  await patchRows('artifact_versions', `id=eq.${q(versionId)}`, { payload: { ...v.payload, shots } });
+  await finish(job, { state: 'succeeded', error: null, result: { attached: { versionId, shot }, keyframe, copiedIn: Boolean(copy) } });
+  await jobRecord(job, { status: 'succeeded', outputAssets: [{ url: sourceUrl, assetPath: keyframe.assetPath, sha256: keyframe.sha256, versionId, shot }] });
+  if (job.payload.autoCheck) {
+    try {
+      const prevShot = shot > 1 ? shots[shot - 2] : null;
+      const anchors = [...(meta.anchors || []), ...(prevShot && prevShot.keyframe && prevShot.keyframe.state === 'rendered' ? [{ index: shot - 2, url: prevShot.keyframe.url, assetPath: prevShot.keyframe.assetPath, label: `previous shot ${shot - 1} keyframe — the same product, character, setting and lighting are expected` }] : [])];
+      await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'vision_check', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, versionId, shot, images: [{ index: shot, url: sourceUrl, assetPath: keyframe.assetPath }], direction: meta.direction || null, product: meta.product || null, productLook: meta.productLook || null, rules: meta.rules || [], expectProduct: Boolean(meta.expectProduct), anchors, textSide: null, generatedBy: job.payload.generatedBy || null } }]);
+    } catch (e) { console.warn('[jobs] vision check could not be queued:', e.message); }
+  }
+  if (meta.hookCheck && keyframe.assetPath) {
+    try { await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'f1x8_image', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, assetPath: keyframe.assetPath, title: meta.title || 'storyboard hook', description: `Storyboard hook keyframe (shot ${shot})`, hookCheck: true, versionId, generatedBy: job.payload.generatedBy || null } }]); }
+    catch (e) { console.warn('[jobs] hook check could not be queued:', e.message); }
+  }
+  await settleBoardStage(job);
+  try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: `${stage} shot ${shot} keyframe` }); } catch (e) { /* best effort */ }
+  return 'succeeded';
+}
+
 /** The automated visual check (6.2): one vision call over the version's images,
  *  stored as a stage_checks row; flags for the human, never a decision. */
 async function runVisionCheck(job) {
@@ -256,7 +314,7 @@ async function runVisionCheck(job) {
   for (const a of p.anchors || []) {
     let url = a.url;
     if (a.assetPath) { try { url = await storage.signedUrl(a.assetPath, 3600); } catch (e) { /* provider URL stays */ } }
-    if (url) anchors.push({ index: a.index, url });
+    if (url) anchors.push({ index: a.index, url, label: a.label || null });
   }
   const out = await visionCheck({ images, anchors, textSide: p.textSide, direction: p.direction, product: p.product, productLook: p.productLook, rules: p.rules, expectProduct: p.expectProduct, legacyPieceId: p.pieceId, stage: p.stage, jobId: job.id });
   if (out.error) { await fail(job, 'failed', out.error); return 'failed'; }
@@ -326,4 +384,4 @@ async function jobsForPiece(legacyId, limit = 50) {
   return out;
 }
 
-module.exports = { KINDS, createJob, getJob, advance, tick, jobsForPiece, publicJob, POLL_S, TIMEOUT_S };
+module.exports = { KINDS, createJob, getJob, advance, tick, jobsForPiece, publicJob, settleBoardStage, POLL_S, TIMEOUT_S };

@@ -98,8 +98,13 @@ async function decide(legacyId, stage, d = {}) {
   const stages = await queryRows('stages', `select=id,kind,state,position,current_version_id&piece_id=eq.${q(piece.id)}`);
   const s = findStage(stages, stage);
   if (!s.current_version_id) throw new StoreError(409, 'no_version', `${stage} has no version to decide on`);
-  const [version] = await queryRows('artifact_versions', `select=id,version,generated_by&id=eq.${q(s.current_version_id)}&limit=1`);
+  const [version] = await queryRows('artifact_versions', `select=id,version,generated_by,payload&id=eq.${q(s.current_version_id)}&limit=1`);
   if (!version) throw new StoreError(409, 'no_version', `${stage} version is missing`);
+  // 6.5: a storyboard is approved shot by shot first; the stage approval needs every shot approved
+  if (decision === 'approved' && stage === 'board' && version.payload && Array.isArray(version.payload.shots)) {
+    const pending = version.payload.shots.filter((x) => !x.review || x.review.decision !== 'approved').map((x) => x.n);
+    if (pending.length) throw new StoreError(409, 'shots_pending', `shot${pending.length > 1 ? 's' : ''} ${pending.join(', ')} not approved yet`);
+  }
 
   const docs = d.documents || {};
   const docOk = (x) => x && typeof x === 'object' && /^documents\/\d{4}\/[a-z0-9]+-[a-z0-9]{6}\.[a-z]{3,4}$/.test(String(x.path || '')) && /^[0-9a-f]{64}$/.test(String(x.sha256 || '')) && Number(x.size) > 0;

@@ -1870,6 +1870,20 @@ async function stageGen(pid,sid,changes){
   markets:p.markets,platforms:p.platforms,trend:p.trend,
   ...(p.refImage&&sid==='thumb'?{referenceImageAttached:true}:{})};
  try{
+  /* 6.5: the storyboard is a shot list from the approved brief + one keyframe per shot */
+  if(sid==='board'&&useJobs()&&!changes){
+   if(!p.brief){throw new Error('Write and approve the brief first — the storyboard is built from it.')}
+   GEN.busy[key]='Frame is writing the shot list from the approved brief…';studioRefresh();
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',pieceId:p.id,userInput,refImage:p.refImage||null,piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));
+   if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
+   attachTo(p,'board',{...sd.artifact,version:'v'+sd.version},'Frame',{recorded:{version:sd.version}});
+   CHECKS[p.id+':board']=sd.checks&&sd.checks.codeChecks?{stage:'board',kind:'spec',passed:sd.checks.passed,results:sd.checks}:null;CHECKS[p.id+':board:all']=undefined;
+   GEN.busy[key]='Soul is rendering '+(sd.artifact.shots||[]).length+' keyframes — each shot appears as it lands…';
+   p.jobs=p.jobs||{};p.jobs['b:board']={board:true};saveGenerated();
+   studioRefresh();boardPoll(p.id,0);
+   return;
+  }
   /* 6.4: the brief is written from the approved moodboard + thumbnail and checked in code */
   if(sid==='brief'&&useJobs()){
    if(!p.mood){throw new Error('Generate and approve the moodboard first — the brief is written from its direction.')}
@@ -2294,7 +2308,102 @@ function rRefControl(p){
 /* 6.2 — a moodboard SET: the visual direction, four tiles, the automated check flags, the human's selection */
 const CHECKS={};
 async function loadChecks(pid,sid){
- try{const r=await authFetch('/api/studio?checks='+encodeURIComponent(pid)+'&stage='+encodeURIComponent(sid));const d=await r.json().catch(()=>({}));if(r.ok){CHECKS[pid+':'+sid]=(d.checks||[])[0]||null;studioRefresh()}}catch(e){}
+ try{const r=await authFetch('/api/studio?checks='+encodeURIComponent(pid)+'&stage='+encodeURIComponent(sid));const d=await r.json().catch(()=>({}));if(r.ok){CHECKS[pid+':'+sid]=(d.checks||[])[0]||null;CHECKS[pid+':'+sid+':all']=d.checks||[];studioRefresh()}}catch(e){}
+}
+/* 6.5 — the storyboard: shots with keyframes that land one by one, per-shot checks and review */
+const BOARD_POLL={};
+function boardPoll(pid,tries){
+ clearTimeout(BOARD_POLL[pid]);
+ if(tries>240){const p=PROJECTS.find(x=>x.id===pid);if(p){delete GEN.busy[p.id+':board'];GEN.err[p.id+':board']='Keyframes still rendering after 20 minutes — the jobs keep running on the server; reopen the piece later.'}studioRefresh();return}
+ BOARD_POLL[pid]=setTimeout(async()=>{
+  try{
+   const r=await authFetch('/api/studio?board='+encodeURIComponent(pid));const d=await r.json().catch(()=>({}));
+   const p=PROJECTS.find(x=>x.id===pid);if(!p)return;
+   if(r.ok&&d.payload){p.board={...p.board,...d.payload,version:'v'+d.version,hook:d.hook||null,live:d.live,checksPending:d.checksPending};saveGenerated()}
+   if(r.ok&&d.live===0){
+    delete GEN.busy[pid+':board'];if(p.jobs)delete p.jobs['b:board'];saveGenerated();
+    CHECKS[pid+':board:all']=undefined;loadChecks(pid,'board');studioRefresh();
+    const n=(p.board.shots||[]).filter(s=>s.keyframe&&s.keyframe.state==='rendered').length,f=(p.board.shots||[]).filter(s=>s.keyframe&&s.keyframe.state==='failed').length;
+    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Frame',1)}<div style="font-size:12.5px"><b>Storyboard keyframes landed</b> — ${n} rendered${f?`, ${f} failed (regenerate those shots)`:''}. Review each shot.</div></div>`);
+    return;
+   }
+   studioRefresh();boardPoll(pid,tries+1);
+  }catch(e){boardPoll(pid,tries+1)}
+ },5000);
+}
+function rBoard(p,locked){
+ const b=p.board,key=p.id+':board';
+ if(CHECKS[key+':all']===undefined){CHECKS[key+':all']=null;loadChecks(p.id,'board')}
+ const all=CHECKS[key+':all']||[];
+ const spec=all.find(c=>c.kind==='spec')||(CHECKS[key]&&CHECKS[key].kind==='spec'?CHECKS[key]:null);
+ const vis=(n)=>all.filter(c=>c.kind==='vision').map(c=>c.results&&c.results.images&&c.results.images.find(im=>im.index===n)).find(Boolean)||null;
+ const pendingKf=(b.shots||[]).some(s=>!s.keyframe||s.keyframe.state==='pending');
+ if(pendingKf&&!BOARD_POLL[p.id]&&!GEN.busy[key])boardPoll(p.id,0);
+ const allApproved=(b.shots||[]).length&&(b.shots||[]).every(s=>s.review&&s.review.decision==='approved');
+ const R=spec&&spec.results;
+ return `
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+   ${badge('muted','STORYBOARD '+esc(b.version||'v1')+' · '+(b.shots||[]).length+' SHOTS · '+esc(String(b.totalS||''))+' s')}${b.briefApproved===false?badge('gold','BRIEF NOT YET APPROVED'):''}
+   ${R?(R.passed?badge('go','SHOT LIST CHECKS PASSED'):badge('alert','SHOT LIST NEEDS A LOOK')):''}
+   ${b.hook?badge(b.hook.score!=null&&b.hook.score>=7?'go':b.hook.score!=null&&b.hook.score>=5?'gold':'alert','HOOK · F1X8 '+(b.hook.score!=null?b.hook.score.toFixed(1)+'/10':'…')):(b.shots||[]).some(s=>s.keyframe&&s.keyframe.state==='rendered')?badge('muted','HOOK CHECK PENDING'):''}
+   ${allApproved?badge('go','ALL SHOTS APPROVED — RECORD THE STAGE APPROVAL'):badge('muted',(b.shots||[]).filter(s=>s.review&&s.review.decision==='approved').length+'/'+(b.shots||[]).length+' SHOTS APPROVED')}
+  </div>
+  ${R&&R.codeChecks?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${R.codeChecks.map(c=>`<span title="${esc(c.detail)}">${badge(c.passed?'go':'alert',(c.passed?'✓ ':'✗ ')+c.code.replace(/_/g,' ').toUpperCase())}</span>`).join('')}</div>`:''}
+  ${R&&R.flags&&R.flags.length?`<div class="dim" style="font-size:11.5px;margin-bottom:10px">${R.flags.map(f=>esc(f)).join(' · ')}</div>`:''}
+  ${b.hook&&b.hook.summary?`<div class="dim" style="font-size:11.5px;margin-bottom:10px">F1X8 on the hook keyframe: ${esc(b.hook.summary)}${b.hook.risks&&b.hook.risks.length?' · '+b.hook.risks.map(r=>esc(r.issue||r)).join(' · '):''}</div>`:''}
+  <div class="frames" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">${(b.shots||[]).map(sh=>{
+   const kf=sh.keyframe,v=vis(sh.n),rv=sh.review;
+   const art=kf&&kf.state==='rendered'?`<img ${mediaAttrs(kf,'url')} alt="Shot ${sh.n} keyframe" style="width:100%;height:100%;object-fit:cover">`:kf&&kf.state==='failed'?`<div class="dim" style="font-size:11px;padding:10px">Render failed — ${esc(kf.error||'')}</div>`:`<div style="display:flex;align-items:center;gap:8px;padding:10px"><span class="gen-spin"></span><span class="dim" style="font-size:11px">Rendering keyframe…</span></div>`;
+   return `<div class="frame card" style="overflow:hidden;border-color:${rv?(rv.decision==='approved'?'rgba(110,231,185,.5)':'rgba(251,113,133,.5)'):'var(--hairline)'}">
+    <div class="art" style="height:auto;aspect-ratio:${(b.aspect||'9:16')==='9:16'?'9/12':'16/9'};background:#000;padding:0;position:relative;display:block">${art}<span class="tc" style="position:absolute;left:8px;bottom:8px">SHOT ${sh.n} · ${sh.durationS} s</span></div>
+    <div class="p3" style="font-size:11.5px;line-height:1.55;color:var(--muted)">
+     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${badge('muted',esc(sh.type.replace('_',' ').toUpperCase()))}${sh.product.visible?badge('c','PRODUCT'+(sh.product.feature?' · '+esc(sh.product.feature):'')):''}${b.hookShot===sh.n?badge('gold','HOOK'):''}
+      ${v?(v.pass?badge('go','CHECK OK'):v.needsReview?badge('gold','NEEDS A LOOK'):badge('alert','FLAGGED')):kf&&kf.state==='rendered'?badge('muted','CHECKING…'):''}${rv?badge(rv.decision==='approved'?'go':'alert',rv.decision==='approved'?'APPROVED':'REJECTED'):''}</div>
+     <div><b style="color:#fff">${esc(sh.camera)}</b> — ${esc(sh.action)}</div>
+     ${sh.onScreenText.en||sh.onScreenText.ar?`<div style="margin-top:4px">Text: <b>${esc(sh.onScreenText.en)}</b>${sh.onScreenText.ar?` <span dir="rtl">${esc(sh.onScreenText.ar)}</span>`:''}</div>`:''}
+     ${sh.line.en||sh.line.ar?`<div style="margin-top:2px">Line: “${esc(sh.line.en)}”${sh.line.ar?` <span dir="rtl">${esc(sh.line.ar)}</span>`:''}</div>`:''}
+     <div class="dim" style="margin-top:2px">Audio: ${esc(sh.audioCue)} · → ${esc(sh.transition.replace('_',' '))}</div>
+     ${v&&v.flags&&v.flags.length?`<div style="margin-top:4px;color:#fda4af">${v.flags.map(f=>esc(f)).join(' · ')}</div>`:''}
+     ${rv&&rv.decision==='rejected'?`<div style="margin-top:4px;color:#fda4af">Rejected${rv.reasonCode?' · '+esc(rv.reasonCode.replace(/_/g,' ')):''}: ${esc(rv.reason||'')}</div>`:''}
+     ${p.studio&&!locked?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+      ${kf&&kf.state==='rendered'&&!(rv&&rv.decision==='approved')?`<button class="btn btn-go btn-sm" onclick="shotDecide('${p.id}',${sh.n},'approved')">Approve shot</button>`:''}
+      ${kf&&kf.state==='rendered'&&!(rv&&rv.decision==='rejected')?`<button class="btn btn-ghost btn-sm" onclick="shotRejectForm('${p.id}',${sh.n})">Reject</button>`:''}
+      ${kf&&kf.state!=='pending'?`<button class="btn btn-gold btn-sm" onclick="shotRegenForm('${p.id}',${sh.n})">↻ Regenerate</button>`:''}
+     </div><div id="shot-form-${sh.n}"></div>`:''}
+    </div></div>`}).join('')}</div>
+  ${GEN.err[key]?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[key])}</div>`:''}
+  ${p.studio?regenBox(p,'board'):''}`;
+}
+function shotRejectForm(pid,n){
+ const el=document.getElementById('shot-form-'+n);if(!el)return;
+ el.innerHTML=`<div style="margin-top:8px;display:grid;gap:6px"><select class="inp-l" id="sr-code-${n}">${rejectOptions('board').map(o=>`<option value="${o.code}">${esc(o.label)}</option>`).join('')}</select><input class="inp-l" id="sr-reason-${n}" placeholder="What is wrong with this shot?"><button class="btn btn-sm" style="background:rgba(251,113,133,.2)" onclick="shotDecide('${pid}',${n},'rejected')">Record rejection</button></div>`;
+}
+function shotRegenForm(pid,n){
+ const el=document.getElementById('shot-form-'+n);if(!el)return;
+ el.innerHTML=`<div style="margin-top:8px;display:grid;gap:6px"><input class="inp-l" id="sg-changes-${n}" placeholder="e.g. closer on the cover screen, warmer light"><button class="btn btn-gold btn-sm" onclick="shotRegen('${pid}',${n})">↻ Re-render only this shot</button></div>`;
+}
+async function shotDecide(pid,n,decision){
+ const p=PROJECTS.find(x=>x.id===pid);if(!p||!p.board||!p.board.shots)return;
+ const reason=decision==='rejected'?(($('#sr-reason-'+n)||{}).value||'').trim():'';
+ const reasonCode=decision==='rejected'?(($('#sr-code-'+n)||{}).value||''):'';
+ if(decision==='rejected'&&!reason){toast('<span style="font-size:12.5px;color:#fda4af">Write what is wrong with the shot first.</span>');return}
+ try{
+  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board-shot-decide',pieceId:pid,shot:n,decision,reason,reasonCode,name:(AUTH.member&&AUTH.member.name)||'',piece:storeMeta(p)})});
+  const sd=await sr.json().catch(()=>({}));if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
+  const sh=p.board.shots.find(x=>x.n===n);if(sh)sh.review=sd.review;saveGenerated();studioRefresh();
+  toast(`<span style="font-size:12.5px"><b style="color:${decision==='approved'?'#6ee7b9':'#fb7185'}">Shot ${n} ${decision}.</b> ${sd.pending&&sd.pending.length?sd.pending.length+' shot(s) still to approve.':'Every shot is approved — record the stage approval.'}</span>`);
+ }catch(e){toast(`<b style="color:#fb7185">Shot ${n}:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
+}
+async function shotRegen(pid,n){
+ const p=PROJECTS.find(x=>x.id===pid);if(!p||!p.board||!p.board.shots)return;
+ const changes=(($('#sg-changes-'+n)||{}).value||'').trim();
+ try{
+  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board-shot',pieceId:pid,shot:n,changes,refImage:p.refImage||null,piece:storeMeta(p)})});
+  const sd=await sr.json().catch(()=>({}));if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
+  if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the render could not be submitted');
+  const sh=p.board.shots.find(x=>x.n===n);if(sh){sh.keyframe={state:'pending',jobId:sd.job.id};sh.review=null}saveGenerated();
+  GEN.busy[pid+':board']='Soul is re-rendering shot '+n+'…';studioRefresh();boardPoll(pid,0);
+ }catch(e){toast(`<b style="color:#fb7185">Shot ${n}:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
 }
 /* 6.4 — the brief: every field shown, checks as badges, human edits saved as a new version */
 const BRIEF_EDIT={};
@@ -3403,7 +3512,7 @@ function stageArtifact(p,n){
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${badge('ai','“'+p.brief.msg+'”')}${p.brief.markets.map(m=>badge('muted',m)).join('')}${p.brief.platforms.map(x=>badge('c',PLAT[x].n.toUpperCase())).join('')}${badge('gold','DUE '+p.brief.deadline.toUpperCase())}</div>
    <hr class="hl"><span class="kick">Mandatories</span>
    <ul style="margin:10px 0 0 18px;font-size:12.5px;line-height:2">${p.brief.mandatories.map(m=>`<li>${m}</li>`).join('')}</ul>${p.studio?regenBox(p,'brief'):''}`:'');
-  case 'board':return head(done)+(p.board?(Array.isArray(p.board)?`
+  case 'board':return head(done)+(p.board?(p.board.shots?rBoard(p,n<p.stage):Array.isArray(p.board)?`
    <div class="frames">${p.board.map(f=>`<div class="frame card" style="overflow:hidden"><div class="art" style="background:linear-gradient(135deg,${f.g[0]},${f.g[1]})"><span class="tc">${f.tc}</span></div><div class="p3" style="font-size:11.5px;line-height:1.55;color:var(--muted)">${f.d}</div></div>`).join('')}</div>`:`
    <img class="gen-media" ${mediaAttrs(p.board,'imageUrl')} alt="Generated storyboard sheet">${dirNote(p.board)}${p.studio?regenBox(p,'board'):''}`):'');
   case 'draft':return head(done)+(p.draft?`
@@ -3608,6 +3717,7 @@ async function confirmApprove(id){
  const sels=[...document.querySelectorAll('#modal .ap-sel')].filter(c=>c.checked).map(c=>+c.value);
  const details=d.stage==='mood'&&sels.length?{selectedImages:sels,annotations:(($('#ap-annot')||{}).value||'').trim()||null}:undefined;
  if(d.stage==='mood'&&document.querySelectorAll('#modal .ap-sel').length&&!sels.length){const err=$('#ap-err');if(err)err.textContent='Select at least one tile.';return}
+ if(d.stage==='board'){const pb=PROJECTS.find(x=>x.id===d.proj);const sh=pb&&pb.board&&pb.board.shots;if(sh&&sh.some(x=>!x.review||x.review.decision!=='approved')){const err=$('#ap-err');if(err)err.textContent='Approve every shot first — '+sh.filter(x=>!x.review||x.review.decision!=='approved').map(x=>'shot '+x.n).join(', ')+' pending.';if(go){go.disabled=false;go.textContent='Record approval'}return}}
  const srv=await recordDecision(d,{decision:'approved',name,role,info,documents:docs,details});
  if(!srv.ok){
   if(go){go.disabled=false;go.textContent='Record approval'}

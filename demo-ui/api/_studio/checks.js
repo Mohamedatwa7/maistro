@@ -60,7 +60,7 @@ async function visionCheck({ images, anchors, textSide, direction, product, prod
   const c = client || new Anthropic({ timeout: 90000, maxRetries: 1 });
   registerPrompt('studio.vision.check', VERSION, `SYSTEM:\n${SYSTEM}\n\nUSER: images {{n}} direction {{direction}} product {{productLook}} rules {{rules}}`, ['n', 'direction', 'productLook', 'rules']);
   const content = [];
-  (anchors || []).forEach((a) => { content.push({ type: 'text', text: `ANCHOR (approved moodboard tile ${a.index + 1}):` }); content.push({ type: 'image', source: { type: 'url', url: a.url } }); });
+  (anchors || []).forEach((a) => { content.push({ type: 'text', text: `ANCHOR (${a.label || `approved moodboard tile ${a.index + 1}`}):` }); content.push({ type: 'image', source: { type: 'url', url: a.url } }); });
   images.forEach((im) => { content.push({ type: 'text', text: `IMAGE ${im.index}:` }); content.push({ type: 'image', source: { type: 'url', url: im.url } }); });
   const userText = `DIRECTION: ${JSON.stringify({ palette: direction && direction.palette, lighting: direction && direction.lighting, mood: direction && direction.mood }, null, 1)}\nPRODUCT: ${product || 'none expected'}${productLook ? ` — catalog look: ${productLook}` : ''}\nCULTURAL RULES: ${JSON.stringify(rules || [])}\nANCHORS: ${(anchors || []).length ? `${anchors.length} approved moodboard tile(s) shown above — judge consistentWithMood against them` : 'none (answer n/a)'}\nRESERVED TEXT SIDE: ${textSide || 'none (answer n/a)'}\nAnswer the questions for every image (indexes ${images.map((i) => i.index).join(', ')}).`;
   content.push({ type: 'text', text: userText });

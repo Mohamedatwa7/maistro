@@ -52,6 +52,22 @@ Open: 4:5/1:1 feed covers; typeface for the overlay (owner input 1); the composi
 
 Open: approved claims per device (owner input 2) — until they exist the brief carries no verifiable product claim; per-platform sweet spots unverified; the copy check is a flag, not a fluency guarantee (a native reviewer still signs).
 
+## 6.5 Storyboard — what ships
+
+| Decision | What | Why |
+|---|---|---|
+| Inputs | The brief stage's current version (`briefFor()`, approval state recorded), the moodboard direction + the reviewer's selected tiles and annotations (`moodContext()`), the trend judgement / board entry, the catalog look line, the cultural rules | The shot list is written from the approved brief and nothing else |
+| Shot list | `storyboard-v1` (`api/_studio/board.js`), 3–8 shots, each: `n`, `durationS`, `type` (wide · medium · close_up · macro · pov · insert · end_card), `camera` (angle + movement), `action`, `product{visible, feature}`, `onScreenText{en,ar}`, `line{en,ar}`, `audioCue`, `transition` (cut · match_cut · whip · dissolve · hold · none); plus `hookShot` and a note | The spec's per-shot fields, as data the video stage can consume one shot at a time |
+| Code checks (`codeChecks()`) | `duration_matches_brief` (sum within ±10 % of the brief's target), `hook_in_first_seconds` (hook shot starts < 3 s), `features_covered` (every brief feature shown in a product-visible shot), `key_message_present`, `cta_at_end` (last two shots), `end_card` (last shot is an end card naming the logo), `product_visible` | Arithmetic and coverage never left to the model |
+| Mechanic check | One Sonnet call (`storyboard-check-v1`, effort low): `followsTrendMechanic` + missing beats, `hookStrength` strong · ok · weak, brand risks | The "recognisable as the trend" and "weak hook" judgements the spec asks for, kept as flags |
+| Storage | The version payload holds `shots[]` with an empty `keyframe` and `review` per shot; checks in `stage_checks` kind `spec` | One storyboard version; keyframes fill it in |
+| Keyframes | One Soul job per shot through the job service (`payload.attachTo = {versionId, shot}`), `keyframePrompt()` from the shot + direction + catalog look, 9:16 at 1080p, the official product photo through the v1 reference path when the product is visible; `attachKeyframe()` copies the asset into the private bucket and writes `shots[n-1].keyframe` (previous keyframe kept in `keyframeHistory`), **the version number does not change**; the stage is `generating` while any render job lives and returns to `generated` when the last one lands (`settleBoardStage()`); a failed render marks only its shot | Per-shot rendering and per-shot regeneration without a new version per keyframe |
+| Checks per keyframe | A vision check per keyframe with the selected mood tiles **and the previous shot's keyframe** as anchors (cross-shot consistency: same product, character, setting, lighting), `expectProduct` = the shot's `product.visible`; F1X8 image analysis on the hook shot's keyframe (`hookCheck`), stored in `qc_results` on the storyboard version and shown as the hook score | The spec's product-per-keyframe, cross-shot consistency and lightweight F1X8 checks |
+| Review | `board-shot-decide` records `shots[n].review` (approve needs a rendered keyframe; reject needs a reason + taxonomy code), audit-logged; `board-shot` re-renders ONE shot (409 `busy` while it renders, 409 `approved_immutable` after the stage approval); the stage approval (`POST /api/decisions`) is refused with 409 `shots_pending` until every shot is approved (also pre-checked on the page) | "Per shot. Only rejected shots regenerate." |
+| Page | `rBoard()`: shot cards with the keyframe (signed from the private copy), state, check and review badges, text/line (RTL Arabic), audio, transition; Approve / Reject (reason + code) / Regenerate per shot; `boardPoll()` refreshes the version as keyframes land | Reviewers see each shot arrive and act on it alone |
+
+Open: Higgsfield consistency features (Soul ID / custom references, HIGGSFIELD.md) are not used yet — consistency is asserted by the prompt anchors and checked by vision, not enforced by the model; the end card is a rendered placeholder until the logo/end-card rules arrive (owner input 1); keyframe prompts carry no seed (Soul V2 accepts one — a follow-up for reproducible re-renders).
+
 ## Open owner inputs (collected from the seed's `gaps`)
 
 1. Disclaimers by claim type and market; logo and end-card rules; overlay typeface.

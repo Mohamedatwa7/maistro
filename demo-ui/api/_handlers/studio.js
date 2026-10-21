@@ -22,6 +22,13 @@
 //       mandatories, deadline) + one model copy check → stage_checks (copy)
 //   POST { action: 'brief-edit', pieceId, spec, piece? }
 //     → a human's field edits stored as a NEW manual version, re-checked
+//   POST { action: 'board', pieceId, userInput?, refImage?, piece? }  (6.5)
+//     → shot list from the approved brief (code checks + mechanic check → stage_checks spec),
+//       one Soul keyframe job per shot attached to the version (vision check per keyframe,
+//       F1X8 on the hook shot)
+//   POST { action: 'board-shot', pieceId, shot, changes?, refImage? } → re-render ONE shot
+//   POST { action: 'board-shot-decide', pieceId, shot, decision, reason?, reasonCode?, name? }
+//   GET  ?board=<pieceId> → the storyboard version with its shots, live job count, hook score
 //   GET  ?checks=<pieceId>&stage=<kind>  (session) → the stored checks for the
 //       stage's current version
 const { requireSession, refreshMember } = require('../_auth.js');
@@ -30,6 +37,8 @@ const { ensurePiece } = require('../_store.js');
 const { visualDirection, setPrompt, TILES } = require('../_studio/mood.js');
 const thumb = require('../_studio/thumb.js');
 const briefMod = require('../_studio/brief.js');
+const boardMod = require('../_studio/board.js');
+const jobsSvc = require('../_jobs.js');
 const storage = require('../_adapters/storage.js');
 const { recordVersion } = require('../_store.js');
 const { activeDocuments, getDocument } = require('../_kb/index.js');
@@ -66,7 +75,17 @@ module.exports = async (req, res) => {
   try {
     if (req.method === 'GET') {
       const q = req.query || {};
-      if (!q.checks) return res.status(400).json({ error: 'checks=<pieceId> is required' });
+      if (q.board) {
+        const [piece] = await queryRows('content_pieces', `select=id&legacy_id=eq.${encodeURIComponent(String(q.board))}&limit=1`);
+        if (!piece) return res.status(404).json({ error: 'piece not found' });
+        const [stage] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.board&limit=1`);
+        if (!stage || !stage.current_version_id) return res.status(404).json({ error: 'no storyboard yet' });
+        const [v] = await queryRows('artifact_versions', `select=id,version,payload,produced_by&id=eq.${encodeURIComponent(stage.current_version_id)}&limit=1`);
+        const live = await queryRows('jobs', `select=id,kind,state&stage_id=eq.${encodeURIComponent(stage.id)}&state=in.(queued,running)&limit=20`);
+        const hook = await queryRows('qc_results', `select=score,result,heatmap_path,at&artifact_version_id=eq.${encodeURIComponent(stage.current_version_id)}&order=at.desc&limit=1`).catch(() => []);
+        return res.status(200).json({ version: v ? v.version : null, versionId: stage.current_version_id, state: stage.state, payload: v ? v.payload : null, live: live.filter((j) => j.kind !== 'vision_check').length, checksPending: live.filter((j) => j.kind === 'vision_check').length, hook: hook[0] ? { score: hook[0].score, summary: hook[0].result && hook[0].result.verdict ? hook[0].result.verdict.summary : null, risks: hook[0].result && hook[0].result.verdict ? (hook[0].result.verdict.risks || []).slice(0, 3) : [], heatmapPath: hook[0].heatmap_path || null, at: hook[0].at } : null });
+      }
+      if (!q.checks) return res.status(400).json({ error: 'checks=<pieceId> or board=<pieceId> is required' });
       const [piece] = await queryRows('content_pieces', `select=id&legacy_id=eq.${encodeURIComponent(String(q.checks))}&limit=1`);
       if (!piece) return res.status(404).json({ error: 'piece not found' });
       const stages = await queryRows('stages', `select=id,kind,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}${q.stage ? `&kind=eq.${encodeURIComponent(String(q.stage))}` : ''}`);
@@ -76,7 +95,7 @@ module.exports = async (req, res) => {
     }
     if (!(await refreshMember(req, res))) return;
     const b = req.body || {};
-    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit'].includes(b.action)) return res.status(400).json({ error: 'action must be mood, thumb, thumb-composite, brief or brief-edit' });
+    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide' });
     const legacyId = String(b.pieceId || '');
     if (b.action === 'thumb-composite') {
       const data = String(b.data || '');
@@ -98,6 +117,85 @@ module.exports = async (req, res) => {
     const { piece } = await ensurePiece(legacyId, b.piece || {});
     const meta = { id: legacyId, title: piece.title, product: piece.product, msg: piece.key_message, angle: piece.angle, markets: piece.markets, platforms: piece.platforms };
     const bits = await kbBits(piece.product);
+    if (b.action === 'board-shot-decide') {
+      const n = Number(b.shot);
+      const decision = b.decision === 'approved' || b.decision === 'rejected' ? b.decision : null;
+      if (!decision || !Number.isInteger(n)) return res.status(400).json({ error: 'shot and decision (approved|rejected) are required' });
+      if (decision === 'rejected' && !String(b.reason || '').trim()) return res.status(400).json({ error: 'a written reason is required to reject a shot' });
+      const [stage] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.board&limit=1`);
+      if (!stage || !stage.current_version_id) return res.status(409).json({ error: 'no storyboard version', code: 'no_version' });
+      if (stage.state === 'approved') return res.status(409).json({ error: 'the storyboard is approved; reopen it first', code: 'approved_immutable' });
+      const [v] = await queryRows('artifact_versions', `select=id,payload&id=eq.${encodeURIComponent(stage.current_version_id)}&limit=1`);
+      if (!v || !Array.isArray(v.payload.shots) || !v.payload.shots[n - 1]) return res.status(404).json({ error: `shot ${n} not found` });
+      const shots = v.payload.shots.map((s) => ({ ...s }));
+      if (decision === 'approved' && !(shots[n - 1].keyframe && shots[n - 1].keyframe.state === 'rendered')) return res.status(409).json({ error: `shot ${n} has no rendered keyframe to approve`, code: 'no_keyframe' });
+      shots[n - 1].review = { decision, reason: String(b.reason || '').slice(0, 2000) || null, reasonCode: b.reasonCode ? String(b.reasonCode).slice(0, 60) : null, by: req.member ? req.member.name || req.member.email : String(b.name || '').slice(0, 120) || null, at: new Date().toISOString(), keyframeJobId: shots[n - 1].keyframe ? shots[n - 1].keyframe.jobId || null : null };
+      const { patchRows } = require('../_supabase.js');
+      await patchRows('artifact_versions', `id=eq.${encodeURIComponent(v.id)}`, { payload: { ...v.payload, shots } });
+      try { await insertRows('audit_log', [{ actor: req.member ? req.member.id : null, action: `board.shot.${decision}`, target: v.id, details: { pieceId: legacyId, shot: n, reasonCode: shots[n - 1].review.reasonCode, reason: shots[n - 1].review.reason } }]); } catch (e) { /* best effort */ }
+      return res.status(200).json({ ok: true, shot: n, review: shots[n - 1].review, pending: shots.filter((s) => !s.review || s.review.decision !== 'approved').map((s) => s.n) });
+    }
+    if (b.action === 'board-shot') {
+      const n = Number(b.shot);
+      const [stage] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.board&limit=1`);
+      if (!stage || !stage.current_version_id) return res.status(409).json({ error: 'no storyboard version', code: 'no_version' });
+      if (stage.state === 'approved') return res.status(409).json({ error: 'the storyboard is approved; reopen it first', code: 'approved_immutable' });
+      const [v] = await queryRows('artifact_versions', `select=id,payload&id=eq.${encodeURIComponent(stage.current_version_id)}&limit=1`);
+      if (!v || !Array.isArray(v.payload.shots) || !v.payload.shots[n - 1]) return res.status(404).json({ error: `shot ${n} not found` });
+      const liveRows = await queryRows('jobs', `select=id,kind,payload&stage_id=eq.${encodeURIComponent(stage.id)}&state=in.(queued,running)&limit=50`);
+      if (liveRows.some((j) => j.kind === 'higgsfield_image' && j.payload && j.payload.attachTo && Number(j.payload.attachTo.shot) === n)) return res.status(409).json({ error: `shot ${n} is already rendering`, code: 'busy' });
+      const mood = await thumb.moodContext(piece.id);
+      const refImage = typeof b.refImage === 'string' && /^https:\/\//.test(b.refImage) ? b.refImage : null;
+      const shot = v.payload.shots[n - 1];
+      const useRef = Boolean(refImage && shot.product.visible);
+      const changes = String(b.changes || '').trim();
+      const prompt = `${boardMod.keyframePrompt(shot, mood.direction, bits.productLook, useRef)}${changes ? ` Changes requested by the reviewer (apply only these, keep everything else): ${changes}.` : ''}`;
+      const anchors = mood.tiles.filter((t) => t.assetPath || t.url).slice(0, 4).map((t) => ({ index: t.index, url: t.url || null, assetPath: t.assetPath || null }));
+      const [job] = await insertRows('jobs', [{ piece_id: piece.id, stage_id: stage.id, kind: 'higgsfield_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: v.payload.aspect || '9:16', resolution: '1080p', ...(useRef ? { ref: refImage } : {}), autoCheck: true, attachTo: { versionId: v.id, shot: n }, generatedBy: req.member ? req.member.id : null, meta: { shot: n, prompt, changes: changes || null, anchors, direction: mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: n === v.payload.hookShot, title: piece.title } } }], { returning: true });
+      const { patchRows } = require('../_supabase.js');
+      if (stage.state !== 'generating') await patchRows('stages', `id=eq.${encodeURIComponent(stage.id)}`, { state: 'generating' });
+      await jobsSvc.advance(job).catch(() => null);
+      const fresh = await jobsSvc.getJob(job.id);
+      return res.status(200).json({ ok: true, shot: n, job: jobsSvc.publicJob(fresh || job, legacyId) });
+    }
+    if (b.action === 'board') {
+      const brief = await boardMod.briefFor(piece.id);
+      if (!brief) return res.status(409).json({ error: 'the storyboard needs the brief first — the shot list is written from the approved brief', code: 'prerequisites' });
+      const bctx = await briefMod.briefContext(piece, legacyId);
+      if (!bctx.mood.direction && !bctx.mood.tiles.length && !bctx.mood.note) return res.status(409).json({ error: 'the storyboard needs the moodboard first', code: 'prerequisites' });
+      const w = await boardMod.shotList({ piece, brief, mood: bctx.mood, trend: bctx.trend, judgement: bctx.judgement, productLook: bits.productLook, rules: bits.rules, userInput: b.userInput, memberId: req.member ? req.member.id : null, legacyId });
+      if (!w.list) return res.status(502).json({ error: w.error, problems: w.problems || [] });
+      const aspect = thumb.aspectFor(piece.platforms);
+      const artifact = boardMod.artifactFrom(w.list, { promptVersion: w.promptVersion, briefVersionId: brief.versionId, briefApproved: brief.approved, moodApproved: bctx.mood.approved, aspect });
+      const out = await recordVersion(legacyId, 'board', artifact, { piece: b.piece || {}, producedBy: 'claude', kind: 'text', generatedBy: req.member ? req.member.id : null });
+      // checks on the shot list: arithmetic and coverage in code, mechanic and hook by the model
+      let checks = null;
+      try {
+        const code = boardMod.codeChecks(w.list, brief.payload);
+        const mc = await boardMod.mechanicCheck({ list: w.list, brief, trend: bctx.trend, judgement: bctx.judgement, legacyId, memberId: req.member ? req.member.id : null });
+        const flags = [...code.filter((c) => !c.passed).map((c) => `${c.code}: ${c.detail}`), ...boardMod.checkFlags(mc.check || null)];
+        const passed = code.every((c) => c.passed) && Boolean(mc.check) && mc.check.followsTrendMechanic !== 'no' && mc.check.hookStrength !== 'weak';
+        const [stage] = await queryRows('stages', `select=id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.board&limit=1`);
+        checks = { codeChecks: code, mechanic: mc.check || null, mechanicError: mc.error || null, flags, passed, version: boardMod.VERSION };
+        if (stage) await insertRows('stage_checks', [{ piece_id: piece.id, stage_id: stage.id, artifact_version_id: out.versionId, kind: 'spec', passed, results: checks, model: mc.model || null, prompt_version: boardMod.CHECK_VERSION }]);
+      } catch (e) { checks = { error: String(e.message || e).slice(0, 200) }; }
+      // one keyframe per shot through the job service
+      const refImage = typeof b.refImage === 'string' && /^https:\/\//.test(b.refImage) ? b.refImage : null;
+      const anchors = bctx.mood.tiles.filter((t) => t.assetPath || t.url).slice(0, 4).map((t) => ({ index: t.index, url: t.url || null, assetPath: t.assetPath || null }));
+      const [stageRow] = await queryRows('stages', `select=id,state&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.board&limit=1`);
+      const rows = w.list.shots.map((shot) => {
+        const useRef = Boolean(refImage && shot.product.visible);
+        const prompt = boardMod.keyframePrompt(shot, bctx.mood.direction, bits.productLook, useRef);
+        return { piece_id: piece.id, stage_id: stageRow.id, kind: 'higgsfield_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: aspect, resolution: '1080p', ...(useRef ? { ref: refImage } : {}), autoCheck: true, attachTo: { versionId: out.versionId, shot: shot.n }, generatedBy: req.member ? req.member.id : null, meta: { shot: shot.n, prompt, anchors, direction: bctx.mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: shot.n === w.list.hookShot, title: piece.title } } };
+      });
+      const inserted = await insertRows('jobs', rows, { returning: true });
+      const { patchRows } = require('../_supabase.js');
+      await patchRows('stages', `id=eq.${encodeURIComponent(stageRow.id)}`, { state: 'generating' });
+      const jobs = [];
+      for (const j of inserted) { await jobsSvc.advance(j).catch(() => null); const fresh = await jobsSvc.getJob(j.id); jobs.push(jobsSvc.publicJob(fresh || j, legacyId)); }
+      try { const { syncSpec } = require('../_spec.js'); await syncSpec(legacyId, { memberId: req.member ? req.member.id : null, note: 'storyboard written' }); } catch (e) { /* best effort */ }
+      return res.status(200).json({ ok: true, artifact, version: out.version, versionId: out.versionId, checks, jobs, briefApproved: brief.approved, moodApproved: bctx.mood.approved });
+    }
     if (b.action === 'brief' || b.action === 'brief-edit') {
       const ctx = await briefMod.briefContext(piece, legacyId);
       if (!ctx.mood.direction && !ctx.mood.tiles.length && !ctx.mood.note) return res.status(409).json({ error: 'the brief needs the moodboard first — the brief is written from its approved direction', code: 'prerequisites' });
