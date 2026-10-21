@@ -7,7 +7,7 @@
 
 const Anthropic = require('@anthropic-ai/sdk');
 const { requireSession } = require('../_auth.js');
-const { PRODUCTS_PROMPT, BRAND_PROMPT } = require('../_brand');
+const { brandPrompts } = require('../_kb/index.js'); // Phase 6.1: catalog and playbook come from the knowledge base (seed = today's text)
 const { validate, HERMES_BODY } = require('../_schemas.js');
 
 const MODEL = 'claude-opus-4-8';
@@ -121,7 +121,7 @@ const STAGES = {
   },
 };
 
-const SYSTEM = `You are the agent chain of Maistro, Samsung Gulf's A-to-Z content creation platform for MENA social media (markets: KSA, UAE, Egypt, Türkiye and the wider region). Trends arrive from TrendRadar already gated for Samsung relevance; your job is to turn one trend into production-ready campaign artifacts, one pipeline stage at a time.
+const systemPrompt = ({ PRODUCTS_PROMPT, BRAND_PROMPT }) => `You are the agent chain of Maistro, Samsung Gulf's A-to-Z content creation platform for MENA social media (markets: KSA, UAE, Egypt, Türkiye and the wider region). Trends arrive from TrendRadar already gated for Samsung relevance; your job is to turn one trend into production-ready campaign artifacts, one pipeline stage at a time.
 
 You will be told which agent you are for this stage (Hermes plans, Muse does moodboards, Pixel thumbnails, Quill briefs, Frame storyboards, Forge final cuts, Sentinel QC). Ground everything in the specific trend data provided — its ownable beat, momentum, markets and creator clips — and in any artifacts from earlier stages, so the campaign stays coherent end to end. Be concrete and culturally specific to the markets; never generic. All colors are for a dark near-black UI, so keep gradients deep and muted. Respond with the requested JSON only.
 
@@ -161,7 +161,7 @@ module.exports = async (req, res) => {
       model: MODEL,
       max_tokens: 8000,
       thinking: { type: 'adaptive' },
-      system: SYSTEM,
+      system: systemPrompt(await brandPrompts()),
       messages: [
         {
           role: 'user',

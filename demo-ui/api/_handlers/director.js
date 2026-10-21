@@ -16,7 +16,7 @@
 
 const Anthropic = require('@anthropic-ai/sdk');
 const { requireSession } = require('../_auth.js');
-const { PRODUCTS_PROMPT, BRAND_PROMPT } = require('../_brand');
+const { brandPrompts } = require('../_kb/index.js'); // Phase 6.1: catalog and playbook come from the knowledge base (seed = today's text)
 const { validate, DIRECTOR_BODY } = require('../_schemas.js');
 
 const MODEL = 'claude-opus-4-8';
@@ -76,7 +76,7 @@ const ARTIFACTS = {
   },
 };
 
-const SYSTEM =
+const systemPrompt = ({ PRODUCTS_PROMPT, BRAND_PROMPT }) =>
   'You are the AI Creative Director inside MAISTRO, Samsung Gulf\'s A-to-Z content ' +
   'platform. Marketing teammates — not prompt engineers — describe what they want in ' +
   'plain, often vague words. Your job: turn their intent into ONE professional ' +
@@ -166,7 +166,7 @@ module.exports = async (req, res) => {
       model: MODEL,
       max_tokens: 2000,
       thinking: { type: 'adaptive' },
-      system: SYSTEM,
+      system: systemPrompt(await brandPrompts()),
       messages: [
         {
           role: 'user',

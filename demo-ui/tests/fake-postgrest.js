@@ -11,6 +11,7 @@ const UNIQUE = {
   adlcp_documents: [['artifact_version_id', 'kind']],
   members: [['id'], ['email']],
   trends_cache: [['id']],
+  kb_documents: [['kind', 'key', 'version']],
 };
 
 function fakePostgrest(base = 'https://sb.test') {
@@ -30,7 +31,7 @@ function fakePostgrest(base = 'https://sb.test') {
       else {
         if (v === 'not.is.null') { filters.push({ col: k, op: 'notnull' }); continue; }
         if (v === 'is.null') { filters.push({ col: k, op: 'isnull' }); continue; }
-        const m = v.match(/^(eq|in|lte|gte)\.(.*)$/s);
+        const m = v.match(/^(eq|in|lte|gte|lt|gt)\.(.*)$/s);
         if (!m) throw new Error(`fake-postgrest: unsupported filter ${k}=${v}`);
         filters.push({ col: k, op: m[1], val: m[1] === 'in' ? m[2].replace(/^\(|\)$/g, '').split(',').map(decodeURIComponent) : m[2] });
       }
@@ -43,7 +44,8 @@ function fakePostgrest(base = 'https://sb.test') {
     if (op === 'eq') return String(row[col]) === String(val);
     if (op === 'in') return val.includes(String(row[col]));
     if (row[col] == null) return false;
-    return op === 'lte' ? String(row[col]) <= String(val) : String(row[col]) >= String(val);
+    const a = row[col], b = (typeof a === 'number' ? Number(val) : String(val)), x = (typeof a === 'number' ? a : String(a));
+    return op === 'lte' ? x <= b : op === 'gte' ? x >= b : op === 'lt' ? x < b : x > b;
   });
   const project = (row, select) => (select === '*' ? { ...row } : Object.fromEntries(select.split(',').map((c) => [c, row[c]])));
 
@@ -58,7 +60,8 @@ function fakePostgrest(base = 'https://sb.test') {
     if (table === 'jobs') { r.state = r.state || 'queued'; r.attempts = r.attempts || 0; r.created_at = r.created_at || now(); r.provider_ref = r.provider_ref || null; }
     if (table === 'qc_results') r.created_at = now();
     if (table === 'trend_snapshots') r.id = r.id || rows.length + 1;
-    if (table === 'trend_scores' || table === 'trend_decisions' || table === 'reconciliation_reports') r.id = r.id || rows.length + 1;
+    if (table === 'trend_scores' || table === 'trend_decisions' || table === 'reconciliation_reports' || table === 'kb_documents' || table === 'generation_records' || table === 'creative_specs' || table === 'prompt_registry') r.id = r.id || rows.length + 1;
+    if (table === 'kb_documents') { r.active = r.active !== undefined ? r.active : true; r.created_at = now(); }
     if (table === 'members') { r.active = r.active !== undefined ? r.active : true; r.created_at = r.created_at || now(); r.updated_at = now(); }
     return r;
   }

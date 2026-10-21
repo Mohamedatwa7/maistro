@@ -3,10 +3,10 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { api, req, res } = require('../helpers');
 
-test('dispatcher maps the seventeen routes and strips its own query parameter', async () => {
+test('dispatcher maps the eighteen routes and strips its own query parameter', async () => {
   const h = api('[route].js', { MAISTRO_SESSION_SECRET: undefined });
   try {
-    assert.deepEqual(Object.keys(h.handler.ROUTES).sort(), ['decisions', 'director', 'health', 'hermes', 'higgsfield', 'ingest', 'jobs', 'login', 'members', 'pieces', 'projects', 'qc-f1x8', 'sentiment', 'track', 'translate', 'trends', 'upload']);
+    assert.deepEqual(Object.keys(h.handler.ROUTES).sort(), ['decisions', 'director', 'health', 'hermes', 'higgsfield', 'ingest', 'jobs', 'kb', 'login', 'members', 'pieces', 'projects', 'qc-f1x8', 'sentiment', 'track', 'translate', 'trends', 'upload']);
     let r = res(); await h.handler(req({ query: { route: 'nope' }, session: false }), r);
     assert.equal(r.statusCode, 404); assert.deepEqual(r.body, { error: 'unknown route /api/nope' });
     r = res(); await h.handler(req({ query: { route: '../_http' }, session: false }), r);
