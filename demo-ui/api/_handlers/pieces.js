@@ -42,6 +42,8 @@ module.exports = async (req, res) => {
     const invalid = validateArtifact(stage === 'draft' ? 'final' : stage, b.artifact);
     if (invalid) return res.status(422).json({ error: invalid.message, problems: invalid.problems });
     const out = await recordVersion(String(b.pieceId || ''), stage, b.artifact, { piece: b.piece || {}, producedBy: b.producedBy, kind: b.kind, generatedBy: req.member ? req.member.id : null });
+    // 6.1: the Creative Spec follows the store (best effort)
+    try { const { syncSpec } = require('../_spec.js'); out.spec = await syncSpec(out.legacyId, { memberId: req.member ? req.member.id : null, note: `${stage} v${out.version}` }); } catch (e) { console.warn('[pieces] spec sync failed:', e.message); }
     return res.status(200).json({ ok: true, ...out });
   } catch (e) {
     if (e instanceof StoreError) return res.status(e.status).json({ error: e.message, code: e.code });

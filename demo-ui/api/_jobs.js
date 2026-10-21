@@ -197,6 +197,7 @@ async function pollRender(job) {
     }
     await finish(job, { state: 'succeeded', error: null, result: { artifact, version: recorded.version, versionId: recorded.versionId, copiedIn: Boolean(copy) } });
     await jobRecord(job, { status: 'succeeded', outputAssets: [{ url: sourceUrl, assetPath: copy ? copy.path : null, sha256: copy ? copy.sha256 : null, versionId: recorded.versionId }] });
+    try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: `${stage} rendered by job` }); } catch (e) { console.warn('[jobs] spec sync failed:', e.message); }
     return 'succeeded';
   }
   if (['failed', 'nsfw', 'canceled'].includes(st.status)) {

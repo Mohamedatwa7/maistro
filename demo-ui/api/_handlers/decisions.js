@@ -37,6 +37,7 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true, ...out });
     }
     const out = await decide(String(b.pieceId || ''), String(b.stage || ''), { ...b, name, role, actorId });
+    try { const { syncSpec } = require('../_spec.js'); out.spec = await syncSpec(out.legacyId, { memberId: actorId, note: `${b.stage} ${b.decision}` }); } catch (e) { console.warn('[decisions] spec sync failed:', e.message); }
     return res.status(200).json({ ok: true, ...out });
   } catch (e) {
     if (e instanceof StoreError) return res.status(e.status).json({ error: e.message, code: e.code });
