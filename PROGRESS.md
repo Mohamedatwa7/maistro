@@ -468,6 +468,13 @@ Item for the builder:
 
 The builder's five "things to look at", checker's view: Soul ID is for characters and would not enforce product consistency, so anchors plus vision judgement is the right tool for now; keyframe prompts should carry a recorded seed (Soul V2 accepts one, the reproducibility requirement of 6.9 needs it, and it costs nothing); the placeholder end card is fine until the logo rules arrive; a whole-board regenerate going through the legacy route is a gap to close in 6.6 as planned; filtering in JS after a bounded read is fine.
 
+## Storyboard race and seed items closed (commit 31aa0c2; released)
+
+Status: **PASSED** by checker. CI green on both branches; local 142/142 on a clean tree.
+
+- `updateShots(versionId, mutate)` reads the version, writes the new payload with `rev = seen + 1`, PATCHes filtered on the id and `payload->>rev=eq.<seen>` (`is.null` for a version without a rev), and on zero rows re-reads and re-applies, up to six attempts with jitter, the same shape as `claim()`; `attachKeyframe()`, the keyframe failure path and `board-shot-decide` all go through it, and the fake database now evaluates `payload->>field` filters so the test runs two concurrent updates from the same revision and both land. The approval is bound to the keyframe job the reviewer saw: a keyframe that changed between read and write answers 409 `keyframe_changed`.
+- Every keyframe job carries a seed in SOUL V2's documented range, sent on the V2 path and dropped on the v1 reference path (no documented seed there, recorded but not applied, as the builder noted), stored on the keyframe and in the generation record. Whole-board regenerate goes through the studio action.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
