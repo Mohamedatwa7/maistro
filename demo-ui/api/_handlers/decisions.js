@@ -11,7 +11,7 @@
 //                         role_required, self_approval, not_reviewable, …)
 //
 // { action: "reopen", pieceId, stage, role } reopens an approved stage (admin).
-const { requireSession } = require('../_auth.js');
+const { requireSession, refreshMember } = require('../_auth.js');
 const { decide, reopen, StoreError } = require('../_store.js');
 
 module.exports = async (req, res) => {
@@ -27,6 +27,7 @@ module.exports = async (req, res) => {
   // A member session always supplies the role itself; MAISTRO_REQUIRE_MEMBER=1
   // closes the claim path entirely once the team has signed in (ADR-003).
   if (!req.member && process.env.MAISTRO_REQUIRE_MEMBER === '1') return res.status(403).json({ error: 'a member sign-in is required to record decisions', code: 'member_required' });
+  if (!(await refreshMember(req, res))) return;
   try {
     const actorId = req.member ? req.member.id : null;
     const role = req.member && req.member.role ? req.member.role : b.role;

@@ -14,7 +14,7 @@ module.exports = async (req, res) => {
     res.setHeader('Allow', 'GET, POST, PATCH');
     return res.status(405).json({ error: 'method not allowed' });
   }
-  if (!requireRole(req, res, ['admin'])) return;
+  if (!(await requireRole(req, res, ['admin']))) return;
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return res.status(503).json({ error: 'storage is not configured' });
   const b = req.body || {};
   try {
@@ -29,7 +29,7 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true, member });
     }
     if (!b.id) return res.status(422).json({ error: 'id is required' });
-    if (String(b.id) === req.member.id && b.active === false) return res.status(422).json({ error: 'you cannot deactivate yourself' });
+    if (String(b.id) === req.member.id && (b.active === false || (b.role !== undefined && b.role !== 'admin'))) return res.status(422).json({ error: 'you cannot deactivate or demote yourself — ask another admin' });
     const member = await updateMember(String(b.id), { role: b.role, active: b.active, name: b.name });
     return res.status(200).json({ ok: true, member });
   } catch (e) {

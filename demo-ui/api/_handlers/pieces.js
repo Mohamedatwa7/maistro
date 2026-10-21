@@ -11,7 +11,7 @@
 // Both need the session. An approved stage refuses new versions (409
 // approved_immutable) — that is the audit's A-04/A-05 rule, now enforced
 // where the data lives.
-const { requireSession } = require('../_auth.js');
+const { requireSession, refreshMember } = require('../_auth.js');
 const { listPieces, recordVersion, StoreError } = require('../_store.js');
 const { validateArtifact } = require('../_schemas.js');
 const { STAGE_KINDS } = require('../../src/domain/stages.js');
@@ -26,6 +26,7 @@ module.exports = async (req, res) => {
   }
   if (!requireSession(req, res)) return;
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return res.status(503).json({ error: 'storage is not configured' });
+  if (req.method === 'POST' && !(await refreshMember(req, res))) return;
   try {
     if (req.method === 'GET') {
       const pieces = await listPieces(Number((req.query || {}).limit) || 100);

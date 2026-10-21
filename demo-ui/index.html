@@ -993,7 +993,7 @@ function loginError(msg){
 /* Member sign-in (M2 part 2 c, ADR-003): the page asks Supabase Auth for a
    magic link; the link returns here with #access_token=…, which is exchanged
    at POST /api/login for the Maistro session cookie carrying id + role. */
-const AUTH={url:null,anonKey:null,magicLink:false,password:true,member:null};
+const AUTH={magicLink:false,password:true,member:null};
 function authFromHash(hash){
  const h=String(hash||'');
  if(!/(^#|&)access_token=/.test(h))return null;
@@ -1003,11 +1003,10 @@ function authFromHash(hash){
 }
 async function requestMagicLink(email){
  if(!AUTH.magicLink)throw new Error('Sign-in links are not configured on the server.');
- const r=await fetch(AUTH.url+'/auth/v1/otp',{method:'POST',headers:{'Content-Type':'application/json',apikey:AUTH.anonKey},
-  body:JSON.stringify({email,create_user:true,options:{email_redirect_to:location.origin+'/'}})});
+ const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
  if(r.ok)return true;
  const d=await r.json().catch(()=>({}));
- throw new Error(d.msg||d.message||d.error_description||('Could not send the link ('+r.status+')'));
+ throw new Error(d.error||('Could not send the link ('+r.status+')'));
 }
 async function exchangeToken(tok){
  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({access_token:tok})});
@@ -1018,7 +1017,7 @@ async function exchangeToken(tok){
 async function submitMagic(){
  const email=(($('#l-email')||{}).value||'').trim();
  if(!/^[^\s@]+@[^\s@]+$/.test(email)){loginError('Enter your e-mail address first.');const i=$('#l-email');if(i&&i.focus)i.focus();return}
- try{await requestMagicLink(email);loginError('');const b=$('#login-magic');if(b){b.textContent='Link sent — check '+email;b.disabled=true}}
+ try{await requestMagicLink(email);loginError('');const b=$('#login-magic');if(b){b.textContent='If '+email+' is a member, a sign-in link is on its way';b.disabled=true}}
  catch(e){loginError(e.message)}
 }
 async function submitLogin(){
@@ -1037,7 +1036,7 @@ $('#login-magic').addEventListener('click',submitMagic);
 /* boot: a returning magic link is exchanged first; otherwise a valid session skips the overlay */
 (async()=>{
  try{const r=await fetch('/api/login');const d=await r.json();
-  if(d&&d.auth){Object.assign(AUTH,{url:d.auth.url,anonKey:d.auth.anonKey,magicLink:!!d.auth.magicLink,password:!!d.auth.password});AUTH.member=d.member||null}
+  if(d&&d.auth){Object.assign(AUTH,{magicLink:!!d.auth.magicLink,password:!!d.auth.password});AUTH.member=d.member||null}
   const mb=$('#login-magic');if(mb&&!AUTH.magicLink)mb.style.display='none';
   const pf=$('#l-pass');if(pf&&!AUTH.password&&AUTH.magicLink){pf.closest('.f-field').style.display='none'}
   const tok=authFromHash(location.hash);

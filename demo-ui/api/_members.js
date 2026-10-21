@@ -96,6 +96,29 @@ async function inviteMember({ email, role, name, redirectTo }) {
   return row ? toMember(row) : await getMemberById(userId);
 }
 
+/** Send a magic link — only to an active member or a bootstrap admin, so the
+ *  login page cannot be used to create auth users. Always resolves (the
+ *  caller answers the same way either way, never revealing membership). */
+async function requestLink(email, redirectTo) {
+  const c = cfg();
+  if (!c.ready) throw Object.assign(new Error('member sign-in is not configured on the server'), { status: 503 });
+  email = String(email || '').trim().toLowerCase();
+  if (!EMAIL.test(email)) throw Object.assign(new Error('a valid e-mail address is required'), { status: 422 });
+  const member = await getMemberByEmail(email);
+  const allowed = (member && member.active) || bootstrapAdmins().includes(email);
+  if (!allowed) return { sent: false };
+  const qs = redirectTo ? `?redirect_to=${encodeURIComponent(redirectTo)}` : '';
+  const r = await fetchT(`${c.url}/auth/v1/otp${qs}`, {
+    method: 'POST', headers: { apikey: c.anon, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, create_user: true }),
+  }, { timeoutMs: 15000 });
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}));
+    throw Object.assign(new Error(`could not send the link (${r.status}) ${String(j.msg || j.message || j.error_description || '').slice(0, 160)}`), { status: 502 });
+  }
+  return { sent: true };
+}
+
 async function updateMember(id, patch) {
   const p = {};
   if (patch.role !== undefined) { if (!ROLES.includes(patch.role)) throw Object.assign(new Error(`role must be one of ${ROLES.join(', ')}`), { status: 422 }); p.role = patch.role; }
@@ -107,4 +130,4 @@ async function updateMember(id, patch) {
   return toMember(rows[0]);
 }
 
-module.exports = { cfg, bootstrapAdmins, verifyAccessToken, memberForUser, getMemberById, getMemberByEmail, listMembers, inviteMember, updateMember };
+module.exports = { cfg, bootstrapAdmins, verifyAccessToken, memberForUser, getMemberById, getMemberByEmail, listMembers, inviteMember, updateMember, requestLink };

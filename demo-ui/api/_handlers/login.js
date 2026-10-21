@@ -1,9 +1,11 @@
 // App login.
 //
 //   GET    /api/login   → { configured, authenticated, member|null,
-//                           auth: { url, anonKey, magicLink: boolean } }
-//                         (the anon key is public by design; the page needs
-//                         it to request a magic link from GoTrue)
+//                           auth: { magicLink, password } }
+//   POST   /api/login   { email }         → sends a magic link when the
+//                                            address is an active member or a
+//                                            bootstrap admin; answers 200
+//                                            {ok} either way (no enumeration)
 //   POST   /api/login   { access_token }  → member session (Supabase Auth,
 //                                            ADR-003): 204 + Set-Cookie;
 //                                            401 bad token; 403 not a member
@@ -12,7 +14,7 @@
 //                                            is set; unset it to retire it
 //   DELETE /api/login   → 204, cookie cleared
 const { bearerMatches, makeSessionCookieValue, readSession, sessionCookieHeader } = require('../_auth.js');
-const { cfg, verifyAccessToken, memberForUser } = require('../_members.js');
+const { cfg, verifyAccessToken, memberForUser, requestLink } = require('../_members.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -27,7 +29,7 @@ module.exports = async (req, res) => {
       configured,
       authenticated: Boolean(s),
       member: s && s.member ? { email: s.member.email, role: s.member.role, name: s.member.name } : null,
-      auth: { url: auth.url || null, anonKey: auth.ready ? auth.anon : null, magicLink: auth.ready, password: Boolean(password) },
+      auth: { magicLink: auth.ready, password: Boolean(password) },
     });
   }
   if (req.method === 'DELETE') {
@@ -40,6 +42,17 @@ module.exports = async (req, res) => {
   }
   if (!configured) return res.status(503).json({ error: 'login is not configured on the server' });
   const b = req.body || {};
+
+  if (b.email && !b.access_token && !b.password) {
+    try {
+      const proto = String(req.headers['x-forwarded-proto'] || 'https');
+      const host = String(req.headers['x-forwarded-host'] || req.headers.host || '');
+      await requestLink(String(b.email), host ? `${proto}://${host}/` : undefined);
+      return res.status(200).json({ ok: true });
+    } catch (e) {
+      return res.status(e && e.status ? e.status : 502).json({ error: String((e && e.message) || e) });
+    }
+  }
 
   if (b.access_token) {
     if (!auth.ready) return res.status(503).json({ error: 'member sign-in is not configured on the server' });

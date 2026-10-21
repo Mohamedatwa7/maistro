@@ -112,13 +112,34 @@ function requireSession(req, res) {
   return false;
 }
 
-// Stricter gate: a member session with one of the given roles. Password
-// sessions are refused (403) — identity is the point.
-function requireRole(req, res, roles) {
+// A member session is re-checked against the members row before anything
+// that depends on the role: a demoted or deactivated member loses the old
+// rights at once, not when the 30-day cookie expires. Returns true when the
+// session is usable (password sessions pass untouched); otherwise the 403 is
+// written. On a storage error the request fails closed (503).
+async function refreshMember(req, res) {
+  if (!req.member) return true;
+  let row;
+  try {
+    const { getMemberById } = require('./_members.js');
+    row = await getMemberById(req.member.id);
+  } catch (e) {
+    res.status(503).json({ error: `could not verify the member: ${String((e && e.message) || e).slice(0, 160)}` });
+    return false;
+  }
+  if (!row || !row.active) { res.status(403).json({ error: 'this member is no longer active — sign in again', code: 'member_inactive' }); return false; }
+  req.member = { id: row.id, email: row.email, role: row.role, name: row.name || req.member.name || null };
+  return true;
+}
+
+// Stricter gate: a live member session with one of the given roles.
+// Password sessions are refused (403) — identity is the point.
+async function requireRole(req, res, roles) {
   if (!requireSession(req, res)) return false;
   if (!req.member) { res.status(403).json({ error: 'a member sign-in is required for this action', code: 'member_required' }); return false; }
+  if (!(await refreshMember(req, res))) return false;
   if (roles && roles.length && !roles.includes(req.member.role)) { res.status(403).json({ error: `this action needs one of: ${roles.join(', ')}`, code: 'role_required' }); return false; }
   return true;
 }
 
-module.exports = { bearerMatches, isCron, makeSessionCookieValue, readSession, verifySession, sessionCookieHeader, requireSession, requireRole, SESSION_COOKIE, SESSION_TTL_S };
+module.exports = { bearerMatches, isCron, makeSessionCookieValue, readSession, verifySession, sessionCookieHeader, requireSession, refreshMember, requireRole, SESSION_COOKIE, SESSION_TTL_S };
