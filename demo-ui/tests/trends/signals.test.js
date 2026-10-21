@@ -55,9 +55,11 @@ test('momentum score follows stage and runway; calendar score detects Gulf windo
   assert.deepEqual(S.calendarScore('2027-09-20T00:00:00Z').events, ['ksa-national-day'], 'yearly events roll forward');
   const full = { momentum: 10, gulf: 10, product: 10, brand: 10, audience: 10, feasibility: 10, platform: 10, saturation: 10, calendar: 10 };
   const f = S.finalScore(full);
-  assert.equal(f.score, 95, 'historical (5) is inactive; the rest sums to 95'); assert.equal(f.parts.historical.weight, 0);
+  assert.equal(f.score, 100, 'normalised to 100 over the active weights (historical inactive)'); assert.equal(f.parts.historical.weight, 0); assert.equal(f.activeWeight, 95);
   const half = S.finalScore({ momentum: 5, feasibility: 5, calendar: 5 });
-  assert.equal(half.score, 47.5, 'missing criteria are normalised away, not counted as zero'); assert.equal(half.parts.gulf.note, 'missing');
+  assert.equal(half.score, 50, 'missing criteria are normalised away, not counted as zero'); assert.equal(half.parts.gulf.note, 'missing');
+  const mixed = S.finalScore({ momentum: 10, feasibility: 0, calendar: 5 });
+  assert.equal(mixed.score, +(((20 * 1 + 15 * 0 + 5 * 0.5) / 40) * 100).toFixed(1));
 });
 
 test('deterministic vetoes: uncleared sound vetoes, unknown clearance needs review, expired post-by vetoes, infeasible class vetoes, missing id is a data veto', () => {

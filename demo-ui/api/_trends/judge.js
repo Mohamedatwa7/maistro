@@ -59,17 +59,20 @@ function enforceCaps(j, { catalog, gulfEvidence }) {
 async function judgeTrend({ trend, computed, catalog, calendarNote, client }) {
   const Anthropic = client ? null : require('@anthropic-ai/sdk');
   const c = client || new Anthropic({ timeout: 90000, maxRetries: 1 });
+  // Adaptive thinking counts against max_tokens on this model family, so a
+  // long profile needs room; this is a classification call, so effort is low.
   const response = await c.messages.create({
     model: MODEL(),
-    max_tokens: 4000,
+    max_tokens: 16000,
     system: prompt.SYSTEM,
     messages: [{ role: 'user', content: prompt.userMessage({ trend, computed, catalog, calendarNote }) }],
-    output_config: { format: { type: 'json_schema', schema: prompt.SCHEMA } },
+    output_config: { format: { type: 'json_schema', schema: prompt.SCHEMA }, effort: 'low' },
   });
   const text = response.content && response.content.find((b) => b.type === 'text');
   if (!text) return { error: `no text block (stop_reason ${response.stop_reason})`, problems: [] };
+  if (response.stop_reason && response.stop_reason !== 'end_turn' && response.stop_reason !== 'stop_sequence') return { error: `stopped early (stop_reason ${response.stop_reason})`, problems: [String(text.text || '').slice(0, 120)] };
   let j;
-  try { j = JSON.parse(text.text); } catch (e) { return { error: 'malformed JSON', problems: [e.message] }; }
+  try { j = JSON.parse(text.text); } catch (e) { return { error: `malformed JSON (stop_reason ${response.stop_reason || 'unknown'})`, problems: [e.message] }; }
   const problems = validateJudgement(j);
   if (problems.length) return { error: 'judgement failed validation', problems };
   const gulfEvidence = trend.region === 'local' || /^(ar|mixed)$/i.test(String(trend.lang || '')) || /[؀-ۿ]/.test(`${trend.name} ${trend.why || ''}`);

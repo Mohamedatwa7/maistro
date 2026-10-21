@@ -123,9 +123,11 @@ function finalScore(criteria, opts = {}) {
     parts[k] = { weight, score: clamped, contribution: +(weight * clamped / 10).toFixed(2) };
     total += weight * clamped / 10; weightSum += weight;
   }
-  // normalise to the weights that had a score so a missing criterion does not silently zero the total
-  const normalised = weightSum ? +(total * (Object.values(w).reduce((a, b) => a + b, 0) - (historicalActive ? 0 : w.historical)) / weightSum).toFixed(1) : 0;
-  return { score: normalised, parts, weightsVersion: opts.weightsVersion || WEIGHTS_VERSION };
+  // Normalised to 100 over the criteria that have a value: a missing
+  // criterion does not zero the total, and an inactive 'historical' weight
+  // does not cap a perfect trend at 95 (TREND_FRAMEWORK.md §2).
+  const normalised = weightSum ? +((total / weightSum) * 100).toFixed(1) : 0;
+  return { score: normalised, parts, weightsVersion: opts.weightsVersion || WEIGHTS_VERSION, activeWeight: weightSum };
 }
 
 /** Deterministic vetoes (§1): audio clearance, expiry, data, feasibility. */

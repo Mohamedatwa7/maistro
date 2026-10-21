@@ -355,9 +355,36 @@ async function claudeCurate(trends) {
   return picked.length ? picked : null;
 }
 
+const DECISIONS = ['pick', 'skip', 'reject', 'override_veto', 'override_score'];
+const REASON_CODES = ['off_brand', 'unsafe', 'cultural', 'no_product', 'too_late', 'unproducible', 'saturated', 'audio', 'weak_hook', 'other', 'veto_wrong', 'score_wrong', 'good_opportunity'];
+
 module.exports = async (req, res) => {
   try {
     const q = req.query || {};
+    // 5.7: every human pick / skip / rejection / override is a row (session)
+    if (req.method === 'POST') {
+      const { requireSession, refreshMember } = require('../_auth.js');
+      if (!requireSession(req, res)) return;
+      if (!(await refreshMember(req, res))) return;
+      res.setHeader('Cache-Control', 'no-store');
+      if (!cacheConfigured()) return res.status(503).json({ error: 'storage is not configured' });
+      const b = req.body || {};
+      if (!DECISIONS.includes(b.decision)) return res.status(400).json({ error: `decision must be one of ${DECISIONS.join(', ')}` });
+      if (!/^[A-Za-z0-9_-]{1,120}$/.test(String(b.trendId || ''))) return res.status(400).json({ error: 'trendId is required' });
+      const needsReason = ['reject', 'override_veto', 'override_score'].includes(b.decision);
+      if (needsReason && !REASON_CODES.includes(b.reasonCode)) return res.status(400).json({ error: `reasonCode must be one of ${REASON_CODES.join(', ')}` });
+      if (needsReason && !String(b.reason || '').trim()) return res.status(400).json({ error: 'a written reason is required' });
+      try {
+        const { insertRows } = require('../_supabase.js');
+        const [row] = await insertRows('trend_decisions', [{
+          trend_id: String(b.trendId), score_id: Number.isInteger(b.scoreId) ? b.scoreId : null, decision: b.decision,
+          reason_code: b.reasonCode || null, reason: b.reason ? String(b.reason).slice(0, 2000) : null,
+          decided_by: req.member ? req.member.id : null, name_as_signed: (req.member && req.member.name) || String(b.name || '').slice(0, 120) || null,
+        }], { returning: true });
+        return res.status(200).json({ ok: true, decision: row || null });
+      } catch (e) { return res.status(502).json({ error: String(e.message || e) }); }
+    }
+    if (req.method !== 'GET') { res.setHeader('Allow', 'GET, POST'); return res.status(405).json({ error: 'method not allowed' }); }
     // Hourly cron (Pro plan, vercel.json): refresh the stored board and its
     // curation unconditionally, so reads in the next hour are all hits.
     if (isCron(req)) {

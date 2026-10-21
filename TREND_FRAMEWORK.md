@@ -43,7 +43,7 @@ Initial weights (sum 100). "Code" criteria are deterministic from data; "LLM" cr
 | 2.9 | Calendar alignment | 5 | code | §4.1 calendar vs post-by date | |
 | 2.10 | Historical signal | 5 | code | `trend_decisions` + attribution (Phase 7.5) | 0 weight until ≥ 30 attributed posts exist (reported, not hidden) |
 
-**Final score** = Σ weight × score/10, computed in code, stored with every input (§6). Criteria with confidence `low` are shown with a hatched bar and are listed under "Unknowns" on the card.
+**Final score** = Σ weight × score/10 over the criteria that have a value, **normalised to 100 over those criteria's weights** (so the inactive historical weight and a criterion the data cannot support do not cap or zero a trend; the card shows which criteria were normalised away), computed in code, stored with every input (§6). Criteria with confidence `low` are listed under "Unknowns" on the card.
 
 ### 2.6 Production-feasibility classes (what Soul + Seedance can credibly make)
 

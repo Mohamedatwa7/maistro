@@ -120,3 +120,23 @@ test('hourly refresh runs the scoring after the snapshots (MAISTRO_TREND_SCORING
     assert.equal(r.body.scoring, null); assert.equal(pg.tables.trend_scores.length, 12);
   } finally { delete process.env.MAISTRO_TREND_SCORING; f.restore(); h.restore(); }
 });
+
+test('POST /api/trends records a human decision (5.7): session required, enum and reason rules, member identity when present', async () => {
+  const pg = fakePostgrest();
+  const f = mockFetch([pg.route]);
+  const h = api('trends.js', { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', TRENDRADAR_AGENT_KEY: 'agent-key' });
+  const { makeSessionCookieValue, SESSION_COOKIE } = require('../../api/_auth.js');
+  try {
+    let r = res(); await h.handler(req({ method: 'POST', body: { trendId: 'snd-1', decision: 'pick' }, session: false }), r); assert.equal(r.statusCode, 401);
+    r = res(); await h.handler(req({ method: 'POST', body: { trendId: 'snd-1', decision: 'maybe' } }), r); assert.equal(r.statusCode, 400);
+    r = res(); await h.handler(req({ method: 'POST', body: { trendId: 'snd-1', decision: 'reject', reasonCode: 'off_brand' } }), r); assert.equal(r.statusCode, 400, 'reject needs a written reason');
+    r = res(); await h.handler(req({ method: 'POST', body: { trendId: 'snd-1', decision: 'reject', reasonCode: 'nope', reason: 'x' } }), r); assert.equal(r.statusCode, 400, 'reason code enum');
+    r = res(); await h.handler(req({ method: 'POST', body: { trendId: 'snd-1', scoreId: 7, decision: 'pick', name: 'N. Haddad' } }), r);
+    assert.equal(r.statusCode, 200); assert.equal(pg.tables.trend_decisions.length, 1); assert.equal(pg.tables.trend_decisions[0].score_id, 7); assert.equal(pg.tables.trend_decisions[0].name_as_signed, 'N. Haddad'); assert.equal(pg.tables.trend_decisions[0].decided_by, null);
+    (pg.tables.members = pg.tables.members || []).push({ id: 'u-r', email: 'r@samsung.com', role: 'reviewer', active: true, display_name: 'R. Viewer' });
+    const cookie = `${SESSION_COOKIE}=${makeSessionCookieValue('test-session', Date.now(), undefined, { id: 'u-r', email: 'r@samsung.com', role: 'reviewer', name: 'R. Viewer' })}`;
+    r = res(); await h.handler(req({ method: 'POST', body: { trendId: 'snd-2', decision: 'override_veto', reasonCode: 'veto_wrong', reason: 'the sound is original' }, headers: { cookie }, session: false }), r);
+    assert.equal(r.statusCode, 200); assert.equal(pg.tables.trend_decisions[1].decided_by, 'u-r'); assert.equal(pg.tables.trend_decisions[1].name_as_signed, 'R. Viewer'); assert.equal(pg.tables.trend_decisions[1].reason_code, 'veto_wrong');
+    r = res(); await h.handler(req({ method: 'PUT' }), r); assert.equal(r.statusCode, 405);
+  } finally { f.restore(); h.restore(); }
+});

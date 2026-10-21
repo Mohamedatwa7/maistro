@@ -978,7 +978,7 @@ function doLogin(){
  $('#login').classList.add('out');
  document.body.classList.remove('locked');
  const sm=$('#sb-members');if(sm)sm.style.display=AUTH.member&&AUTH.member.role==='admin'?'':'none';
- loadPieces();
+ loadPieces();loadScored();
  if(!location.hash||location.hash==='#')location.hash='#/';
  route();
 }
@@ -1271,6 +1271,117 @@ function radarToTrend(t,i){
    source:`TikTok trend sound${t.sound.musicId?' · ID '+t.sound.musicId:''}${t.sound.clearedCheckedAt?' · clearance checked '+String(t.sound.clearedCheckedAt).slice(0,10):''}`,
    permits:t.sound.cue?('Cue: '+t.sound.cue):(t.sound.cleared?'Cleared for commercial use.':'Commercial clearance not confirmed — use a licensed or original re-record.')}:null,
   desc:bits.join(' '),clips:t.clips||[]};
+}
+/* ---------- 5.5 the scored board (TREND_FRAMEWORK.md) ---------- */
+const SCORED={at:null,boardAt:null,ranked:[],rejected:[],needsReview:[],loaded:false,error:null,open:{}};
+async function loadScored(){
+ try{
+  const r=await fetch('/api/trends?view=scored');
+  if(r.status===401){SCORED.loaded=false;return}
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||('api '+r.status));
+  Object.assign(SCORED,{at:d.at,boardAt:d.boardGeneratedAt,ranked:d.ranked||[],rejected:d.rejected||[],needsReview:d.needsReview||[],loaded:true,error:null});
+ }catch(e){SCORED.error=e.message;SCORED.loaded=true}
+ if(location.hash.replace(/^#\//,'').split('/')[0]==='trends'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rTrends();reveal()}
+}
+function scoredTab(t){STATE.scoredTab=t;$('#view').innerHTML=rTrends();reveal()}
+function scoredFilter(k,v){STATE.scoredF=STATE.scoredF||{};STATE.scoredF[k]=v;$('#view').innerHTML=rTrends();reveal()}
+function scoredToggle(id){SCORED.open[id]=!SCORED.open[id];$('#view').innerHTML=rTrends();reveal()}
+const LIFE_BADGE={emerging:['go','EMERGING'],rising:['go','RISING'],peaking:['gold','PEAKING'],declining:['alert','DECLINING'],evergreen:['c','EVERGREEN'],unknown:['muted','STAGE UNKNOWN']};
+const CRIT_LABEL={momentum:'Momentum & timing',gulf:'Gulf relevance',product:'Product fit',brand:'Brand fit',audience:'Audience fit',feasibility:'Production feasibility',platform:'Platform fit',saturation:'Saturation',calendar:'Calendar alignment',historical:'Historical signal'};
+const REASON_LABEL={off_brand:'Off-brand',unsafe:'Unsafe',cultural:'Cultural issue',no_product:'No real product fit',too_late:'Too late',unproducible:'Cannot produce',saturated:'Saturated',audio:'Audio problem',weak_hook:'Weak hook',other:'Other',veto_wrong:'Veto is wrong',score_wrong:'Score is wrong',good_opportunity:'Good opportunity'};
+function scoredList(){
+ const tab=STATE.scoredTab||'ranked';
+ let list=tab==='rejected'?SCORED.rejected:tab==='review'?SCORED.needsReview:SCORED.ranked;
+ const f=STATE.scoredF||{};
+ if(f.lifecycle&&f.lifecycle!=='all')list=list.filter(x=>x.lifecycle===f.lifecycle);
+ if(f.product&&f.product!=='all')list=list.filter(x=>(x.product||'none')===f.product);
+ return list;
+}
+function trendIdOfScored(x){const t=TRENDS.find(t=>t.name===x.name);return t?t.id:null}
+async function recordTrendDecision(x,decision){
+ let reasonCode=null,reason='';
+ if(['reject','override_veto','override_score'].includes(decision)){
+  const sel=$('#td-reason-'+cssId(x.trendId)),txt=$('#td-text-'+cssId(x.trendId));
+  reasonCode=sel?sel.value:null;reason=txt?txt.value.trim():'';
+  if(!reason){const err=$('#td-err-'+cssId(x.trendId));if(err)err.textContent='A written reason is required.';return}
+ }
+ try{
+  const r=await authFetch('/api/trends',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({trendId:x.trendId,scoreId:x.scoreId,decision,reasonCode,reason,name:(AUTH.member&&AUTH.member.name)||''})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+  x.decided=decision;
+  toast(`<span style="font-size:12.5px"><b style="color:#6ee7b9">Recorded:</b> ${esc(decision.replace('_',' '))} — ${esc(x.name)}</span>`);
+  if(decision==='pick'){const id=trendIdOfScored(x);if(id)cpFromTrend(id);else{$('#view').innerHTML=rTrends();reveal()}}
+  else{$('#view').innerHTML=rTrends();reveal()}
+ }catch(e){const err=$('#td-err-'+cssId(x.trendId));if(err)err.textContent=e.message;else toast(`<b style="color:#fb7185">Decision:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
+}
+function cssId(s){return String(s).replace(/[^A-Za-z0-9_-]/g,'_')}
+function rScoredCard(x,i){
+ const open=SCORED.open[x.trendId];
+ const lb=LIFE_BADGE[x.lifecycle]||LIFE_BADGE.unknown;
+ const t=x.timing||{};
+ const late=t.postByPassed;
+ const postBy=x.postBy?fmtDay(x.postBy):'—';
+ const conf=x.confidence||'low';
+ const parts=x.criteria||{};
+ const bars=Object.keys(CRIT_LABEL).filter(k=>parts[k]&&parts[k].score!=null).map(k=>`<div class="bar-row" style="margin-top:6px"><span class="lab dim mono" style="width:150px;text-align:left;font-size:10px">${CRIT_LABEL[k].toUpperCase()} <span style="color:#fff">${parts[k].score}</span>/10 · w${parts[k].weight}</span><span class="track"><span class="fill" data-w="${parts[k].score*10}%"></span></span></div>`).join('');
+ const missing=Object.keys(CRIT_LABEL).filter(k=>parts[k]&&parts[k].score==null).map(k=>CRIT_LABEL[k]);
+ const vetoes=(x.vetoes||[]).map(v=>`<div class="qc-risk" style="margin-top:8px"><div style="font-size:12px;line-height:1.55"><b style="color:${v.needsReview?'#fbbf24':'#fda4af'}">${esc(v.code)}${v.needsReview?' · NEEDS REVIEW':''}</b> <span class="dim" dir="auto" style="unicode-bidi:plaintext">${esc(v.reason||'')}</span>${(v.evidence||[]).length?`<div class="mono dim" style="font-size:10px;margin-top:3px">evidence: ${v.evidence.map(e=>esc(e)).join(' · ')}</div>`:''}</div></div>`).join('');
+ const pm=x.productMapping;
+ const id=cssId(x.trendId);
+ const reasonOpts=Object.entries(REASON_LABEL).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+ return `<div class="card hov click p5 rv" onclick="scoredToggle('${esc(x.trendId)}')">
+  <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
+   <div><h3 style="font-size:17px">${x.status==='scored'?`<span class="mono dim" style="font-size:12px">#${i+1}</span> `:''}${esc(x.name)}</h3>
+    <div style="display:flex;gap:8px;margin-top:7px;flex-wrap:wrap;align-items:center">${badge(lb[0],lb[1])}${late?badge('alert','LATE · POST-BY PASSED'):x.postBy?badge('c','POST BY '+postBy.toUpperCase()):''}${badge('muted','CONFIDENCE '+conf.toUpperCase())}${x.decided?badge('ai',x.decided.replace('_',' ').toUpperCase()):''}</div></div>
+   ${x.status==='scored'?`<div style="text-align:right"><span class="num" style="font-size:26px;color:#fff">${x.score}</span><span class="dim" style="font-size:12px">/100</span></div>`:badge(x.status==='vetoed'?'alert':'gold',x.status.replace('_',' ').toUpperCase())}
+  </div>
+  ${pm&&pm.product&&pm.product!=='none'?`<p style="font-size:13px;margin-top:10px"><b style="color:#7dd3fc">${esc(pm.product)}</b> — ${esc(pm.feature||'')}${pm.catalogMatch===false?' '+badge('alert','NOT IN CATALOG'):''}</p>`:x.status==='scored'?`<p class="dim" style="font-size:12px;margin-top:10px">No catalog product mapped.</p>`:''}
+  ${vetoes}
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;flex-wrap:wrap">
+   <span class="mono dim" style="font-size:10px">${t.leadDays!=null?`LEAD ${t.leadDays} D${t.leadAssumed?' (ASSUMED)':''} · `:''}${t.remainingDays!=null?`${t.remainingDays} D LEFT · `:''}${x.lifecycle==='unknown'?'ONE BOARD IN HISTORY':''}</span>
+   <span class="mono dim" style="font-size:10px">${open?'▲ COLLAPSE':'▼ BREAKDOWN'}</span></div>
+  ${open?`<div style="margin-top:14px;border-top:1px solid var(--hairline);padding-top:14px" onclick="event.stopPropagation()">
+   ${x.profile?`<p style="font-size:13px;line-height:1.7" dir="auto">${esc(x.profile.whatItIs||'')}</p>
+    <p class="dim" style="font-size:12px;line-height:1.65;margin-top:6px"><b style="color:#bae6fd">Mechanic:</b> ${esc(x.profile.mechanic||'')}</p>
+    <p class="dim" style="font-size:12px;line-height:1.65;margin-top:4px"><b style="color:#bae6fd">Why spreading:</b> ${esc(x.profile.whySpreading||'')}</p>
+    ${(x.profile.unknowns||[]).length?`<p class="dim" style="font-size:12px;margin-top:4px"><b style="color:#fbbf24">Unknowns:</b> ${x.profile.unknowns.map(u=>esc(u)).join(' · ')}</p>`:''}`:'<p class="dim" style="font-size:12px">No judgement stored for this trend (unjudged).</p>'}
+   ${bars?`<div style="margin-top:12px"><span class="kick">Score breakdown · weights v${esc(String(x.weightsVersion||''))}</span>${bars}${missing.length?`<p class="dim" style="font-size:11px;margin-top:6px">Not scored (normalised away): ${missing.join(', ')}</p>`:''}</div>`:''}
+   <p class="mono dim" style="font-size:10px;margin-top:10px">${esc(String(x.promptVersion||''))}${x.model?' · '+esc(x.model):''}</p>
+   <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    ${x.status==='scored'?`<button class="btn btn-gold btn-sm" onclick="recordTrendDecision(${JSON.stringify(x).replace(/"/g,'&quot;')},'pick')">Pick → Studio</button>
+    <button class="btn btn-ghost btn-sm" onclick="recordTrendDecision(${JSON.stringify(x).replace(/"/g,'&quot;')},'skip')">Skip</button>`:''}
+    <select class="inp-l" id="td-reason-${id}" style="width:auto;padding:4px 8px;font-size:11.5px">${reasonOpts}</select>
+    <input class="inp-l" id="td-text-${id}" placeholder="Reason (required)" style="flex:1;min-width:180px;padding:4px 8px;font-size:11.5px">
+    ${x.status==='scored'?`<button class="btn btn-alert btn-sm" onclick="recordTrendDecision(${JSON.stringify(x).replace(/"/g,'&quot;')},'reject')">Reject</button>`:`<button class="btn btn-ai btn-sm" onclick="recordTrendDecision(${JSON.stringify(x).replace(/"/g,'&quot;')},'override_veto')">Override veto</button>`}
+   </div>
+   <div id="td-err-${id}" style="font-size:12px;color:#fda4af;margin-top:6px"></div>
+  </div>`:''}
+ </div>`;
+}
+function rScoredBoard(){
+ if(!SCORED.loaded)return '';
+ const tab=STATE.scoredTab||'ranked';
+ const list=scoredList();
+ const f=STATE.scoredF||{};
+ const lifecycles=['all',...new Set([...SCORED.ranked,...SCORED.needsReview,...SCORED.rejected].map(x=>x.lifecycle).filter(Boolean))];
+ const products=['all',...new Set(SCORED.ranked.map(x=>x.product||'none'))];
+ const late=SCORED.ranked.filter(x=>x.timing&&x.timing.postByPassed).length;
+ return `
+  <div class="card p5" style="margin-bottom:18px">
+   <div class="section-head" style="margin-bottom:12px"><div><span class="kick accent">Scored board · framework v1</span><h3 style="font-size:16px">${SCORED.ranked.length} ranked · ${SCORED.needsReview.length} need review · ${SCORED.rejected.length} rejected</h3></div>
+    <span class="pill"><span class="dot"></span>${SCORED.at?'SCORED '+fmtStamp(SCORED.at):'NO RUN YET'}${SCORED.error?' · '+esc(SCORED.error).toUpperCase():''}</span></div>
+   ${!SCORED.at?`<p class="dim" style="font-size:12.5px;line-height:1.7">No scoring run has completed yet — the hourly refresh scores the board after its first fetch. The curated feed below is the baseline.</p>`:`
+   <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+    <div class="chips">${[['ranked','Ranked'],['review','Needs review'],['rejected','Rejected']].map(([k,l])=>`<button class="${tab===k?'on':''}" onclick="scoredTab('${k}')">${l}</button>`).join('')}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+     <select class="inp-l" style="width:auto;padding:4px 8px;font-size:11.5px" onchange="scoredFilter('lifecycle',this.value)">${lifecycles.map(v=>`<option value="${esc(v)}"${(f.lifecycle||'all')===v?' selected':''}>${v==='all'?'All stages':v}</option>`).join('')}</select>
+     <select class="inp-l" style="width:auto;padding:4px 8px;font-size:11.5px" onchange="scoredFilter('product',this.value)">${products.map(v=>`<option value="${esc(v)}"${(f.product||'all')===v?' selected':''}>${v==='all'?'All products':esc(v)}</option>`).join('')}</select>
+    </div></div>
+   ${late?`<p class="dim" style="font-size:12px;margin-bottom:10px">${late} of ${SCORED.ranked.length} ranked trends are past their post-by date for our current lead time — late, not vetoed (TREND_FRAMEWORK §3.4).</p>`:''}
+   ${list.length?`<div class="grid2e">${list.map(rScoredCard).join('')}</div>`:`<p class="dim" style="font-size:12.5px">Nothing in this view.</p>`}`}
+  </div>`;
 }
 async function loadLiveTrends(){
  try{
@@ -2974,6 +3085,7 @@ function rTrends(){
  <section>
   <div class="section-head"><div><span class="kick accent">${LIVE.on?'01 · Samsung-fit feed · TrendRadar':'01 · Scout feed, scored + cleared'}</span><h2>Trend Analysis</h2></div>
    ${trendStalePill()}<span class="pill"><span class="dot"></span>${LIVE.on?`LIVE · TRENDRADAR · BOARD ${fmtStamp(LIVE.boardAt||LIVE.fetchedAt)}`:'SCANNING 4 PLATFORMS · 4 MARKETS · REFRESH 15M'}</span></div>
+  ${rScoredBoard()}
   <div class="kpis c4" style="margin-bottom:18px">
    <div class="card kpi p4"><span class="kick">Live trends</span><div class="v num">${TRENDS.length}</div><div class="hint">${rising} rising · ${TRENDS.length-rising} flat or declining</div></div>
    ${kpi2}

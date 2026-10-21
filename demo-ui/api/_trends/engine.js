@@ -124,7 +124,7 @@ async function scoreBoard(board, opts = {}) {
     let judgement = null, promptVersion = promptV.VERSION, model = null, judgeError = null, capNotes = [];
     const hit = cached.get(id);
     if (hit) { judgement = hit.judgement; model = hit.model; promptVersion = hit.prompt_version; reused++; }
-    else if (judged < maxJ && process.env.ANTHROPIC_API_KEY !== undefined || opts.judge) {
+    else if (judged < maxJ && (process.env.ANTHROPIC_API_KEY !== undefined || opts.judge)) {
       const pre = scoreOne({ trend, snaps: s, judgement: null, leadDays: lead.leadDays, stayDays, now, latestBoardAt: board.boardGeneratedAt });
       const computed = { lifecycle: pre.lifecycle, timing: pre.timing, calendarEvents: pre.calendar.events, snapshotsSeen: s.length };
       try {
@@ -155,7 +155,7 @@ async function latestScores() {
   if (!last.length) return { at: null, ranked: [], rejected: [], needsReview: [] };
   const at = last[0].at;
   const rows = await queryRows('trend_scores', `select=*&at=eq.${q(at)}&order=final_score.desc.nullslast&limit=300`);
-  const view = (r) => ({ trendId: r.trend_id, name: r.name, status: r.status, score: r.final_score, lifecycle: r.lifecycle, postBy: r.post_by, product: r.product, confidence: r.confidence, vetoes: r.vetoes, criteria: r.criteria, timing: r.inputs && r.inputs.timing, profile: r.judgement && r.judgement.profile, productMapping: r.judgement && r.judgement.criteria && r.judgement.criteria.product, promptVersion: r.prompt_version, model: r.model, weightsVersion: r.weights_version });
+  const view = (r) => ({ scoreId: r.id, trendId: r.trend_id, name: r.name, status: r.status, score: r.final_score, lifecycle: r.lifecycle, postBy: r.post_by, product: r.product, confidence: r.confidence, vetoes: r.vetoes, criteria: r.criteria, timing: r.inputs && r.inputs.timing, profile: r.judgement && r.judgement.profile, productMapping: r.judgement && r.judgement.criteria && r.judgement.criteria.product, promptVersion: r.prompt_version, model: r.model, weightsVersion: r.weights_version });
   return { at, boardGeneratedAt: last[0].board_generated_at, ranked: rows.filter((r) => r.status === 'scored').map(view), rejected: rows.filter((r) => r.status === 'vetoed').map(view), needsReview: rows.filter((r) => r.status === 'needs_review' || r.status === 'unjudged').map(view) };
 }
 
