@@ -67,17 +67,45 @@ function lifecycle(rows, opts = {}) {
   return { stage, velocity, acceleration, daysOnBoard, firstSeen, lastSeen, boardsSeen: pts.length, onLatestBoard, durability, upstreamStage: latest.stage || null, now: now.toISOString() };
 }
 
-/** Remaining window and post-by date (TREND_FRAMEWORK.md §3.3–3.4). */
+/** Median of the stays that outlasted `age` (conditional survival) from a
+ *  sorted sample; null when fewer than `min` samples outlast it. */
+function conditionalStay(samples, age, min = 10) {
+  if (!Array.isArray(samples) || !samples.length) return null;
+  const beyond = samples.filter((d) => d > age).sort((a, b) => a - b);
+  if (beyond.length < min) return null;
+  return beyond[Math.floor(beyond.length / 2)];
+}
+
+/** Remaining window and post-by date (TREND_FRAMEWORK.md §3.3–3.4).
+ *  A trend still on the latest board has not ended: its expected total stay
+ *  is the conditional median given the age it has already reached (from
+ *  opts.staySamples[durability], Maistro's own history); without enough
+ *  history, the class median or at least one more day. A trend that left the
+ *  board is expired. */
 function timing(life, opts = {}) {
   const now = opts.now ? new Date(opts.now) : new Date();
-  const stay = (opts.stayDays && opts.stayDays[life.durability]) || SEED_STAY_DAYS[life.durability] || SEED_STAY_DAYS.ongoing;
+  const cls = life.durability || 'ongoing';
+  const classMedian = (opts.stayDays && opts.stayDays[cls]) || SEED_STAY_DAYS[cls] || SEED_STAY_DAYS.ongoing;
   const lead = opts.leadDays != null ? opts.leadDays : ASSUMED_LEAD_DAYS;
   const leadAssumed = opts.leadDays == null;
-  if (!life.firstSeen) return { endOfLife: null, remainingDays: null, postBy: null, leadDays: lead, leadAssumed, stayDays: stay, stayFromHistory: Boolean(opts.stayDays && opts.stayDays[life.durability]) };
-  const endOfLife = life.stage === 'evergreen' ? new Date(now.getTime() + 30 * DAY) : new Date(new Date(life.firstSeen).getTime() + stay * DAY);
+  const stayFromHistory = Boolean(opts.stayDays && opts.stayDays[cls]);
+  if (!life.firstSeen) return { endOfLife: null, remainingDays: null, postBy: null, leadDays: lead, leadAssumed, stayDays: classMedian, stayFromHistory, basis: 'none' };
+  const first = new Date(life.firstSeen).getTime();
+  const age = life.daysOnBoard || 1;
+  let stay = classMedian, basis = stayFromHistory ? 'class median' : 'seed median';
+  let endOfLife;
+  if (life.stage === 'evergreen') { endOfLife = new Date(now.getTime() + 30 * DAY); basis = 'evergreen'; }
+  else if (life.onLatestBoard === false) { endOfLife = new Date(new Date(life.lastSeen).getTime()); basis = 'left the board'; }
+  else {
+    const cond = conditionalStay(opts.staySamples && opts.staySamples[cls], age);
+    if (cond != null) { stay = cond; basis = `conditional median given ${age} d on board`; }
+    else if (classMedian <= age) { stay = age + 1; basis = 'still on the board beyond the class median (+1 day)'; }
+    endOfLife = new Date(first + stay * DAY);
+    if (endOfLife < new Date(now.getTime() + DAY)) endOfLife = new Date(now.getTime() + DAY); // alive today → at least tomorrow
+  }
   const remainingDays = Math.round((endOfLife - now) / DAY);
   const postBy = new Date(endOfLife.getTime() - lead * DAY);
-  return { endOfLife: endOfLife.toISOString(), remainingDays, postBy: postBy.toISOString(), postByPassed: postBy < now, leadDays: lead, leadAssumed, stayDays: stay, stayFromHistory: Boolean(opts.stayDays && opts.stayDays[life.durability]) };
+  return { endOfLife: endOfLife.toISOString(), remainingDays, postBy: postBy.toISOString(), postByPassed: postBy < now, leadDays: lead, leadAssumed, stayDays: stay, stayFromHistory, basis };
 }
 
 /** Criterion 2.1 momentum & timing, 0–10 (§3.5). */
@@ -150,4 +178,4 @@ function deterministicVetoes({ trend, snapshotRow, timingOut, feasibilityClass }
 
 const feasibilityScore = (cls) => (cls in FEASIBILITY ? FEASIBILITY[cls] : null);
 
-module.exports = { CALENDAR, FEASIBILITY, WEIGHTS, WEIGHTS_VERSION, SEED_STAY_DAYS, ASSUMED_LEAD_DAYS, boards, lifecycle, timing, momentumScore, calendarScore, finalScore, deterministicVetoes, feasibilityScore };
+module.exports = { CALENDAR, FEASIBILITY, WEIGHTS, WEIGHTS_VERSION, SEED_STAY_DAYS, ASSUMED_LEAD_DAYS, boards, lifecycle, timing, conditionalStay, momentumScore, calendarScore, finalScore, deterministicVetoes, feasibilityScore };

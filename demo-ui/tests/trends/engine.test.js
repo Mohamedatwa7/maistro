@@ -73,20 +73,21 @@ test('scoreBoard: judges each trend once per board and prompt version (cached on
   const judge = async ({ trend }) => {
     calls++;
     if (trend.trendId === board.raw[1].trendId) return { error: 'judgement failed validation', problems: ['criteria.gulf.score: integer 0–10'] };
-    if (trend.trendId === board.raw[2].trendId) return { judgement: good({ safety: { verdict: 'veto', evidence: ['name'], rationale: 'dangerous challenge' } }), model: 'test', promptVersion: 'profile-v1-2026-10-21', usage: { input_tokens: 100, output_tokens: 50 } };
-    return { judgement: good(), model: 'test', promptVersion: 'profile-v1-2026-10-21', usage: { input_tokens: 100, output_tokens: 50 } };
+    if (trend.trendId === board.raw[2].trendId) return { judgement: good({ safety: { verdict: 'veto', evidence: ['name'], rationale: 'dangerous challenge' } }), model: 'test', promptVersion: require('../../api/_trends/prompts/profile-v1.js').VERSION, usage: { input_tokens: 100, output_tokens: 50 } };
+    return { judgement: good(), model: 'test', promptVersion: require('../../api/_trends/prompts/profile-v1.js').VERSION, usage: { input_tokens: 100, output_tokens: 50 } };
   };
   const saved = { u: process.env.SUPABASE_URL, k: process.env.SUPABASE_SERVICE_ROLE_KEY };
   process.env.SUPABASE_URL = 'https://sb.test'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'k';
   try {
     let out = await scoreBoard(board, { now: NOW, judge });
     assert.equal(calls, 4); assert.deepEqual([out.summary.judged, out.summary.failed, out.summary.reused, out.summary.stored], [3, 1, 0, 4]);
-    assert.equal(out.summary.lead.leadDays, null, 'no approved pieces yet → lead time assumed');
+    assert.equal(out.summary.lead.leadDays, null, 'no approved pieces yet → lead time assumed'); assert.deepEqual(out.summary.stayDays, {}, 'fewer than 20 trends per class → seed medians');
     assert.equal(pg.tables.trend_scores.length, 4);
     const statuses = pg.tables.trend_scores.map((r) => r.status).sort();
     assert.deepEqual(statuses, ['scored', 'scored', 'unjudged', 'vetoed']);
     const stored = pg.tables.trend_scores.find((r) => r.status === 'scored');
-    assert.equal(stored.prompt_version, 'profile-v1-2026-10-21'); assert.equal(stored.weights_version, 'w1-2026-10-21'); assert.equal(stored.inputs.snapshots, 3); assert.ok(stored.judgement.profile); assert.ok(stored.post_by);
+    assert.equal(stored.inputs.timing.basis, 'seed median'); assert.deepEqual(stored.inputs.staySamples, { ongoing: 4 });
+    assert.equal(stored.prompt_version, require('../../api/_trends/prompts/profile-v1.js').VERSION); assert.equal(stored.weights_version, 'w1-2026-10-21'); assert.equal(stored.inputs.snapshots, 3); assert.ok(stored.judgement.profile); assert.ok(stored.post_by);
     const failedRow = pg.tables.trend_scores.find((r) => r.status === 'unjudged'); assert.match(failedRow.inputs.judgeError, /failed validation/);
     assert.equal(out.results[0].status, 'scored', 'ranked first');
     // second run on the same board: judgements reused, no new calls
@@ -139,4 +140,11 @@ test('POST /api/trends records a human decision (5.7): session required, enum an
     assert.equal(r.statusCode, 200); assert.equal(pg.tables.trend_decisions[1].decided_by, 'u-r'); assert.equal(pg.tables.trend_decisions[1].name_as_signed, 'R. Viewer'); assert.equal(pg.tables.trend_decisions[1].reason_code, 'veto_wrong');
     r = res(); await h.handler(req({ method: 'PUT' }), r); assert.equal(r.statusCode, 405);
   } finally { f.restore(); h.restore(); }
+});
+
+test('the API-facing judgement schema carries no integer bounds (the first live run failed 38/38 on minimum/maximum); our validator still enforces 0–10', () => {
+  const { SCHEMA } = require('../../api/_trends/prompts/profile-v1.js');
+  assert.ok(!JSON.stringify(SCHEMA).includes('"minimum"') && !JSON.stringify(SCHEMA).includes('"maximum"'));
+  const j = good(); j.criteria.gulf.score = 11;
+  assert.ok(validateJudgement(j).some((p) => /gulf.score/.test(p)));
 });

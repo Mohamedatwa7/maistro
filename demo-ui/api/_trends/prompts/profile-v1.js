@@ -1,6 +1,6 @@
 // Trend profile + judgement prompt, version 1 (TREND_FRAMEWORK.md §5).
 // Changing the wording or the schema bumps VERSION; scores store it.
-const VERSION = 'profile-v1-2026-10-21';
+const VERSION = 'profile-v1.1-2026-10-21'; // v1.1: integer bounds moved out of the API schema (the API rejects minimum/maximum on integers); our validator still enforces 0–10
 
 const SYSTEM = [
   'You judge social-media trends for MAISTRO, Samsung Gulf\'s content platform (markets: UAE, KSA, Qatar, Kuwait, Oman, Bahrain).',
@@ -54,7 +54,7 @@ const SCHEMA = {
     criterion: {
       type: 'object', additionalProperties: false, required: ['score', 'evidence', 'rationale', 'confidence'],
       properties: {
-        score: { type: 'integer', minimum: 0, maximum: 10 },
+        score: { type: 'integer', description: '0 to 10 per the anchors' },
         evidence: { type: 'array', items: { type: 'string' } },
         rationale: { type: 'string' },
         confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
@@ -63,7 +63,7 @@ const SCHEMA = {
     productCriterion: {
       type: 'object', additionalProperties: false, required: ['score', 'evidence', 'rationale', 'confidence', 'product', 'feature'],
       properties: {
-        score: { type: 'integer', minimum: 0, maximum: 10 },
+        score: { type: 'integer', description: '0 to 10 per the anchors' },
         evidence: { type: 'array', items: { type: 'string' } },
         rationale: { type: 'string' },
         confidence: { type: 'string', enum: ['high', 'medium', 'low'] },

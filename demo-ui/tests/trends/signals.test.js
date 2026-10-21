@@ -34,12 +34,20 @@ test('timing: end of life = first seen + class median stay, post-by = end of lif
   let t = S.timing(life, { now: NOW });
   assert.equal(t.stayDays, 6.5); assert.equal(t.leadDays, 5); assert.equal(t.leadAssumed, true);
   assert.equal(t.endOfLife, new Date(new Date('2026-10-19T08:25:00.000Z').getTime() + 6.5 * 864e5).toISOString());
-  assert.equal(t.postBy, new Date(new Date(t.endOfLife).getTime() - 5 * 864e5).toISOString()); assert.equal(t.postByPassed, true, 'a 6.5-day stay minus a 5-day lead leaves 1.5 days: late by day two'); assert.equal(t.remainingDays, 4);
+  assert.equal(t.postBy, new Date(new Date(t.endOfLife).getTime() - 5 * 864e5).toISOString()); assert.equal(t.postByPassed, true, 'a 6.5-day stay minus a 5-day lead leaves 1.5 days: late by day two'); assert.equal(t.remainingDays, 4); assert.equal(t.basis, 'seed median');
   t = S.timing(life, { now: NOW, leadDays: 2.5, stayDays: { ongoing: 12 } });
   assert.equal(t.leadAssumed, false); assert.equal(t.stayFromHistory, true); assert.equal(t.stayDays, 12);
   const flash = S.lifecycle([row('2026-10-10', 5, { durability: 'flash' }), row('2026-10-12', 6, { durability: 'flash' })], { now: NOW, latestBoardAt: '2026-10-21T08:25:00Z' });
   t = S.timing(flash, { now: NOW });
-  assert.equal(t.stayDays, 3); assert.equal(t.postByPassed, true); assert.ok(t.remainingDays < 0, 'a flash trend first seen 11 days ago is past its end of life → V-EXPIRED');
+  assert.equal(t.basis, 'left the board'); assert.equal(t.postByPassed, true); assert.ok(t.remainingDays < 0, 'a flash trend that left the board is past its end of life → V-EXPIRED');
+  // still on today's board after 12 days: alive, so the stay is the conditional median of the history that outlasted it
+  const old = []; for (let d = 10; d <= 21; d++) old.push(row(`2026-10-${d}`, 1));
+  const oldLife = S.lifecycle(old, { now: NOW, latestBoardAt: '2026-10-21T08:25:00Z' });
+  t = S.timing(oldLife, { now: NOW, staySamples: { ongoing: [3, 4, 5, 6, 7, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24] } });
+  assert.equal(t.stayDays, 19, 'median of the stays beyond 12 days'); assert.match(t.basis, /conditional median given 12 d/); assert.ok(t.remainingDays > 0);
+  t = S.timing(oldLife, { now: NOW, staySamples: { ongoing: [3, 4, 5] } });
+  assert.equal(t.stayDays, 13, 'no history beyond its age → at least one more day'); assert.ok(t.remainingDays >= 1); assert.match(t.basis, /beyond the class median/);
+  assert.equal(S.conditionalStay([1, 2, 3, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29], 5), 25, 'median of the 10 stays beyond 5'); assert.equal(S.conditionalStay([1, 2, 3, 20, 21, 22, 23, 24, 25, 26, 27, 28], 5), null, 'fewer than 10 beyond → no conditional estimate'); assert.equal(S.conditionalStay([1, 2, 30], 5), null);
 });
 
 test('momentum score follows stage and runway; calendar score detects Gulf windows; the final score is weighted in code and normalised over the criteria that have a value', () => {

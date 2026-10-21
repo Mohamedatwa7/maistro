@@ -43,10 +43,10 @@ async function measuredStayDays(now) {
     for (const r of rows) { const k = r.trend_id; const d = (r.board_generated_at || r.fetched_at).slice(0, 10); const e = per.get(k) || { first: d, last: d, dur: r.durability }; e.first = e.first < d ? e.first : d; e.last = e.last > d ? e.last : d; e.dur = r.durability || e.dur; per.set(k, e); }
     const byClass = {};
     for (const e of per.values()) { const days = Math.round((new Date(e.last) - new Date(e.first)) / DAY) + 1; (byClass[e.dur || 'ongoing'] = byClass[e.dur || 'ongoing'] || []).push(days); }
-    const out = {};
-    for (const [k, arr] of Object.entries(byClass)) if (arr.length >= 20) { arr.sort((a, b) => a - b); out[k] = arr[Math.floor(arr.length / 2)]; }
-    return out;
-  } catch (e) { return {}; }
+    const medians = {}, samples = {};
+    for (const [k, arr] of Object.entries(byClass)) { arr.sort((a, b) => a - b); samples[k] = arr; if (arr.length >= 20) medians[k] = arr[Math.floor(arr.length / 2)]; }
+    return { medians, samples };
+  } catch (e) { return { medians: {}, samples: {} }; }
 }
 
 async function snapshotsFor(trendIds, now) {
@@ -72,9 +72,9 @@ async function cachedJudgements(trendIds, boardGeneratedAt) {
 }
 
 /** Score one trend given its snapshots and (optionally) a judgement. Pure apart from the judge call. */
-function scoreOne({ trend, snaps, judgement, leadDays, stayDays, now, latestBoardAt, historicalActive }) {
+function scoreOne({ trend, snaps, judgement, leadDays, stayDays, staySamples, now, latestBoardAt, historicalActive }) {
   const life = S.lifecycle(snaps, { now, latestBoardAt });
-  const t = S.timing(life, { now, leadDays, stayDays });
+  const t = S.timing(life, { now, leadDays, stayDays, staySamples });
   const latestSnap = S.boards(snaps)[0] || null;
   const feasibilityClass = judgement ? judgement.feasibilityClass : null;
   const vetoes = S.deterministicVetoes({ trend, snapshotRow: latestSnap, timingOut: t, feasibilityClass });
@@ -113,7 +113,8 @@ async function scoreBoard(board, opts = {}) {
   const now = opts.now ? new Date(opts.now) : new Date();
   const trends = (board.raw || []).filter((t) => t && t.name && (t.trendId || t.id));
   const ids = trends.map((t) => String(t.trendId || t.id));
-  const [lead, stayDays, snaps, cached] = await Promise.all([measuredLeadDays(), measuredStayDays(now), snapshotsFor(ids, now), cachedJudgements(ids, board.boardGeneratedAt)]);
+  const [lead, stays, snaps, cached] = await Promise.all([measuredLeadDays(), measuredStayDays(now), snapshotsFor(ids, now), cachedJudgements(ids, board.boardGeneratedAt)]);
+  const stayDays = stays.medians || {}, staySamples = stays.samples || {};
   const judge = opts.judge || judgeTrend;
   const maxJ = opts.maxJudgements != null ? opts.maxJudgements : 60;
   const results = []; let judged = 0, reused = 0, failed = 0, usage = { input: 0, output: 0 };
@@ -125,7 +126,7 @@ async function scoreBoard(board, opts = {}) {
     const hit = cached.get(id);
     if (hit) { judgement = hit.judgement; model = hit.model; promptVersion = hit.prompt_version; reused++; }
     else if (judged < maxJ && (process.env.ANTHROPIC_API_KEY !== undefined || opts.judge)) {
-      const pre = scoreOne({ trend, snaps: s, judgement: null, leadDays: lead.leadDays, stayDays, now, latestBoardAt: board.boardGeneratedAt });
+      const pre = scoreOne({ trend, snaps: s, judgement: null, leadDays: lead.leadDays, stayDays, staySamples, now, latestBoardAt: board.boardGeneratedAt });
       const computed = { lifecycle: pre.lifecycle, timing: pre.timing, calendarEvents: pre.calendar.events, snapshotsSeen: s.length };
       try {
         const r = await judge({ trend, computed, catalog: PRODUCT_CATALOG, calendarNote: pre.calendar.note });
@@ -133,11 +134,11 @@ async function scoreBoard(board, opts = {}) {
         else { judgeError = r ? `${r.error}: ${(r.problems || []).slice(0, 3).join('; ')}` : 'no answer'; failed++; }
       } catch (e) { judgeError = e.message; failed++; }
     }
-    const scored = scoreOne({ trend, snaps: s, judgement, leadDays: lead.leadDays, stayDays, now, latestBoardAt: board.boardGeneratedAt, historicalActive: false });
+    const scored = scoreOne({ trend, snaps: s, judgement, leadDays: lead.leadDays, stayDays, staySamples, now, latestBoardAt: board.boardGeneratedAt, historicalActive: false });
     const row = {
       trend_id: id, name: trend.name, board_generated_at: board.boardGeneratedAt || null, prompt_version: promptVersion, model, weights_version: scored.final.weightsVersion,
       status: scored.status, final_score: scored.status === 'scored' ? scored.final.score : null, lifecycle: scored.lifecycle.stage, post_by: scored.timing.postBy || null,
-      vetoes: scored.vetoes, criteria: scored.final.parts, judgement, inputs: { snapshots: s.length, leadDays: lead, stayDays, timing: scored.timing, calendar: scored.calendar, capNotes, judgeError },
+      vetoes: scored.vetoes, criteria: scored.final.parts, judgement, inputs: { snapshots: s.length, leadDays: lead, stayDays, staySamples: Object.fromEntries(Object.entries(staySamples).map(([k, v]) => [k, v.length])), timing: scored.timing, calendar: scored.calendar, capNotes, judgeError },
       product: scored.productMapping ? scored.productMapping.product : null, confidence: scored.confidence, at: now.toISOString(),
     };
     rows.push(row);
