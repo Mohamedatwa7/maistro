@@ -220,11 +220,22 @@ Open items for the builder (1 should land before the team is onboarded):
 2. Minor: an admin can change their own role through PATCH (the page disables it, the server does not), which can lock the last admin out. Refuse self-demotion like self-deactivation.
 3. Minor: `requestMagicLink` sends `create_user: true`, so anyone who reaches the login page can create an auth user (never a member). After the owner's first sign-in, turn off "Allow new users to sign up" in Supabase Auth, or switch to `create_user: false`; invitations keep working either way.
 
+## M2 part 2 (c) hardening (commit cd8e9e4, log 422c0ae)
+
+Status: **PASSED** by checker. All three items from the part (c) review are closed.
+
+- Tests: `npm test` 89/89 green here; typecheck and check clean. CI was queued for 422c0ae at verification time.
+- Live role check: `refreshMember` re-reads the members row by id and replaces the cookie's role and name; `requireRole` (now async) calls it, and the POST paths of decisions and pieces call it for member sessions. Inactive gives 403 `member_inactive`, a demoted member gets the row's role (test: a cookie claiming admin for a viewer row is refused on `/api/members`), a storage error fails closed with 503.
+- Self-demotion: members PATCH refuses `active:false` or a non-admin role on the caller's own id (422).
+- Magic links are requested server-side: POST `/api/login` with `{email}` sends the OTP only for an active member or a bootstrap admin and answers 200 `{ok:true}` either way; 422 for a malformed address; GET `/api/login` no longer exposes the anon key or project URL, and the page no longer calls GoTrue directly. `create_user:true` stays on the server call so the bootstrap admin can sign in before an auth user exists; strangers never reach GoTrue.
+- Production: `/` byte-identical to the committed `index.html` (sha256 3f6efe30…); GET `/api/login` returns only `magicLink` and `password` flags, no key material; POST `{email:"stranger@evil.example"}` 200 ok, `{email:"nope"}` 422; `/api/members` 401 without a cookie; health missing [].
+- Nit, not blocking: the stranger path answers faster than the member path (no GoTrue call), a timing tell for enumeration that only matters if someone cares; GoTrue's own per-address rate limit covers link spam to a member.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
 2. **Click-through for the database half of M2:** while signed in, create one Studio campaign; the builder confirms it in the database.
-3. **After the team is invited** (Members entry in the sidebar, admins only): set `MAISTRO_REQUIRE_MEMBER=1` on Vercel so decisions need a member session, and later unset `MAISTRO_APP_PASSWORD` to retire the shared password. Also turn off "Allow new users to sign up" in Supabase Auth so only invited people get sign-in links.
+3. **After the team is invited** (Members entry in the sidebar, admins only): set `MAISTRO_REQUIRE_MEMBER=1` on Vercel so decisions need a member session, and later unset `MAISTRO_APP_PASSWORD` to retire the shared password. (Turning off public sign-ups in Supabase Auth is now optional: since cd8e9e4 the login page only requests links for members and bootstrap admins.)
 4. **Rotate the pasted secrets** (from 7b50e15): the database password, the anon key and the service-role key were pasted in chat. Reset the password (Supabase, Project Settings, Database) and rotate the keys when convenient, then re-add with `vercel env add`. Hygiene, not an outage.
 5. **Vercel plan decision** (REBUILD_LOG Q-002): Hobby (12 functions, daily crons, 300 s) versus Pro before M3, the jobs tick, which needs more frequent crons. Say yes or no.
 6. ~~Supabase connection string and anon key (Q-006)~~ answered 2026-10-21; migrations applied.
