@@ -359,6 +359,7 @@ const DECISIONS = ['pick', 'skip', 'reject', 'override_veto', 'override_score'];
 const REASON_CODES = ['off_brand', 'unsafe', 'cultural', 'no_product', 'too_late', 'unproducible', 'saturated', 'audio', 'weak_hook', 'other', 'veto_wrong', 'score_wrong', 'good_opportunity'];
 
 module.exports = async (req, res) => {
+  const startedAt = Date.now();
   try {
     const q = req.query || {};
     // 5.7: every human pick / skip / rejection / override is a row (session)
@@ -401,7 +402,10 @@ module.exports = async (req, res) => {
         // 5.4: veto-then-score the board (judgements cached per trend × board × prompt version)
         let scoring = null;
         if (cacheConfigured() && process.env.MAISTRO_TREND_SCORING !== '0') {
-          try { const { scoreBoard } = require('../_trends/engine.js'); scoring = (await scoreBoard(board)).summary; }
+          // the whole cron (fetch, curation, snapshots, scoring, write) must end
+          // inside the function's maxDuration; scoring gets the remainder minus a margin
+          const maxS = Number(process.env.MAISTRO_FUNCTION_MAX_S || 300);
+          try { const { scoreBoard } = require('../_trends/engine.js'); scoring = (await scoreBoard(board, { deadline: startedAt + (maxS - 45) * 1000 })).summary; }
           catch (e) { scoring = { error: String(e.message || e).slice(0, 200) }; }
         }
         return res.status(200).json({ ok: true, refreshed: true, source: board.source, boardTotal: board.total, curated: curated.length, curatedBy, snapshots: snap, scoring, at: new Date().toISOString() });

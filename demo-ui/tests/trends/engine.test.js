@@ -112,7 +112,7 @@ test('hourly refresh runs the scoring after the snapshots (MAISTRO_TREND_SCORING
     let r = res(); await h.handler(req({ headers: { authorization: 'Bearer cron' } }), r);
     assert.equal(r.statusCode, 200); assert.equal(r.body.refreshed, true);
     assert.equal(r.body.scoring.error, undefined, JSON.stringify(r.body.scoring));
-    assert.equal(r.body.scoring.trends, 12); assert.equal(r.body.scoring.judged, 12); assert.equal(pg.tables.trend_scores.length, 12);
+    assert.equal(r.body.scoring.trends, 12); assert.equal(r.body.scoring.judged, 9, 'three fixture trends are hard-vetoed by the deterministic rules and never sent to the judge'); assert.equal(r.body.scoring.skippedVetoed, 3); assert.equal(r.body.scoring.deferred, 0); assert.equal(pg.tables.trend_scores.length, 12);
     r = res(); await h.handler(req({ query: { view: 'scored' }, session: false }), r); assert.equal(r.statusCode, 401);
     r = res(); await h.handler(req({ query: { view: 'scored' } }), r);
     assert.equal(r.statusCode, 200); assert.equal(r.body.ranked.length + r.body.rejected.length + r.body.needsReview.length, 12); assert.equal(r.headers['cache-control'], 'no-store');
@@ -147,4 +147,34 @@ test('the API-facing judgement schema carries no integer bounds (the first live 
   assert.ok(!JSON.stringify(SCHEMA).includes('"minimum"') && !JSON.stringify(SCHEMA).includes('"maximum"'));
   const j = good(); j.criteria.gulf.score = 11;
   assert.ok(validateJudgement(j).some((p) => /gulf.score/.test(p)));
+});
+
+test('scoreBoard: judges concurrently under a deadline — trends not reached are stored unjudged as deferred and judged by the next run; deterministically hard-vetoed trends are never sent to the judge', async () => {
+  const pg = fakePostgrest();
+  const f = mockFetch([pg.route]);
+  const feed = fixture('agent-trends.json');
+  const raw = feed.trends.slice(0, 6).map(normalizeAgent);
+  raw[5] = { ...raw[5], sound: { title: 'Uncleared Sound', cleared: false, clearedCheckedAt: '2026-10-21T08:00:00Z' } }; // V-AUDIO hard veto before any model call
+  const board = { raw, source: 'TrendRadar agent API', live: true, boardGeneratedAt: feed.generatedAt, total: 6 };
+  for (const t of board.raw) for (const day of ['2026-10-19', '2026-10-20', '2026-10-21']) pg.tables.trend_snapshots = pg.tables.trend_snapshots || [], pg.tables.trend_snapshots.push({ id: pg.tables.trend_snapshots.length + 1, trend_id: t.trendId, fetched_at: `${day}T09:00:00Z`, board_generated_at: `${day}T08:25:00Z`, growth_pct_per_day: 1 + (day.endsWith('21') ? 1 : 0), durability: 'ongoing', sound_cleared: t.sound ? t.sound.cleared : true, stage: 'peaking' });
+
+  const PV = require('../../api/_trends/prompts/profile-v1.js').VERSION;
+  let calls = 0, inFlight = 0, maxInFlight = 0;
+  const judge = async () => { calls++; inFlight++; maxInFlight = Math.max(maxInFlight, inFlight); await new Promise((r) => setTimeout(r, 30)); inFlight--; return { judgement: good(), model: 'test', promptVersion: PV, usage: { input_tokens: 1, output_tokens: 1 } }; };
+  const saved = { u: process.env.SUPABASE_URL, k: process.env.SUPABASE_SERVICE_ROLE_KEY };
+  process.env.SUPABASE_URL = 'https://sb.test'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'k';
+  try {
+    // two workers, a deadline that lets exactly the first wave through
+    let out = await scoreBoard(board, { now: NOW, judge, concurrency: 2, deadline: Date.now() + 15 });
+    assert.equal(maxInFlight, 2, 'two judgements in flight'); assert.equal(calls, 2, 'the first wave only');
+    assert.equal(out.summary.judged, 2); assert.equal(out.summary.deferred, 3); assert.equal(out.summary.skippedVetoed, 1); assert.equal(out.summary.stored, 6, 'the whole board is still written');
+    const rows = pg.tables.trend_scores; assert.equal(rows.length, 6);
+    assert.equal(rows.filter((r) => r.status === 'scored').length, 2); assert.equal(rows.filter((r) => r.status === 'vetoed').length, 1);
+    const def = rows.filter((r) => r.status === 'unjudged'); assert.equal(def.length, 3); assert.match(def[0].inputs.judgeError, /deferred/);
+    const vetoedRow = rows.find((r) => r.status === 'vetoed'); assert.equal(vetoedRow.vetoes[0].code, 'V-AUDIO'); assert.equal(vetoedRow.judgement, null, 'never judged');
+    // the next run reuses the two judgements and finishes the three deferred ones; the vetoed trend is still not judged
+    out = await scoreBoard(board, { now: '2026-10-21T11:00:00.000Z', judge, concurrency: 4 });
+    assert.equal(calls, 5); assert.deepEqual([out.summary.judged, out.summary.reused, out.summary.deferred, out.summary.skippedVetoed], [3, 2, 0, 1]);
+    const view = await latestScores(); assert.equal(view.ranked.length, 5); assert.equal(view.rejected.length, 1); assert.equal(view.needsReview.length, 0);
+  } finally { f.restore(); if (saved.u === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = saved.u; if (saved.k === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY; else process.env.SUPABASE_SERVICE_ROLE_KEY = saved.k; }
 });

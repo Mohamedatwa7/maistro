@@ -117,23 +117,44 @@ async function scoreBoard(board, opts = {}) {
   const stayDays = stays.medians || {}, staySamples = stays.samples || {};
   const judge = opts.judge || judgeTrend;
   const maxJ = opts.maxJudgements != null ? opts.maxJudgements : 60;
-  const results = []; let judged = 0, reused = 0, failed = 0, usage = { input: 0, output: 0 };
+  // A judgement takes ~14 s; the hourly cron runs inside one function
+  // invocation (vercel.json maxDuration 300 s) and the rows are written at the
+  // end, so judging must run concurrently and stop at a deadline — trends not
+  // reached are stored `unjudged` ("deferred") and picked up by the next run
+  // (judgements are cached per trend × board × prompt version). Trends already
+  // hard-vetoed by the deterministic rules are not judged: the verdict is
+  // final without the model and the call would only cost money.
+  const deadline = opts.deadline || Date.now() + Number(process.env.MAISTRO_JUDGE_BUDGET_S || 180) * 1000;
+  const concurrency = Math.max(1, Number(opts.concurrency || process.env.MAISTRO_JUDGE_CONCURRENCY || 4));
+  const canJudge = process.env.ANTHROPIC_API_KEY !== undefined || Boolean(opts.judge);
+  const results = []; let judged = 0, reused = 0, failed = 0, deferred = 0, skippedVetoed = 0, usage = { input: 0, output: 0 };
   const rows = [];
-  for (const trend of trends) {
+  const items = trends.map((trend) => {
     const id = String(trend.trendId || trend.id);
     const s = snaps.get(id) || [];
-    let judgement = null, promptVersion = promptV.VERSION, model = null, judgeError = null, capNotes = [];
-    const hit = cached.get(id);
-    if (hit) { judgement = hit.judgement; model = hit.model; promptVersion = hit.prompt_version; reused++; }
-    else if (judged < maxJ && (process.env.ANTHROPIC_API_KEY !== undefined || opts.judge)) {
-      const pre = scoreOne({ trend, snaps: s, judgement: null, leadDays: lead.leadDays, stayDays, staySamples, now, latestBoardAt: board.boardGeneratedAt });
-      const computed = { lifecycle: pre.lifecycle, timing: pre.timing, calendarEvents: pre.calendar.events, snapshotsSeen: s.length };
+    const hit = cached.get(id) || null;
+    const pre = hit ? null : scoreOne({ trend, snaps: s, judgement: null, leadDays: lead.leadDays, stayDays, staySamples, now, latestBoardAt: board.boardGeneratedAt });
+    const it = { trend, id, s, hit, pre, judgement: null, promptVersion: promptV.VERSION, model: null, judgeError: null, capNotes: [] };
+    if (hit) { it.judgement = hit.judgement; it.model = hit.model; it.promptVersion = hit.prompt_version; reused++; }
+    else if (pre.status === 'vetoed') { skippedVetoed++; }
+    return it;
+  });
+  const queue = canJudge ? items.filter((it) => !it.hit && it.pre && it.pre.status !== 'vetoed').slice(0, maxJ) : [];
+  const worker = async () => {
+    while (queue.length) {
+      const it = queue.shift();
+      if (Date.now() > deadline) { it.judgeError = 'deferred: judging time budget exhausted — next run'; deferred++; continue; }
+      const computed = { lifecycle: it.pre.lifecycle, timing: it.pre.timing, calendarEvents: it.pre.calendar.events, snapshotsSeen: it.s.length };
       try {
-        const r = await judge({ trend, computed, catalog: PRODUCT_CATALOG, calendarNote: pre.calendar.note });
-        if (r && r.judgement) { judgement = r.judgement; model = r.model; promptVersion = r.promptVersion; capNotes = r.capNotes || []; judged++; if (r.usage) { usage.input += r.usage.input_tokens || 0; usage.output += r.usage.output_tokens || 0; } }
-        else { judgeError = r ? `${r.error}: ${(r.problems || []).slice(0, 3).join('; ')}` : 'no answer'; failed++; }
-      } catch (e) { judgeError = e.message; failed++; }
+        const r = await judge({ trend: it.trend, computed, catalog: PRODUCT_CATALOG, calendarNote: it.pre.calendar.note });
+        if (r && r.judgement) { it.judgement = r.judgement; it.model = r.model; it.promptVersion = r.promptVersion; it.capNotes = r.capNotes || []; judged++; if (r.usage) { usage.input += r.usage.input_tokens || 0; usage.output += r.usage.output_tokens || 0; } }
+        else { it.judgeError = r ? `${r.error}: ${(r.problems || []).slice(0, 3).join('; ')}` : 'no answer'; failed++; }
+      } catch (e) { it.judgeError = e.message; failed++; }
     }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, worker));
+  for (const it of items) {
+    const { trend, id, s, judgement, promptVersion, model, judgeError, capNotes } = it;
     const scored = scoreOne({ trend, snaps: s, judgement, leadDays: lead.leadDays, stayDays, staySamples, now, latestBoardAt: board.boardGeneratedAt, historicalActive: false });
     const row = {
       trend_id: id, name: trend.name, board_generated_at: board.boardGeneratedAt || null, prompt_version: promptVersion, model, weights_version: scored.final.weightsVersion,
@@ -147,7 +168,7 @@ async function scoreBoard(board, opts = {}) {
   let stored = 0;
   if (rows.length && opts.store !== false) { try { await insertRows('trend_scores', rows); stored = rows.length; } catch (e) { console.warn('[trends] trend_scores write failed:', e.message); } }
   results.sort((a, b) => (b.status === 'scored' ? b.final.score : -1) - (a.status === 'scored' ? a.final.score : -1));
-  return { results, summary: { trends: trends.length, judged, reused, failed, stored, lead, stayDays, usage, promptVersion: promptV.VERSION, at: now.toISOString() } };
+  return { results, summary: { trends: trends.length, judged, reused, failed, deferred, skippedVetoed, stored, lead, stayDays, usage, concurrency, promptVersion: promptV.VERSION, at: now.toISOString() } };
 }
 
 /** The latest scored run as the page wants it: ranked + rejected + needs review. */

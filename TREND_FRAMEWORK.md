@@ -82,6 +82,7 @@ Initial weights (sum 100). "Code" criteria are deterministic from data; "LLM" cr
 - `trend_scores` (one row per trend per scoring run): `trend_id`, `snapshot_id`, `prompt_version`, `model`, `weights_version`, `inputs` (the exact JSON given to the model), `vetoes[]`, `criteria{}`, `final_score`, `post_by`, `lifecycle`, `confidence`, `at`.
 - `trend_decisions`: every human pick / skip / rejection / override with a structured reason (5.7).
 - Any change to the prompt, model, weights or rubric bumps a version and re-runs the 5.9 eval set as a regression check.
+- **Run budget (found 2026-10-21 in production):** a judgement takes ~14 s (Sonnet 5.5, `profile-v1.1`, ~5.8k input / 1.8k output tokens) and the hourly cron runs inside one function invocation (`maxDuration` 300 s) that writes its rows at the end — the 18:15 UTC run judged 18 trends sequentially and was killed before writing anything. Rule: judgements run concurrently (`MAISTRO_JUDGE_CONCURRENCY`, default 4) under a deadline passed by the cron (function limit − 45 s; `MAISTRO_JUDGE_BUDGET_S` 180 s when called without one); trends not reached are stored `unjudged` with `judgeError: deferred…` and judged by the next run (judgements are cached per trend × board × prompt version). Trends hard-vetoed by the deterministic rules (uncleared sound, expired, no data, infeasible) are never sent to the judge: the verdict is final without the model. The summary reports `judged / reused / failed / deferred / skippedVetoed`.
 
 ## 7. What the owner may want to change first
 
