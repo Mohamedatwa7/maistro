@@ -1113,7 +1113,10 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ---------- live trends — TrendRadar (kymah.com) via /api/trends ---------- */
-const LIVE={on:false,fetchedAt:null,source:null};
+const LIVE={on:false,fetchedAt:null,source:null,empty:false,error:null};
+/* feed age in hours; null when unknown */
+const liveAgeH=()=>LIVE.fetchedAt?(Date.now()-new Date(LIVE.fetchedAt))/36e5:null;
+const TREND_STALE_H=6;
 function radarSpark(vel){
  const g=1+Math.max(-.08,Math.min(.35,(vel||0)/100));
  return Array.from({length:14},(_,k)=>Math.max(2,Math.round(30*Math.pow(g,k-6))));
@@ -1148,14 +1151,25 @@ async function loadLiveTrends(){
   const r=await fetch('/api/trends');
   if(!r.ok)throw new Error('api '+r.status);
   const d=await r.json();
-  if(!d.trends||!d.trends.length)throw new Error('empty feed');
+  LIVE.error=null;
+  if(!d.trends||!d.trends.length){
+   /* the board can legitimately be thin or empty (2026-10-20: one trend); say so instead of spinning forever */
+   TRENDS.length=0;LIVE.on=true;LIVE.empty=true;LIVE.fetchedAt=d.fetchedAt||new Date().toISOString();LIVE.source=d.source;
+   if(location.hash.replace(/^#\//,'').split('/')[0]==='trends'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rTrends();reveal()}
+   return;
+  }
+  LIVE.empty=false;
   TRENDS.length=0;
   d.trends.forEach((t,i)=>TRENDS.push(radarToTrend(t,i)));
   LIVE.on=true;LIVE.fetchedAt=d.fetchedAt;LIVE.source=d.source;
   if(location.hash.replace(/^#\//,'').split('/')[0]==='trends'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rTrends();reveal()}
   /* no toast on the landing page — it would sit on top of the ENTER THE PLATFORM link */
   if(location.hash.replace(/^#\//,'').split('/')[0]) toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Hermes',1)}<div style="font-size:12.5px"><b>Hermes</b> pulled <b>${d.count} Samsung-fit trends</b> live from <b>TrendRadar</b> (kymah.com).</div></div>`);
- }catch(e){/* API unreachable (e.g. opened as a local file) — simulated data stays in place */}
+ }catch(e){
+  /* unreachable (offline, 502, local file): keep whatever is loaded, but say so on the page */
+  LIVE.error=e.message||'unreachable';
+  if(location.hash.replace(/^#\//,'').split('/')[0]==='trends'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rTrends();reveal()}
+ }
 }
 loadLiveTrends();
 
@@ -2570,16 +2584,30 @@ function trendToggle(id){STATE.open[id]=!STATE.open[id];$('#view').innerHTML=rTr
 function pauseOthers(v){document.querySelectorAll('video').forEach(o=>{if(o!==v)o.pause()})}
 function audioBadge(a){if(!a)return badge('muted','NO AUDIO CLAIM');
  return a.status==='cleared'?badge('go','AUDIO CLEARED'):a.status==='pending'?badge('gold','AUDIO PENDING'):badge('alert','AUDIO BLOCKED')}
+function trendStalePill(){
+ const h=liveAgeH();
+ if(h==null)return '';
+ return h>TREND_STALE_H?`<span class="pill" style="border-color:rgba(251,113,133,.5);color:#fda4af"><span class="dot" style="background:#fb7185"></span>STALE · ${Math.round(h)}H OLD</span>`:'';
+}
 function rTrends(){
- if(!TRENDS.length)return `
+ if(!TRENDS.length){
+  const when=LIVE.fetchedAt?new Date(LIVE.fetchedAt).toUTCString().slice(17,22)+' UTC':null;
+  const state=LIVE.error
+   ?{pill:'FEED UNREACHABLE',dot:'#fb7185',h:'TrendRadar could not be reached',p:`The trend feed request failed (${esc(LIVE.error)}). The page retries on reload; if this persists, kymah.com or the /api/trends function is down.`}
+   :LIVE.empty
+   ?{pill:'BOARD EMPTY'+(when?' · AS OF '+when:''),dot:'#f0b35e',h:'TrendRadar has no trends on its board right now',p:'The feed is connected but the board is empty'+(when?' as of '+when:'')+'. Nothing is hidden: TrendRadar publishes its board once a day and Maistro shows whatever it holds. Studio campaigns can still be created from a free-text brief.'}
+   :{pill:'CONNECTING…',dot:'',h:'Syncing with TrendRadar',p:null};
+  return `
  <section>
   <div class="section-head"><div><span class="kick accent">01 · Samsung-fit feed · TrendRadar</span><h2>Trend Analysis</h2></div>
-   <span class="pill"><span class="dot"></span>CONNECTING…</span></div>
+   <span class="pill"><span class="dot"${state.dot?` style="background:${state.dot}"`:''}></span>${state.pill}</span></div>
   <div class="card p5" style="text-align:center;padding:56px 24px">
-   <span class="kick accent">Syncing with TrendRadar</span>
-   <p class="dim" style="font-size:13px;line-height:1.7;margin-top:12px;max-width:560px;margin-inline:auto">Live Samsung-fit trends are pulled from TrendRadar (kymah.com) and appear here automatically. If this persists, the board may have no gated trends right now — it refreshes with TrendRadar's next daily run.</p>
+   <span class="kick accent">${state.h}</span>${state.p?`
+   <p class="dim" style="font-size:13px;line-height:1.7;margin-top:12px;max-width:560px;margin-inline:auto">${state.p}</p>`:`
+   <p class="dim" style="font-size:13px;line-height:1.7;margin-top:12px;max-width:560px;margin-inline:auto">Live Samsung-fit trends are pulled from TrendRadar (kymah.com) and appear here automatically.</p>`}
   </div>
  </section>`;
+ }
  const list=TRENDS.filter(t=>STATE.chip==='all'||t.platform===STATE.chip);
  const rising=TRENDS.filter(t=>t.vel>0).length;
  const top=TRENDS.reduce((a,b)=>b.vel>a.vel?b:a,TRENDS[0]);
@@ -2596,7 +2624,7 @@ function rTrends(){
  return `
  <section>
   <div class="section-head"><div><span class="kick accent">${LIVE.on?'01 · Samsung-fit feed · TrendRadar':'01 · Scout feed, scored + cleared'}</span><h2>Trend Analysis</h2></div>
-   <span class="pill"><span class="dot"></span>${LIVE.on?`LIVE · TRENDRADAR (KYMAH.COM) · UPDATED ${new Date(LIVE.fetchedAt).toUTCString().slice(17,22)} UTC`:'SCANNING 4 PLATFORMS · 4 MARKETS · REFRESH 15M'}</span></div>
+   ${trendStalePill()}<span class="pill"><span class="dot"></span>${LIVE.on?`LIVE · TRENDRADAR (KYMAH.COM) · UPDATED ${new Date(LIVE.fetchedAt).toUTCString().slice(17,22)} UTC`:'SCANNING 4 PLATFORMS · 4 MARKETS · REFRESH 15M'}</span></div>
   <div class="kpis c4" style="margin-bottom:18px">
    <div class="card kpi p4"><span class="kick">Live trends</span><div class="v num">${TRENDS.length}</div><div class="hint">${rising} rising · ${TRENDS.length-rising} flat or declining</div></div>
    ${kpi2}
@@ -3063,6 +3091,26 @@ function rCalendar(){
 }
 
 /* ================= 04 PERFORMANCE ================= */
+/* How old is what the page shows? Newest post or comment across the loaded
+   data; red when older than 48 h (comment ingestion stalled for 3 weeks in
+   Sept–Oct 2026 without anything on the page saying so — AUDIT C-18). */
+const PERF_STALE_H=48;
+function perfNewestAt(){
+ let m=0;
+ for(const p of SENTI.posts){
+  const t=p.postedAt?new Date(p.postedAt).getTime():0;if(t>m)m=t;
+  for(const c of (p.comments||[])){const u=c.at?new Date(c.at).getTime():0;if(u>m)m=u}
+ }
+ return m||null;
+}
+function perfAgePill(){
+ const n=perfNewestAt();if(!n)return '';
+ const h=(Date.now()-n)/36e5;
+ const label=`DATA AS OF ${new Date(n).toUTCString().slice(5,22)} UTC`;
+ return h>PERF_STALE_H
+  ?`<span class="pill" style="border-color:rgba(251,113,133,.5);color:#fda4af"><span class="dot" style="background:#fb7185"></span>STALE · ${label}</span>`
+  :`<span class="pill"><span class="dot"></span>${label}</span>`;
+}
 function rPerformance(){
  if(SENTI.posts.length){
   const list=pfPosts();
@@ -3076,7 +3124,7 @@ function rPerformance(){
   return `
  <section>
   <div class="section-head"><div><span class="kick accent">04 · The loop closes here · samsungtrack</span><h2>Performance</h2></div>
-   <span class="pill"><span class="dot"></span>CONSUMER SENTIMENT TRACKER · LIVE</span></div>
+   ${perfAgePill()}<span class="pill"><span class="dot"></span>CONSUMER SENTIMENT TRACKER · ${SENTI.track?'LIVE':'SNAPSHOT'}</span></div>
   <div class="kpis c4" style="margin-bottom:12px">
    <div class="card kpi p4 click" onclick="kpiDrill('posts')" title="Click to see the posts behind this number"><span class="kick">Posts</span><div class="v num">${s.posts}</div><div class="hint">${dayLab} · our accounts${pf.plat!=='all'?' · '+(PLAT[pf.plat]?PLAT[pf.plat].n:pf.plat):''} · ⌕</div></div>
    <div class="card kpi p4 click" onclick="kpiDrill('views')" title="Click to see the top posts by views"><span class="kick">Total views</span><div class="v num">${fmt(s.views)}</div><div class="hint">${dayLab} · ⌕</div></div>
