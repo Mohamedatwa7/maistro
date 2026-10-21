@@ -17,6 +17,8 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { requireSession } = require('../_auth.js');
 const { brandPrompts } = require('../_kb/index.js'); // Phase 6.1: catalog and playbook come from the knowledge base (seed = today's text)
+const { registerPrompt, recordGeneration } = require('../_records.js');
+const PROMPT_VERSION = 'director-v1-2026-10-21'; // bump when SYSTEM or a stage brief changes
 const { validate, DIRECTOR_BODY } = require('../_schemas.js');
 
 const MODEL = 'claude-opus-4-8';
@@ -162,15 +164,11 @@ module.exports = async (req, res) => {
 
   try {
     const client = new Anthropic({ timeout: 55000, maxRetries: 1 }); // under the 60 s function limit
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: 2000,
-      thinking: { type: 'adaptive' },
-      system: systemPrompt(await brandPrompts()),
-      messages: [
-        {
-          role: 'user',
-          content:
+    const system = systemPrompt(await brandPrompts());
+    registerPrompt(`director.${stage}`, PROMPT_VERSION, `SYSTEM:\n${systemPrompt({ PRODUCTS_PROMPT: '{{PRODUCTS_PROMPT}}', BRAND_PROMPT: '{{BRAND_PROMPT}}' })}\n\nUSER: ARTIFACT TO CREATE: ${spec.label} — for ${spec.target}; WHAT THIS ARTIFACT IS: ${spec.brief}; CAMPAIGN {{campaign}}; PRIOR {{prior}}; USER INPUT {{userInput}}`, ['PRODUCTS_PROMPT', 'BRAND_PROMPT', 'campaign', 'prior', 'userInput']);
+    const t0 = Date.now();
+    const rec = { kind: 'claude', legacyPieceId: (campaign && campaign.id) || null, stage, model: MODEL, promptName: `director.${stage}`, promptVersion: PROMPT_VERSION, params: { max_tokens: 2000, thinking: 'adaptive', referenceImageAttached: Boolean(campaign && campaign.referenceImageAttached) }, memberId: req.member ? req.member.id : null };
+    const userContent =
             `ARTIFACT TO CREATE: ${spec.label} — for ${spec.target}\n` +
             `WHAT THIS ARTIFACT IS (follow exactly): ${spec.brief}\n\n` +
             `CAMPAIGN:\n${JSON.stringify(campaign, null, 2)}\n\n` +
@@ -179,9 +177,16 @@ module.exports = async (req, res) => {
               : 'Nothing generated yet — this piece sets the campaign\'s visual language.\n') +
             `\nWHAT THE USER ASKED FOR (plain words, may be vague or empty — fill the gaps yourself):\n` +
             `"${String(userInput || '').trim() || '(they left it to you)'}"\n\n` +
-            `Write the generation prompt and the user-facing note.`,
-        },
-      ],
+            `Write the generation prompt and the user-facing note.`;
+    rec.resolvedPrompt = `${system}\n\n${userContent}`;
+    let response;
+    try {
+    response = await client.messages.create({
+      model: MODEL,
+      max_tokens: 2000,
+      thinking: { type: 'adaptive' },
+      system,
+      messages: [{ role: 'user', content: userContent }],
       output_config: {
         format: {
           type: 'json_schema',
@@ -197,10 +202,12 @@ module.exports = async (req, res) => {
         },
       },
     });
+    } catch (e) { await recordGeneration({ ...rec, status: /timed out|timeout/i.test(String(e && e.message)) ? 'timed_out' : 'failed', error: e && e.message, latencyMs: Date.now() - t0 }); throw e; }
 
     const text = response.content.find((b) => b.type === 'text');
     if (!text) throw new Error(`no text block in response (stop_reason: ${response.stop_reason})`);
     const out = JSON.parse(text.text);
+    await recordGeneration({ ...rec, status: 'succeeded', latencyMs: Date.now() - t0, usage: response.usage || null, outputAssets: [{ type: 'prompt', stage }] });
     return res.status(200).json({ stage, prompt: out.prompt, note: out.note });
   } catch (e) {
     return res.status(500).json({ error: e.message || 'director failed' });

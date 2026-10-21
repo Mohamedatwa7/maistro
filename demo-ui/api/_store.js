@@ -118,6 +118,7 @@ async function decide(legacyId, stage, d = {}) {
   const [approval] = await insertRows('approvals', [{
     artifact_version_id: version.id, decision, reason: decision === 'rejected' ? String(d.reason).trim().slice(0, 2000) : (d.reason ? String(d.reason).slice(0, 2000) : null),
     decided_by: d.actorId || null, name_as_signed: name, role_as_signed: role + (d.info ? ` · ${String(d.info).slice(0, 200)}` : ''),
+    reason_code: decision === 'rejected' && d.reasonCode ? String(d.reasonCode).slice(0, 60) : null,
   }], { returning: true });
   await patchRows('stages', `id=eq.${q(s.id)}`, { state: r.next });
   return { pieceId: piece.id, legacyId, stage, versionId: version.id, version: version.version, state: r.next, approvalId: approval.id, decidedAt: approval.decided_at };
@@ -156,7 +157,7 @@ async function listPieces(limit = 100) {
   const stages = await queryIn('stages', 'id,piece_id,kind,state,position,current_version_id,updated_at', 'piece_id', ids);
   const vids = stages.map((s) => s.current_version_id).filter(Boolean);
   const versions = await queryIn('artifact_versions', 'id,version,kind,payload,produced_by,generated_by,created_at', 'id', vids);
-  const approvals = await queryIn('approvals', 'artifact_version_id,decision,reason,name_as_signed,role_as_signed,decided_at', 'artifact_version_id', vids, '&order=decided_at.desc');
+  const approvals = await queryIn('approvals', 'artifact_version_id,decision,reason,reason_code,name_as_signed,role_as_signed,decided_at', 'artifact_version_id', vids, '&order=decided_at.desc');
   const docs = await queryIn('adlcp_documents', 'artifact_version_id,kind,storage_path,sha256,size_bytes,content_type,uploaded_at', 'artifact_version_id', vids);
   const vById = new Map(versions.map((v) => [v.id, v]));
   const latestDecision = new Map();
@@ -172,7 +173,7 @@ async function listPieces(limit = 100) {
       out[s.kind] = {
         state: s.state, updatedAt: s.updated_at,
         version: v ? { id: v.id, n: v.version, kind: v.kind, payload: v.payload, producedBy: v.produced_by, at: v.created_at } : null,
-        decision: a ? { decision: a.decision, reason: a.reason, name: a.name_as_signed, role: a.role_as_signed, at: a.decided_at } : null,
+        decision: a ? { decision: a.decision, reason: a.reason, reasonCode: a.reason_code || null, name: a.name_as_signed, role: a.role_as_signed, at: a.decided_at } : null,
         documents: v ? docsByVersion.get(v.id) || null : null,
       };
     }

@@ -56,6 +56,21 @@ async function seedMissing() {
   return { inserted: rows.length, existing: existing.length };
 }
 
+/** Write the current seed of the given kinds as NEW versions (seed corrections
+ *  after the first seeding); documents whose active content already equals the
+ *  seed are skipped. */
+async function reseedKinds(kinds, note = 'seed update') {
+  const docs = await activeDocuments({ force: true });
+  let written = 0, skipped = 0;
+  for (const d of seedDocuments().filter((x) => kinds.includes(x.kind))) {
+    const cur = docs.find((x) => x.kind === d.kind && x.key === d.key && !x.seeded);
+    if (cur && JSON.stringify(cur.content) === JSON.stringify(d.content) && cur.source === d.source) { skipped++; continue; }
+    await putDocument({ kind: d.kind, key: d.key, content: d.content, note, source: d.source });
+    written++;
+  }
+  return { written, skipped };
+}
+
 const resetCache = () => { cache = { at: 0, docs: null }; };
 
-module.exports = { activeDocuments, getDocument, brandPrompts, putDocument, seedMissing, resetCache };
+module.exports = { activeDocuments, getDocument, brandPrompts, putDocument, seedMissing, reseedKinds, resetCache };

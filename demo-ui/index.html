@@ -978,7 +978,7 @@ function doLogin(){
  $('#login').classList.add('out');
  document.body.classList.remove('locked');
  const sm=$('#sb-members');if(sm)sm.style.display=AUTH.member&&AUTH.member.role==='admin'?'':'none';
- loadPieces();loadScored();
+ loadPieces();loadScored();loadKb();
  if(!location.hash||location.hash==='#')location.hash='#/';
  route();
 }
@@ -3424,12 +3424,25 @@ async function confirmApprove(id){
  const isQC=d.stage==='qc';
  toast(`<b style="color:#6ee7b9">Approved.</b> <span style="font-size:12.5px">${d.title} recorded under ${esc(name)}${d.appr.lm?' with LM + ADLCP sign-off':''}.${isQC?' The piece moves to the <a href="#/calendar" style="color:#7dd3fc">Calendar</a> at its optimized slot.':''}</span>`);
 }
+/* 6.1: structured rejection reasons from the knowledge base (seed fallback) */
+const KB={taxonomy:null};
+const REJECT_FALLBACK={common:['wrong_product','wrong_color','off_brand_tone','cultural_issue','claim_not_approved','text_error','artifact','off_trend','weak_hook','too_long','other'],byStage:{},labels:{}};
+async function loadKb(){
+ try{const r=await fetch('/api/kb?kind=rejection_taxonomy');if(!r.ok)return;const d=await r.json();const doc=(d.documents||[])[0];if(doc)KB.taxonomy=doc.content}catch(e){}
+}
+function rejectOptions(stage){
+ const t=KB.taxonomy||REJECT_FALLBACK;
+ const codes=(t.byStage&&t.byStage[stage])||t.common||[];
+ const lab=c=>(t.labels&&t.labels[c])||c.replace(/_/g,' ').replace(/^\w/,m=>m.toUpperCase());
+ return codes.map(c=>({code:c,label:lab(c)}));
+}
 function openReject(id){
  const d=DELIVS.find(x=>x.id===id),pr=PROJECTS.find(x=>x.id===d.proj);
  $('#modal').innerHTML=`
   <h3>Reject — ${esc(pr.title)}</h3>
-  <p class="msub">${esc(d.title)}. Your reason is sent back to ${esc(d.by)}, who reworks the deliverable and re-uploads it here.</p>
-  <div class="f-field"><label>Reason for rejection</label><textarea id="rj-reason" rows="4" placeholder="What needs to change before this can pass?"></textarea></div>
+  <p class="msub">${esc(d.title)}. The reason is recorded on this version and shown as the brief for the next one.</p>
+  <div class="f-field"><label>What is wrong</label><select class="inp-l" id="rj-code">${rejectOptions(d.stage).map(o=>`<option value="${esc(o.code)}">${esc(o.label)}</option>`).join('')}</select></div>
+  <div class="f-field" style="margin-top:12px"><label>Reason for rejection</label><textarea id="rj-reason" rows="4" placeholder="What needs to change before this can pass?"></textarea></div>
   <div class="f-field" style="margin-top:12px"><label>Your name</label><input class="inp-l" id="rj-name" placeholder="Full name" value="${esc((AUTH.member&&AUTH.member.name)||'')}"></div>
   <div id="rj-err" style="font-size:12px;color:#fda4af;margin-top:8px"></div>
   <div class="mrow"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
@@ -3442,7 +3455,7 @@ async function confirmReject(id){
  if(!name){const el=$('#rj-name');if(el)el.style.borderColor='rgba(251,113,133,.7)';return}
  const d=DELIVS.find(x=>x.id===id);
  const go=$('#rj-go');if(go){go.disabled=true;go.textContent='Recording…'}
- const srv=await recordDecision(d,{decision:'rejected',name,role:'reviewer',reason:r});
+ const srv=await recordDecision(d,{decision:'rejected',name,role:'reviewer',reason:r,reasonCode:($('#rj-code')||{}).value||null});
  if(!srv.ok){
   if(go){go.disabled=false;go.textContent='Send back'}
   const err=$('#rj-err');if(err)err.textContent='Not recorded — '+srv.error;

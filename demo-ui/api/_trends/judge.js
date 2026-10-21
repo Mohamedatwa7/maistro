@@ -2,6 +2,7 @@
 // output against prompts/profile-v1 SCHEMA, validated again on our side so a
 // malformed answer is rejected (counted), never passed through.
 const prompt = require('./prompts/profile-v1.js');
+const { registerPrompt, recordGeneration } = require('../_records.js');
 
 const MODEL = () => process.env.MAISTRO_TREND_JUDGE_MODEL || 'claude-sonnet-5-5';
 
@@ -59,22 +60,28 @@ function enforceCaps(j, { catalog, gulfEvidence }) {
 async function judgeTrend({ trend, computed, catalog, calendarNote, client }) {
   const Anthropic = client ? null : require('@anthropic-ai/sdk');
   const c = client || new Anthropic({ timeout: 90000, maxRetries: 1 });
-  // Adaptive thinking counts against max_tokens on this model family, so a
-  // long profile needs room; this is a classification call, so effort is low.
-  const response = await c.messages.create({
+  registerPrompt('trends.profile', prompt.VERSION, `SYSTEM:\n${prompt.SYSTEM}\n\nUSER: evidence {{trend}} computed {{computed}} catalog {{catalog}} {{calendarNote}}`, ['trend', 'computed', 'catalog', 'calendarNote']);
+  const t0 = Date.now();
+  const rec = { kind: 'trend_judge', model: MODEL(), promptName: 'trends.profile', promptVersion: prompt.VERSION, params: { trendId: trend.trendId || trend.id, max_tokens: 16000, effort: 'low' } };
+  let response;
+  try {
+  response = await c.messages.create({
     model: MODEL(),
     max_tokens: 16000,
     system: prompt.SYSTEM,
     messages: [{ role: 'user', content: prompt.userMessage({ trend, computed, catalog, calendarNote }) }],
     output_config: { format: { type: 'json_schema', schema: prompt.SCHEMA }, effort: 'low' },
   });
+  } catch (e) { await recordGeneration({ ...rec, status: /timed out|timeout/i.test(String(e && e.message)) ? 'timed_out' : 'failed', error: e && e.message, latencyMs: Date.now() - t0 }); throw e; }
+  const done = (status, error) => recordGeneration({ ...rec, status, error, latencyMs: Date.now() - t0, usage: response.usage || null });
   const text = response.content && response.content.find((b) => b.type === 'text');
-  if (!text) return { error: `no text block (stop_reason ${response.stop_reason})`, problems: [] };
-  if (response.stop_reason && response.stop_reason !== 'end_turn' && response.stop_reason !== 'stop_sequence') return { error: `stopped early (stop_reason ${response.stop_reason})`, problems: [String(text.text || '').slice(0, 120)] };
+  if (!text) { await done('failed', `no text block (stop_reason ${response.stop_reason})`); return { error: `no text block (stop_reason ${response.stop_reason})`, problems: [] }; }
+  if (response.stop_reason && response.stop_reason !== 'end_turn' && response.stop_reason !== 'stop_sequence') { await done('failed', `stopped early (${response.stop_reason})`); return { error: `stopped early (stop_reason ${response.stop_reason})`, problems: [String(text.text || '').slice(0, 120)] }; }
   let j;
-  try { j = JSON.parse(text.text); } catch (e) { return { error: `malformed JSON (stop_reason ${response.stop_reason || 'unknown'})`, problems: [e.message] }; }
+  try { j = JSON.parse(text.text); } catch (e) { await done('failed', 'malformed JSON'); return { error: `malformed JSON (stop_reason ${response.stop_reason || 'unknown'})`, problems: [e.message] }; }
   const problems = validateJudgement(j);
-  if (problems.length) return { error: 'judgement failed validation', problems };
+  if (problems.length) { await done('failed', `validation: ${problems.slice(0, 3).join('; ')}`); return { error: 'judgement failed validation', problems }; }
+  await done('succeeded', null);
   const gulfEvidence = trend.region === 'local' || /^(ar|mixed)$/i.test(String(trend.lang || '')) || /[؀-ۿ]/.test(`${trend.name} ${trend.why || ''}`);
   const capNotes = enforceCaps(j, { catalog, gulfEvidence });
   return { judgement: j, capNotes, usage: response.usage || null, model: MODEL(), promptVersion: prompt.VERSION };

@@ -21,7 +21,7 @@ test('the seed reproduces today\'s prompts byte for byte and carries provenance 
   const fold = docs.find((d) => d.kind === 'product_catalog' && d.key === 'Galaxy Z Fold8');
   assert.equal(fold.content.approvedClaims, null); assert.ok(fold.content.gaps.includes('approved claims with exact wording')); assert.equal(fold.content.captionMentions30d, 31);
   const tt = docs.find((d) => d.kind === 'platform_specs' && d.key === 'tiktok');
-  assert.equal(tt.content.verified, false, 'no official page was fetched → unverified');
+  assert.equal(tt.content.ads.verified, true, 'ad specs come from the official ads guide'); assert.equal(tt.content.organic.verified, false, 'organic limits stay unverified');
   const dd = docs.find((d) => d.kind === 'brand_kb' && d.key === 'do_dont');
   assert.ok(dd.content.gaps.some((g) => /disclaimers/.test(g)));
   const tax = docs.find((d) => d.kind === 'rejection_taxonomy');

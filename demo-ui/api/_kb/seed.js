@@ -54,7 +54,7 @@ const product_catalog = PRODUCT_CATALOG.map((p) => ({
     captionMentions30d: CAPTION_EVIDENCE[p.name] || 0,
     gaps: ['official per-market names', 'official reference images (multiple angles)', 'colour names', 'key features', 'approved claims with exact wording', 'specs', 'availability and launch dates per GCC market'],
   },
-  source: 'api/_brand.js PRODUCT_CATALOG (2026 lineup); mentions counted in Samsung Gulf captions 2026-09-25 → 2026-10-20',
+  source: 'api/_brand.js PRODUCT_CATALOG (2026 lineup); captionMentions30d = distinct Samsung Gulf captions (both platforms, deduplicated on text) matching the product NAME, 2026-09-25 → 2026-10-20; hashtag-only mentions not counted (a name-or-hashtag count over 187 posts ranks identically: Fold8 95, Frame 21, Tab S12 14, Buds4 Pro 12, Laundry 8, Watch9 7)',
 }));
 // Seen in the brand's own hashtags but absent from the catalog — owner to confirm before use.
 const catalog_candidates = { key: '_candidates', content: { candidates: [{ name: 'Galaxy Watch Ultra2', evidence: '#galaxywatchultra2 (4 captions)' }, { name: 'Galaxy Z Fold8 Ultra', evidence: '#galaxyzfold8ultra (3 captions)' }, { name: 'Galaxy Tab S12 Ultra', evidence: '#galaxytabs12ultra (7 captions)' }], gaps: ['confirm whether these are catalog entries or campaign hashtags'] }, source: 'Samsung Gulf captions 2026-09-25 → 2026-10-20' };
@@ -79,13 +79,27 @@ const market_context = [
   }, source: 'TREND_FRAMEWORK.md §1 V-CULTURE and §4 (builder defaults, owner to amend)' },
 ];
 
-// Platform specs: no official page could be fetched (search returned third-party
-// guides only); values are those guides' consensus and are marked unverified.
+// Platform specs. The AD specs come from the official ads guides the checker
+// session fetched on 2026-10-21 (verified, with the URL); ORGANIC limits
+// (caption length, safe zones, sweet spots) are third-party consensus and
+// stay marked unverified until the official organic articles are reachable.
 const platform_specs = [
-  { key: 'tiktok', content: { aspect: '9:16', resolution: '1080×1920', fps: '30', durationRange: '3 s – 10 min upload', sweetSpot: '9–15 s hook-led; ≤ 30 s', safeZone: 'keep the top ~160 px, bottom ~440 px and ~80 px sides clear of key content (at 720×1280 template scale)', captionLimit: '2200 characters (unverified)', cover: 'frame from the video', audioLoudness: null, verified: false, gaps: ['verify every value on TikTok\'s Business Help Center', 'loudness target'] }, source: 'third-party spec guides 2026 (renderforest, emplifi, postly) — unverified' },
-  { key: 'instagram_reels', content: { aspect: '9:16', resolution: '1080×1920', fps: '30', durationRange: '3 s – 3 min in-app (uploads up to 15 min)', sweetSpot: '7–15 s', safeZone: 'centre 1080×1420 area', captionLimit: '2200 characters (unverified)', cover: '1080×1920 (grid crop 1080×1420)', audioLoudness: null, verified: false, gaps: ['verify on Meta\'s Help Center', 'loudness target'] }, source: 'third-party spec guides 2026 — unverified' },
-  { key: 'instagram_feed', content: { aspect: '4:5 or 1:1', resolution: '1080×1350 / 1080×1080', fps: '30', durationRange: 'up to 60 s video', sweetSpot: null, safeZone: null, captionLimit: '2200 characters (unverified)', verified: false, gaps: ['verify on Meta\'s Help Center'] }, source: 'third-party spec guides 2026 — unverified' },
-  { key: 'instagram_stories', content: { aspect: '9:16', resolution: '1080×1920', durationRange: '≤ 60 s per story', safeZone: 'top 250 px and bottom 250 px clear (unverified)', verified: false, gaps: ['verify on Meta\'s Help Center'] }, source: 'third-party spec guides 2026 — unverified' },
+  { key: 'tiktok', content: {
+    ads: { verified: true, source: 'https://ads.tiktok.com/help/article/video-ads-specifications', aspect: ['9:16 ≥ 540×960', '16:9 ≥ 960×540', '1:1 ≥ 640×640'], formats: ['mp4', 'mov', 'mpeg', '3gp', 'avi'], maxSizeMB: 500, maxDuration: '10 min', minBitrateKbps: 516, safeZone: 'TikTok provides safe-zone template files separately for LTR and Arabic RTL layouts' },
+    organic: { verified: false, aspect: '9:16', resolution: '1080×1920', fps: '30', durationRange: '3 s – 10 min upload', sweetSpot: '9–15 s hook-led; ≤ 30 s', safeZone: 'keep the top ~160 px, bottom ~440 px and ~80 px sides clear (720×1280 template scale)', captionLimit: '2200 characters (unverified)' },
+    audioLoudness: null, gaps: ['organic article unreachable — verify caption limit, safe zone, sweet spot', 'loudness target', 'obtain the official RTL safe-zone template for Arabic overlays'],
+  }, source: 'ads: TikTok Business Help Center (checker fetch 2026-10-21); organic: third-party guides — unverified' },
+  { key: 'instagram_reels', content: {
+    ads: { verified: true, source: 'https://www.facebook.com/business/ads-guide/update/video/instagram-reels', aspect: '9:16', recommendedResolution: '1440×2560', formats: ['mp4', 'mov'], maxSizeGB: 4, duration: '0 s – 15 min', frameRate: 'constant', primaryTextChars: 44, minWidthPx: { under30s: 250, over30s: 500 } },
+    organic: { verified: false, aspect: '9:16', resolution: '1080×1920', fps: '30', durationRange: '3 s – 3 min in-app (uploads up to 15 min)', sweetSpot: '7–15 s', safeZone: 'centre 1080×1420 area', captionLimit: '2200 characters (unverified)', cover: '1080×1920 (grid crop 1080×1420)' },
+    audioLoudness: null, gaps: ['organic caption limit, safe zone and cover crop unverified', 'loudness target'],
+  }, source: 'ads: Meta ads guide (checker fetch 2026-10-21); organic: third-party guides — unverified' },
+  { key: 'instagram_feed', content: {
+    ads: { verified: true, source: 'https://www.facebook.com/business/ads-guide/update/video/instagram-feed', formats: ['mp4', 'mov', 'gif'], maxSizeGB: 4, duration: '1 s – 60 min', primaryTextChars: 125, note: 'the page lists 9:16 with 1920×1080, which is self-contradictory — confirm in the ad tools' },
+    organic: { verified: false, aspect: '4:5 or 1:1', resolution: '1080×1350 / 1080×1080', fps: '30', durationRange: 'up to 60 s video', captionLimit: '2200 characters (unverified)' },
+    gaps: ['aspect ratio contradiction on the official page', 'organic limits unverified'],
+  }, source: 'ads: Meta ads guide (checker fetch 2026-10-21); organic: third-party guides — unverified' },
+  { key: 'instagram_stories', content: { ads: { verified: false, note: 'official Stories ads page returned 404 on 2026-10-21' }, organic: { verified: false, aspect: '9:16', resolution: '1080×1920', durationRange: '≤ 60 s per story', safeZone: 'top 250 px and bottom 250 px clear (unverified)' }, gaps: ['verify on Meta\'s Help Center'] }, source: 'third-party guides — unverified; official ads page 404' },
 ];
 
 // Structured rejection reasons per stage (6.1 item 8): fixed codes + free text.

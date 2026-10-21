@@ -8,6 +8,8 @@
 const Anthropic = require('@anthropic-ai/sdk');
 const { requireSession } = require('../_auth.js');
 const { brandPrompts } = require('../_kb/index.js'); // Phase 6.1: catalog and playbook come from the knowledge base (seed = today's text)
+const { registerPrompt, recordGeneration } = require('../_records.js');
+const PROMPT_VERSION = 'hermes-v1-2026-10-21'; // bump when SYSTEM or a stage instruction changes
 const { validate, HERMES_BODY } = require('../_schemas.js');
 
 const MODEL = 'claude-opus-4-8';
@@ -157,27 +159,31 @@ module.exports = async (req, res) => {
 
   try {
     const client = new Anthropic({ timeout: 110000, maxRetries: 1 }); // under the 120 s function limit
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: 8000,
-      thinking: { type: 'adaptive' },
-      system: systemPrompt(await brandPrompts()),
-      messages: [
-        {
-          role: 'user',
-          content:
-            `You are ${spec.agent}. Today is ${new Date().toDateString()}.\n\n` +
-            `TREND (from TrendRadar):\n${JSON.stringify(trend, null, 2)}\n\n` +
-            (project ? `PROJECT SO FAR (earlier stage artifacts):\n${JSON.stringify(project, null, 2)}\n\n` : '') +
-            `TASK: ${spec.instruction}`,
-        },
-      ],
-      output_config: { format: { type: 'json_schema', schema: spec.schema } },
-    });
+    const system = systemPrompt(await brandPrompts());
+    const user =
+      `You are ${spec.agent}. Today is ${new Date().toDateString()}.\n\n` +
+      `TREND (from TrendRadar):\n${JSON.stringify(trend, null, 2)}\n\n` +
+      (project ? `PROJECT SO FAR (earlier stage artifacts):\n${JSON.stringify(project, null, 2)}\n\n` : '') +
+      `TASK: ${spec.instruction}`;
+    registerPrompt(`hermes.${stage}`, PROMPT_VERSION, `SYSTEM:\n${systemPrompt({ PRODUCTS_PROMPT: '{{PRODUCTS_PROMPT}}', BRAND_PROMPT: '{{BRAND_PROMPT}}' })}\n\nUSER:\n{{agent}} {{date}} {{trend}} {{project}} TASK: ${spec.instruction}`, ['PRODUCTS_PROMPT', 'BRAND_PROMPT', 'agent', 'date', 'trend', 'project']);
+    const t0 = Date.now();
+    const rec = { kind: 'claude', legacyPieceId: (project && project.id) || null, stage, model: MODEL, promptName: `hermes.${stage}`, promptVersion: PROMPT_VERSION, resolvedPrompt: `${system}\n\n${user}`, params: { max_tokens: 8000, thinking: 'adaptive' }, memberId: req.member ? req.member.id : null };
+    let response;
+    try {
+      response = await client.messages.create({
+        model: MODEL,
+        max_tokens: 8000,
+        thinking: { type: 'adaptive' },
+        system,
+        messages: [{ role: 'user', content: user }],
+        output_config: { format: { type: 'json_schema', schema: spec.schema } },
+      });
+    } catch (e) { await recordGeneration({ ...rec, status: /timed out|timeout/i.test(String(e && e.message)) ? 'timed_out' : 'failed', error: e && e.message, latencyMs: Date.now() - t0 }); throw e; }
 
     const text = response.content.find((b) => b.type === 'text');
-    if (!text) throw new Error(`no text block in response (stop_reason: ${response.stop_reason})`);
+    if (!text) { await recordGeneration({ ...rec, status: 'failed', error: `no text block (stop_reason ${response.stop_reason})`, latencyMs: Date.now() - t0, usage: response.usage }); throw new Error(`no text block in response (stop_reason: ${response.stop_reason})`); }
     const artifact = spec.map(JSON.parse(text.text));
+    await recordGeneration({ ...rec, status: 'succeeded', latencyMs: Date.now() - t0, usage: response.usage || null, outputAssets: [{ type: 'artifact', stage }] });
 
     res.setHeader('Cache-Control', 'no-store');
     res.status(200).json({ stage, agent: spec.agent, artifact });

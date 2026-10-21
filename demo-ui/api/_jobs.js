@@ -12,6 +12,8 @@ const { prerequisitesMet, transition } = require('../src/domain/stages.js');
 const higgsfield = require('./_adapters/higgsfield.js');
 const f1x8 = require('./_adapters/f1x8.js');
 const storage = require('./_adapters/storage.js');
+const { recordGeneration } = require('./_records.js');
+const jobRecord = (job, extra) => recordGeneration({ kind: job.kind.startsWith('higgsfield') ? job.kind : 'f1x8', legacyPieceId: job.payload && job.payload.pieceId, pieceId: job.piece_id || null, stage: job.payload && job.payload.stage, promptName: job.kind.startsWith('higgsfield') ? 'director.prompt' : 'f1x8.analysis', promptVersion: null, resolvedPrompt: job.payload && (job.payload.prompt || job.payload.description) || null, params: { aspect_ratio: job.payload && job.payload.aspect_ratio, resolution: job.payload && job.payload.resolution, duration: job.payload && job.payload.duration, ref: Boolean(job.payload && job.payload.ref), v: job.payload && job.payload.v }, inputAssets: job.payload && (job.payload.ref || job.payload.assetUrl || job.payload.assetPath) ? [job.payload.ref || job.payload.assetPath || job.payload.assetUrl] : [], jobId: job.id, memberId: job.payload && job.payload.generatedBy, correlationId: job.payload && job.payload.correlationId, latencyMs: job.started_at ? Date.now() - new Date(job.started_at).getTime() : null, ...extra });
 
 const q = (v) => encodeURIComponent(String(v));
 const KINDS = ['higgsfield_image', 'higgsfield_video', 'f1x8_image', 'f1x8_video'];
@@ -155,6 +157,7 @@ async function assetUrlFor(payload) {
 
 async function fail(job, state, error) {
   await finish(job, { state, error: String(error || '').slice(0, 300) });
+  await jobRecord(job, { status: state === 'timed_out' ? 'timed_out' : /moderated|nsfw/i.test(String(error)) ? 'refused' : 'failed', error });
   if (RENDER_KINDS.includes(job.kind) && job.stage_id) {
     // the stage goes back to ready so the person can try again (domain: generating → failed → ready)
     const [s] = await queryRows('stages', `select=id,kind,state&id=eq.${q(job.stage_id)}&limit=1`);
@@ -193,6 +196,7 @@ async function pollRender(job) {
       return 'failed';
     }
     await finish(job, { state: 'succeeded', error: null, result: { artifact, version: recorded.version, versionId: recorded.versionId, copiedIn: Boolean(copy) } });
+    await jobRecord(job, { status: 'succeeded', outputAssets: [{ url: sourceUrl, assetPath: copy ? copy.path : null, sha256: copy ? copy.sha256 : null, versionId: recorded.versionId }] });
     return 'succeeded';
   }
   if (['failed', 'nsfw', 'canceled'].includes(st.status)) {
@@ -224,6 +228,7 @@ async function pollQc(job) {
       }
     } catch (e) { console.warn('[jobs] qc_results insert failed:', e.message); }
     await finish(job, { state: 'succeeded', error: null, result: { analysis: R, heatmapPath, score: typeof R.score === 'number' ? R.score : null } });
+    await jobRecord(job, { status: 'succeeded', outputAssets: [{ score: typeof R.score === 'number' ? R.score : null, heatmapPath }] });
     return 'succeeded';
   }
   if (st.status === 'error' || st.status === 'not_found') {
