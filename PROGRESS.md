@@ -328,6 +328,14 @@ Status: **PASSED** by checker for the method and the code; the first live eviden
 - Report content matches PERFORMANCE_RECONCILIATION.md section 2: R-1 posts per platform, R-2 sums, R-3 raw comments, R-4 canonical matches as a lower bound with aliasOnly and twinsRemoved, R-6 unique ids, R-7 the three boundary rules on posts within a day of `since`, R-9 freshness per platform; `ok` is R-1, R-3, R-4 and R-6 together.
 - Production: `/` byte-identical (sha256 0f983e16…); health ok, missing []; the trends board was still the 14:27 UTC fetch at 15:11 UTC, so the first 15:15 UTC cron run and the first `trend_snapshots` rows are checked on the next tick.
 
+## Phase 5.1: TREND_FRAMEWORK.md (commit 65ca5f8; docs only, builder's initial values under the delegated gate)
+
+Status: **PASSED with two corrections**, checked for consistency with KYMAH_DATA.md and computability from the tables, not for taste.
+
+- Computable as written: velocity from `trend_snapshots.growth_pct_per_day`; acceleration as the delta between distinct `board_generated_at` values; lead time from `content_pieces.created_at` to the final stage's `approvals.decided_at` (join approvals to `artifact_versions.stage_id` to `stages.kind = 'final'`, decision approved); the `durability` column carries the feed's class. V-AUDIO reads the feed the same way KYMAH_DATA does: `commercialUse.cleared` false vetoes, null is "needs review" (the feed's "never read", not safe), true passes. Gulf relevance is capped because no GCC engagement signal exists, which matches the dictionary's gap list.
+- **Correction 1, the seed medians:** section 3.4 seeds end of life with "flash about 4 days, ongoing about 10 days". Measured on the board history by distinct board dates (the rule KYMAH_DATA now states): flash n 56, median 3.0, mean 4.7; ongoing n 76, median 6.5, mean 8.3. Use the medians (3 and 6.5) or say the seeds are means; 10 for ongoing matches neither.
+- **Correction 2, cold start:** `trend_snapshots` history begins on 2026-10-21, so "first seen" and "days on board" for every trend already on the board are too small until a backfill, and the lifecycle stage rules in 3.2 (days on board <= 2 means emerging) would call current trends emerging. Either backfill first-seen per trend id from the 28 boards in the Trend Radar git history, or state the cold start and suspend the stage rules until a trend has been seen on two distinct boards.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
