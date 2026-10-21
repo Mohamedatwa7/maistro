@@ -394,6 +394,18 @@ Status: **PASSED** by checker.
 - Production: `/` byte-identical (sha256 4a588ff6…); health ok; `/api/kb?kind=` 401 without a session; default feed unchanged.
 - Note, not blocking: every record stores the full resolved prompt (up to 60 KB) including the brand and catalog text that repeats on every call; a hash of the resolved prompt plus the prompt and knowledge-base versions would reconstruct it and keep the table small. Worth doing before volume grows.
 
+## Phase 6.1 item 5: the Creative Spec; records keep the user turn plus fingerprints (commits 9dbf771, 5142f27; log 5532d15; released)
+
+Status: **PASSED with one likely production bug** in the change detection, which the fake database cannot show.
+
+- Tests: CI green on both branches for 5142f27; the checker's local run is 126/126 now that the working tree is clean; typecheck and check clean. Production `/` byte-identical (sha256 4a588ff6…), health ok, default feed unchanged.
+- `api/_spec.js`: `buildSpec` derives the piece head (trend, angle, platforms, markets, inferred languages, products, key message) and per-stage `state`, `current`, `approved` and `lastRejection` from the store, with payload summaries rather than payloads; `syncSpec` writes a `creative_specs` row only when the derived JSON differs from the latest stored one and records the member and a note; synced after pieces POST, after decisions and after render completion in the job service, each wrapped so a failed sync never fails the request.
+- Records: `resolved_prompt` now holds the user turn only; `params.promptSha256` and `promptChars` cover the full text and `params.kbFingerprint` names the active brand and catalog documents (ids, versions, seeded marker) through `kb.brandPrompts()`, so the full prompt is reconstructible from `prompt_registry` plus `kb_documents`.
+
+Likely bug for the builder (not visible in tests):
+
+1. **`syncSpec` compares JSON text, and PostgREST returns jsonb with normalised key order.** Postgres stores `jsonb` with keys reordered (by length, then bytewise), so `JSON.stringify(prev.spec)` read back from the database will generally not equal `JSON.stringify(spec)` built in insertion order even when the content is identical; the comparison then says "changed" on every sync and a new version is written on every pieces POST, decision and render. The in-memory fake keeps insertion order, which is why the "re-sync with nothing new writes nothing" test passes. Compare with a canonical stringify (keys sorted recursively) on both sides, or compare a sha-256 of the canonical form stored on the row. Check `creative_specs` in production after the owner's first click-through: more than one version per piece with identical `spec` confirms it.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
