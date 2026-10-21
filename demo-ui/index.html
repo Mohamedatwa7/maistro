@@ -1176,7 +1176,7 @@ function route(){
  const h=location.hash.replace(/^#\//,'').split('/')[0];
  const fn=routes[h]||routes[''];
  document.body.classList.toggle('bare',fn===rHome);
- $('#view').innerHTML=fn();
+ $('#view').innerHTML=fn();hydrateAssets($('#view'));
  document.querySelectorAll('#sidebar a[data-r]').forEach(a=>a.classList.toggle('on',(a.dataset.r||'')===(routes[h]?h:'')));
  const pl={'':'Home',trends:'Trend Analysis',studio:'Content Studio',calendar:'Calendar',performance:'Performance'};
  const cp=$('#crumb-page');if(cp)cp.textContent=pl[routes[h]?h:''];
@@ -1428,12 +1428,30 @@ async function hermesCall(stage,trend,project){
  if(!r.ok)throw new Error(d.error||('hermes responded '+r.status));
  return d.artifact;
 }
-/* Stored assets (private bucket) render through short-lived signed URLs. */
+/* Stored assets (private bucket) render through short-lived signed URLs.
+   Higgsfield output URLs expire after seven days (HIGGSFIELD.md H-4), so an
+   artifact with an assetPath renders from Maistro's own copy; the provider
+   URL is only the fallback when the signing call fails. */
+const ASSET_URLS={};
 async function hydrateAssets(root){
- const els=[...((root||document).querySelectorAll('[data-asset]:not([src])'))];
+ const els=[...((root||document).querySelectorAll('[data-asset]:not([data-hydrated])'))];
  for(const el of els){
-  try{const r=await authFetch('/api/jobs?asset='+encodeURIComponent(el.dataset.asset));const d=await r.json().catch(()=>({}));if(r.ok&&d.url)el.src=d.url}catch(e){}
+  el.dataset.hydrated='1';
+  const path=el.dataset.asset;
+  try{
+   if(!ASSET_URLS[path]||ASSET_URLS[path].exp<Date.now()){
+    const r=await authFetch('/api/jobs?asset='+encodeURIComponent(path));const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.url)throw new Error(d.error||('HTTP '+r.status));
+    ASSET_URLS[path]={url:d.url,exp:Date.now()+((d.expiresIn||3600)-120)*1000};
+   }
+   el.src=ASSET_URLS[path].url;
+  }catch(e){if(el.dataset.fallback)el.src=el.dataset.fallback}
  }
+}
+/* src attributes for a generated artifact: the stored copy when there is one */
+function mediaAttrs(a,key){
+ if(a&&a.assetPath)return `data-asset="${esc(a.assetPath)}"${a[key]?` data-fallback="${esc(a[key])}"`:''}`;
+ return a&&a[key]?`src="${esc(a[key])}"`:'';
 }
 function studioRefresh(){
  if(location.hash.replace(/^#\//,'').split('/')[0]==='studio'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rStudio();hydrateAssets($('#view'));reveal()}
@@ -2003,11 +2021,9 @@ const QCHEAT={};
 const QC_ASSET_LABELS={thumb:'Thumbnail',mood:'Moodboard',board:'Storyboard',draft:'First draft (video)',final:'Final content (video)'};
 function qcAssets(p){
  const a=[];
- if(p.thumb&&p.thumb.imageUrl)a.push({sid:'thumb',kind:'image',url:p.thumb.imageUrl});
- if(p.mood&&p.mood.imageUrl)a.push({sid:'mood',kind:'image',url:p.mood.imageUrl});
- if(p.board&&p.board.imageUrl)a.push({sid:'board',kind:'image',url:p.board.imageUrl});
- if(p.draft&&p.draft.videoUrl)a.push({sid:'draft',kind:'video',url:p.draft.videoUrl});
- if(p.final&&p.final.videoUrl)a.push({sid:'final',kind:'video',url:p.final.videoUrl});
+ const add=(sid,kind,art,key)=>{if(art&&(art[key]||art.assetPath))a.push({sid,kind,url:art[key]||null,assetPath:art.assetPath||null})};
+ add('thumb','image',p.thumb,'imageUrl');add('mood','image',p.mood,'imageUrl');add('board','image',p.board,'imageUrl');
+ add('draft','video',p.draft,'videoUrl');add('final','video',p.final,'videoUrl');
  return a;
 }
 function qcBrief(p,extra){
@@ -2029,7 +2045,7 @@ async function qcRunAll(pid){
   if(useJobs()){
    authFetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({pieceId:p.id,stage:a.sid,kind:a.kind==='video'?'f1x8_video':'f1x8_image',piece:storeMeta(p),
-     payload:{assetUrl:a.url,title:`${p.title} — ${QC_ASSET_LABELS[a.sid]}`,description:desc}})})
+     payload:{assetUrl:a.url,assetPath:a.assetPath,title:`${p.title} — ${QC_ASSET_LABELS[a.sid]}`,description:desc}})})
    .then(r=>r.json().then(d=>({ok:r.ok,d})))
    .then(({ok,d})=>{
     if(!ok||!d.job)throw new Error(d.error||'submit failed');
@@ -3181,11 +3197,11 @@ function stageArtifact(p,n){
  const done=n<p.stage?badge('go','FINAL · IN PRODUCTION CENTER'):badge('ai','IN PROGRESS');
  switch(s.id){
   case 'mood':return head(done)+(p.mood?(p.mood.imageUrl?`
-   <img class="gen-media" src="${p.mood.imageUrl}" alt="Generated moodboard">${dirNote(p.mood)}${p.studio?regenBox(p,'mood'):''}`:`
+   <img class="gen-media" ${mediaAttrs(p.mood,'imageUrl')} alt="Generated moodboard">${dirNote(p.mood)}${p.studio?regenBox(p,'mood'):''}`:`
    <div class="mood">${p.mood.tiles.map(t=>`<div style="background:linear-gradient(135deg,${t[0]},${t[1]})"><span>${t[2]}</span></div>`).join('')}</div>
    <p class="dim" style="font-size:12.5px;line-height:1.65;margin-top:12px">${p.mood.note}</p>`):'');
   case 'thumb':return head(done)+(p.thumb?(p.thumb.imageUrl?`
-   <img class="gen-media" style="max-width:560px;aspect-ratio:16/9;object-fit:cover" src="${p.thumb.imageUrl}" alt="Generated thumbnail">${dirNote(p.thumb)}${p.studio?regenBox(p,'thumb'):''}`:`
+   <img class="gen-media" style="max-width:560px;aspect-ratio:16/9;object-fit:cover" ${mediaAttrs(p.thumb,'imageUrl')} alt="Generated thumbnail">${dirNote(p.thumb)}${p.studio?regenBox(p,'thumb'):''}`:`
    <div style="max-width:520px"><div class="thumb169" style="background:linear-gradient(120deg,${p.thumb.g[0]},${p.thumb.g[1]})">
     <span class="play">▶</span><div class="tt">${p.thumb.title}<div class="mono" style="font-size:10px;font-weight:400;letter-spacing:.14em;margin-top:5px;color:rgba(255,255,255,.75)">${p.thumb.sub.toUpperCase()}</div></div></div></div>
    <p class="dim" style="font-size:12px;margin-top:10px">Winning route of 3 tested — highest predicted tap-through in the first 2s window.</p>`):'');
@@ -3196,16 +3212,16 @@ function stageArtifact(p,n){
    <ul style="margin:10px 0 0 18px;font-size:12.5px;line-height:2">${p.brief.mandatories.map(m=>`<li>${m}</li>`).join('')}</ul>${p.studio?regenBox(p,'brief'):''}`:'');
   case 'board':return head(done)+(p.board?(Array.isArray(p.board)?`
    <div class="frames">${p.board.map(f=>`<div class="frame card" style="overflow:hidden"><div class="art" style="background:linear-gradient(135deg,${f.g[0]},${f.g[1]})"><span class="tc">${f.tc}</span></div><div class="p3" style="font-size:11.5px;line-height:1.55;color:var(--muted)">${f.d}</div></div>`).join('')}</div>`:`
-   <img class="gen-media" src="${p.board.imageUrl}" alt="Generated storyboard sheet">${dirNote(p.board)}${p.studio?regenBox(p,'board'):''}`):'');
+   <img class="gen-media" ${mediaAttrs(p.board,'imageUrl')} alt="Generated storyboard sheet">${dirNote(p.board)}${p.studio?regenBox(p,'board'):''}`):'');
   case 'draft':return head(done)+(p.draft?`
-   ${p.draft.videoUrl?`<video controls playsinline src="${p.draft.videoUrl}" style="width:100%;max-width:640px;border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}
+   ${p.draft.videoUrl||p.draft.assetPath?`<video controls playsinline ${mediaAttrs(p.draft,'videoUrl')} style="width:100%;max-width:640px;border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}
    <div class="pipe-item" style="margin-bottom:14px"><span class="thumb" style="background:linear-gradient(120deg,${p.th[0]},${p.th[1]})"></span>
     <div><b style="color:#fff">${esc(p.title)} · first draft ${esc(p.draft.version)}</b> <span class="dim mono" style="font-size:10.5px">· ${p.draft.dur}</span>
      <div class="dim" style="font-size:11.5px;margin-top:3px">${p.draft.audio}</div></div></div>
    <div style="display:flex;gap:8px;flex-wrap:wrap">${p.draft.variants.map(v=>badge(v.st==='ready'?'go':'gold',`${v.a} · ${v.l} · ${v.k.toUpperCase()}`)).join('')}${badge('gold','AWAITING F1X8 CHECK')}</div>
    ${dirNote(p.draft)}${p.studio?regenBox(p,'draft'):''}`:'');
   case 'final':return head(done)+(p.final?`
-   ${p.final.videoUrl?`<video controls playsinline src="${p.final.videoUrl}" style="width:100%;max-width:640px;border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}
+   ${p.final.videoUrl||p.final.assetPath?`<video controls playsinline ${mediaAttrs(p.final,'videoUrl')} style="width:100%;max-width:640px;border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}
    <div class="pipe-item" style="margin-bottom:14px"><span class="thumb" style="background:linear-gradient(120deg,${p.th[0]},${p.th[1]})"></span>
     <div><b style="color:#fff">${esc(p.title)} · ${esc(p.final.version)}</b> <span class="dim mono" style="font-size:10.5px">· ${p.final.dur}</span>
      <div class="dim" style="font-size:11.5px;margin-top:3px">${p.final.audio}</div></div></div>

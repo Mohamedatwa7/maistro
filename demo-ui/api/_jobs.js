@@ -59,7 +59,7 @@ async function createJob({ legacyId, stage, kind, payload = {}, piece = {}, memb
     const t = transition(stage, from, { type: from === 'generated' ? 'regenerate' : 'generate' });
     if (!t.ok) throw new StoreError(409, t.code, t.message);
     nextStageState = t.next;
-  } else if (!s.current_version_id && !payload.assetUrl) {
+  } else if (!s.current_version_id && !payload.assetUrl && !payload.assetPath) {
     throw new StoreError(409, 'no_version', `${stage} has nothing to analyse yet`);
   }
   // the row first, the stage second: a failed insert leaves nothing behind,
@@ -121,7 +121,7 @@ async function advance(job) {
       try {
         const sub = job.kind.startsWith('higgsfield')
           ? await higgsfield.submit({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }, { idempotencyKey: job.id })
-          : await f1x8.submit({ kind: job.kind === 'f1x8_video' ? 'video' : 'image', assetUrl: job.payload.assetUrl, title: job.payload.title, description: job.payload.description });
+          : await f1x8.submit({ kind: job.kind === 'f1x8_video' ? 'video' : 'image', assetUrl: await assetUrlFor(job.payload), title: job.payload.title, description: job.payload.description });
         await patchRows('jobs', `id=eq.${q(job.id)}`, { provider_ref: String(sub.ref), state: 'running', error: null, payload: { ...job.payload, v: sub.v || 0, ...(sub.correlationId ? { correlationId: sub.correlationId } : {}) } });
         return 'running';
       } catch (e) {
@@ -142,6 +142,15 @@ async function advance(job) {
     await patchRows('jobs', `id=eq.${q(job.id)}`, { error: String(e.message || e).slice(0, 300), attempts: (job.attempts || 0) + 1 });
     return job.state;
   }
+}
+
+/** The stored copy outlives the provider URL (seven days): sign it for the
+ *  analysis when the job names an assetPath; fall back to the provider URL. */
+async function assetUrlFor(payload) {
+  if (payload && payload.assetPath && /^pieces\/[a-zA-Z0-9_-]{3,64}\/(mood|thumb|board|draft|final)\/[a-z0-9-]+\.(png|jpg|webp|mp4|webm|mov)$/.test(payload.assetPath)) {
+    try { return await storage.signedUrl(payload.assetPath, 3600); } catch (e) { if (!payload.assetUrl) throw e; }
+  }
+  return payload.assetUrl;
 }
 
 async function fail(job, state, error) {

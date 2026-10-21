@@ -218,3 +218,23 @@ test('peer items: a stage stranded in generating by a dead job is treated as rea
     } finally { f2.restore(); }
   } finally { W.restore(); }
 });
+
+test('an F1X8 job may name the stored copy (assetPath): it is signed at submit time and the signed URL is what gets analysed', async () => {
+  const W = world();
+  try {
+    await seedPlan(W);
+    W.f.restore();
+    const seen = [];
+    const f2 = mockFetch([
+      [(u, init) => /\/storage\/v1\/object\/sign\/assets\//.test(u) && (init.method || 'GET') === 'POST', () => { seen.push('sign'); return json({ signedURL: '/object/sign/assets/pieces/gen-j1/thumb/a-b.png?token=t' }); }],
+      ['https://sb.test/storage/v1/object/sign/assets/pieces/gen-j1/thumb/a-b.png?token=t', () => { seen.push('fetch-signed'); return new Response(PNG, { status: 200, headers: { 'content-type': 'image/png' } }); }],
+      ['/api/analyze/image/submit', () => { seen.push('submit'); return json({ job_id: 'f1x8-job-2' }); }],
+      W.pg.route,
+    ]);
+    try {
+      const r = await W.post({ pieceId: 'gen-j1', stage: 'thumb', kind: 'f1x8_image', payload: { assetPath: 'pieces/gen-j1/thumb/a-b.png', title: 'T', description: 'd' } });
+      assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(r.body.job.state, 'running');
+      assert.deepEqual(seen, ['sign', 'fetch-signed', 'submit']);
+    } finally { f2.restore(); }
+  } finally { W.restore(); }
+});

@@ -1,7 +1,7 @@
 // Characterization of the Studio's pure logic: deliverables, versions, QC fixes, director context, titles.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { loadPage } = require('../helpers');
+const { loadPage, json } = require('../helpers');
 
 function piece(X, extra = {}) {
   const p = { id: 'gen-test', generated: true, studio: true, stage: 1, title: 'Deadpan Fold', trend: 'T', product: 'Galaxy Z Fold8', markets: ['UAE'], platforms: ['tiktok'], th: ['#000', '#111'], map: { product: 'Galaxy Z Fold8', msg: 'm', angle: 'a' }, ...extra };
@@ -101,5 +101,25 @@ test('approval record: stored documents render name, checksum and an OPEN link; 
     assert.match(X.docLabel({ name: 'adlcp.pdf', path: 'documents/2026/abc-def123.pdf', sha256: 'deadbeef' + '0'.repeat(56) }), /adlcp\.pdf · <span title="sha256 deadbeef0+">deadbeef<\/span> · <a href="#" onclick="event\.preventDefault\(\);docOpen\('documents\/2026\/abc-def123\.pdf'\)"/);
     assert.match(X.docLabel('ADLCP-approval'), /ADLCP-approval <span class="dim">\(name only/);
     assert.equal(X.docLabel(null), '');
+  } finally { X.restore(); }
+});
+
+test('stored assets (H-4): an artifact with an assetPath renders without a provider src and with data-asset + data-fallback, hydrateAssets signs it once and caches the URL; QC assets carry the stored path', async () => {
+  const signs = [];
+  const X = loadPage({ fetchImpl: async (u) => { if (String(u).startsWith('/api/jobs?asset=')) { signs.push(String(u)); return json({ url: 'https://sb.test/storage/v1/object/sign/assets/x?token=t', expiresIn: 3600 }); } return new Promise(() => {}); } });
+  try {
+    const stored = { imageUrl: 'https://cdn/t.png', assetPath: 'pieces/gen-test/thumb/a-b.png', sha256: 'f'.repeat(64) };
+    assert.equal(X.mediaAttrs(stored, 'imageUrl'), 'data-asset="pieces/gen-test/thumb/a-b.png" data-fallback="https://cdn/t.png"');
+    assert.equal(X.mediaAttrs({ imageUrl: 'https://cdn/t.png' }, 'imageUrl'), 'src="https://cdn/t.png"', 'no copy → provider URL as before');
+    assert.equal(X.mediaAttrs(null, 'imageUrl'), '');
+    const p = piece(X, { stage: 3, thumb: stored, draft: { videoUrl: 'https://cdn/v.mp4', assetPath: 'pieces/gen-test/draft/c-d.mp4', version: 'v1', dur: '5s', audio: 'a', variants: [{ a: '16:9', l: '720p', k: 'seedance', st: 'ready' }] } });
+    const html = X.stageArtifact(p, 2);
+    assert.match(html, /<img class="gen-media"[^>]*data-asset="pieces\/gen-test\/thumb\/a-b\.png" data-fallback="https:\/\/cdn\/t\.png"/); assert.ok(!/src="https:\/\/cdn\/t\.png"/.test(html), 'the expiring provider URL is not the src');
+    assert.deepEqual(X.qcAssets(p).map((a) => [a.sid, a.url, a.assetPath]), [['thumb', 'https://cdn/t.png', 'pieces/gen-test/thumb/a-b.png'], ['draft', 'https://cdn/v.mp4', 'pieces/gen-test/draft/c-d.mp4']]);
+    const el = (path) => ({ dataset: { asset: path }, src: '' });
+    const a = el('pieces/gen-test/thumb/a-b.png'), b = el('pieces/gen-test/thumb/a-b.png');
+    await X.hydrateAssets({ querySelectorAll: () => [a, b] });
+    assert.equal(a.src, 'https://sb.test/storage/v1/object/sign/assets/x?token=t'); assert.equal(b.src, a.src); assert.equal(signs.length, 1, 'cached');
+    assert.ok(X.ASSET_URLS['pieces/gen-test/thumb/a-b.png'].exp > Date.now());
   } finally { X.restore(); }
 });
