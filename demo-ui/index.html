@@ -868,6 +868,14 @@ const CAL=[
 /* performance */
 /* ================= helpers ================= */
 const $=s=>document.querySelector(s);
+/* ADR-011: one business timezone. Every date label on the live pages is
+   Asia/Dubai (GST, UTC+4), whatever the viewer's locale — so two people never
+   read different "today"s off the same data. */
+const BIZ_TZ='Asia/Dubai';
+const fmtTz=(d,opts)=>new Date(d).toLocaleString('en-GB',{timeZone:BIZ_TZ,...opts});
+const fmtDay=d=>fmtTz(d,{day:'numeric',month:'short'});
+const fmtStamp=d=>fmtTz(d,{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' GST';
+const fmtClock=d=>fmtTz(d,{hour:'2-digit',minute:'2-digit',hour12:false})+' GST';
 const fmt=n=>{const a=Math.abs(n);if(a>=1e6)return (n/1e6).toFixed(a<1e7&&n%1e6!==0?1:0).replace(/\.0$/,'')+'M';if(a>=1e3)return (n/1e3).toFixed(a<1e4&&n%1e3!==0?1:0).replace(/\.0$/,'')+'K';return String(n)};
 const pct=x=>{const p=x*100;return (p>=9.5?Math.round(p):+p.toFixed(1))+'%'};
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -2207,7 +2215,7 @@ function rCommentRow(c){
   <div class="qc-run-row" style="align-items:flex-start">
    <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.55">
     ${c.platform&&PLAT[c.platform]?plat(c.platform):''} <b style="font-size:12px">${esc(c.author||'')}</b>
-    <span style="color:var(--text)"> ${esc(c.text||'')}</span>
+    <span dir="auto" style="color:var(--text);unicode-bidi:plaintext"> ${esc(c.text||'')}</span>
     ${c.likes!=null?`<span class="mono dim" style="font-size:10px"> · ${fmt(c.likes)} ♥</span>`:''}
     ${fl.map(f=>`<span class="mono" style="font-size:9px;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-left:5px">⚑ ${f.l.toUpperCase()}</span>`).join('')}
     ${trBits(c.text)}
@@ -2222,7 +2230,7 @@ function kpiDrill(kind){
   <div class="qc-run-row" style="align-items:flex-start">
    <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.55">
     ${p.platform&&PLAT[p.platform]?plat(p.platform):''} <b style="font-size:12px">${esc(p.account||'')}</b>
-    <span class="dim"> ${esc((p.caption||'').slice(0,100))}${(p.caption||'').length>100?'…':''}</span>
+    <span class="dim" dir="auto" style="unicode-bidi:plaintext"> ${esc((p.caption||'').slice(0,100))}${(p.caption||'').length>100?'…':''}</span>
     <div class="mono dim" style="font-size:10px;margin-top:3px">${m.views!=null?fmt(m.views)+' views · ':''}${m.er!=null?pct(m.er)+' ER · ':''}${(p.comments||[]).length} comments${p.url?` · <a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:#7dd3fc;text-decoration:none">OPEN ↗</a>`:''}</div>
    </div></div>`};
  const D={
@@ -2292,7 +2300,7 @@ function rReviewsDash(list,s){
   const end=Date.now()-w*7*864e5,start=end-7*864e5;
   const inW=cmts.filter(c=>{const t=new Date(c.at||0).getTime();return t>start&&t<=end});
   const pos=inW.filter(c=>c.sentiment==='pos').length,tot=inW.length;
-  weeks.push({label:new Date(end).toLocaleDateString('en-GB',{day:'numeric',month:'short'}),rate:tot?Math.round(pos/tot*100):null,tot});
+  weeks.push({label:fmtDay(end),rate:tot?Math.round(pos/tot*100):null,tot});
  }
  const hasTrend=weeks.some(w=>w.tot);
 
@@ -2334,7 +2342,7 @@ function rReviewsDash(list,s){
    </div></div>
   <div class="card p5"><span class="kick accent">Critical alerts</span>
    ${alerts.length?alerts.map(({c,fl})=>`<div class="qc-risk" style="margin-top:9px">
-     <div style="font-size:12px;line-height:1.55"><b>${esc(c.author||'')}</b> <span class="dim">${esc((c.text||'').slice(0,110))}${(c.text||'').length>110?'…':''}</span>${trBits(c.text)}</div>
+     <div style="font-size:12px;line-height:1.55"><b>${esc(c.author||'')}</b> <span class="dim" dir="auto" style="unicode-bidi:plaintext">${esc((c.text||'').slice(0,110))}${(c.text||'').length>110?'…':''}</span>${trBits(c.text)}</div>
      <div style="margin-top:4px">${fl.map(f=>`<span class="mono" style="font-size:9px;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-right:4px">⚑ ${f.l.toUpperCase()}</span>`).join('')}${c.platform&&PLAT[c.platform]?plat(c.platform):''}</div>
     </div>`).join(''):`<p class="dim" style="font-size:12.5px;margin-top:12px">No refund, technical, support or competitor flags in this view. 🎉</p>`}
   </div>
@@ -2424,13 +2432,13 @@ function rSentimentSection(list){
      <span class="dim mono" style="font-size:10.5px">${when}</span>
      ${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener" class="mono" style="font-size:10px;color:#7dd3fc;text-decoration:none">OPEN ↗</a>`:''}
     </div>
-    <p style="font-size:13px;line-height:1.6;margin-top:7px">${esc(p.caption||'')}</p>
+    <p dir="auto" style="font-size:13px;line-height:1.6;margin-top:7px;unicode-bidi:plaintext">${esc(p.caption||'')}</p>
     ${feats.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">${feats.map(f=>`<span class="mono" style="font-size:9.5px;letter-spacing:.08em;color:var(--muted);border:1px solid var(--hairline);border-radius:99px;padding:2px 8px">${f.toUpperCase()}</span>`).join('')}</div>`:''}
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;align-items:center" class="mono">${stats}</div>
     <div style="margin-top:13px;border-top:1px solid var(--hairline);padding-top:11px;display:flex;flex-direction:column;gap:9px">
      ${shown.map(c=>{const fl=stFlags(c.text);return `<div style="display:flex;gap:10px;align-items:flex-start;${c.sentiment==='pos'?'border-left:2px solid #34d399;padding-left:10px':c.sentiment==='neg'?'border-left:2px solid #fb7185;padding-left:10px':''}">
         <div style="flex:1;font-size:12.5px;line-height:1.55"><b style="font-size:12px">${esc(c.author||'')}</b>
-         <span style="color:var(--text)"> ${esc(c.text||'')}</span>
+         <span dir="auto" style="color:var(--text);unicode-bidi:plaintext"> ${esc(c.text||'')}</span>
          ${c.likes!=null?`<span class="mono dim" style="font-size:10px"> · ${fmt(c.likes)} ♥</span>`:''}
          ${fl.map(f=>`<span class="mono" style="font-size:9px;letter-spacing:.06em;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-left:5px">⚑ ${f.l.toUpperCase()}</span>`).join('')}
          ${trBits(c.text)}</div>
@@ -2618,7 +2626,7 @@ function trendStalePill(){
 }
 function rTrends(){
  if(!TRENDS.length){
-  const when=LIVE.fetchedAt?new Date(LIVE.fetchedAt).toUTCString().slice(17,22)+' UTC':null;
+  const when=LIVE.fetchedAt?fmtClock(LIVE.fetchedAt):null;
   const state=LIVE.error
    ?{pill:'FEED UNREACHABLE',dot:'#fb7185',h:'TrendRadar could not be reached',p:`The trend feed request failed (${esc(LIVE.error)}). The page retries on reload; if this persists, kymah.com or the /api/trends function is down.`}
    :LIVE.empty
@@ -2651,7 +2659,7 @@ function rTrends(){
  return `
  <section>
   <div class="section-head"><div><span class="kick accent">${LIVE.on?'01 · Samsung-fit feed · TrendRadar':'01 · Scout feed, scored + cleared'}</span><h2>Trend Analysis</h2></div>
-   ${trendStalePill()}<span class="pill"><span class="dot"></span>${LIVE.on?`LIVE · TRENDRADAR · BOARD ${new Date(LIVE.boardAt||LIVE.fetchedAt).toUTCString().slice(5,22)} UTC`:'SCANNING 4 PLATFORMS · 4 MARKETS · REFRESH 15M'}</span></div>
+   ${trendStalePill()}<span class="pill"><span class="dot"></span>${LIVE.on?`LIVE · TRENDRADAR · BOARD ${fmtStamp(LIVE.boardAt||LIVE.fetchedAt)}`:'SCANNING 4 PLATFORMS · 4 MARKETS · REFRESH 15M'}</span></div>
   <div class="kpis c4" style="margin-bottom:18px">
    <div class="card kpi p4"><span class="kick">Live trends</span><div class="v num">${TRENDS.length}</div><div class="hint">${rising} rising · ${TRENDS.length-rising} flat or declining</div></div>
    ${kpi2}
@@ -3133,7 +3141,7 @@ function perfNewestAt(){
 function perfAgePill(){
  const n=perfNewestAt();if(!n)return '';
  const h=(Date.now()-n)/36e5;
- const label=`DATA AS OF ${new Date(n).toUTCString().slice(5,22)} UTC`;
+ const label=`DATA AS OF ${fmtStamp(n)}`;
  return h>PERF_STALE_H
   ?`<span class="pill" style="border-color:rgba(251,113,133,.5);color:#fda4af"><span class="dot" style="background:#fb7185"></span>STALE · ${label}</span>`
   :`<span class="pill"><span class="dot"></span>${label}</span>`;

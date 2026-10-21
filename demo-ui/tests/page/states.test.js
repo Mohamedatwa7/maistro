@@ -8,7 +8,7 @@ test('trends: an empty board renders the BOARD EMPTY state with its timestamp, n
   try {
     await new Promise((r) => setTimeout(r, 30));
     const html = X.rTrends();
-    assert.match(html, /BOARD EMPTY · AS OF 08:00 UTC/);
+    assert.match(html, /BOARD EMPTY · AS OF 12:00 GST/, 'labels are Gulf time (ADR-011)');
     assert.match(html, /has no trends on its board right now/);
     assert.ok(!html.includes('Syncing with TrendRadar'));
   } finally { X.restore(); }
@@ -32,7 +32,7 @@ test('trends: a board older than 36 h carries a STALE pill and the header shows 
       await new Promise((r) => setTimeout(r, 30));
       const html = X.rTrends();
       assert.equal(/STALE · \d+H OLD/.test(html), stale, at);
-      assert.match(html, /LIVE · TRENDRADAR · BOARD \d{2} Oct 2026 \d{2}:\d{2} UTC/);
+      assert.match(html, /LIVE · TRENDRADAR · BOARD \d{2} Oct 2026, \d{2}:\d{2} GST/);
     } finally { X.restore(); }
   }
 });
@@ -43,7 +43,7 @@ test('performance: header shows DATA AS OF the newest post/comment and STALE whe
   try {
     await new Promise((r) => setTimeout(r, 50));
     let html = X.rPerformance();
-    assert.match(html, /DATA AS OF \d{2} Oct 2026 \d{2}:\d{2} UTC/);
+    assert.match(html, /DATA AS OF \d{2} Oct 2026, \d{2}:\d{2} GST/);
     assert.ok(!/STALE ·/.test(html), 'fixture is fresh relative to the frozen clock');
     assert.match(html, /CONSUMER SENTIMENT TRACKER · LIVE/);
     // age everything by 10 days → stale
