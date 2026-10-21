@@ -245,13 +245,22 @@ Open item for the builder (minor):
 
 1. **A raw read that misses rewrites the row with the old curation.** Line 372 of `trends.js` stores the new raw board together with the previous row's `curated` list and a fresh `fetched_at`. The next curated read within the hour is a hit with a non-empty `curated`, so it serves the old top 10 as fresh for up to an hour, possibly naming trends no longer on the board. Fix: store `curated: []` on a raw miss, and when a hit carries an empty `curated`, curate and write it back keeping the row's `fetched_at`.
 
+## Pro plan: hourly trends cron; raw-miss cache fix (commit ca41ee2, log 8f24ffe)
+
+Status: **PASSED** by checker, with the first real cron run still to observe (next run 15:15 UTC).
+
+- Tests: `npm test` 92/92 green here; typecheck and check clean. The new test covers the raw-miss storing no curation, the next curated hit curating once and writing back with the row's `fetched_at`, and the cron refreshing unconditionally. CI queued for 8f24ffe at verification time; the M4 run before it passed.
+- `vercel crons ls` on the linked project lists both crons: `/api/track` at 06:30 daily and `/api/trends` at 15 past every hour. The deploy carrying an hourly schedule was accepted, which only Pro allows, so the plan question Q-002 is closed by the deploy itself.
+- Cron path: `isCron(req)` (bearer `CRON_SECRET`) refreshes the board and curation unconditionally, writes the row, answers `{ok, refreshed, source, boardTotal, curated, curatedBy, at}` with `no-store`, and marks the row's `error` on failure. A forged bearer and a `vercel-cron` user-agent alone both fall through to a normal cached read on production (verified), so nobody outside can force curation calls.
+- Cache fix: a raw (`?all=1`) miss now stores `curated: []`; a later curated hit with an empty curation curates once and writes it back keeping the original `fetched_at`; a stale hit never rewrites.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
 2. **Click-through for the database half of M2:** while signed in, create one Studio campaign; the builder confirms it in the database.
 3. **After the team is invited** (Members entry in the sidebar, admins only): set `MAISTRO_REQUIRE_MEMBER=1` on Vercel so decisions need a member session, and later unset `MAISTRO_APP_PASSWORD` to retire the shared password. (Turning off public sign-ups in Supabase Auth is now optional: since cd8e9e4 the login page only requests links for members and bootstrap admins.)
 4. **Rotate the pasted secrets** (from 7b50e15): the database password, the anon key and the service-role key were pasted in chat. Reset the password (Supabase, Project Settings, Database) and rotate the keys when convenient, then re-add with `vercel env add`. Hygiene, not an outage.
-5. **Vercel plan decision** (REBUILD_LOG Q-002): Hobby (12 functions, daily crons, 300 s) versus Pro before M3, the jobs tick, which needs more frequent crons. Say yes or no.
+5. ~~Vercel plan decision (Q-002)~~ answered 2026-10-21: the project is on Pro; the hourly trends cron is live and M3 has started.
 6. ~~Supabase connection string and anon key (Q-006)~~ answered 2026-10-21; migrations applied.
 
 ## For the user to know (no action required unless you disagree)
