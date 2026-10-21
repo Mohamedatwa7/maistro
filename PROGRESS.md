@@ -231,6 +231,20 @@ Status: **PASSED** by checker. All three items from the part (c) review are clos
 - Production: `/` byte-identical to the committed `index.html` (sha256 3f6efe30…); GET `/api/login` returns only `magicLink` and `password` flags, no key material; POST `{email:"stranger@evil.example"}` 200 ok, `{email:"nope"}` 422; `/api/members` 401 without a cookie; health missing [].
 - Nit, not blocking: the stranger path answers faster than the member path (no GoTrue call), a timing tell for enumeration that only matters if someone cares; GoTrue's own per-address rate limit covers link spam to a member.
 
+## M4: trends_cache with refresh-on-read; health feature switches; plan status line (commit cfdbbb2, log 1dfa175; ADR-005)
+
+Status: **PASSED** by checker. M4 is partial by design: the hourly cron waits on the Pro-plan decision, so refresh-on-read is the whole mechanism on Hobby.
+
+- Tests: `npm test` 91/91 green here; typecheck and check clean. The two new cache tests cover the fill, the in-hour hit without upstream or curation calls, the hour-old refresh and the stale serve on a failed refresh. CI was queued for 1dfa175 at verification time (the previous run for 422c0ae passed on main).
+- Migration 007: one row keyed `board` with `payload`, `source`, `board_generated_at`, `fetched_at`, `error`; RLS enabled with no policies, so only the service role reads or writes. The production cache hit proves the table exists.
+- Handler: a read younger than 3600 s is served from the row; older, `fetchBoard()` (agent API, then page scrape) runs and the row is upserted through the new `upsertRows` (`resolution=merge-duplicates`); a failed refresh with a cached row answers 200 with `cache.stale:true`, `cache.error`, a shorter `s-maxage=120`, and the row's `error` column set; without a cached row the historical 502 stands. Caching is skipped when the database is not configured, so the earlier trends tests run unchanged.
+- Production: `/api/health` has `features` {MAISTRO_ADMIN_EMAILS true, MAISTRO_REQUIRE_MEMBER false, MAISTRO_APP_PASSWORD true}, missing []. Three cache-busted reads of `/api/trends` were all hits (ageS 90, 92, 94) with count 10, curatedBy claude, source agent API; `?all=1` answers 38 raw trends from the same row; `minScore=70` leaves 6 of 10, `limit=3` leaves 3, `id=` leaves 1, all on hits. The client-facing Cache-Control is Vercel's rewrite of `s-maxage` (`public, max-age=0, must-revalidate`), as before.
+- `MIGRATION_PLAN.md` carries the requested status line (M0 to M2 code complete, M2 done-when on the owner, order enforcement to M3, M4 partial, M3 and the hourly cron on the plan decision).
+
+Open item for the builder (minor):
+
+1. **A raw read that misses rewrites the row with the old curation.** Line 372 of `trends.js` stores the new raw board together with the previous row's `curated` list and a fresh `fetched_at`. The next curated read within the hour is a hit with a non-empty `curated`, so it serves the old top 10 as fresh for up to an hour, possibly naming trends no longer on the board. Fix: store `curated: []` on a raw miss, and when a hit carries an empty `curated`, curate and write it back keeping the row's `fetched_at`.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
