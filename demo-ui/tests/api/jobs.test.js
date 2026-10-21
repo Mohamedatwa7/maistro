@@ -14,7 +14,9 @@ function world() {
   const hf = { status: 'queued', submits: 0 };
   const stored = [];
   const f = mockFetch([
-    ['/v1/text2image/soul', () => { hf.submits++; return json({ id: 'jobset000001' }); }],
+    ['/v1/text2image/soul', (u, init) => { hf.submits++; hf.lastHeaders = init.headers; return json({ id: 'jobset000001' }); }],
+    [/\/(bytedance\/seedance-2\.5\/text-to-video|higgsfield-ai\/soul\/v2\/standard)$/, (u, init) => { hf.submits++; hf.lastHeaders = init.headers; hf.lastBody = JSON.parse(init.body); if (hf.reject) return new Response(JSON.stringify(hf.reject.body), { status: hf.reject.status, headers: { 'x-correlation-id': 'corr-1' } }); return new Response(JSON.stringify({ status: 'queued', request_id: 'req00000001', status_url: 'x', cancel_url: 'y' }), { status: 200, headers: { 'x-correlation-id': 'corr-1' } }); }],
+    ['/requests/req00000001/status', () => json({ status: hf.status === 'completed' ? 'completed' : 'in_progress', ...(hf.status === 'completed' ? { video: { url: 'https://d3u0tzju9qaucj.cloudfront.net/out.mp4' } } : {}) })],
     ['/v1/job-sets/jobset000001', () => json(hf.status === 'completed' ? { jobs: [{ status: 'completed', results: { raw: { url: 'https://d3u0tzju9qaucj.cloudfront.net/out.png' } } }] } : { jobs: [{ status: hf.status }] })],
     ['https://d3u0tzju9qaucj.cloudfront.net/out.png', () => new Response(PNG, { status: 200, headers: { 'content-type': 'image/png' } })],
     [/\/storage\/v1\/object\/assets\//, (u, init) => { stored.push({ url: String(u), type: init.headers['Content-Type'], bytes: init.body.length }); return json({ Key: 'ok' }); }],
@@ -77,10 +79,13 @@ test('order and immutability are enforced at job creation: draft needs brief and
     }
     r = await W.post({ pieceId: 'gen-j1', stage: 'draft', kind: 'higgsfield_video', payload: { prompt: 'p', meta: {}, strict: true } });
     assert.equal(r.statusCode, 409, 'strict: brief and board are generated, not approved'); assert.equal(r.body.code, 'prerequisites');
-    // soft (legacy): prerequisites exist → allowed; the submit itself fails on the v2 path without network, which is a retryable queued job
-    r = await W.post({ pieceId: 'gen-j1', stage: 'draft', kind: 'higgsfield_video', payload: { prompt: 'p', meta: { dur: 5 } } });
-    assert.equal(r.statusCode, 200); assert.ok(['queued', 'running', 'failed'].includes(r.body.job.state));
-    assert.equal(W.pg.tables.stages.find((s) => s.kind === 'draft').state, r.body.job.state === 'failed' ? 'ready' : 'generating');
+    // soft (legacy): prerequisites exist → allowed; the v2 REST submit carries the documented body and the Idempotency-Key = job id
+    r = await W.post({ pieceId: 'gen-j1', stage: 'draft', kind: 'higgsfield_video', payload: { prompt: 'p', duration: 8, aspect_ratio: '9:16', resolution: '1080p', meta: { dur: 8 } } });
+    assert.equal(r.statusCode, 200); assert.equal(r.body.job.state, 'running'); assert.equal(r.body.job.providerRef, 'req00000001');
+    assert.deepEqual(W.hf.lastBody, { prompt: 'p', aspect_ratio: '9:16', resolution: '1080p', duration: 8, generate_audio: true });
+    assert.equal(W.hf.lastHeaders['Idempotency-Key'], r.body.job.id); assert.match(W.hf.lastHeaders.Authorization, /^Key id:secret$/);
+    assert.equal(W.pg.tables.jobs.find((j) => j.id === r.body.job.id).payload.correlationId, 'corr-1');
+    assert.equal(W.pg.tables.stages.find((s) => s.kind === 'draft').state, 'generating');
     // an approved stage refuses a render
     W.pg.tables.stages.find((s) => s.kind === 'board').state = 'approved';
     r = await W.post({ pieceId: 'gen-j1', stage: 'board', kind: 'higgsfield_image', payload: { prompt: 'p', ref: 'https://ref/x.jpg', meta: {} } });
@@ -140,6 +145,34 @@ test('failures: a moderated render fails the job and returns the stage to ready;
       r = await W.get({}, { headers: { authorization: 'Bearer cron' }, session: false });
       assert.equal(r.body.states.timed_out, 1);
     } finally { f2.restore(); }
+  } finally { W.restore(); }
+});
+
+test('documented error classes: a concurrency 400 and a 503 retry with backoff under the same Idempotency-Key; 403 credits, 422 validation and a plain 400 fail at once with the reason', async () => {
+  const W = world();
+  try {
+    await seedPlan(W);
+    W.hf.reject = { status: 400, body: { detail: 'Maximum number of concurrent requests (4) has been reached.' } };
+    let r = await W.post({ pieceId: 'gen-j1', stage: 'thumb', kind: 'higgsfield_image', payload: { prompt: 'p', meta: {} } });
+    assert.equal(r.statusCode, 200); assert.equal(r.body.job.state, 'queued', 'retry later, not failed'); assert.match(r.body.job.error, /concurrency limit/);
+    const row = W.pg.tables.jobs.find((j) => j.id === r.body.job.id);
+    assert.ok(new Date(row.next_poll_at) > new Date(), 'backoff set'); assert.equal(W.pg.tables.stages.find((s) => s.kind === 'thumb').state, 'generating', 'the stage waits with the job');
+    W.hf.reject = { status: 503, body: { detail: 'model disabled' } };
+    row.next_poll_at = new Date(Date.now() - 1000).toISOString();
+    r = await W.get({ id: row.id }); assert.equal(r.body.job.state, 'queued'); assert.equal(row.attempts, 2);
+    W.hf.reject = null;
+    row.next_poll_at = new Date(Date.now() - 1000).toISOString();
+    r = await W.get({ id: row.id }); assert.equal(r.body.job.state, 'running');
+    assert.equal(W.hf.lastHeaders['Idempotency-Key'], row.id, 'every attempt replays the same key');
+    for (const [status, body, pattern] of [[403, { detail: 'Not enough credits' }, /insufficient credits/], [422, { detail: [{ msg: 'prompt too long' }] }, /validation failed/], [400, { detail: 'invalid aspect ratio' }, /Higgsfield 400/]]) {
+      W.hf.reject = { status, body };
+      r = await W.post({ pieceId: 'gen-j1', stage: 'board', kind: 'higgsfield_image', payload: { prompt: 'p', meta: {} } });
+      assert.equal(r.body.job.state, 'failed', String(status)); assert.match(r.body.job.error, pattern);
+      assert.equal(W.pg.tables.stages.find((s) => s.kind === 'board').state, 'ready');
+      W.hf.reject = null;
+    }
+    const { classify } = require('../../api/_adapters/higgsfield.js');
+    assert.equal(classify(423, 'blocked').retryable, true); assert.equal(classify(401, '').retryable, false); assert.equal(classify(404, '').retryable, false);
   } finally { W.restore(); }
 });
 

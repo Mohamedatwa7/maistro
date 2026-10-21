@@ -120,14 +120,19 @@ async function advance(job) {
       await patchRows('jobs', `id=eq.${q(job.id)}`, { attempts });
       try {
         const sub = job.kind.startsWith('higgsfield')
-          ? await higgsfield.submit({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' })
+          ? await higgsfield.submit({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }, { idempotencyKey: job.id })
           : await f1x8.submit({ kind: job.kind === 'f1x8_video' ? 'video' : 'image', assetUrl: job.payload.assetUrl, title: job.payload.title, description: job.payload.description });
-        await patchRows('jobs', `id=eq.${q(job.id)}`, { provider_ref: String(sub.ref), state: 'running', error: null, payload: { ...job.payload, v: sub.v || 0 } });
+        await patchRows('jobs', `id=eq.${q(job.id)}`, { provider_ref: String(sub.ref), state: 'running', error: null, payload: { ...job.payload, v: sub.v || 0, ...(sub.correlationId ? { correlationId: sub.correlationId } : {}) } });
         return 'running';
       } catch (e) {
-        // a 4xx from validation never gets better: fail now; otherwise retry on the next tick
-        if (e && e.status && e.status < 500 && e.status !== 429) { await fail(job, 'failed', e.message); return 'failed'; }
-        await patchRows('jobs', `id=eq.${q(job.id)}`, { error: String(e.message || e).slice(0, 300), next_poll_at: plusS(60 * attempts) });
+        // Documented classification (HIGGSFIELD.md §3 H-3): retryable = the
+        // concurrency-limit 400, 423, 5xx, timeouts and network errors;
+        // permanent = validation, auth, not-found, insufficient credits, and
+        // a disallowed asset host. Retries replay the same Idempotency-Key.
+        const permanent = e && e.retryable === false ? true : Boolean(e && e.status && e.status < 500 && e.status !== 429 && e.retryable !== true);
+        if (permanent) { await fail(job, 'failed', e.message); return 'failed'; }
+        const wait = Math.round(60 * attempts * (0.75 + Math.random() * 0.5)); // backoff with jitter
+        await patchRows('jobs', `id=eq.${q(job.id)}`, { error: String(e.message || e).slice(0, 300), next_poll_at: plusS(wait) });
         return 'queued';
       }
     }

@@ -19,7 +19,8 @@ module.exports = async (req, res) => {
       return res.status(200).json(st);
     }
     if (req.method === 'POST') {
-      const sub = await hf.submit(req.body || {});
+      const key = String((req.headers && req.headers['idempotency-key']) || '').trim() || require('node:crypto').randomUUID();
+      const sub = await hf.submit(req.body || {}, { idempotencyKey: key });
       return res.status(200).json({ request_id: sub.ref, status: sub.status, ...(sub.v ? { v: sub.v } : {}) });
     }
     res.setHeader('Allow', 'GET, POST, OPTIONS');

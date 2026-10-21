@@ -34,18 +34,40 @@ function normalizeRequest(b = {}) {
   return { kind, prompt, resolution, aspect_ratio, ref, duration };
 }
 
-/** Submit. Returns { ref: provider id, v: 0|1, status }. */
-async function submit(reqBody) {
+// Error classification from the documented status codes (HIGGSFIELD.md §1):
+// a concurrency-limit 400, 423 (model blocked) and 503 (model disabled) are
+// "retry later"; 403 is insufficient credits (owner action); 401/404/422 and
+// other 400s are permanent. The job service reads `retryable`.
+function classify(status, detail) {
+  const text = Array.isArray(detail) ? JSON.stringify(detail) : String(detail || '');
+  if (status === 400 && /concurrent/i.test(text)) return { retryable: true, code: 'concurrency', message: `Higgsfield concurrency limit reached — will retry (${text.slice(0, 120)})` };
+  if (status === 423 || status === 503 || status === 500 || status === 502 || status === 504) return { retryable: true, code: 'provider_unavailable', message: `Higgsfield ${status}: ${text.slice(0, 160) || 'temporarily unavailable'} — will retry` };
+  if (status === 403) return { retryable: false, code: 'insufficient_credits', message: `Higgsfield refused: insufficient credits (${text.slice(0, 120) || '403'}) — top up the account` };
+  if (status === 401) return { retryable: false, code: 'auth', message: 'Higgsfield rejected the credentials (401)' };
+  if (status === 422) return { retryable: false, code: 'validation', message: `Higgsfield validation failed: ${text.slice(0, 200)}` };
+  return { retryable: false, code: 'bad_request', message: `Higgsfield ${status}: ${text.slice(0, 200) || 'request rejected'}` };
+}
+function providerError(r, body) {
+  const detail = body && (body.detail || body.error || body.message);
+  const c = classify(r.status, detail);
+  return Object.assign(new Error(c.message), { status: r.status, retryable: c.retryable, code: c.code, correlationId: r.headers && r.headers.get ? r.headers.get('x-correlation-id') : null });
+}
+
+/** Submit. Returns { ref: provider id, v: 0|1, status, correlationId }.
+ *  opts.idempotencyKey (the job id) makes a retried submit replay the
+ *  original request instead of generating — and charging — twice. */
+async function submit(reqBody, opts = {}) {
   const creds = credentials();
   if (!creds) throw Object.assign(new Error('HF_CREDENTIALS is not configured'), { status: 503 });
   const { kind, prompt, resolution, aspect_ratio, ref, duration } = normalizeRequest(reqBody);
+  const idem = opts.idempotencyKey ? { 'Idempotency-Key': String(opts.idempotencyKey).slice(0, 255) } : {};
 
   if (kind === 'image' && ref) {
     // Product reference photo attached → Soul v1 with image_reference so
     // the generated image matches the REAL product design.
     const r = await fetchT(`${API}/v1/text2image/soul`, {
       method: 'POST',
-      headers: { Authorization: `Key ${creds}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Key ${creds}`, 'Content-Type': 'application/json', ...idem },
       body: JSON.stringify({
         params: {
           prompt: 'The device shown MUST be the exact product from the reference image — '
@@ -60,22 +82,26 @@ async function submit(reqBody) {
       }),
     }, { timeoutMs: 30000 });
     const d = await r.json().catch(() => ({}));
-    if (!r.ok || !d.id) throw Object.assign(new Error((d && (d.error || JSON.stringify(d.detail || d))) || `soul v1 submit failed (${r.status})`), { status: 502 });
-    return { ref: d.id, v: 1, status: 'queued' };
+    if (!r.ok) throw providerError(r, d);
+    if (!d.id) throw Object.assign(new Error(`soul v1 submit returned no id (${r.status})`), { status: 502, retryable: true });
+    return { ref: d.id, v: 1, status: 'queued', correlationId: r.headers.get('x-correlation-id') };
   }
 
+  // Current REST API (docs/concepts/requests): POST /<endpoint-id> with the
+  // documented body; the SDK's subscribe() is not used so that timeouts,
+  // retries and headers are ours and the path is testable with recordings.
   const input = kind === 'image'
     ? { prompt, aspect_ratio, resolution: resolution === '480p' ? '720p' : resolution, batch_size: 1 }
-    : { prompt, aspect_ratio, resolution, duration };
-  const { createHiggsfieldClient } = require('@higgsfield/client/v2');
-  const hf = createHiggsfieldClient({ credentials: creds });
-  // The SDK call has no timeout of its own; bound it like every other upstream call.
-  const out = await Promise.race([
-    hf.subscribe(MODELS[kind], { input, withPolling: false }),
-    new Promise((_, rej) => setTimeout(() => rej(new Error('higgsfield submit timed out after 30000 ms')), 30000)),
-  ]);
-  if (!out || !out.request_id) throw Object.assign(new Error('submit failed'), { status: 502, detail: out || null });
-  return { ref: out.request_id, v: 0, status: out.status || 'queued' };
+    : { prompt, aspect_ratio, resolution, duration, generate_audio: true };
+  const r = await fetchT(`${API}/${MODELS[kind]}`, {
+    method: 'POST',
+    headers: { Authorization: `Key ${creds}`, 'Content-Type': 'application/json', 'User-Agent': 'MaistroDemo/1.0', ...idem },
+    body: JSON.stringify(input),
+  }, { timeoutMs: 30000 });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw providerError(r, d);
+  if (!d.request_id) throw Object.assign(new Error(`submit returned no request_id (${r.status})`), { status: 502, retryable: true });
+  return { ref: d.request_id, v: 0, status: d.status || 'queued', correlationId: r.headers.get('x-correlation-id') };
 }
 
 /** Status of a submitted render → { status, video, images, raw_status }.
@@ -103,4 +129,4 @@ async function status(ref, v = 0) {
   return { status: d.status, video, images, raw_status: d.status };
 }
 
-module.exports = { submit, status, normalizeRequest, MODELS, API };
+module.exports = { submit, status, normalizeRequest, classify, MODELS, API };
