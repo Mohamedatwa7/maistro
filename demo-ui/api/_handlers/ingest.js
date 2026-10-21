@@ -42,7 +42,7 @@ const { validateArtifact } = require('../_schemas.js');
 // documents can bind to a real version. campaign_events stays the contract
 // GET /api/projects reads; the store write reports as `stored` and never
 // turns an accepted push into a failure.
-const { recordVersion } = require('../_store.js');
+const { recordVersion, StoreError } = require('../_store.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -98,13 +98,10 @@ module.exports = async (req, res) => {
       res.status(200).json({ ok: true, projectId, stage, agent: latest[0].agent || agentName, duplicate: true, at: latest[0].at });
       return;
     }
-    await insertEvent({
-      project_id: projectId,
-      stage,
-      agent: agentName,
-      trend: trend || null,
-      artifact,
-    });
+    // The store goes first: an approved stage is immutable (A-04/A-05), so a
+    // push onto it is refused outright — nothing lands in campaign_events
+    // either, and the agent is told to ask for a reopen. Any other store
+    // failure (storage down) does not block the push and is reported.
     let stored = false, storeError;
     try {
       const meta = stage === 'plan'
@@ -113,8 +110,19 @@ module.exports = async (req, res) => {
       await recordVersion(projectId, stage, artifact, { piece: meta, producedBy: 'external_hermes' });
       stored = true;
     } catch (e) {
+      if (e instanceof StoreError && e.code === 'approved_immutable') {
+        res.status(409).json({ error: e.message, code: e.code });
+        return;
+      }
       storeError = `${e.code || 'store'}: ${String((e && e.message) || e).slice(0, 200)}`;
     }
+    await insertEvent({
+      project_id: projectId,
+      stage,
+      agent: agentName,
+      trend: trend || null,
+      artifact,
+    });
     res.status(200).json({ ok: true, projectId, stage, agent: agentName, stored, ...(storeError ? { storeError } : {}) });
   } catch (err) {
     res.status(502).json({ error: String((err && err.message) || err) });

@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return res.status(503).json({ error: 'storage is not configured' });
   try {
     if (req.method === 'GET') {
-      const pieces = await listPieces(Number((req.query || {}).limit) || 200);
+      const pieces = await listPieces(Number((req.query || {}).limit) || 100);
       return res.status(200).json({ count: pieces.length, pieces });
     }
     const b = req.body || {};

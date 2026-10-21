@@ -135,17 +135,29 @@ async function reopen(legacyId, stage, role) {
   return { legacyId, stage, state: r.next };
 }
 
+// `id=in.(…)` reads are chunked: 40 uuids is ~1.6 KB of URL, far under any
+// proxy header limit, while a 200-piece list would otherwise build 60 KB URLs.
+const IN_CHUNK = 40;
+async function queryIn(table, select, col, ids, extra = '') {
+  const out = [];
+  for (let i = 0; i < ids.length; i += IN_CHUNK) {
+    const slice = ids.slice(i, i + IN_CHUNK);
+    out.push(...(await queryRows(table, `select=${select}&${col}=in.(${slice.map(q).join(',')})${extra}`)));
+  }
+  return out;
+}
+
 /** Everything the website needs to render pieces: stages with their current
  *  version payload and latest decision. */
-async function listPieces(limit = 200) {
-  const pieces = await queryRows('content_pieces', `select=*&order=created_at.desc&limit=${Number(limit) || 200}`);
+async function listPieces(limit = 100) {
+  const pieces = await queryRows('content_pieces', `select=*&order=created_at.desc&limit=${Math.min(Number(limit) || 100, 200)}`);
   if (!pieces.length) return [];
   const ids = pieces.map((p) => p.id);
-  const stages = await queryRows('stages', `select=id,piece_id,kind,state,position,current_version_id,updated_at&piece_id=in.(${ids.map(q).join(',')})`);
+  const stages = await queryIn('stages', 'id,piece_id,kind,state,position,current_version_id,updated_at', 'piece_id', ids);
   const vids = stages.map((s) => s.current_version_id).filter(Boolean);
-  const versions = vids.length ? await queryRows('artifact_versions', `select=id,version,kind,payload,produced_by,generated_by,created_at&id=in.(${vids.map(q).join(',')})`) : [];
-  const approvals = vids.length ? await queryRows('approvals', `select=artifact_version_id,decision,reason,name_as_signed,role_as_signed,decided_at&artifact_version_id=in.(${vids.map(q).join(',')})&order=decided_at.desc`) : [];
-  const docs = vids.length ? await queryRows('adlcp_documents', `select=artifact_version_id,kind,storage_path,sha256,size_bytes,content_type,uploaded_at&artifact_version_id=in.(${vids.map(q).join(',')})`) : [];
+  const versions = await queryIn('artifact_versions', 'id,version,kind,payload,produced_by,generated_by,created_at', 'id', vids);
+  const approvals = await queryIn('approvals', 'artifact_version_id,decision,reason,name_as_signed,role_as_signed,decided_at', 'artifact_version_id', vids, '&order=decided_at.desc');
+  const docs = await queryIn('adlcp_documents', 'artifact_version_id,kind,storage_path,sha256,size_bytes,content_type,uploaded_at', 'artifact_version_id', vids);
   const vById = new Map(versions.map((v) => [v.id, v]));
   const latestDecision = new Map();
   for (const a of approvals) if (!latestDecision.has(a.artifact_version_id)) latestDecision.set(a.artifact_version_id, a);

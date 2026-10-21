@@ -23,6 +23,8 @@ Unknown routes return `404 {"error": "not found"}`.
 | `/api/qc-f1x8` | POST / GET | session cookie | website (Studio QC) |
 | `/api/upload` | POST / GET | session cookie | website (reference photos, approval documents) |
 | `/api/translate` | POST | session cookie | website (comment translation) |
+| `/api/pieces` | GET / POST | session cookie | website (campaign store: list; write-through of a stage version) |
+| `/api/decisions` | POST | session cookie | website (approve / reject / reopen, decided server-side) |
 
 "Session cookie" is the interim single-password login: `POST /api/login` sets
 an HttpOnly, Secure, SameSite=Lax cookie `maistro_session` (HMAC over an
@@ -31,6 +33,36 @@ constant-time. Request bodies are validated at the door (`api/_schemas.js`):
 a malformed body is `400` (hermes) or `422` (director, ingest) with a
 `problems[]` list of field paths. All responses are JSON; CORS is open on the
 public routes.
+
+---
+
+## /api/pieces and /api/decisions — the campaign store
+
+The server's record of every piece (`content_pieces`), its eight stages
+(`stages`), every artifact version (`artifact_versions`, append-only), every
+decision (`approvals`, one `approved` row per version) and the sign-off
+documents bound to a final version (`adlcp_documents`). Rules come from
+`src/domain/stages.js`.
+
+- `GET /api/pieces?limit=100` → `{count, pieces:[{id (legacy id), pieceId,
+  title, product, msg, angle, markets, platforms, trendId, trend, origin,
+  status, stages:{<kind>:{state, version:{id,n,kind,payload,producedBy,at}|null,
+  decision:{decision,reason,name,role,at}|null, documents:{line_manager,adlcp}|null}}}]}`.
+- `POST /api/pieces {pieceId, stage, artifact, piece?, producedBy?, kind?}` →
+  `{ok, pieceId, stage, versionId, version, state}`: appends a version and
+  makes it current. `422` when the artifact fails its stage schema; `409
+  approved_immutable` when the stage is approved (an admin must reopen it).
+- `POST /api/decisions {pieceId, stage, decision:"approved"|"rejected", name,
+  role, info?, reason?, documents?}` → `{ok, …, state, approvalId, decidedAt}`.
+  `409` with a `code` when the domain refuses: `not_reviewable`,
+  `role_required`, `documents_required` (final needs both stored documents
+  from `/api/upload kind=document`), `self_approval`, `reason_required`.
+  `{action:"reopen", pieceId, stage, role:"admin"}` reopens an approved stage.
+- `/api/ingest` records every accepted push here as origin `external_hermes`
+  and answers `409 approved_immutable` for a push onto an approved stage.
+
+Until Supabase Auth lands (M2 part 2 c) the `role` is the signer's claim;
+afterwards the session's member role is used instead.
 
 ---
 

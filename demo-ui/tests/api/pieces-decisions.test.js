@@ -125,5 +125,25 @@ test('ingest: an accepted external push is also recorded in the campaign store a
     pg.route[1] = broken;
     r = res(); await h.handler(req({ method: 'POST', body: { stage: 'brief', projectId: id, artifact: { objective: 'o', msg: 'm', markets: ['KSA'], platforms: ['tiktok'], deadline: 'd', mandatories: [] } }, headers: { Authorization: 'Bearer k1' }, session: false }), r);
     assert.equal(r.statusCode, 200); assert.equal(r.body.stored, false); assert.match(r.body.storeError, /db down/); assert.equal(events.length, 3);
+    // an approved stage refuses the push outright: nothing lands in campaign_events either
+    pg.route[1] = orig; pg.tables.content_pieces[0].legacy_id = id;
+    pg.tables.stages.find((s) => s.kind === 'thumb').state = 'approved';
+    r = res(); await h.handler(req({ method: 'POST', body: { stage: 'thumb', projectId: id, artifact: { ...THUMB, title: 'again' } }, headers: { Authorization: 'Bearer k1' }, session: false }), r);
+    assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'approved_immutable'); assert.equal(events.length, 3);
   } finally { f.restore(); h.restore(); }
+});
+
+test('pieces list: id=in reads are chunked so a long list never builds an oversized URL', async () => {
+  const S = setup();
+  try {
+    for (let i = 0; i < 95; i++) await S.call(S.pieces, { pieceId: 'gen-many' + i, stage: 'plan', artifact: PLAN, piece: { title: 'P' + i } });
+    S.pg.calls.length = 0;
+    const list = res(); await S.pieces.handler(req({ method: 'GET' }), list);
+    assert.equal(list.body.count, 95);
+    const stageReads = S.pg.calls.filter((c) => c.method === 'GET' && c.table === 'stages');
+    assert.equal(stageReads.length, 3, '95 piece ids -> 3 chunks of 40');
+    assert.ok(stageReads.every((c) => c.url.length < 2500), 'each URL stays small');
+    const over = res(); await S.pieces.handler(req({ method: 'GET', query: { limit: '5000' } }), over);
+    assert.equal(over.body.count, 95, 'limit is capped, not trusted');
+  } finally { S.restore(); }
 });
