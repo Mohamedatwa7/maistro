@@ -382,6 +382,18 @@ Status: **PASSED** by checker, with official platform-spec values fetched for th
   - Instagram feed video ads (`.../instagram-feed`): MP4, MOV or GIF, 4 GB, 1 s to 60 min, primary text 125 characters; the page lists 9:16 with 1920 x 1080, which contradicts itself, so confirm in the ad tools.
   - Instagram Stories ads page answered 404; the TikTok Business Help Center article for organic specs could not be reached either.
 
+## Phase 6.1 (b): generation records, prompt registry, structured rejection reasons, verified ad specs (commit f91ca52, log b3d928b; released; migration 012 applied; 25 document versions reseeded)
+
+Status: **PASSED** by checker.
+
+- Tests: CI green on both branches for b3d928b (the committed suite, 125/125). The checker's local run showed 126 tests with one failure in `tests/api/spec.test.js`, which is the builder's uncommitted Creative Spec work in progress in the shared checkout (untracked `api/_spec.js` and `spec.test.js`, modified `decisions.js`, `pieces.js`, `_jobs.js`), not a regression in f91ca52. From here on the committed suite is read from CI and local runs serve the review only; the checker never touches the builder's working files.
+- `api/_records.js`: `registerPrompt` once per instance with `on_conflict name,version` and ignore-duplicates; `recordGeneration` best effort, logs and returns null on a write failure, never throws; kinds claude, higgsfield_image, higgsfield_video, f1x8, trend_judge; `recorded()` wrapper classifies refused and timed-out outcomes.
+- Wiring: `hermes.js` and `director.js` register their prompt template with placeholders, store the resolved prompt (system plus user turn), and record success, failure and timeout around `messages.create`; `judge.js` records every outcome including early stop, malformed JSON and validation failure with the problems; `_jobs.js` records render and F1X8 outcomes through `jobRecord` (refused on nsfw, timed_out on timeout, output assets with assetPath, sha256 and versionId; input assets; correlation id).
+- Rejections: migration 012 adds `approvals.reason_code`; `decide()` stores the code on rejections and `listPieces` returns it as `decision.reasonCode`; the page loads the rejection taxonomy from GET `/api/kb?kind=rejection_taxonomy` with a seed fallback, `openReject` offers stage-specific codes and `confirmReject` sends the code.
+- Seed: the four platform-spec documents carry an `ads` block marked verified with the official URLs the checker fetched and an `organic` block still unverified; the 21 catalog entries state the counting rule (distinct captions deduplicated on text, product name only, hashtags not counted) beside the checker's name-or-hashtag counts.
+- Production: `/` byte-identical (sha256 4a588ff6…); health ok; `/api/kb?kind=` 401 without a session; default feed unchanged.
+- Note, not blocking: every record stores the full resolved prompt (up to 60 KB) including the brand and catalog text that repeats on every call; a hash of the resolved prompt plus the prompt and knowledge-base versions would reconstruct it and keep the table small. Worth doing before volume grows.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
