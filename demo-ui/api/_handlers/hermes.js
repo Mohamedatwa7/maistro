@@ -109,12 +109,15 @@ const STAGES = {
   qc: {
     agent: 'Sentinel',
     instruction:
-      'Run the quality check: score the piece on exactly these four F1X8 dimensions — "Technical & craft quality", "Message effectiveness", "Audience fit", "Platform performance potential" — each 70-95, a one-line composite note with a predicted engagement-rate claim, a plausible human reviewer "Initial. Surname · role" for the lead market, and a one-line human sign-off note.',
+      'Run a pre-flight quality read of the written plan (no rendered asset exists yet, so this is an estimate, not an F1X8 result): score the concept on exactly these four dimensions — "Technical & craft quality", "Message effectiveness", "Audience fit", "Platform performance potential" — each 0-100, honestly, and write a one-line composite note naming the biggest risk. Do not invent any person, reviewer or sign-off.',
     schema: obj({
       f1x8: { type: 'array', items: obj({ n: STR, s: { type: 'integer' } }) },
-      f1x8Note: STR, human: STR, humanNote: STR,
+      f1x8Note: STR,
     }),
-    map: (r) => r,
+    // AUDIT B-02 / ADR-007: the dispatch QC is a Claude estimate until the
+    // piece has a rendered draft for the real F1X8 run; it carries no human
+    // name — the human check is the Production Center approval itself.
+    map: (r) => ({ f1x8: r.f1x8, f1x8Note: r.f1x8Note, simulated: true, human: null, humanNote: null }),
   },
 };
 

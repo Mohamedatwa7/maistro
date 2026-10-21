@@ -157,3 +157,47 @@ test('translate: validation and the gtx response flattening', async () => {
     assert.equal(r.headers['cache-control'], 's-maxage=86400');
   } finally { f.restore(); h.restore(); }
 });
+
+test('hermes qc: the dispatch estimate carries no fabricated human reviewer (AUDIT B-02 interim)', async () => {
+  const f = mockFetch([['api.anthropic.com', (u, init) => {
+    const body = JSON.parse(init.body);
+    assert.ok(!/plausible human reviewer/.test(JSON.stringify(body)), 'prompt no longer asks for an invented reviewer');
+    return anthropicReply({ f1x8: [{ n: 'Technical & craft quality', s: 71 }], f1x8Note: 'estimate', human: 'I. Invented · lead', humanNote: 'signed' });
+  }]]);
+  const h = api('hermes.js', { ANTHROPIC_API_KEY: 'k' });
+  try {
+    const r = res(); await h.handler(req({ method: 'POST', body: { stage: 'qc', trend: TREND } }), r);
+    assert.equal(r.statusCode, 200);
+    assert.deepEqual(r.body.artifact, { f1x8: [{ n: 'Technical & craft quality', s: 71 }], f1x8Note: 'estimate', simulated: true, human: null, humanNote: null });
+  } finally { f.restore(); h.restore(); }
+});
+
+test('upload kind=document: private approvals bucket, sha-256 recorded, no public URL; GET signs a stored path (AUDIT A-02 interim)', async () => {
+  const calls = [];
+  const bytes = Buffer.from('%PDF-1.4 signed approval');
+  const f = mockFetch([
+    ['/storage/v1/bucket', (u, init) => { calls.push('bucket:' + JSON.parse(init.body).id + ':' + JSON.parse(init.body).public); return json({ message: 'exists' }, 409); }],
+    [/\/storage\/v1\/object\/sign\/approvals\/documents\/\d{4}\/[a-z0-9]+-[a-z0-9]{6}\.pdf$/, (u, init) => { calls.push('sign:' + JSON.parse(init.body).expiresIn); return json({ signedURL: '/object/sign/approvals/x?token=t' }); }],
+    [/\/storage\/v1\/object\/approvals\/documents\/\d{4}\/[a-z0-9]+-[a-z0-9]{6}\.pdf$/, (u, init) => { calls.push('object:' + init.headers['Content-Type'] + ':' + init.headers['x-upsert']); return json({ Key: 'ok' }); }],
+  ]);
+  const h = api('upload.js', { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k' });
+  try {
+    let r = res(); await h.handler(req({ method: 'POST', body: { kind: 'document', data: bytes.toString('base64'), contentType: 'application/zip', name: 'x.zip' } }), r);
+    assert.equal(r.statusCode, 422, 'archive types refused');
+    r = res(); await h.handler(req({ method: 'POST', body: { kind: 'document', data: Buffer.alloc(3 * 1024 * 1024 + 1).toString('base64'), contentType: 'application/pdf' } }), r);
+    assert.equal(r.statusCode, 413);
+    r = res(); await h.handler(req({ method: 'POST', body: { kind: 'document', data: bytes.toString('base64'), contentType: 'application/pdf', name: 'ADLCP\u0000 sign-off.pdf' } }), r);
+    assert.equal(r.statusCode, 200);
+    assert.equal(r.body.url, undefined, 'no public URL for a private document');
+    assert.equal(r.body.sha256, require('crypto').createHash('sha256').update(bytes).digest('hex'));
+    assert.equal(r.body.size, bytes.length); assert.equal(r.body.name, 'ADLCP sign-off.pdf');
+    assert.match(r.body.path, /^documents\/\d{4}\/[a-z0-9]+-[a-z0-9]{6}\.pdf$/);
+    assert.deepEqual(calls, ['bucket:approvals:false', 'object:application/pdf:false']);
+    const stored = r.body.path;
+    r = res(); await h.handler(req({ method: 'GET', query: { path: '../refs/products/x.jpg' } }), r); assert.equal(r.statusCode, 422);
+    r = res(); await h.handler(req({ method: 'GET', query: { path: stored } }), r);
+    assert.equal(r.statusCode, 200); assert.equal(r.body.url, 'https://sb.test/storage/v1/object/sign/approvals/x?token=t'); assert.equal(r.body.expiresIn, 600);
+    assert.equal(calls[2], 'sign:600');
+    r = res(); await h.handler(req({ method: 'GET', query: { path: stored }, session: false }), r); assert.equal(r.statusCode, 401);
+  } finally { f.restore(); h.restore(); }
+});

@@ -102,7 +102,7 @@ const STAGE_SCHEMAS = {
     qcRevised: bool({ optional: true }),
   }),
   qc: oneOf([
-    obj({ f1x8: arr(obj({ n: str({ max: 80 }), s: num({ int: true, min: 0, max: 100 }) }), { min: 1, max: 8 }), f1x8Note: str({ max: 600 }), human: str({ max: 120 }), humanNote: str({ max: 600 }) }),
+    obj({ f1x8: arr(obj({ n: str({ max: 80 }), s: num({ int: true, min: 0, max: 100 }) }), { min: 1, max: 8 }), f1x8Note: str({ max: 600 }), human: str({ max: 120, optional: true }), humanNote: str({ max: 600, optional: true }), simulated: bool({ optional: true }) }),
     obj({ real: bool(), runs: obj({}), avg: num({ min: 0, max: 10, optional: true }) }),
   ]),
 };

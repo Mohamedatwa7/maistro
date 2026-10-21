@@ -80,3 +80,26 @@ test('esc escapes & < > " \' (M1 fix for AUDIT D-02) and a hostile campaign titl
     assert.equal(X.fmt(1234567), '1.2M'); assert.equal(X.fmt(950), '950'); assert.equal(X.pct(0.0349), '3.5%');
   } finally { X.restore(); }
 });
+
+test('stageArtifact qc: a simulated dispatch estimate is labelled as such and shows no human sign-off; a pushed qc with a named reviewer still renders', () => {
+  const X = loadPage();
+  try {
+    const p = piece(X, { studio: false, stage: 6, qc: { f1x8: [{ n: 'Audience fit', s: 70 }], f1x8Note: 'estimate', simulated: true, human: null, humanNote: null } });
+    let html = X.stageArtifact(p, 6);
+    assert.match(html, /Pre-flight estimate \(Claude\) — not an F1X8 result/);
+    assert.match(html, /AWAITING HUMAN REVIEW/);
+    assert.ok(!/QC PASSED/.test(html));
+    p.qc = { f1x8: [{ n: 'Audience fit', s: 88 }], f1x8Note: 'n', human: 'N. Haddad · lead', humanNote: 'ok' };
+    html = X.stageArtifact(p, 6);
+    assert.match(html, /F1X8 automated check/); assert.match(html, /N\. Haddad · lead/); assert.match(html, /QC PASSED/);
+  } finally { X.restore(); }
+});
+
+test('approval record: stored documents render name, checksum and an OPEN link; a pre-storage string record is labelled as name only', () => {
+  const X = loadPage();
+  try {
+    assert.match(X.docLabel({ name: 'adlcp.pdf', path: 'documents/2026/abc-def123.pdf', sha256: 'deadbeef' + '0'.repeat(56) }), /adlcp\.pdf · <span title="sha256 deadbeef0+">deadbeef<\/span> · <a href="#" onclick="event\.preventDefault\(\);docOpen\('documents\/2026\/abc-def123\.pdf'\)"/);
+    assert.match(X.docLabel('ADLCP-approval'), /ADLCP-approval <span class="dim">\(name only/);
+    assert.equal(X.docLabel(null), '');
+  } finally { X.restore(); }
+});

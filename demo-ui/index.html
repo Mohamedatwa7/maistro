@@ -572,6 +572,7 @@ body.bare #view{padding:0}
 .upl .u1{font-size:12.5px;font-weight:500;color:var(--text)}
 .upl .u2{font-family:var(--font-m);font-size:10px;color:var(--muted)}
 .upl.ok{border-style:solid;border-color:rgba(52,211,153,.5);background:rgba(52,211,153,.05)}
+.upl.busy{border-color:rgba(125,211,252,.55);opacity:.8;pointer-events:none}
 .upl.ok .u2{color:var(--go)}
 .upl input{display:none}
 textarea,select.inp{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--hairline);border-radius:11px;
@@ -2799,12 +2800,14 @@ function stageArtifact(p,n){
    ${p.studio?regenBox(p,'final'):''}`:'');
   case 'qc':return head(done)+(p.qc?`
    <div class="grid2e">
-    <div><span class="kick" style="color:#7dd3fc">F1X8 automated check</span>
+    <div><span class="kick" style="color:#7dd3fc">${p.qc.simulated?'Pre-flight estimate (Claude) — not an F1X8 result':'F1X8 automated check'}</span>
+     ${p.qc.simulated?`<p class="src" style="margin-top:6px">Scored from the written plan; the real F1X8 check runs on a rendered draft in the Studio.</p>`:''}
      ${p.qc.f1x8.map(d=>`<div class="bar-row" style="margin-top:10px"><span class="lab dim mono" style="width:190px;text-align:left;font-size:10px">${d.n.toUpperCase()}</span><span class="track"><span class="fill" data-w="${d.s}%"></span></span><span class="lab mono" style="color:#fff">${d.s}</span></div>`).join('')}
      <p class="src" style="margin-top:12px">${p.qc.f1x8Note}</p></div>
     <div><span class="kick" style="color:#6ee7b9">Human check</span>
-     <div style="display:flex;align-items:center;gap:10px;margin-top:12px">${agentChip(p.qc.human.split(' ')[0].replace('.',''),0)}<div><b style="color:#fff;font-size:13px">${p.qc.human}</b><div class="dim" style="font-size:11.5px;margin-top:2px">${p.qc.humanNote}</div></div></div>
-     <div style="margin-top:14px">${badge('go','QC PASSED — RELEASED TO PRODUCTION CENTER')}</div></div>
+     ${p.qc.human?`<div style="display:flex;align-items:center;gap:10px;margin-top:12px">${agentChip(esc(p.qc.human).split(' ')[0].replace('.',''),0)}<div><b style="color:#fff;font-size:13px">${esc(p.qc.human)}</b><div class="dim" style="font-size:11.5px;margin-top:2px">${esc(p.qc.humanNote||'')}</div></div></div>
+     <div style="margin-top:14px">${badge('go','QC PASSED — RELEASED TO PRODUCTION CENTER')}</div>`:`<p class="dim" style="font-size:12.5px;margin-top:12px">No human has signed this off yet — the review happens in the Production Center, where the approval is recorded against a named reviewer.</p>
+     <div style="margin-top:14px">${badge('gold','AWAITING HUMAN REVIEW')}</div>`}</div>
    </div>`:'');
  }
  return '';
@@ -2895,7 +2898,7 @@ function rStudio(){
      <span class="pc-ico" style="background:linear-gradient(120deg,${pr.th[0]},${pr.th[1]})">${sg.id.toUpperCase()}</span>
      <div class="meta"><div class="ttl">${esc(pr.title)} — ${esc(d.title)}</div>
       <div class="sub">Stage 0${sg.n} · ${sg.l} · uploaded by ${esc(d.by)} · ${esc(d.at)} · ${esc(d.ver)}</div>
-      ${d.st==='approved'?`<div class="pc-appr">Approved by <b style="color:#fff">${esc(d.appr.name)}</b> (${esc(d.appr.info)}) · ${esc(d.appr.at)}${d.appr.lm?`<br>LM approval: <span class="mono">${esc(d.appr.lm)}</span> · ADLCP: <span class="mono">${esc(d.appr.adlcp)}</span>`:''}</div>`:''}
+      ${d.st==='approved'?`<div class="pc-appr">Approved by <b style="color:#fff">${esc(d.appr.name)}</b> (${esc(d.appr.info)}) · ${esc(d.appr.at)}${d.appr.lm?`<br>LM approval: <span class="mono">${docLabel(d.appr.lm)}</span><br>ADLCP: <span class="mono">${docLabel(d.appr.adlcp)}</span>`:''}</div>`:''}
       ${d.st==='rejected'?`<div class="pc-note">Rejected — ${d.rej}</div>`:''}</div>
      <div class="acts">
       ${d.st==='pending'?`<button class="btn btn-go btn-sm" onclick="openApprove('${d.id}')">Approve</button><button class="btn btn-alert btn-sm" onclick="openReject('${d.id}')">Reject</button>`:
@@ -2909,15 +2912,49 @@ function rStudio(){
 
 /* ---------- approve / reject modals ---------- */
 function closeModal(){$('#modal-back').classList.remove('open')}
-function uplOk(inp,lab){const el=inp.closest('.upl');el.classList.add('ok');el.querySelector('.u2').textContent=(inp.files[0]?inp.files[0].name:lab)+' ✓ attached'}
+/* Approval documents go to the server (private "approvals" bucket, sha-256
+   recorded) — the approval below refuses to record until both are stored. */
+const DOC_TYPES={pdf:'application/pdf',jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',eml:'message/rfc822',msg:'application/vnd.ms-outlook'};
+async function uplOk(inp,lab){
+ const el=inp.closest('.upl'),u2=el.querySelector('.u2'),f=inp.files[0];
+ if(!f)return;
+ el.classList.remove('ok');delete el.dataset.doc;el.style.borderColor='';
+ const ext=(f.name.split('.').pop()||'').toLowerCase(),ct=DOC_TYPES[ext]||f.type;
+ if(!Object.values(DOC_TYPES).includes(ct)){u2.textContent='PDF, image or e-mail export only';el.style.borderColor='rgba(251,113,133,.7)';return}
+ if(f.size>3*1024*1024){u2.textContent='Under 3 MB please';el.style.borderColor='rgba(251,113,133,.7)';return}
+ el.classList.add('busy');u2.textContent='Uploading '+f.name+'…';
+ try{
+  const b64=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(',')[1]);r.onerror=()=>no(new Error('could not read the file'));r.readAsDataURL(f)});
+  const r=await authFetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:'document',data:b64,contentType:ct,name:f.name})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||!d.path||!d.sha256)throw new Error(d.error||'upload failed');
+  el.dataset.doc=JSON.stringify({kind:lab,name:d.name,path:d.path,sha256:d.sha256,size:d.size,at:d.at});
+  el.classList.add('ok');u2.textContent=d.name+' ✓ stored · sha256 '+d.sha256.slice(0,8);
+ }catch(e){
+  u2.textContent='Upload failed: '+e.message;el.style.borderColor='rgba(251,113,133,.7)';
+ }finally{el.classList.remove('busy')}
+}
+function docLabel(x){
+ if(!x)return '';
+ if(typeof x==='string')return esc(x)+' <span class="dim">(name only — recorded before documents were stored)</span>';
+ return `${esc(x.name)} · <span title="sha256 ${esc(x.sha256)}">${esc(String(x.sha256).slice(0,8))}</span> · <a href="#" onclick="event.preventDefault();docOpen('${esc(x.path)}')" style="color:#7dd3fc;text-decoration:none">OPEN ↗</a>`;
+}
+async function docOpen(path){
+ try{
+  const r=await authFetch('/api/upload?path='+encodeURIComponent(path));
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||!d.url)throw new Error(d.error||'could not sign the document');
+  window.open(d.url,'_blank','noopener');
+ }catch(e){toast(`<b style="color:#fb7185">Document:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
+}
 function openApprove(id){
  const d=DELIVS.find(x=>x.id===id),pr=PROJECTS.find(x=>x.id===d.proj);
  $('#modal').innerHTML=`
   <h3>Approve — ${esc(pr.title)}</h3>
   <p class="msub">${esc(d.title)}. ${d.stage==='final'?'Approval is recorded against your name with both sign-off documents attached.':'Approval is recorded against your name.'}</p>
   ${d.stage==='final'?`<div class="grid-2f">
-   <label class="upl"><span class="u1">Line manager approval</span><span class="u2">PDF / e-mail export — click to attach</span><input type="file" onchange="uplOk(this,'LM-approval')"></label>
-   <label class="upl"><span class="u1">ADLCP approval</span><span class="u2">Signed document — click to attach</span><input type="file" onchange="uplOk(this,'ADLCP-approval')"></label>
+   <label class="upl"><span class="u1">Line manager approval</span><span class="u2">PDF / e-mail export — stored privately with a checksum</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.eml,.msg" onchange="uplOk(this,'line_manager')"></label>
+   <label class="upl"><span class="u1">ADLCP approval</span><span class="u2">Signed document — stored privately with a checksum</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.eml,.msg" onchange="uplOk(this,'adlcp')"></label>
   </div>`:''}
   <div class="f-field" style="margin-top:14px"><label>Your name</label><input class="inp-l" id="ap-name" placeholder="Full name"></div>
   <div class="f-field" style="margin-top:12px"><label>Role · team · relevant information</label><input class="inp-l" id="ap-info" placeholder="e.g. Content lead · KSA/UAE · s.almansouri@samsung.com"></div>
@@ -2928,7 +2965,8 @@ function openApprove(id){
 function confirmApprove(id){
  const name=$('#ap-name').value.trim(),info=$('#ap-info').value.trim();
  const ups=[...document.querySelectorAll('#modal .upl')];
- if(!name||!info||ups.some(u=>!u.classList.contains('ok'))){
+ if(ups.some(u=>u.classList.contains('busy')))return;
+ if(!name||!info||ups.some(u=>!u.classList.contains('ok')||!u.dataset.doc)){
   ups.forEach(u=>{if(!u.classList.contains('ok'))u.style.borderColor='rgba(251,113,133,.7)'});
   ['ap-name','ap-info'].forEach(i=>{const el=document.getElementById(i);if(!el.value.trim())el.style.borderColor='rgba(251,113,133,.7)'});
   return;
@@ -2937,8 +2975,8 @@ function confirmApprove(id){
  d.st='approved';
  d.appr={name,info,at:'Just now'};
  if(ups.length===2){
-  d.appr.lm=ups[0].querySelector('.u2').textContent.replace(' ✓ attached','');
-  d.appr.adlcp=ups[1].querySelector('.u2').textContent.replace(' ✓ attached','');
+  d.appr.lm=JSON.parse(ups[0].dataset.doc);
+  d.appr.adlcp=JSON.parse(ups[1].dataset.doc);
  }
  saveGenerated();
  closeModal();$('#view').innerHTML=rStudio();reveal();

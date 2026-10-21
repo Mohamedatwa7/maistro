@@ -286,6 +286,27 @@ placeholder in the Content Studio.
 
 ---
 
+## /api/upload — reference photos and approval documents (session required)
+
+**POST** `{data:<base64>, contentType:"image/jpeg"|"image/png"|"image/webp"}`
+→ `{url}`: a product reference photo in the public `refs` bucket (the client
+downsizes to ≤1600 px first; 4 MB cap).
+
+**POST** `{kind:"document", data:<base64>, contentType, name?}` → `{path,
+sha256, size, contentType, name, at}`: a line-manager or ADLCP sign-off
+document in the **private** `approvals` bucket. Accepted types: PDF, JPEG,
+PNG, WebP, `.eml`, `.msg`; 3 MB cap (Vercel's 4.5 MB request limit minus
+base64). No public URL is ever returned; the Production Center records the
+returned object against the approval, and "Record approval" on a final stays
+disabled until both documents are stored.
+
+**GET** `?path=<stored path>` → `{url, expiresIn:600}`: a 10-minute signed
+URL for a session holder to open a stored document. Errors: `401` no
+session · `413` too large · `422` bad type or path · `502` storage error ·
+`503` storage not configured.
+
+---
+
 ## /api/qc-f1x8 — real F1X8 quality check (proxy)
 
 Routes the Content Studio QC stage through the real **F1X8** engagement-scoring
