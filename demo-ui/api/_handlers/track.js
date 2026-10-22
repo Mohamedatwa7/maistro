@@ -241,8 +241,10 @@ async function reconcile(days, R, get, H, base) {
   try {
     dbSeen = 0;
     for (let t = Date.parse(floor); t < Date.now(); t += 7 * 864e5) {
-      const a = new Date(t).toISOString(), b = new Date(Math.min(t + 7 * 864e5, Date.now() + 60e3)).toISOString();
-      const n = await countRows(base, H, `social_comments?select=id&published_at=gte.${a}&published_at=lt.${b}${excl}`);
+      // the last window is open-ended, exactly like the reader (published_at >= floor, no upper bound),
+      // so a comment timestamped in the future is counted on both sides
+      const a = new Date(t).toISOString(), last = t + 7 * 864e5 >= Date.now();
+      const n = await countRows(base, H, `social_comments?select=id&published_at=gte.${a}${last ? '' : `&published_at=lt.${new Date(t + 7 * 864e5).toISOString()}`}${excl}`);
       if (n == null) throw new Error(`count unavailable for ${a.slice(0, 10)}`);
       dbSeen += n;
     }

@@ -138,7 +138,7 @@ test('reconcile (7.0): reader counts vs database counts, twins removed, alias-on
     // a database count that disagrees shows up as a failed check, with the numbers
     counts.posts.instagram = 3; counts.commentsSeen = 5;
     r = res(); await h.handler(req({ query: { days: '14', reconcile: '1' }, headers: { 'user-agent': 'Mozilla/5.0', authorization: 'Bearer ingest' } }), r);
-    assert.equal(r.body.ok, false); assert.deepEqual(r.body.posts.instagram, { reader: 1, db: 3, equal: false }); assert.equal(r.body.checks.R3_commentsSeen, false); assert.equal(r.body.comments.dbSeen, 5); assert.ok(windows.length >= 3 && windows.every(([a, b]) => b - a <= 7 * 864e5 + 60e3), 'counted in windows of at most 7 days');
+    assert.equal(r.body.ok, false); assert.deepEqual(r.body.posts.instagram, { reader: 1, db: 3, equal: false }); assert.equal(r.body.checks.R3_commentsSeen, false); assert.equal(r.body.comments.dbSeen, 5); assert.ok(windows.length >= 3 && windows.every(([a, b]) => b === Infinity || b - a <= 7 * 864e5), 'counted in windows of at most 7 days'); assert.equal(windows.at(-1)[1], Infinity, 'the last window is open-ended like the reader');
     assert.equal(r.body.posts, r.body.posts); assert.equal('posts' in r.body && !Array.isArray(r.body.posts), true, 'a report, not page data');
   } finally { f.restore(); h.restore(); }
 });
