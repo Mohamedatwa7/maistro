@@ -123,6 +123,16 @@ Open: applying the plan is 6.8 (final); audio swaps need a licensed library (own
 
 Open: one export aspect per piece (a second platform aspect is a re-assembly at that frame — later); captions per language come from the brief (shot lines are burnt into the video); audio swaps wait on a licensed library.
 
+## 6.9 Cross-cutting — cost control (what ships)
+
+| Requirement | What | Where |
+|---|---|---|
+| Estimate before every expensive generation | Every Higgsfield job is priced with `POST /estimate/<endpoint>` on the **exact body it submits** (`buildRequest()` is shared by `submit` and `estimateRequest`) before its first submit; the estimate is stored on the job (`jobs.estimate_usd`, migration 015) and returned to the page; the QC fix plan is priced the same way before anything runs (6.7). The v1 reference path has no estimate endpoint — those jobs run unpriced and are marked so | `api/_adapters/higgsfield.js`, `api/_jobs.js budgetGate()` |
+| Actual cost recorded | `generation_records.cost_usd` = the estimate for a render that produced output, $0 for failed / moderated / refused renders (Higgsfield does not charge those) | `jobRecord` |
+| Per-piece budget, warning, hard cap | `content_pieces.budget_usd` (default `MAISTRO_PIECE_BUDGET_USD`, builder default $25) and `budget_warn_pct` (80); spent = succeeded renders, committed = queued/running; a render that would cross the cap is **refused before submission** with the numbers; crossing the threshold puts a warning on the job; `POST /api/studio {action:'budget'}` (line manager / admin) changes it, audit-logged; `GET ?budget=` reads it; the create box shows it | `api/_handlers/studio.js`, `index.html budgetLine()` |
+
+The owner sets the real default budget (owner gate).
+
 ## Open owner inputs (collected from the seed's `gaps`)
 
 1. Disclaimers by claim type and market; logo and end-card rules; overlay typeface.

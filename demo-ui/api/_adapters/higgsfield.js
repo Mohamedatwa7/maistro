@@ -64,6 +64,25 @@ function providerError(r, body) {
   return Object.assign(new Error(c.message), { status: r.status, retryable: c.retryable, code: c.code, correlationId: r.headers && r.headers.get ? r.headers.get('x-correlation-id') : null });
 }
 
+/** The endpoint and body a (non-reference) submit sends — shared with the estimate so the price is
+ *  for exactly what is generated. Returns null for the v1 reference path (no estimate endpoint). */
+function buildRequest(reqBody) {
+  const { kind, prompt, resolution, aspect_ratio, ref, duration, batch, seed, imageUrl, endImageUrl, generateAudio } = normalizeRequest(reqBody);
+  if (kind === 'image' && ref) return null;
+  const input = kind === 'image'
+    ? { prompt, aspect_ratio, resolution: resolution === '480p' ? '720p' : resolution, batch_size: batch, ...(seed != null ? { seed } : {}) }
+    : imageUrl
+      ? { image_url: imageUrl, prompt, duration, resolution, generate_audio: generateAudio, bitrate_mode: 'high', ...(endImageUrl ? { end_image_url: endImageUrl } : {}) }
+      : { prompt, aspect_ratio, resolution, duration, generate_audio: generateAudio };
+  return { endpoint: kind === 'video' && imageUrl ? MODELS.imageVideo : MODELS[kind], input };
+}
+
+/** Price a submit before it is made: { usd, credits } or null when the path has no estimate (v1 reference). */
+async function estimateRequest(reqBody) {
+  const b = buildRequest(reqBody);
+  return b ? estimate(b.endpoint, b.input) : null;
+}
+
 /** Submit. Returns { ref: provider id, v: 0|1, status, correlationId }.
  *  opts.idempotencyKey (the job id) makes a retried submit replay the
  *  original request instead of generating — and charging — twice. */
@@ -101,12 +120,7 @@ async function submit(reqBody, opts = {}) {
   // Current REST API (docs/concepts/requests): POST /<endpoint-id> with the
   // documented body; the SDK's subscribe() is not used so that timeouts,
   // retries and headers are ours and the path is testable with recordings.
-  const input = kind === 'image'
-    ? { prompt, aspect_ratio, resolution: resolution === '480p' ? '720p' : resolution, batch_size: batch, ...(seed != null ? { seed } : {}) }
-    : imageUrl
-      ? { image_url: imageUrl, prompt, duration, resolution, generate_audio: generateAudio, bitrate_mode: 'high', ...(endImageUrl ? { end_image_url: endImageUrl } : {}) }
-      : { prompt, aspect_ratio, resolution, duration, generate_audio: generateAudio };
-  const endpoint = kind === 'video' && imageUrl ? MODELS.imageVideo : MODELS[kind];
+  const { endpoint, input } = buildRequest(reqBody);
   const r = await fetchT(`${API}/${endpoint}`, {
     method: 'POST',
     headers: { Authorization: `Key ${creds}`, 'Content-Type': 'application/json', 'User-Agent': 'MaistroDemo/1.0', ...idem },
@@ -156,4 +170,4 @@ async function estimate(endpoint, body) {
   return { usd, credits: Number.isFinite(credits) ? credits : null };
 }
 
-module.exports = { submit, status, estimate, normalizeRequest, classify, MODELS, API };
+module.exports = { submit, status, estimate, estimateRequest, buildRequest, normalizeRequest, classify, MODELS, API };

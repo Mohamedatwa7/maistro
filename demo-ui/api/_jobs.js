@@ -13,7 +13,7 @@ const higgsfield = require('./_adapters/higgsfield.js');
 const f1x8 = require('./_adapters/f1x8.js');
 const storage = require('./_adapters/storage.js');
 const { recordGeneration } = require('./_records.js');
-const jobRecord = (job, extra) => recordGeneration({ kind: job.kind.startsWith('higgsfield') ? job.kind : job.kind === 'assemble' ? 'assemble' : 'f1x8', legacyPieceId: job.payload && job.payload.pieceId, pieceId: job.piece_id || null, stage: job.payload && job.payload.stage, promptName: job.kind.startsWith('higgsfield') ? 'director.prompt' : job.kind === 'assemble' ? 'assemble.ffmpeg' : 'f1x8.analysis', promptVersion: null, resolvedPrompt: job.payload && (job.payload.prompt || job.payload.description) || null, params: { aspect_ratio: job.payload && job.payload.aspect_ratio, resolution: job.payload && job.payload.resolution, duration: job.payload && job.payload.duration, ref: Boolean(job.payload && job.payload.ref), v: job.payload && job.payload.v, seed: job.payload && job.payload.seed != null ? job.payload.seed : null }, inputAssets: job.payload && (job.payload.ref || job.payload.assetUrl || job.payload.assetPath) ? [job.payload.ref || job.payload.assetPath || job.payload.assetUrl] : [], jobId: job.id, memberId: job.payload && job.payload.generatedBy, correlationId: job.payload && job.payload.correlationId, latencyMs: job.started_at ? Date.now() - new Date(job.started_at).getTime() : null, ...extra });
+const jobRecord = (job, extra) => recordGeneration({ kind: job.kind.startsWith('higgsfield') ? job.kind : job.kind === 'assemble' ? 'assemble' : 'f1x8', legacyPieceId: job.payload && job.payload.pieceId, pieceId: job.piece_id || null, stage: job.payload && job.payload.stage, promptName: job.kind.startsWith('higgsfield') ? 'director.prompt' : job.kind === 'assemble' ? 'assemble.ffmpeg' : 'f1x8.analysis', promptVersion: null, resolvedPrompt: job.payload && (job.payload.prompt || job.payload.description) || null, params: { aspect_ratio: job.payload && job.payload.aspect_ratio, resolution: job.payload && job.payload.resolution, duration: job.payload && job.payload.duration, ref: Boolean(job.payload && job.payload.ref), v: job.payload && job.payload.v, seed: job.payload && job.payload.seed != null ? job.payload.seed : null }, inputAssets: job.payload && (job.payload.ref || job.payload.assetUrl || job.payload.assetPath) ? [job.payload.ref || job.payload.assetPath || job.payload.assetUrl] : [], jobId: job.id, memberId: job.payload && job.payload.generatedBy, correlationId: job.payload && job.payload.correlationId, latencyMs: job.started_at ? Date.now() - new Date(job.started_at).getTime() : null, costUsd: job.estimate_usd != null ? (extra && extra.status === 'succeeded' ? Number(job.estimate_usd) : 0) : undefined, ...extra });
 
 const q = (v) => encodeURIComponent(String(v));
 const KINDS = ['higgsfield_image', 'higgsfield_video', 'f1x8_image', 'f1x8_video', 'vision_check', 'assemble', 'clip_check'];
@@ -35,7 +35,7 @@ function publicJob(j, legacyId) {
   return {
     id: j.id, kind: j.kind, state: j.state, stage: j.payload && j.payload.stage, pieceId: legacyId || (j.payload && j.payload.pieceId) || null,
     providerRef: j.provider_ref || null, attempts: j.attempts, result: j.result || null, error: j.error || null,
-    createdAt: j.created_at, startedAt: j.started_at || null, finishedAt: j.finished_at || null, nextPollAt: j.next_poll_at || null,
+    estimateUsd: j.estimate_usd != null ? Number(j.estimate_usd) : null, budgetWarning: (j.payload && j.payload.budgetWarning) || null, createdAt: j.created_at, startedAt: j.started_at || null, finishedAt: j.finished_at || null, nextPollAt: j.next_poll_at || null,
   };
 }
 
@@ -130,6 +130,13 @@ async function advance(job) {
       if (attempts > MAX_SUBMIT_ATTEMPTS) { await fail(job, 'failed', job.error || 'submit failed repeatedly'); return 'failed'; }
       await patchRows('jobs', `id=eq.${q(job.id)}`, { attempts });
       try {
+        // 6.9: price the exact body before submitting and hold the piece to its budget
+        if (job.kind.startsWith('higgsfield') && job.estimate_usd == null && !job.payload.budgetChecked) {
+          const gate = await budgetGate(job);
+          if (gate.refuse) { if (gate.estimateUsd != null) { await patchRows('jobs', `id=eq.${q(job.id)}`, { estimate_usd: gate.estimateUsd }); job = { ...job, estimate_usd: gate.estimateUsd }; } await fail(job, 'failed', gate.refuse); return 'failed'; }
+          job = { ...job, estimate_usd: gate.estimateUsd, payload: { ...job.payload, budgetChecked: true, ...(gate.warning ? { budgetWarning: gate.warning } : {}) } };
+          await patchRows('jobs', `id=eq.${q(job.id)}`, { estimate_usd: gate.estimateUsd, payload: job.payload });
+        }
         // 6.6: a clip job names its keyframe by private path; the signed URL is minted once
         // (24 h) and kept on the job so the idempotent body is identical on every retry
         if (job.kind === 'higgsfield_video' && job.payload.imageAssetPath && !job.payload.imageUrl) {
@@ -266,6 +273,29 @@ async function pollRender(job) {
   }
   await patchRows('jobs', `id=eq.${q(job.id)}`, { state: 'running', error: null });
   return 'running';
+}
+
+/** 6.9: the piece's budget — cap from the piece or MAISTRO_PIECE_BUDGET_USD (default 25), warning at
+ *  budget_warn_pct. Spent = estimates of succeeded renders; committed = queued/running renders already
+ *  priced; failed / moderated / canceled renders are not charged by Higgsfield and do not count. */
+async function pieceBudget(pieceId) {
+  const [p] = await queryRows('content_pieces', `select=id,budget_usd,budget_warn_pct&id=eq.${q(pieceId)}&limit=1`);
+  const capUsd = p && p.budget_usd != null ? Number(p.budget_usd) : Number(process.env.MAISTRO_PIECE_BUDGET_USD || 25);
+  const warnPct = p && p.budget_warn_pct ? Number(p.budget_warn_pct) : 80;
+  const rows = await queryRows('jobs', `select=id,state,estimate_usd,kind&piece_id=eq.${q(pieceId)}&estimate_usd=not.is.null&limit=1000`);
+  const sum = (f) => Math.round(rows.filter(f).reduce((a, r) => a + Number(r.estimate_usd || 0), 0) * 10000) / 10000;
+  return { capUsd, warnPct, spentUsd: sum((r) => r.state === 'succeeded'), committedUsd: sum((r) => r.state === 'queued' || r.state === 'running'), jobs: rows.length };
+}
+
+async function budgetGate(job) {
+  let estimateUsd = null;
+  try { const e = await higgsfield.estimateRequest({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }); estimateUsd = e ? Math.round(e.usd * 10000) / 10000 : null; }
+  catch (e) { console.warn('[jobs] estimate failed:', e.message); }
+  const b = await pieceBudget(job.piece_id);
+  const after = b.spentUsd + b.committedUsd + (estimateUsd || 0);
+  if (estimateUsd != null && b.capUsd > 0 && after > b.capUsd) return { refuse: `budget cap: this render (~$${estimateUsd.toFixed(2)}) would take the piece to $${after.toFixed(2)} of its $${b.capUsd.toFixed(2)} cap — raise the budget to continue`, estimateUsd };
+  const warning = b.capUsd > 0 && after >= b.capUsd * b.warnPct / 100 ? `piece at $${after.toFixed(2)} of $${b.capUsd.toFixed(2)} (${Math.round(after / b.capUsd * 100)} %)` : null;
+  return { estimateUsd, warning };
 }
 
 /** 6.5: change a version's `payload.shots` under an optimistic revision. Readers that run
@@ -537,4 +567,4 @@ async function jobsForPiece(legacyId, limit = 50) {
   return out;
 }
 
-module.exports = { KINDS, createJob, getJob, advance, tick, jobsForPiece, publicJob, settleBoardStage, updateShots, POLL_S, TIMEOUT_S };
+module.exports = { KINDS, createJob, getJob, advance, tick, jobsForPiece, publicJob, settleBoardStage, updateShots, pieceBudget, POLL_S, TIMEOUT_S };

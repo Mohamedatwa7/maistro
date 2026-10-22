@@ -1858,6 +1858,7 @@ function genBox(p,sid){
    <select id="gen-ar-draft"><option>16:9</option><option>9:16</option><option>1:1</option></select>
    <select id="gen-dur-draft"><option value="5">5s</option><option value="8">8s</option><option value="10">10s</option></select>
    <select id="gen-res-draft"><option>720p</option><option>1080p</option></select></div>`:''}
+  ${useJobs()?budgetLine(p):''}
   <div class="row">
    <button class="btn btn-gold btn-sm" onclick="stageGen('${p.id}','${sid}')">Generate ${sg.l} →</button>
   </div>
@@ -2426,6 +2427,15 @@ function shotRejectForm(pid,n,stage){
 function shotRegenForm(pid,n,stage){
  stage=stage||'board';const el=document.getElementById('shot-form-'+stage+'-'+n);if(!el)return;
  el.innerHTML=`<div style="margin-top:8px;display:grid;gap:6px"><input class="inp-l" id="sg-changes-${n}" placeholder="${stage==='draft'?'e.g. slower push-in, keep the device still':'e.g. closer on the cover screen, warmer light'}"><button class="btn btn-gold btn-sm" onclick="shotRegen('${pid}',${n},'${stage}')">↻ Re-render only this shot</button></div>`;
+}
+/* 6.9 — the piece budget: spent, in progress, cap and warning threshold; every render is priced before it is submitted */
+const BUDGET={};
+async function loadBudget(pid){try{const r=await authFetch('/api/studio?budget='+encodeURIComponent(pid));const d=await r.json().catch(()=>({}));if(r.ok){BUDGET[pid]=d;studioRefresh()}}catch(e){}}
+function budgetLine(p){
+ if(BUDGET[p.id]===undefined){BUDGET[p.id]=null;loadBudget(p.id)}
+ const b=BUDGET[p.id];if(!b)return '';
+ const used=b.spentUsd+b.committedUsd,pct=b.capUsd>0?Math.round(used/b.capUsd*100):0,tone=pct>=100?'alert':pct>=b.warnPct?'gold':'muted';
+ return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">${badge(tone,'BUDGET $'+used.toFixed(2)+' / $'+b.capUsd.toFixed(2)+' · '+pct+' %')}<span class="dim" style="font-size:11px">$${b.spentUsd.toFixed(2)} spent · $${b.committedUsd.toFixed(2)} rendering · warns at ${b.warnPct} % · each render is priced by Higgsfield before it is sent and refused past the cap</span></div>`;
 }
 /* 6.7 — the QC report: score, checklist, located fixes with cost; approve, edit the plan, or send back */
 const QC_EDIT={};

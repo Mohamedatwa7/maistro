@@ -85,6 +85,11 @@ module.exports = async (req, res) => {
   try {
     if (req.method === 'GET') {
       const q = req.query || {};
+      if (q.budget) {
+        const [piece] = await queryRows('content_pieces', `select=id&legacy_id=eq.${encodeURIComponent(String(q.budget))}&limit=1`);
+        if (!piece) return res.status(404).json({ error: 'piece not found' });
+        return res.status(200).json(await jobsSvc.pieceBudget(piece.id));
+      }
       if (q.qc) {
         // the QC stage's current report + any running QC job on the draft
         const [piece] = await queryRows('content_pieces', `select=id&legacy_id=eq.${encodeURIComponent(String(q.qc))}&limit=1`);
@@ -120,7 +125,7 @@ module.exports = async (req, res) => {
     }
     if (!(await refreshMember(req, res))) return;
     const b = req.body || {};
-    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
+    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package', 'budget'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
     const legacyId = String(b.pieceId || '');
     if (b.action === 'thumb-composite') {
       const data = String(b.data || '');
@@ -138,7 +143,8 @@ module.exports = async (req, res) => {
       try { const { syncSpec } = require('../_spec.js'); await syncSpec(legacyId, { memberId: req.member ? req.member.id : null, note: 'thumb composite' }); } catch (e) { /* best effort */ }
       return res.status(200).json({ ok: true, ...out, assetPath: put.path });
     }
-    if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'ANTHROPIC_API_KEY is not configured' });
+    // only the actions that call Claude inside this request need the key (reviews, budgets and renders do not)
+    if (['mood', 'thumb', 'brief', 'brief-edit', 'board'].includes(b.action) && !process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'ANTHROPIC_API_KEY is not configured' });
     const { piece } = await ensurePiece(legacyId, b.piece || {});
     const meta = { id: legacyId, title: piece.title, product: piece.product, msg: piece.key_message, angle: piece.angle, markets: piece.markets, platforms: piece.platforms };
     const bits = await kbBits(piece.product);
@@ -185,6 +191,17 @@ module.exports = async (req, res) => {
       await jobsSvc.advance(job).catch(() => null);
       const fresh = await jobsSvc.getJob(job.id);
       return res.status(200).json({ ok: true, shot: n, job: jobsSvc.publicJob(fresh || job, legacyId) });
+    }
+    if (b.action === 'budget') {
+      // 6.9: the per-piece cap and warning threshold, set by a line manager or admin (or the interim password session)
+      if (req.member && !['admin', 'line_manager'].includes(req.member.role)) return res.status(403).json({ error: 'only a line manager or admin can change the budget' });
+      const cap = Number(b.budgetUsd), warn = b.warnPct == null ? null : Number(b.warnPct);
+      if (!(cap >= 0 && cap <= 10000)) return res.status(400).json({ error: 'budgetUsd must be 0–10000' });
+      if (warn != null && !(Number.isInteger(warn) && warn >= 1 && warn <= 100)) return res.status(400).json({ error: 'warnPct must be an integer 1–100' });
+      const { patchRows } = require('../_supabase.js');
+      await patchRows('content_pieces', `id=eq.${encodeURIComponent(piece.id)}`, { budget_usd: cap, ...(warn != null ? { budget_warn_pct: warn } : {}) });
+      try { await insertRows('audit_log', [{ actor: req.member ? req.member.id : null, action: 'piece.budget', entity: 'content_piece', entity_id: piece.id, after: { budgetUsd: cap, warnPct: warn } }]); } catch (e) { /* best effort */ }
+      return res.status(200).json({ ok: true, ...(await jobsSvc.pieceBudget(piece.id)) });
     }
     if (b.action === 'final' || b.action === 'final-verify' || b.action === 'final-package') {
       const finalMod = require('../_studio/final.js');
