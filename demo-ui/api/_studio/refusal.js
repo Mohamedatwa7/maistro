@@ -13,7 +13,7 @@ const SYSTEM = [
 const SCHEMA = { type: 'object', additionalProperties: false, required: ['reason', 'rewrite'], properties: { reason: { type: 'string' }, rewrite: { type: 'string' } } };
 
 async function suggestRewrite({ prompt, stage, legacyId, memberId, client }) {
-  if (!prompt || !process.env.ANTHROPIC_API_KEY && !client) return null;
+  if (!prompt || (!process.env.ANTHROPIC_API_KEY && !client)) return null;
   const Anthropic = client ? null : require('@anthropic-ai/sdk');
   const c = client || new Anthropic({ timeout: 45000, maxRetries: 1 });
   registerPrompt('studio.refusal.rewrite', VERSION, `SYSTEM:\n${SYSTEM}\n\nUSER: refused prompt {{prompt}}`, ['prompt']);

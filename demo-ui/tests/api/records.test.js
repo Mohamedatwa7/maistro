@@ -61,7 +61,7 @@ test('jobs write a generation record on completion and on failure (render and F1
     r = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-r2', stage: 'board', kind: 'higgsfield_image', payload: { prompt: 'p', ref: 'https://ref/x.jpg', meta: {} } } }), r);
     const j2 = pg.tables.jobs.find((x) => x.id === r.body.job.id); j2.next_poll_at = new Date(Date.now() - 1000).toISOString(); hfStatus = 'nsfw';
     r = res(); await jobs.handler(req({ method: 'GET', query: { id: j2.id } }), r); assert.equal(r.body.job.state, 'failed');
-    assert.equal(pg.tables.generation_records.at(-1).status, 'refused');
+    assert.equal(pg.tables.generation_records.find((g) => g.job_id === j2.id && g.kind === 'higgsfield_image').status, 'refused');
   } finally { f.restore(); pieces.restore(); jobs.restore(); }
 });
 

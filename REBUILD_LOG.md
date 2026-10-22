@@ -4,6 +4,7 @@ Running log of the Maistro rebuild programme. Newest entries at the top of each 
 
 ## Progress
 
+- **2026-10-22 — Release-process slip, fixed:** 64a44a8 was deployed with one failing test (records.test.js still read the last generation record, which is now the refusal rewrite's) and red CI, because my command chain did not halt on failure. Production behaviour was correct; the test is fixed and every release now goes through a gate script that stops on a red suite, red CI, failed deploy, health or a page mismatch.
 - **2026-10-22 — 6.9 policy refusals:** a moderated render fails uncharged with the likely trigger and a compliant rewrite stored on the job and shown in the Studio; never resubmitted automatically. 165 tests.
 - **2026-10-22 — 6.9 Hermes parity:** pushes through `/api/ingest` now run the Studio's automated checks (vision on copied images, brief code checks or a failing "structured brief missing", F1X8 on a pushed final); an asset that cannot be copied is recorded as a failing check. 164 tests.
 - **2026-10-22 — 6.9 lineage + stage invalidation (migration 016 applied) and budget hardening:** every version records the upstream versions it was built from; a stage is stale when an input was replaced or is itself stale (transitive); stale versions cannot be approved (409 `stale_inputs`), the package refuses while anything is stale, and the Studio says what changed. Budget: unpriced renders charged at the last observed price or $1.00; estimates reserved before the cap comparison. 163 tests.
