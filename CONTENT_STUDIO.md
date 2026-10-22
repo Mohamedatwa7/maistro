@@ -145,6 +145,10 @@ Hardening (checker findings): an unpriced render (v1 reference path, or a failed
 
 Known window (checker note): a reopened stage keeps its version id until it is regenerated, so stages built on it read fresh until the new version lands — to be shown as "upstream reopened" later.
 
+### Lineage view
+
+`GET /api/studio?lineage=<piece>` answers "where did this come from" for the final (or the draft) cut: per shot the clip (path, sha256, override flag, source keyframe, its generation record — model, prompt version, seed, cost), the keyframe and its generation record, the storyboard line and the shot review; the brief (key message, CTA, prompt version), storyboard and moodboard versions (direction version, set mode) with their recorded inputs; the angle and the trend.
+
 ### Human override
 
 `override-sign` returns a single-use signed upload URL into the private bucket (`pieces/<id>/<stage>/override-…`; images ≤ 15 MB PNG/JPEG/WebP, videos ≤ 200 MB MP4/MOV — function bodies are capped at 4.5 MB, so the browser uploads directly); `override` reads the stored bytes, checks the type by magic number (not the extension) and that the path is this piece's override upload, then records it: a **manual** version for a moodboard or thumbnail, or the shot's keyframe (storyboard) / clip (draft, final) replaced in place with history and its approval cleared. Every override is labelled `override: true` with who made it, audit-logged, and goes through the same vision or clip check as a generated asset. Text fields are edited in place on the brief (6.4) and the QC plan (6.7).

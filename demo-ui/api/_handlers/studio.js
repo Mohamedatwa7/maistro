@@ -85,6 +85,42 @@ module.exports = async (req, res) => {
   try {
     if (req.method === 'GET') {
       const q = req.query || {};
+      if (q.lineage) {
+        // 6.9: trace the final (or the latest cut) back to the trend, through every version, shot and generation record
+        const [piece] = await queryRows('content_pieces', `select=*&legacy_id=eq.${encodeURIComponent(String(q.lineage))}&limit=1`);
+        if (!piece) return res.status(404).json({ error: 'piece not found' });
+        const stages = await queryRows('stages', `select=id,kind,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}`);
+        const vids = stages.map((x) => x.current_version_id).filter(Boolean);
+        const versions = vids.length ? await queryRows('artifact_versions', `select=id,stage_id,version,kind,produced_by,created_at,job_id,inputs,payload&id=in.(${vids.map(encodeURIComponent).join(',')})`) : [];
+        const V = (k) => { const st = stages.find((x) => x.kind === k); return st && st.current_version_id ? versions.find((v) => v.id === st.current_version_id) || null : null; };
+        const recs = await queryRows('generation_records', `select=id,at,stage,kind,model,prompt_name,prompt_version,params,seed,status,cost_usd,job_id&piece_id=eq.${encodeURIComponent(piece.id)}&order=at.desc&limit=500`);
+        const byJob = new Map(); for (const r0 of recs) if (r0.job_id && !byJob.has(r0.job_id)) byJob.set(r0.job_id, r0);
+        const recOf = (jobId) => { const r0 = jobId ? byJob.get(jobId) : null; return r0 ? { kind: r0.kind, model: r0.model, promptName: r0.prompt_name, promptVersion: r0.prompt_version, seed: r0.seed != null ? Number(r0.seed) : (r0.params && r0.params.seed) || null, status: r0.status, costUsd: r0.cost_usd != null ? Number(r0.cost_usd) : null, at: r0.at } : null; };
+        const latestClaude = (stage, name) => { const r0 = recs.find((x) => x.stage === stage && x.kind === 'claude' && x.status === 'succeeded' && (!name || x.prompt_name === name)); return r0 ? { model: r0.model, promptName: r0.prompt_name, promptVersion: r0.prompt_version, at: r0.at } : null; };
+        const stageView = (k) => { const v = V(k); return v ? { versionId: v.id, version: v.version, producedBy: v.produced_by, state: (stages.find((x) => x.kind === k) || {}).state, inputs: v.inputs || null, at: v.created_at } : null; };
+        const finV = V('final'); const fin = finV || V('draft');
+        const board = V('board'), brief = V('brief'), mood = V('mood');
+        const shots = fin && Array.isArray(fin.payload.shots) ? fin.payload.shots.map((s0) => {
+          const b0 = board && Array.isArray(board.payload.shots) ? board.payload.shots.find((x) => x.n === s0.n) : null;
+          const kf = s0.keyframe || (b0 && b0.keyframe) || null;
+          return {
+            n: s0.n,
+            clip: s0.clip ? { assetPath: s0.clip.assetPath || null, sha256: s0.clip.sha256 || null, override: Boolean(s0.clip.override), fromKeyframe: s0.clip.fromKeyframe || null, generation: recOf(s0.clip.jobId) } : null,
+            keyframe: kf ? { assetPath: kf.assetPath || null, override: Boolean(kf.override), generation: recOf(kf.jobId) } : null,
+            storyboardLine: b0 ? { type: b0.type, camera: b0.camera, action: b0.action, onScreenText: b0.onScreenText, line: b0.line, feature: b0.product ? b0.product.feature : null } : null,
+            review: s0.review ? { decision: s0.review.decision, by: s0.review.by, at: s0.review.at } : null,
+          };
+        }) : [];
+        return res.status(200).json({
+          piece: { legacyId: piece.legacy_id, title: piece.title, trend: { id: piece.trend_id, name: piece.trend_name }, angle: piece.angle, product: piece.product, origin: piece.origin },
+          cut: fin ? { stage: finV ? 'final' : 'draft', versionId: fin.id, version: fin.version, assetPath: (fin.payload.assembled || {}).assetPath || null, sha256: (fin.payload.assembled || {}).sha256 || null, fromDraftVersionId: fin.payload.fromDraftVersionId || null, fromQcVersionId: fin.payload.fromQcVersionId || null } : null,
+          shots,
+          brief: brief ? { ...stageView('brief'), keyMessage: brief.payload.spec ? brief.payload.spec.keyMessage : brief.payload.msg || null, cta: brief.payload.spec ? brief.payload.spec.cta : null, generation: latestClaude('brief', 'studio.brief') } : null,
+          storyboard: board ? { ...stageView('board'), generation: latestClaude('board', 'studio.storyboard') } : null,
+          moodboard: mood ? { ...stageView('mood'), directionVersion: mood.payload.directionVersion || null, setMode: mood.payload.setMode || null, generation: latestClaude('mood', 'studio.mood.direction') } : null,
+          stages: Object.fromEntries(['plan', 'mood', 'thumb', 'brief', 'board', 'draft', 'qc', 'final'].map((k) => [k, stageView(k)])),
+        });
+      }
       if (q.budget) {
         const [piece] = await queryRows('content_pieces', `select=id&legacy_id=eq.${encodeURIComponent(String(q.budget))}&limit=1`);
         if (!piece) return res.status(404).json({ error: 'piece not found' });
