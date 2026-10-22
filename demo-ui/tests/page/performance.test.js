@@ -186,3 +186,16 @@ test('7.3: a comment the tracker has not analysed shows "not analysed" and stays
     assert.deepEqual([s.pos, s.neu, s.neg, s.analyzed, s.posRate], [1, 0, 1, 2, 50]);
   } finally { X.restore(); }
 });
+
+test('7.3: below 70 % analysed, the sentiment rates carry "based on N of M comments, mostly recent"', async () => {
+  const X = pageWith();
+  try {
+    await new Promise((r) => setTimeout(r, 50));
+    const cm = (n, lab) => Array.from({ length: n }, (_, i) => ({ text: `t${lab}${i}`, sentiment: lab }));
+    const low = X.pfStats([{ platform: 'tiktok', metrics: {}, comments: [...cm(6, 'pos'), ...cm(4, null)] }]);
+    assert.equal(low.coverageLow, true);
+    assert.match(X.sentiCoverageWarn(low), /based on 6 of 10 comments \(60 %\), mostly recent/);
+    const ok = X.pfStats([{ platform: 'tiktok', metrics: {}, comments: [...cm(7, 'pos'), ...cm(3, null)] }]);
+    assert.equal(ok.coverageLow, false); assert.equal(X.sentiCoverageWarn(ok), '');
+  } finally { X.restore(); }
+});

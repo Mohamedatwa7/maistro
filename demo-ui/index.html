@@ -3233,6 +3233,7 @@ function pfStats(list){
   if(m.er!=null&&(+m.views||0)>=500)s.ers.push(m.er); /* 7.2: ER only at ≥ 500 views */
   s.plats[p.platform]=(s.plats[p.platform]||0)+1;
   for(const c of (p.comments||[])){
+   s.listed=(s.listed||0)+1;
    if(s[c.sentiment]!=null)s[c.sentiment]++;
    s.flags+=stFlags(c.text).length?1:0;
   }
@@ -3243,7 +3244,14 @@ function pfStats(list){
  /* 7.2: a median, never a mean (a few viral posts dominate a mean); nearest rank, like api/_perf/benchmarks.js */
  s.medEr=s.ers.length?s.ers.slice().sort((a,b)=>a-b)[Math.ceil(s.ers.length/2)-1]:null;
  s.analyzed=tot;
+ /* 7.3: the tracker labels newest comments first, so a window with few analysed comments describes its newest
+    part only — every sentiment rate then carries a visible warning (below 70 % analysed) */
+ s.listed=s.listed||0;
+ s.coverageLow=s.listed>0&&tot/s.listed<0.7;
  return s;
+}
+function sentiCoverageWarn(s){
+ return s.coverageLow?`<div class="mono" style="font-size:10px;color:var(--gold,#e6c26b);margin-top:4px">⚠ based on ${fmt(s.analyzed)} of ${fmt(s.listed)} comments (${Math.round(s.analyzed/s.listed*100)} %), mostly recent — the tracker has not analysed the rest</div>`:'';
 }
 /* ---------- translation — same gtx mechanism as samsungtrack ---------- */
 const TRX={},TRTXT={};
@@ -4439,12 +4447,13 @@ function rPerformance(){
    <div class="card kpi p4 click" onclick="kpiDrill('cmts')" title="Click to see the most-liked comments"><span class="kick">Comments</span><div class="v num">${fmt(s.cmts)}</div><div class="hint">reported on these posts · ⌕</div></div>
   </div>
   <div class="kpis c4" style="margin-bottom:18px">
-   <div class="card kpi p4 click" onclick="kpiDrill('posrate')" title="Click for representative positive and negative comments"><span class="kick">Total positive rate</span><div class="v num" style="color:${sColor}">${s.posRate!=null?s.posRate+'%':'—'}</div><div class="hint">${s.analyzed?`${s.pos}👍 ${s.neu}− ${s.neg}👎 of ${s.analyzed} analyzed`:'no comments analyzed yet'} · ⌕</div></div>
-   <div class="card kpi p4 click" onclick="kpiDrill('ratio')" title="Click to see top positive vs top negative"><span class="kick">Pos : Neg ratio</span><div class="v num">${s.ratio!=null?s.ratio.toFixed(1)+' : 1':s.pos?'∞':'—'}</div><div class="hint">brand health signal · ⌕</div></div>
+   <div class="card kpi p4 click" onclick="kpiDrill('posrate')" title="Click for representative positive and negative comments"><span class="kick">Total positive rate</span><div class="v num" style="color:${sColor}">${s.posRate!=null?s.posRate+'%':'—'}</div><div class="hint">${s.analyzed?`${s.pos}👍 ${s.neu}− ${s.neg}👎 of ${s.analyzed} analyzed`:'no comments analyzed yet'} · ⌕</div>${sentiCoverageWarn(s)}</div>
+   <div class="card kpi p4 click" onclick="kpiDrill('ratio')" title="Click to see top positive vs top negative"><span class="kick">Pos : Neg ratio</span><div class="v num">${s.ratio!=null?s.ratio.toFixed(1)+' : 1':s.pos?'∞':'—'}</div><div class="hint">brand health signal · ⌕</div>${sentiCoverageWarn(s)}</div>
    <div class="card kpi p4 click" onclick="kpiDrill('alerts')" title="Click to see every flagged comment"><span class="kick">Critical alerts</span><div class="v num" style="color:${s.flags?'var(--alert)':'var(--muted)'}">${s.flags}</div><div class="hint">refund · technical · support · competitor flags · ⌕</div></div>
    <div class="card kpi p4 click" onclick="kpiDrill('plats')" title="Click for the top comment per platform"><span class="kick">Platform split</span><div class="v num" style="font-size:17px;line-height:1.4;padding-top:5px">${platSplit}</div><div class="hint">posts per platform · ⌕</div></div>
   </div>
   ${rBenchPanel()}
+  ${s.coverageLow?`<div class="card p4" style="margin-bottom:14px;border-color:rgba(230,194,107,.45)">${sentiCoverageWarn(s)}<div class="dim" style="font-size:10.5px;margin-top:3px">Sentiment rates, product sentiment and the weekly trend below describe the analysed comments only.</div></div>`:''}
   ${rReviewsDash(list,s)}
   ${rSentimentSection(list)}
  </section>`;
