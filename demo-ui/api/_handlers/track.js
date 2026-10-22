@@ -95,6 +95,12 @@ const PLATFORM_FILTERS = {
   twitter: 'platform=eq.twitter&or=(post_url.ilike.*samsung*,raw_data->author->>userName.ilike.*samsung*)',
 };
 
+// The tracker DB also holds other projects' rows, tagged by external_id prefix (SamsungSentiment
+// lib/ifold-sync.ts: competitor and fan accounts, YouTube and news under platform=twitter). Comments
+// already excluded them; posts did not, so fan accounts matching *samsung* and news URLs got in —
+// 22 of 397 posts, 3.74M of 4.49M TikTok views (found 2026-10-22). Same escaped exclusion for both.
+const PROJECT_EXCL = ['unpacked', 'roster', 'ifold'].map((x) => `&external_id=not.like.${x}${encodeURIComponent('\\_')}*`).join('');
+
 const COMMENT_COLUMNS = [
   'id,external_post_id,platform,author_username,text,sentiment,likes_count,published_at',
   'raw_post_ref:raw_data->>postId',
@@ -105,8 +111,17 @@ const COMMENT_COLUMNS = [
   'raw_video_url:raw_data->>video_url',
 ].join(',');
 
+// One spelling per account: the tracker stores the same account as "samsunggulf" and "@samsunggulf", and
+// X posts often carry no owner field at all although the URL names the account (x.com/SamsungGulf/status/…).
 function author(p) {
-  return p.owner_ig || p.owner_tt || p.owner_x || p.owner_fb || p.owner_u || p.owner_au || p.owner_un || null;
+  const raw = p.owner_ig || p.owner_tt || p.owner_x || p.owner_fb || p.owner_u || p.owner_au || p.owner_un || null;
+  if (raw) return String(raw).replace(/^@/, '');
+  try {
+    const u = new URL(p.post_url || '');
+    const seg = (u.pathname.split('/').filter(Boolean)[0] || '').replace(/^@/, '');
+    if (/^(x|twitter)\.com$|tiktok\.com$/.test(u.hostname.replace(/^www\./, '')) && seg && !['status', 'video', 'i'].includes(seg)) return seg;
+  } catch (e) { /* no URL */ }
+  return null;
 }
 function thumbOf(p) {
   return p.media_url || p.thumb_cover_url || p.thumb_cover2 || p.thumb_covers0 || p.thumb_cover3
@@ -227,7 +242,7 @@ async function reconcile(days, R, get, H, base) {
   for (const [plat, filter] of Object.entries(PLATFORM_FILTERS)) {
     const mine = out.filter((p) => (TRACKER_PLATFORM[p.platform] || p.platform) === plat);
     let db = null, err = null;
-    try { db = await countRows(base, H, `social_posts?select=external_id&${filter}&published_at=gte.${since}`); } catch (e) { err = e.message; }
+    try { db = await countRows(base, H, `social_posts?select=external_id&${filter}${PROJECT_EXCL}&published_at=gte.${since}`); } catch (e) { err = e.message; }
     report.posts[plat] = { reader: mine.length, db, ...(err ? { error: err } : {}), equal: db != null && db === mine.length };
     const sum = (k) => mine.reduce((s, p) => s + (+(p.metrics || {})[k] || 0), 0);
     report.sums[plat] = { views: sum('views'), likes: sum('likes'), commentsCount: sum('comments'), shares: sum('shares') };
@@ -343,7 +358,7 @@ module.exports = async (req, res) => {
       let cur = null;
       for (let page = 0; page < 5; page++) {
         const rows = await get(
-          `social_posts?select=${POST_COLUMNS}&${filter}&published_at=gte.${since}`
+          `social_posts?select=${POST_COLUMNS}&${filter}${PROJECT_EXCL}&published_at=gte.${since}`
           + `&order=published_at.desc&limit=${PAGE}${cur ? `&published_at=lt.${encodeURIComponent(cur)}` : ''}`);
         ours.push(...rows);
         if (rows.length < PAGE) break;

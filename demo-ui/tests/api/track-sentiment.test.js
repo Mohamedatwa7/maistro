@@ -10,6 +10,8 @@ function trackerRoutes({ failCommentsForDays = null, stores = [] } = {}) {
   return [
     ['https://maistro.test/rest/v1/sentiment_posts', (u, init) => { stores.push(JSON.parse(init.body)); return new Response('', { status: 201 }); }],
     ['/social_posts?', (u) => {
+      // the tracker also holds other projects' rows (ifold_ competitor/fan/news posts): only an excluding query avoids them
+      if (u.includes('platform=eq.tiktok') && !u.includes('external_id=not.like.ifold%5C_*')) return json([{ external_id: 'ifold_7682900409832262945', platform: 'tiktok', post_url: 'https://www.tiktok.com/@samsung_galaxy2026/video/7682900409832262945', published_at: new Date(Date.now() - 864e5).toISOString(), caption: 'iPhone Fold vs Z Fold8', views_count: 1126218, likes_count: 9, comments_count: 0, shares_count: 0 }]);
       if (!u.includes('platform=eq.instagram')) return json([]);
       return json([{ external_id: 'p1', platform: 'instagram', post_url: 'https://www.instagram.com/p/ABC/', published_at: new Date(Date.now() - 2 * 864e5).toISOString(), caption: 'x', views_count: 10, likes_count: 1, comments_count: 2, shares_count: 0, raw_data: {} }]);
     }],
@@ -165,4 +167,11 @@ test('reconcile (7.0): the daily cron stores a reconciliation report row next to
     r = res(); await h.handler(req({ query: { reconcile: 'latest' } }), r);
     assert.equal(r.statusCode, 200); assert.equal(r.body.count, 1); assert.equal(r.body.reports[0].ok, true); assert.equal(r.headers['cache-control'], 'no-store');
   } finally { f.restore(); h.restore(); }
+});
+
+test('population: posts from other tracker projects (ifold_ competitor, fan and news rows) never reach the Performance data', async () => {
+  const out = await run('Mozilla/5.0', { days: '14' });
+  assert.equal(out.r.statusCode, 200);
+  assert.ok(out.r.body.posts.length >= 1, 'the Samsung post is there');
+  assert.ok(out.r.body.posts.every((p) => !String(p.postId).startsWith('ifold_')), JSON.stringify(out.r.body.posts.map((p) => p.postId)));
 });
