@@ -365,3 +365,29 @@ test('Phase 10 stored payload: the cron writes the complete 60-day read; the sig
     r = res(); await h.handler(req({ query: { days: '60' } }), r); assert.equal(r.body.served, 'live', 'a partial copy is never served');
   } finally { f.restore(); h.restore(); }
 });
+
+test('Phase 10 stored benchmarks: the 06:50 cron computes the 90-day benchmarks once and stores them; ?benchmarks=1 serves the copy ≤ 26 h old, else computes live; a partial read stores nothing', async () => {
+  const store = {};
+  const M = 'https://maistro.test/rest/v1/';
+  const payloads = [M + 'perf_payloads', (u, init) => {
+    if (init && init.method === 'POST') { for (const r of JSON.parse(init.body)) store[r.kind] = r; return new Response('', { status: 201 }); }
+    const k = (String(u).match(/kind=eq\.(\w+)/) || [])[1]; return json(store[k] ? [store[k]] : []);
+  }];
+  const f = mockFetch([payloads, [M + 'sentiment_posts', () => json([])], ...trackerRoutes().slice(1)]);
+  const h = api('track.js', { ...ENV, CRON_SECRET: 'cron' });
+  const trackerCalls = () => f.calls.filter((c) => String(c.url).startsWith('https://tracker.test')).length;
+  try {
+    let r = res(); await h.handler(req({ query: { cron: '1', bench: '1' }, headers: { authorization: 'Bearer cron' } }), r);
+    assert.deepEqual(r.body.benchStored.ok, true); assert.equal(store.bench_90d.days, 90); assert.ok(Array.isArray(store.bench_90d.payload.cells));
+    const sinceQ = f.calls.map((c) => String(c.url)).find((u) => u.includes('/social_posts?') && u.includes('platform=eq.instagram'));
+    assert.ok(Math.abs((Date.now() - Date.parse(decodeURIComponent(sinceQ.match(/published_at=gte\.([^&]+)/)[1]))) / 864e5 - 90) < 0.01, 'the bench cron reads 90 days');
+    const before = trackerCalls();
+    r = res(); await h.handler(req({ query: { benchmarks: '1' }, session: false }), r);
+    assert.equal(r.body.served, 'stored'); assert.equal(trackerCalls(), before, 'served without a tracker read'); assert.match(r.headers['cache-control'], /s-maxage=3600/);
+    store.bench_90d.computed_at = new Date(Date.now() - 27 * 36e5).toISOString();
+    r = res(); await h.handler(req({ query: { benchmarks: '1' }, session: false }), r);
+    assert.equal(r.body.served, 'live', 'older than 26 h: computed live');
+    r = res(); await h.handler(req({ query: { cron: '1', bench: '1' } }), r);
+    assert.equal(r.statusCode, 401, 'the bench cron URL is the cron’s');
+  } finally { f.restore(); h.restore(); }
+});

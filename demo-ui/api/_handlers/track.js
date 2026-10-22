@@ -519,7 +519,9 @@ module.exports = async (req, res) => {
     const wantThemes = !isCron && String(q.themes || '') === '1';
     if (wantThemes && !requireSession(req, res)) return;
     const wantAttr = !isCron && String(q.attribution || '') === '1';
-    let days = Math.min(DAYS_MAX, Math.max(1, parseInt(isCron ? 60 : wantBench || wantAttr ? DAYS_MAX : q.days, 10) || 60));
+    // Phase 10: a second daily cron (?cron=1&bench=1, 06:50) computes the 90-day benchmarks once and stores them
+    const benchCron = isCron && String(q.bench || '') === '1';
+    let days = Math.min(DAYS_MAX, Math.max(1, parseInt(isCron ? (benchCron ? DAYS_MAX : 60) : wantBench || wantAttr ? DAYS_MAX : q.days, 10) || 60));
     // Phase 10: the 60-day page read is served from perf_payloads (written by the 06:30 cron right after the
     // tracker's sync) when that copy is complete and ≤ 26 h old; otherwise, or with ?live=1, the live read below
     const wantStored = !isCron && !wantBench && !wantAttr && !wantThemes && String(q.reconcile || '') !== '1' && days === 60 && String(q.live || '') !== '1';
@@ -532,11 +534,20 @@ module.exports = async (req, res) => {
         }
       } catch (e) { console.error('[track] stored payload unavailable, reading live:', e.message); }
     }
+    if (wantBench && String(q.live || '') !== '1') {
+      try {
+        const [row] = await queryRows('perf_payloads', 'select=computed_at,payload&kind=eq.bench_90d&limit=1');
+        if (row && Date.now() - Date.parse(row.computed_at) <= STORED_MAX_H * 36e5) {
+          res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
+          return res.status(200).json({ ...row.payload, served: 'stored', computedAt: row.computed_at });
+        }
+      } catch (e) { console.error('[track] stored benchmarks unavailable, computing live:', e.message); }
+    }
     let R;
     try {
       R = await readWindow(days);
     } catch (e) {
-      if (!isCron || days <= FALLBACK_DAYS) throw e;
+      if (!isCron || benchCron || days <= FALLBACK_DAYS) throw e;
       console.error(`[track] ${days}-day cron read failed (${e.message}) — retrying with ${FALLBACK_DAYS} days`);
       R = null;
     }
@@ -544,7 +555,7 @@ module.exports = async (req, res) => {
     // timeout marks it partial and a partial run is never stored, which left
     // the snapshot stale for days. A 14-day read is ~20x cheaper and covers
     // the Performance page's default week, so store that instead.
-    if (isCron && (!R || R.commentsPartial) && days > FALLBACK_DAYS) {
+    if (isCron && !benchCron && (!R || R.commentsPartial) && days > FALLBACK_DAYS) {
       if (R) console.error('[track] 60-day cron read was partial — re-reading 14 days for the snapshot');
       days = FALLBACK_DAYS;
       R = await readWindow(days);
@@ -579,10 +590,20 @@ module.exports = async (req, res) => {
       return { ...benchmarks({ posts: out, snapshots, windowDays: days, newestByPlatform }), snapshotRows: snapshots.length };
     };
 
+    if (benchCron) {
+      res.setHeader('Cache-Control', 'no-store');
+      if (commentsPartial) return res.status(200).json({ benchStored: { error: 'the 90-day read was partial — nothing stored' } });
+      const b = await computeBench();
+      try {
+        await upsertRows('perf_payloads', [{ kind: 'bench_90d', days, computed_at: new Date().toISOString(), tracker_newest: null, comments_partial: false, payload: { ...b, commentsPartial: false } }], 'kind');
+        return res.status(200).json({ benchStored: { ok: true, cells: b.cells.length } });
+      } catch (e) { console.error('[track] benchmark store failed:', e.message); return res.status(200).json({ benchStored: { error: e.message } }); }
+    }
+
     if (wantBench) {
       const b = await computeBench();
       res.setHeader('Cache-Control', commentsPartial ? 'no-store' : 's-maxage=3600, stale-while-revalidate=86400');
-      return res.status(200).json({ ...b, commentsPartial });
+      return res.status(200).json({ ...b, commentsPartial, served: 'live' });
     }
 
     // 7.5 attribution: every active piece_posts link with what the piece was made from and how, joined with the

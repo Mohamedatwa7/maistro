@@ -45,3 +45,18 @@ These are not yet instrumented; M3 adds per-job `started_at`/`finished_at` so Ph
 | Suite | Count | Runtime |
 |---|---|---|
 | `node --test "tests/**/*.test.js"` | 34 tests (API characterization 15, page golden/characterization 18, smoke wrapper 1 incl. 67 checks) | ~5 s (two track tests wait on the endpoint's 500 ms retry backoff) |
+
+## Phase 10 re-measure (2026-10-22 ~12:15 UTC, production, Accept-Encoding: br)
+
+| Target | Phase 3 | Now | Notes |
+|---|---|---|---|
+| `GET /` | 0.21 s TTFB / 0.26 s, 275,613 B | 0.13 s / 0.17 s, 145,517 B on the wire (409,559 B raw) | edge HIT, brotli; the page grew with Phases 5–8 |
+| `GET /api/trends` (edge HIT) | 0.14 s | 0.13 s | |
+| `GET /api/trends` (cold) | 28.6 s | **1.8 s** | scoring moved to the hourly cron (Phase 5); the read serves stored scores |
+| `GET /api/health` | — | 0.35 s | |
+| `GET /api/track?benchmarks=1` (cold) | — | **62 s** | a 90-day tracker read on the first visit each hour → now computed by the 06:50 cron and stored (`perf_payloads` `bench_90d`, migration 021) |
+| `GET /api/track?days=60` (signed-in) | 0.31 s (public edge HIT) / 51–80 s cold | not measurable from here (session-only since 315c2c9) | served from the 06:30 cron's stored copy (migration 020) once applied; until then a live read each visit |
+
+The session-only reads (`?days=14|60`, `?themes=1`, `?attribution=1`, `/api/studio?…`) need a signed-in timing,
+which is an owner or browser measurement. The page's own `timings` field in each `/api/track` response records
+the server-side read times.

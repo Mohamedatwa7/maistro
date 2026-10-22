@@ -12,6 +12,10 @@
       "schedule": "30 6 * * *"
     },
     {
+      "path": "/api/track?cron=1&bench=1",
+      "schedule": "50 6 * * *"
+    },
+    {
       "path": "/api/trends",
       "schedule": "15 * * * *"
     },
