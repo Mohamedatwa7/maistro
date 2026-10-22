@@ -64,4 +64,4 @@ jobs:
         with:
           fetch-depth: 0
       - name: gitleaks (history)
-        run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.24.0 git /repo --config /repo/.gitleaks.toml --redact --no-banner --exit-code 1
+        run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.24.0 git /repo --config /repo/.gitleaks.toml --redact --no-banner --verbose --exit-code 1
