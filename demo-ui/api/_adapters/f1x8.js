@@ -38,9 +38,14 @@ async function fetchAsset(assetUrl, maxBytes = 50 * 1024 * 1024) {
 }
 
 /** Submit an analysis → { ref: job_id }. */
-async function submit({ kind, assetUrl, title, description }) {
+async function submit({ kind, assetUrl, title, description, expectSha256 }) {
   kind = kind === 'video' ? 'video' : 'image';
   const { buf, contentType } = await fetchAsset(assetUrl);
+  // 6.7: QC analyses exactly the stored bytes the approval will bind to
+  if (expectSha256) {
+    const got = require('node:crypto').createHash('sha256').update(Buffer.from(buf)).digest('hex');
+    if (got !== String(expectSha256).toLowerCase()) throw Object.assign(new Error(`asset sha256 ${got.slice(0, 12)}… does not match the version's ${String(expectSha256).slice(0, 12)}…`), { status: 409, permanent: true });
+  }
   const ctype = contentType || (kind === 'video' ? 'video/mp4' : 'image/png');
   const form = new FormData();
   form.append('file', new Blob([buf], { type: ctype }), kind === 'video' ? 'final.mp4' : 'asset.png');

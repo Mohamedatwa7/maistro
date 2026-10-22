@@ -85,6 +85,17 @@ module.exports = async (req, res) => {
   try {
     if (req.method === 'GET') {
       const q = req.query || {};
+      if (q.qc) {
+        // the QC stage's current report + any running QC job on the draft
+        const [piece] = await queryRows('content_pieces', `select=id&legacy_id=eq.${encodeURIComponent(String(q.qc))}&limit=1`);
+        if (!piece) return res.status(404).json({ error: 'piece not found' });
+        const st = await queryRows('stages', `select=id,kind,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=in.(qc,draft)`);
+        const qs = st.find((s) => s.kind === 'qc'), ds = st.find((s) => s.kind === 'draft');
+        const [qv] = qs && qs.current_version_id ? await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(qs.current_version_id)}&limit=1`) : [];
+        const live = ds ? await queryRows('jobs', `select=id,kind,state,error,payload&stage_id=eq.${encodeURIComponent(ds.id)}&kind=eq.f1x8_video&order=created_at.desc&limit=5`) : [];
+        const run = live.find((j) => j.payload && j.payload.qcReport) || null;
+        return res.status(200).json({ state: qs ? qs.state : null, version: qv ? qv.version : null, versionId: qv ? qv.id : null, report: qv && qv.payload ? qv.payload.report || null : null, job: run ? { id: run.id, state: run.state, error: run.error } : null, draftVersionId: ds ? ds.current_version_id : null });
+      }
       if (q.board || q.shots) {
         // ?board=<id> (storyboard) or ?shots=<id>&stage=board|draft — the version whose shots are filling in
         const sk = q.shots && String(q.stage) === 'draft' ? 'draft' : 'board';
@@ -107,7 +118,7 @@ module.exports = async (req, res) => {
     }
     if (!(await refreshMember(req, res))) return;
     const b = req.body || {};
-    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
+    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
     const legacyId = String(b.pieceId || '');
     if (b.action === 'thumb-composite') {
       const data = String(b.data || '');
@@ -172,6 +183,45 @@ module.exports = async (req, res) => {
       await jobsSvc.advance(job).catch(() => null);
       const fresh = await jobsSvc.getJob(job.id);
       return res.status(200).json({ ok: true, shot: n, job: jobsSvc.publicJob(fresh || job, legacyId) });
+    }
+    if (b.action === 'qc' || b.action === 'qc-plan-edit' || b.action === 'qc-sendback') {
+      const qcMod = require('../_studio/qc.js');
+      const higgsfield = require('../_adapters/higgsfield.js');
+      const { patchRows } = require('../_supabase.js');
+      const [ds] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.draft&limit=1`);
+      if (b.action === 'qc') {
+        // F1X8 on the STORED assembled cut, verified by its sha256; the report is built when F1X8 returns
+        const [dv] = ds && ds.current_version_id ? await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(ds.current_version_id)}&limit=1`) : [];
+        const asm = dv && dv.payload && dv.payload.assembled;
+        if (!asm || !asm.assetPath || !asm.sha256) return res.status(409).json({ error: 'QC needs the assembled cut — assemble the first draft first', code: 'prerequisites' });
+        const live = await queryRows('jobs', `select=id,kind,payload&stage_id=eq.${encodeURIComponent(ds.id)}&state=in.(queued,running)&limit=50`);
+        if (live.some((j) => j.kind === 'f1x8_video' && j.payload && j.payload.qcReport)) return res.status(409).json({ error: 'QC is already running on this draft', code: 'busy' });
+        const brief = await boardMod.briefFor(piece.id);
+        const sp = brief && brief.payload && brief.payload.spec;
+        const description = `Samsung Gulf social video for ${piece.product}. Key message: ${(sp && sp.keyMessage) || piece.key_message || ''}. Trend hook: ${sp ? sp.trendHook.mechanic : piece.trend_name || ''}. Platforms: ${(piece.platforms || []).join(', ')}. Markets: ${(piece.markets || []).join(', ')}. CTA: ${(sp && sp.cta) || ''}.`;
+        const job = await createJob({ legacyId, stage: 'draft', kind: 'f1x8_video', payload: { assetPath: asm.assetPath, expectSha256: asm.sha256, versionId: dv.id, title: piece.title, description, qcReport: true }, piece: b.piece || {}, member: req.member });
+        return res.status(200).json({ ok: true, job, draftVersionId: dv.id, draftSha256: asm.sha256 });
+      }
+      const [qs] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.qc&limit=1`);
+      const [qv] = qs && qs.current_version_id ? await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(qs.current_version_id)}&limit=1`) : [];
+      if (!qv || !qv.payload || !qv.payload.report) return res.status(409).json({ error: 'no QC report yet', code: 'no_version' });
+      if (qs.state === 'approved') return res.status(409).json({ error: 'the QC is approved; reopen it first', code: 'approved_immutable' });
+      if (b.action === 'qc-plan-edit') {
+        const report = await qcMod.editPlan(qv.payload.report, Array.isArray(b.edits) ? b.edits.slice(0, 40) : [], { estimate: higgsfield.estimate });
+        const out = await recordVersion(legacyId, 'qc', { ...qv.payload, report: { ...report, editedBy: req.member ? req.member.id : 'password-session' } }, { piece: b.piece || {}, producedBy: 'manual', kind: 'qc_report', generatedBy: req.member ? req.member.id : null });
+        return res.status(200).json({ ok: true, version: out.version, versionId: out.versionId, report });
+      }
+      // send back to an earlier stage: the QC is rejected with the target recorded; an approved target is reopened (admin)
+      const toStage = ['brief', 'board', 'draft'].includes(b.toStage) ? b.toStage : null;
+      if (!toStage) return res.status(400).json({ error: 'toStage must be brief, board or draft' });
+      const reason = String(b.reason || '').trim(); if (!reason) return res.status(400).json({ error: 'a written reason is required' });
+      const role = req.member ? req.member.role : (['reviewer', 'line_manager', 'adlcp_approver', 'admin'].includes(b.role) ? b.role : 'reviewer');
+      const { decide, reopen } = require('../_store.js');
+      const d = await decide(legacyId, 'qc', { decision: 'rejected', reason: `sent back to ${toStage}: ${reason}`, reasonCode: 'other', role, name: (req.member && req.member.name) || b.name || 'unknown', details: { sendBack: toStage }, actorId: req.member ? req.member.id : null });
+      const [ts] = await queryRows('stages', `select=state&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.${toStage}&limit=1`);
+      let reopened = false, needsAdmin = false;
+      if (ts && ts.state === 'approved') { if (role === 'admin') { await reopen(legacyId, toStage, role); reopened = true; } else needsAdmin = true; }
+      return res.status(200).json({ ok: true, decision: d, toStage, reopened, needsAdmin });
     }
     if (b.action === 'draft-overlays' || b.action === 'draft-assemble') {
       // 6.6 (b): the browser draws each shot's text + caption as a PNG (correct Arabic shaping);

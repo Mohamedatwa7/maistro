@@ -143,4 +143,17 @@ async function status(ref, v = 0) {
   return { status: d.status, video, images, raw_status: d.status };
 }
 
-module.exports = { submit, status, normalizeRequest, classify, MODELS, API };
+/** Cost before generating (HIGGSFIELD.md H-8): POST /estimate/<endpoint-id> with the same body → { credits, usd }. */
+async function estimate(endpoint, body) {
+  const creds = credentials();
+  if (!creds) throw Object.assign(new Error('HF_CREDENTIALS is not configured'), { status: 503 });
+  if (!/^[a-z0-9-]+\/[a-z0-9.\/-]+$/i.test(String(endpoint || ''))) throw Object.assign(new Error('invalid endpoint id'), { status: 400 });
+  const r = await fetchT(`${API}/estimate/${endpoint}`, { method: 'POST', headers: { Authorization: `Key ${creds}`, 'Content-Type': 'application/json', 'User-Agent': 'MaistroDemo/1.0' }, body: JSON.stringify(body || {}) }, { timeoutMs: 15000, retries: 1 });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw providerError(r, d);
+  const usd = Number(d.usd), credits = Number(d.credits);
+  if (!Number.isFinite(usd)) throw Object.assign(new Error('estimate returned no usd'), { status: 502 });
+  return { usd, credits: Number.isFinite(credits) ? credits : null };
+}
+
+module.exports = { submit, status, estimate, normalizeRequest, classify, MODELS, API };

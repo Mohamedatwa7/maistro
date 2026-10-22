@@ -93,6 +93,21 @@ Open: Higgsfield consistency features (Soul ID / custom references, HIGGSFIELD.m
 
 
 
+## 6.7 QC — what ships
+
+| Decision | What | Why |
+|---|---|---|
+| Input bytes | `action: 'qc'` needs the draft's assembled cut (`assembled.assetPath` + `sha256`); an `f1x8_video` job on the draft stage carries `versionId` and `expectSha256`; the F1X8 adapter downloads the stored copy and **refuses to upload it when its sha256 differs** (permanent failure); `qc_results` bind to the named draft version | QC judges exactly the bytes the approval will bind to |
+| Checklist (code) | From checks already stored: per-shot clip checks (product stability, morphing, artefacts), the assembled checks (duration vs brief and shot list, shot order, overlays/captions, export spec), loudness, safe zone (by construction), the brief's claims / Arabic / audio-licence / mandatories / catalog checks and Arabic fluency, the storyboard's trend-mechanic check | One checklist with a source for every line; nothing is re-judged by the model |
+| Timeline (code) | Shot start/end on the cut from the shot durations and the transitions actually applied (dissolves overlap 0.25 s); `shotAt(t)` maps any timestamp to its shot | Fixes are located in seconds and shots |
+| Fix plan (`qc-plan-v1`, Sonnet, effort low) | One fix per F1X8 risk / failed check: `ref` (risk:N / check:code), `shot` (0 = whole piece for audio/pacing), `timestampS`, `element` (visual · overlay_text · caption · audio · pacing), `problem`, `fixType` (overlay_edit · caption_edit · audio_swap · shot_regen · shotlist_change), `instruction`, new text en/ar for text edits | The model only locates and phrases; the units are a closed list |
+| Normalisation (code) | The shot is re-derived from `timestampS`; a fix type that is not a unit for its element is coerced to the cheapest allowed one (overlay text → overlay_edit, caption → caption_edit, visual → shot_regen, pacing → shotlist_change); coverage lists every risk / failed check no fix addresses; every change is recorded in `planNotes` | Smallest regeneration unit, enforced rather than requested |
+| Cost (before running) | `POST /estimate/<endpoint>` (Higgsfield, free) per shot re-render with the clip body (deduplicated per shot), keyframe + clip for a shot-list change; text edits cost a re-assembly only ($0); audio swap is **unpriced and blocked** (no licensed library); the total and the unpriced fixes are on the report | "Estimate cost of applying all fixes before running" with the provider's own numbers |
+| Report | One `qc` stage version (`produced_by f1x8`, kind `qc_report`): score, summary, F1X8 risks + revision brief + heatmap, `draftVersionId`, `draftSha256`, timeline, checklist, fixes, plan notes, coverage, cost; built on the tick after the F1X8 job is finished (a finished row cannot be re-claimed) | — |
+| Human | Approve the plan as is (Production Center; **refused with 409 `qc_stale` if the draft stage no longer holds that version or those bytes**), edit it (`qc-plan-edit`: include/exclude and re-instruct fixes → a new manual version with coverage and cost recomputed), or send back (`qc-sendback` to brief / storyboard / draft: a rejection with `details.sendBack`; an approved target is reopened by an admin, otherwise flagged) | The spec's three choices, each versioned |
+
+Open: applying the plan is 6.8 (final); audio swaps need a licensed library (owner); the plan model is Sonnet with effort low — to be compared in 6.10.
+
 ## Open owner inputs (collected from the seed's `gaps`)
 
 1. Disclaimers by claim type and market; logo and end-card rules; overlay typeface.

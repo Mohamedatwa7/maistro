@@ -139,7 +139,7 @@ async function advance(job) {
         }
         const sub = job.kind.startsWith('higgsfield')
           ? await higgsfield.submit({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }, { idempotencyKey: job.id })
-          : await f1x8.submit({ kind: job.kind === 'f1x8_video' ? 'video' : 'image', assetUrl: await assetUrlFor(job.payload), title: job.payload.title, description: job.payload.description });
+          : await f1x8.submit({ kind: job.kind === 'f1x8_video' ? 'video' : 'image', assetUrl: await assetUrlFor(job.payload), title: job.payload.title, description: job.payload.description, expectSha256: job.payload.expectSha256 || null });
         await patchRows('jobs', `id=eq.${q(job.id)}`, { provider_ref: String(sub.ref), state: 'running', error: null, payload: { ...job.payload, v: sub.v || 0, ...(sub.correlationId ? { correlationId: sub.correlationId } : {}) } });
         return 'running';
       } catch (e) {
@@ -462,15 +462,31 @@ async function pollQc(job) {
       } catch (e) { console.warn('[jobs] heatmap store failed:', e.message); }
       delete R.heatmap; delete R.heatmap_type;
     }
-    // bind the result to the analysed stage's current version (qc_results)
+    // bind the result to the analysed version: the one named on the job (6.7), else the stage's current one
     try {
       const [s] = await queryRows('stages', `select=id,current_version_id&id=eq.${q(job.stage_id)}&limit=1`);
-      if (s && s.current_version_id) {
-        await insertRows('qc_results', [{ artifact_version_id: s.current_version_id, job_id: job.id, provider: 'f1x8', score: typeof R.score === 'number' ? Math.round(R.score * 100) / 100 : null, result: R, heatmap_path: heatmapPath }]);
+      const vid = job.payload.versionId || (s && s.current_version_id);
+      if (vid) {
+        await insertRows('qc_results', [{ artifact_version_id: vid, job_id: job.id, provider: 'f1x8', score: typeof R.score === 'number' ? Math.round(R.score * 100) / 100 : null, result: R, heatmap_path: heatmapPath }]);
       }
     } catch (e) { console.warn('[jobs] qc_results insert failed:', e.message); }
+    // finish FIRST: the report below takes a model call and provider estimates, and a finished
+    // row can never be re-claimed by an overlapping tick
     await finish(job, { state: 'succeeded', error: null, result: { analysis: R, heatmapPath, score: typeof R.score === 'number' ? R.score : null } });
     await jobRecord(job, { status: 'succeeded', outputAssets: [{ score: typeof R.score === 'number' ? R.score : null, heatmapPath }] });
+    if (job.payload.qcReport) {
+      try {
+        const qc = require('./_studio/qc.js');
+        const { recordVersion } = require('./_store.js');
+        const report = await qc.buildReport({ analysis: R, heatmapPath, pieceId: job.piece_id, legacyId: job.payload.pieceId, draftVersionId: job.payload.versionId, draftSha256: job.payload.expectSha256, memberId: job.payload.generatedBy || null, estimate: higgsfield.estimate });
+        const rec = await recordVersion(job.payload.pieceId, 'qc', { real: true, report, runs: { draft: { score: report.score, verdict: { summary: report.summary, risks: report.f1x8.risks, revision_brief: report.f1x8.revisionBrief } } }, avg: report.score }, { producedBy: 'f1x8', kind: 'qc_report', jobId: job.id, generatedBy: job.payload.generatedBy || null });
+        await patchRows('jobs', `id=eq.${q(job.id)}`, { result: { analysis: R, heatmapPath, score: report.score, report: { versionId: rec.versionId, version: rec.version } } });
+        try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: 'QC report' }); } catch (e) { /* best effort */ }
+      } catch (e) {
+        console.warn('[jobs] QC report failed:', e.message);
+        await patchRows('jobs', `id=eq.${q(job.id)}`, { error: `QC report: ${String(e.message || e).slice(0, 240)}` });
+      }
+    }
     return 'succeeded';
   }
   if (st.status === 'error' || st.status === 'not_found') {

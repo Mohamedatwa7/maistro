@@ -100,6 +100,14 @@ async function decide(legacyId, stage, d = {}) {
   if (!s.current_version_id) throw new StoreError(409, 'no_version', `${stage} has no version to decide on`);
   const [version] = await queryRows('artifact_versions', `select=id,version,generated_by,payload&id=eq.${q(s.current_version_id)}&limit=1`);
   if (!version) throw new StoreError(409, 'no_version', `${stage} version is missing`);
+  // 6.7: a QC sign-off binds to the exact draft it analysed — the draft stage must still hold that version and those bytes
+  if (decision === 'approved' && stage === 'qc' && version.payload && version.payload.report && version.payload.report.draftVersionId) {
+    const rep = version.payload.report;
+    const ds = stages.find((x) => x.kind === 'draft');
+    const [dv] = ds && ds.current_version_id ? await queryRows('artifact_versions', `select=id,payload&id=eq.${q(ds.current_version_id)}&limit=1`) : [];
+    const sha = dv && dv.payload ? (dv.payload.assembled && dv.payload.assembled.sha256) || dv.payload.sha256 : null;
+    if (!dv || dv.id !== rep.draftVersionId || (rep.draftSha256 && sha !== rep.draftSha256)) throw new StoreError(409, 'qc_stale', 'the draft changed after this QC report — run QC again on the current cut');
+  }
   // 6.5: a storyboard is approved shot by shot first; the stage approval needs every shot approved
   if (decision === 'approved' && stage === 'board' && version.payload && Array.isArray(version.payload.shots)) {
     const pending = version.payload.shots.filter((x) => !x.review || x.review.decision !== 'approved').map((x) => x.n);
