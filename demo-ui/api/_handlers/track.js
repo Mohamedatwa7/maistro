@@ -233,8 +233,11 @@ async function countRows(base, H, path) {
 const TRACKER_PLATFORM = { x: 'twitter' };
 async function reconcile(days, R, get, H, base) {
   const { out, commentsSeen, commentsMatched, commentsPartial } = R;
-  const since = new Date(Date.now() - days * 864e5).toISOString();
-  const floor = new Date(Date.now() - (days + 3) * 864e5).toISOString();
+  // the database is counted over the EXACT window the reader used: recomputing "now − N days" a minute or
+  // two later shifts both edges and makes the counts differ by whatever was posted in that slice (R-3 was
+  // off by one on 2026-10-22 06:49 and 07:43 for exactly this reason)
+  const since = R.since || new Date(Date.now() - days * 864e5).toISOString();
+  const floor = R.floor || new Date(Date.now() - (days + 3) * 864e5).toISOString();
   const excl = ['unpacked', 'roster', 'ifold'].map((x) => `&external_id=not.like.${x}${encodeURIComponent('\\_')}*`).join('');
   const report = { days, since, commentFloor: floor, at: new Date().toISOString(), posts: {}, sums: {}, comments: {}, boundary: {}, freshness: {}, checks: {} };
 
@@ -432,7 +435,7 @@ module.exports = async (req, res) => {
         comments: cmts,
       };
     });
-    return { out, commentsSeen, commentsMatched, commentsPartial };
+    return { out, commentsSeen, commentsMatched, commentsPartial, since, floor };
   };
 
   try {

@@ -100,6 +100,7 @@ test('sentiment GET: latest snapshot per post, sorted newest post first; POST ne
     { post_id: 'a', platform: 'tiktok', account: '@samsunggulf', caption: 'new', url: 'u', posted_at: '2026-10-10T00:00:00Z', metrics: { views: 2 }, sentiment: {}, comments: [], at: '2026-10-12T00:00:00Z' },
     { post_id: 'a', platform: 'tiktok', account: '@samsunggulf', caption: 'old', url: 'u', posted_at: '2026-10-10T00:00:00Z', metrics: { views: 1 }, sentiment: {}, comments: [], at: '2026-10-11T00:00:00Z' },
     { post_id: 'b', platform: 'instagram', account: '@samsunggulf', caption: 'b', url: 'u', posted_at: '2026-10-11T00:00:00Z', metrics: {}, sentiment: {}, comments: [], at: '2026-10-11T00:00:00Z' },
+    { post_id: 'ifold_7682900409832262945', platform: 'tiktok', account: 'samsung_galaxy2026', caption: 'iPhone Fold vs Z Fold8', url: 'u', posted_at: '2026-10-11T00:00:00Z', metrics: { views: 1126218 }, sentiment: {}, comments: [], at: '2026-10-11T00:00:00Z' }, // stored before the fix
   ];
   const f = mockFetch([['https://maistro.test/rest/v1/sentiment_posts', (u, init) => (init.method === 'POST' ? new Response('', { status: 201 }) : json(rows))]]);
   const h = api('sentiment.js', ENV);

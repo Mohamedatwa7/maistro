@@ -72,8 +72,13 @@ module.exports = async (req, res) => {
       'post_id,platform,account,caption,url,posted_at,metrics,sentiment,comments,at',
       1000, // the daily /api/track snapshot writes ~300 rows per run; keep two runs visible
     );
+    // never the tracker's other projects: snapshots before 2026-10-22 stored ifold_ competitor/fan/news
+    // posts that the reader now excludes (single-post pushes arrive outside the daily run, so the
+    // newest-row-per-post rule stays)
+    const FOREIGN = /^(ifold|unpacked|roster)_/;
     const latest = new Map(); // rows come newest-first
     for (const r of rows) {
+      if (FOREIGN.test(String(r.post_id))) continue;
       if (!latest.has(r.post_id)) latest.set(r.post_id, r);
     }
     const posts = [...latest.values()]
