@@ -124,7 +124,7 @@ of the current production), then update any outside holder:
 - `trend_snapshots`, `trend_scores`, `trend_decisions`;
 - `piece_posts`, `publishing_slots`, `audit_log`, `members`, `schema_migrations`.
 
-The list is `TABLES` in `.github/workflows/backup.yml`; keep the two in step.
+The list is `TABLES` in `.github/workflows/backup.yml`, and the deliberate exclusions are `EXCLUDED` beside it. `tests/api/backup-tables.test.js` fails when a migration creates a table that is in neither list.
 
 **Deliberately not backed up** (tracker-derived copies of customer comment text; owner data-handling constraint):
 - `sentiment_posts`, `perf_payloads`, and `reconciliation_reports` (whole table: its reports carry comment samples);

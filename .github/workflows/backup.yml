@@ -19,6 +19,8 @@ on:
         default: drill
 
 env:
+  # every `create table` in demo-ui/db/migrations is in exactly one of these two lists (tests/api/backup-tables.test.js)
+  EXCLUDED: "sentiment_posts perf_payloads reconciliation_reports trends_cache login_attempts ops_alerts"
   TABLES: "campaign_events members content_pieces stages artifact_versions approvals adlcp_documents qc_results jobs kb_documents creative_specs prompt_registry generation_records trend_snapshots trend_scores trend_decisions stage_checks piece_posts publishing_slots audit_log schema_migrations"
 
 jobs:
