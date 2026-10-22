@@ -279,6 +279,9 @@ module.exports = async (req, res) => {
   const H = { apikey: key, Authorization: `Bearer ${key}` };
   const headers = req.headers || {};
   const isCron = isCronRequest(req);
+  // the cron URL is only for the cron: anything else asking for it gets a non-cacheable 401, so no request can
+  // put a cacheable payload at /api/track?cron=1 ahead of the 06:30 run (checker finding)
+  if ((req.query || {}).cron !== undefined && !isCron) { res.setHeader('Cache-Control', 'no-store'); return res.status(401).json({ error: 'cron only' }); }
   const ingestKey = process.env.MAISTRO_INGEST_KEY;
   const authorized = bearerMatches(headers.authorization, ingestKey);
   const q = req.query || {};

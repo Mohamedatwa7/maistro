@@ -153,7 +153,8 @@ test('reconcile (7.0): the daily cron stores a reconciliation report row next to
   ]);
   const h = api('track.js', { ...ENV, CRON_SECRET: 'cron' });
   try {
-    let r = res(); await h.handler(req({ query: { cron: '1' }, headers: { authorization: 'Bearer cron' } }), r);
+    let r = res(); await h.handler(req({ query: { cron: '1' } }), r); assert.equal(r.statusCode, 401, 'the cron URL is cron-only'); assert.equal(r.headers['cache-control'], 'no-store');
+    r = res(); await h.handler(req({ query: { cron: '1' }, headers: { authorization: 'Bearer cron' } }), r);
     assert.equal(r.headers['cache-control'], 'no-store', 'a cron response is never cached (the edge cache once swallowed the 06:30 cron)');
     const vj = JSON.parse(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', '..', 'vercel.json'), 'utf8')); assert.ok(vj.crons.some((c) => c.path.startsWith('/api/track?cron=1') && c.schedule === '30 6 * * *'), 'the track cron has its own URL, distinct from the page read');
     assert.equal(r.statusCode, 200); assert.deepEqual(r.body.reconciled, { ok: true, checks: { R1_posts: true, R3_commentsSeen: true, R4_matchedLowerBound: true, R6_postsUniqueById: true } });
