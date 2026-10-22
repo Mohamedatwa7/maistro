@@ -85,7 +85,9 @@ async function assemble({ shots, aspect = '9:16', resolution = '720p', out, loud
     // video: trim, conform to the platform frame (scale to cover, crop), fps, overlay
     let v = `[${vi}:v]trim=0:${trim},setpts=PTS-STARTPTS,scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},fps=${FPS},format=yuv420p,setsar=1`;
     if (oi != null) { filters.push(`[${oi}:v]scale=${W}:${H}:flags=lanczos,format=rgba[ov${s.n}]`); v += `[vb${s.n}];[vb${s.n}][ov${s.n}]overlay=0:0:format=auto`; }
-    v += `,settb=AVTB,setpts=PTS-STARTPTS[v${s.n}]`; filters.push(v); // one timebase for every segment: xfade and concat need it
+    // fps again after the overlay: a single-frame PNG input leaves the overlay output at an unknown rate
+    // on some ffmpeg builds (Linux ffmpeg-static), which xfade rejects ("current rate of 1/0")
+    v += `,fps=${FPS},settb=AVTB,setpts=PTS-STARTPTS[v${s.n}]`; filters.push(v); // one rate and timebase for every segment: xfade and concat need it
     // audio: the clip's own track trimmed, or silence when the clip has none
     if (p.hasAudio) filters.push(`[${vi}:a]atrim=0:${trim},asetpts=PTS-STARTPTS,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[a${s.n}]`);
     else filters.push(`anullsrc=r=48000:cl=stereo,atrim=0:${trim},asetpts=PTS-STARTPTS[a${s.n}]`);
@@ -97,11 +99,11 @@ async function assemble({ shots, aspect = '9:16', resolution = '720p', out, loud
     const vn = `vx${k}`, an = `ax${k}`; k++;
     if (prevT === 'dissolve' && info[i - 1].trimS > DISSOLVE_S && seg.trimS > DISSOLVE_S) {
       const off = Math.max(0, acc - DISSOLVE_S);
-      filters.push(`[${vcur}][v${seg.n}]xfade=transition=fade:duration=${DISSOLVE_S}:offset=${off.toFixed(3)},settb=AVTB[${vn}]`);
+      filters.push(`[${vcur}][v${seg.n}]xfade=transition=fade:duration=${DISSOLVE_S}:offset=${off.toFixed(3)},fps=${FPS},settb=AVTB[${vn}]`);
       filters.push(`[${acur}][a${seg.n}]acrossfade=d=${DISSOLVE_S}:c1=tri:c2=tri[${an}]`);
       acc = acc + seg.trimS - DISSOLVE_S;
     } else {
-      filters.push(`[${vcur}][v${seg.n}]concat=n=2:v=1:a=0,settb=AVTB[${vn}]`);
+      filters.push(`[${vcur}][v${seg.n}]concat=n=2:v=1:a=0,fps=${FPS},settb=AVTB[${vn}]`);
       filters.push(`[${acur}][a${seg.n}]concat=n=2:v=0:a=1[${an}]`);
       acc = acc + seg.trimS;
     }
