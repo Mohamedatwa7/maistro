@@ -1,7 +1,7 @@
 # PERFORMANCE_INSIGHTS — Phase 7 (benchmarks and the decisions the Performance page supports)
 
-Status 2026-10-22: §1 (decisions, 7.1), §2 (benchmarks, 7.2) and §3 (sentiment quality, 7.3) are done; §2 is `GET /api/track?benchmarks=1` (`api/_perf/benchmarks.js`,
-tests in `tests/perf/benchmarks.test.js`). The page panel, §1 (decisions, 7.1) and §3–§6 (7.3–7.6) follow.
+Status 2026-10-22: §1 (decisions, 7.1), §2 (benchmarks, 7.2), §3 (sentiment quality, 7.3) and §4 (comment insight, 7.4) are done; §2 is `GET /api/track?benchmarks=1` (`api/_perf/benchmarks.js`,
+tests in `tests/perf/benchmarks.test.js`) with its page panel. §5–§6 (7.5 attribution, 7.6 closing the loop) follow.
 Every number here is computed in code from the tracker's rows and Maistro's daily snapshots, never by a model.
 
 ## 1. The decisions the page supports (7.1) — builder default, owner to amend
@@ -109,3 +109,52 @@ Wilson 95 % intervals in brackets. The population-weighted figure weights each b
    before re-measuring.
 5. The tracker's own dashboard uses the same keyword list Maistro dropped, so the same "not analysed"
    treatment applies there.
+
+## 4. Comment insight (7.4) — themes counted in code (themes-v3-2026-10-22)
+
+`GET /api/track?themes=1&days=N` (signed-in only, never cached) and the **What people are saying** panel.
+Themes are word-bounded English / Arabic / Arabizi patterns in `api/_perf/themes.js`; every count is computed in
+code and no model estimates one. The rules settled with the checker:
+- **Questions** are a flag on a theme; a question with no theme is "other question".
+- **Purchase intent** needs a price or availability object ("how much I love it" and "كم حلو" are not purchase
+  intent).
+- **Product issues and complaints carry a product**: a device named in the comment wins, else the post's caption
+  (labelled), else "product unknown". Complaints about an S23 arrive under Fold8 posts.
+- **Brand replies are excluded.** The Facebook page replies as "Samsung", and those offers had made up most of the
+  first pattern's price and availability hits.
+- **Comments on giveaway posts are entries, not praise.** Complaints and issues on those posts still count.
+- Product shares only at n ≥ 20. Examples (top 3 by likes and 3 seeded random) are shown on demand.
+
+**Accuracy (measured, recomputed by `tests/perf/themes.test.js` from two anonymised fixtures).**
+- **Product issues and complaints**: *every* distinct customer text that the patterns or a loose keyword net
+  caught (244) was labelled. The first pass was blind on the first 150 characters; every disagreement was then
+  re-read in full. That second pass is not blind, and both labels are kept in the fixture.
+- **The other themes**: a seeded sample of 221 comments (brand replies removed), labelled blind.
+- The v3 patterns fixed misses found in this same audit, so the v3 figures below are **optimistic**; the next
+  window's audit confirms them.
+
+| Theme | Precision | Recall | Basis |
+|---|---|---|---|
+| Product issues (all) | 37/37 · 1.00 | 37/38 · 0.97 | exhaustive |
+| — screen / display lines | 1.00 | 0.97 | exhaustive |
+| Complaints (all) | 63/66 · 0.95 | 63/66 · 0.95 | exhaustive |
+| — customer service | **0.79 (low)** | 0.96 | exhaustive |
+| — repair / warranty | 0.97 | 0.97 | exhaustive |
+| — brand complaint / don't buy | 1.00 | 0.96 | exhaustive |
+| Price / affordability | **0.64 (low)** | 0.78 | sample |
+| Wants to buy | 1.00 | 0.83 | sample |
+| Asks for a free device | 1.00 | 0.57 | sample |
+| Design / colour | **0.69 (low)** | 0.72 | sample |
+| Multitasking | 0.96 | 0.90 | sample |
+| Ecosystem / combo | 0.89 | 0.73 | sample |
+
+Before the fixes, v2 on the first-pass labels had complaints at 0.86 / 0.86 and product issues at 1.00 / 0.87.
+v1 (the first pattern set) had price precision 0.31 and "wants to buy" 0.13, both driven by brand replies and
+"don't buy" warnings. Recall is measured within the loose keyword net, so it is an upper bound. Themes under 0.8
+precision show **LOW CONFIDENCE**; complaint or issue themes under 0.7 recall would show **may be undercounted**
+(none today). Not covered yet: network and app problems, camera fog, appliances, feature requests (6, 3 and 3
+in the audit), and Portuguese and Spanish complaints.
+
+**Live, 60 days (2026-10-22 11:00 UTC).** 6,038 customer comments (29 brand replies left out): 4,556 giveaway
+entries (75 %), 1,249 (21 %) with no theme. Brand complaints 82, repair / warranty 58, customer service 58,
+screen / display 57, update-caused 11, battery 6, price 41, wants to buy 12, asks for a free device 26.

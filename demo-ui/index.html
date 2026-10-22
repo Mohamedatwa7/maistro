@@ -4424,6 +4424,43 @@ function rDecisions(list,s){
   ${card('Trust the numbers',stale.length?`Stale: ${esc(stale.join(', '))}`:'All platforms fresh',stale.length?'var(--alert)':'var(--go)',`Data older than ${PERF_STALE_H} h is marked stale; act on fresh platforms only.`,'')}
  </div>`;
 }
+/* 7.4 — "What people are saying" (GET /api/track?themes=1, computed in api/_perf/themes.js from tested patterns;
+   no model estimates a count). Examples are real customer text: the route needs a session and is never cached. */
+const THEMES_UI={byDays:{},busy:{},open:{}};
+async function loadThemes(days){
+ if(THEMES_UI.busy[days]||THEMES_UI.byDays[days])return;THEMES_UI.busy[days]=true;
+ try{const r=await authFetch('/api/track?themes=1&days='+days);const d=await r.json().catch(()=>({}));THEMES_UI.byDays[days]=r.ok&&d.themes?d:{error:d.error||('themes unavailable ('+r.status+')')}}
+ catch(e){THEMES_UI.byDays[days]={error:'themes unavailable'}}
+ finally{delete THEMES_UI.busy[days];trRefresh()}
+}
+function themeToggle(id){THEMES_UI.open[id]=!THEMES_UI.open[id];trRefresh()}
+const THEME_GROUPS=[['product_issue','Product issues'],['complaint','Complaints'],['purchase','Purchase intent'],['request','Asks for a free device'],['praise','Praise'],['question','Other questions'],['giveaway','Giveaway entries'],['spam','Spam']];
+function rThemes(){
+ const pf=pfState(),days={1:1,3:3,7:7,30:30,60:60}[pf.days]||60;
+ const d=THEMES_UI.byDays[days];
+ if(!d){loadThemes(days);return `<div class="card p4" style="margin-bottom:16px"><span class="kick">What people are saying</span><div class="dim" style="font-size:12px;margin-top:6px">Reading comment themes for the last ${days} days…</div></div>`}
+ if(d.error)return `<div class="card p4" style="margin-bottom:16px"><span class="kick">What people are saying</span><div class="dim" style="font-size:12px;margin-top:6px">${esc(d.error)}</div></div>`;
+ const row=t=>{
+  const s=t.sentiment,an=s.pos+s.neu+s.neg;
+  const conf=t.confidence==='low'?`<span class="mono" style="font-size:9px;color:var(--gold,#e6c26b);border:1px solid currentColor;border-radius:99px;padding:0 6px;margin-left:6px" title="measured precision ${t.audit?t.audit.precision:'?'} (${esc(t.audit?t.audit.basis:'')})">LOW CONFIDENCE</span>`:t.confidence==='not enough audited examples'?`<span class="mono dim" style="font-size:9px;margin-left:6px">few audited examples</span>`:'';
+  const under=t.mayBeUndercounted?`<span class="mono" style="font-size:9px;color:var(--alert);margin-left:6px">may be undercounted</span>`:'';
+  const prods=t.products&&t.products.length?`<div class="dim" style="font-size:10.5px;margin-top:3px">${t.products.slice(0,4).map(p=>`${esc(p.name)} ${p.n}${p.share!=null?' ('+Math.round(p.share*100)+' %)':''}`).join(' · ')} <span class="mono" style="font-size:9px">· product from the comment, else the post caption</span></div>`:'';
+  const open=THEMES_UI.open[t.id];
+  const ex=open?`<div style="margin-top:6px">${t.examples.map(c=>rCommentRow({...c,postId:c.postId})).join('')}</div>`:'';
+  return `<div style="padding:8px 0;border-top:1px solid var(--hairline)">
+   <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap"><span style="font-size:12.5px"><b>${esc(t.label)}</b>${conf}${under}</span>
+   <span class="mono" style="font-size:11px">${fmt(t.n)} <span class="dim">· ${t.share!=null?(t.share*100).toFixed(1)+' %':'—'}${t.questions?` · ${fmt(t.questions)} questions`:''}${an?` · ${s.pos}👍 ${s.neu}− ${s.neg}👎`:''}${s.notAnalysed?` · ${s.notAnalysed} not analysed`:''}</span></span></div>
+   ${prods}
+   ${t.n?`<button class="btn btn-ghost btn-sm" style="margin-top:4px;font-size:10px" onclick="themeToggle('${esc(t.id)}')">${open?'Hide examples':`Examples (${t.examples.length} of ${fmt(t.n)})`}</button>`:''}${ex}
+  </div>`;
+ };
+ const groups=THEME_GROUPS.map(([g,lab])=>{const ts=d.themes.filter(t=>t.group===g&&t.n);if(!ts.length)return '';return `<div style="margin-top:10px"><span class="kick" style="font-size:10px">${lab}</span>${ts.map(row).join('')}</div>`}).join('');
+ return `<div class="card p5" style="margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="kick accent">What people are saying · last ${days} days</span><span class="mono dim" style="font-size:10px">${esc(d.version)}</span></div>
+  <div class="dim" style="font-size:11px;margin-top:6px;line-height:1.5">Counted in code from tested word patterns (English, Arabic, Arabizi); a comment can carry several themes. ${fmt(d.total)} customer comments; ${fmt(d.unthemed)} (${d.unthemedShare!=null?Math.round(d.unthemedShare*100):0} %) match no theme; ${fmt(d.brandRepliesExcluded||0)} brand replies left out. Comments on giveaway posts count as entries, not praise. Low confidence = under 80 % precision in the labelled audit.</div>
+  ${groups}
+ </div>`;
+}
 function rPerformance(){
  PF_NOVIEWS=viewsNotCollected(SENTI.posts||[]);
  if(SENTI.posts.length){
@@ -4454,6 +4491,7 @@ function rPerformance(){
   </div>
   ${rBenchPanel()}
   ${s.coverageLow?`<div class="card p4" style="margin-bottom:14px;border-color:rgba(230,194,107,.45)">${sentiCoverageWarn(s)}<div class="dim" style="font-size:10.5px;margin-top:3px">Sentiment rates, product sentiment and the weekly trend below describe the analysed comments only.</div></div>`:''}
+  ${rThemes()}
   ${rReviewsDash(list,s)}
   ${rSentimentSection(list)}
  </section>`;

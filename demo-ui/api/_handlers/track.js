@@ -509,6 +509,9 @@ module.exports = async (req, res) => {
 
   try {
     const wantBench = !isCron && String(q.benchmarks || '') === '1';
+    // 7.4 themes carry real customer text as examples: signed-in users only, never cached publicly
+    const wantThemes = !isCron && String(q.themes || '') === '1';
+    if (wantThemes && !requireSession(req, res)) return;
     let days = Math.min(DAYS_MAX, Math.max(1, parseInt(isCron ? 60 : wantBench ? DAYS_MAX : q.days, 10) || 60));
     let R;
     try {
@@ -535,6 +538,12 @@ module.exports = async (req, res) => {
     // never cached; never writes.
     // 7.2 benchmarks (api/_perf/benchmarks.js): the 90-day read plus Maistro's daily snapshots for the young
     // age bands, re-filtered to owned accounts on read so rows stored before the population fix drop out
+    if (wantThemes) {
+      const { themes } = require('../_perf/themes.js');
+      res.setHeader('Cache-Control', 'private, no-store');
+      return res.status(200).json({ days, fetchedAt: new Date().toISOString(), commentsPartial, ...themes(out, { seed: R.since || '' }) });
+    }
+
     if (wantBench) {
       const { benchmarks, SNAPSHOTS_SINCE } = require('../_perf/benchmarks.js');
       const owned = ownedAccounts(), snapshots = [];

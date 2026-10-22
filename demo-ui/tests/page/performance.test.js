@@ -6,10 +6,10 @@ const { fixture, loadPage, json } = require('../helpers');
 const track = fixture('track-14d.json');
 const snap = fixture('sentiment-snapshot.json');
 
-function pageWith({ track14 = track, track7 = null, track60 = null, snapshot = snap, bench = null, handled = null } = {}) {
+function pageWith({ track14 = track, track7 = null, track60 = null, snapshot = snap, bench = null, handled = null, themesData = null } = {}) {
   const fetchImpl = async (url) => {
     const u = String(url);
-    const pick = u.includes('handled=1') ? handled : u.includes('benchmarks=1') ? bench : u.includes('/api/sentiment') ? snapshot : u.includes('days=14') ? track14 : u.includes('days=7') ? track7 : u.includes('days=60') ? track60 : null;
+    const pick = u.includes('themes=1') ? themesData : u.includes('handled=1') ? handled : u.includes('benchmarks=1') ? bench : u.includes('/api/sentiment') ? snapshot : u.includes('days=14') ? track14 : u.includes('days=7') ? track7 : u.includes('days=60') ? track60 : null;
     if (!pick) throw new Error('down');
     return json(pick);
   };
@@ -197,5 +197,25 @@ test('7.3: below 70 % analysed, the sentiment rates carry "based on N of M comme
     assert.match(X.sentiCoverageWarn(low), /based on 6 of 10 comments \(60 %\), mostly recent/);
     const ok = X.pfStats([{ platform: 'tiktok', metrics: {}, comments: [...cm(7, 'pos'), ...cm(3, null)] }]);
     assert.equal(ok.coverageLow, false); assert.equal(X.sentiCoverageWarn(ok), '');
+  } finally { X.restore(); }
+});
+
+test('7.4 themes panel: groups in decision order, low-confidence and undercount marks, products with their source, examples on demand, coverage stated', async () => {
+  const themesData = { version: 'themes-v3-2026-10-22', total: 100, themed: 80, unthemed: 20, unthemedShare: 0.2, brandRepliesExcluded: 7, themes: [
+    { id: 'praise_design', group: 'praise', label: 'Design / colour', n: 30, share: 0.3, questions: 0, sentiment: { pos: 20, neu: 5, neg: 0, notAnalysed: 5 }, products: [], confidence: 'low', audit: { precision: 0.692, recall: 0.72, basis: 'seeded sample' }, examples: [{ postId: 'p', platform: 'x', author: 'a', text: 'Love the mint', sentiment: 'pos' }] },
+    { id: 'issue_screen', group: 'product_issue', label: 'Screen / display lines', n: 4, share: 0.04, questions: 1, sentiment: { pos: 0, neu: 0, neg: 3, notAnalysed: 1 }, products: [{ name: 'S22 Ultra', n: 2 }, { name: 'Galaxy Z Fold8', n: 2 }], confidence: 'ok', mayBeUndercounted: true, examples: [{ postId: 'p', platform: 'x', author: 'b', text: 'green line on my S22 Ultra', sentiment: 'neg' }] },
+  ] };
+  const X = pageWith({ themesData });
+  try {
+    X.rThemes(); await new Promise((r) => setTimeout(r, 80));
+    let html = X.rThemes();
+    assert.ok(html.indexOf('Product issues') < html.indexOf('Praise'), 'issues before praise');
+    assert.match(html, /LOW CONFIDENCE/); assert.match(html, /may be undercounted/);
+    assert.match(html, /S22 Ultra 2 · Galaxy Z Fold8 2 <span class="mono" style="font-size:9px">· product from the comment, else the post caption/);
+    assert.match(html, /20 \(20 %\) match no theme; 7 brand replies left out/);
+    assert.doesNotMatch(html, /green line on my S22 Ultra/, 'examples only on demand');
+    X.THEMES_UI.open.issue_screen = true;
+    html = X.rThemes();
+    assert.match(html, /green line on my S22 Ultra/);
   } finally { X.restore(); }
 });

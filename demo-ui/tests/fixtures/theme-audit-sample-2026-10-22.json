@@ -1,0 +1,2113 @@
+{
+ "source": "/api/track?days=60 read 2026-10-22 ~11:00 UTC; seeded sample of up to 20 comments per theme as matched by the first pattern set, plus up to 20 unmatched near-misses per group; rows labelled brand_reply are the brand’s own replies (excluded from scoring)",
+ "labelledBy": "Claude (builder session maistro-5e), 2026-10-22, blind, on the first 220 characters",
+ "rows": [
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_repair",
+   "platform": "x",
+   "text": "@SamsungGulf Caution before purchasing Samsung products. See how @u8d995ed9 damaged a perfectly fine phone, and when asked to take accountability and fix it, how they replied. According to their policy, Samsung has th",
+   "truth": [
+    "complaint_service",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_screen",
+   "platform": "facebook",
+   "text": "Green line free🥴no warantty guranty🥴",
+   "truth": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_price",
+   "platform": "instagram",
+   "text": "على كم",
+   "truth": [
+    "purchase_price"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "instagram",
+   "text": "Fold8 يكسب طبعا. الشاشة الكبيرة دي حاجة تانية #GalaxyZFold8 🔥",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_screen",
+   "platform": "facebook",
+   "text": "This is absolutely unacceptable and extremely disappointing. My Galaxy A71 already suffered from the green line display issue, and now my Galaxy S23 Ultra — a premium flagship phone — has developed the same problem. Why ",
+   "truth": [
+    "issue_screen"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "x",
+   "text": "@SamsungGulf Bonjour #GalaxyZFold8Ultra @ud7dc8c30",
+   "truth": []
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "instagram",
+   "text": "I won't claim this was a childhood dream, but since 2022 when I first saw a custom PC build, having one of my own became my ultimate goal. Asking directly is not in my nature and my conscience struggles with it, but my f",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_price",
+   "platform": "facebook",
+   "text": "My dream phone but the price is giving me headaches I wish I could own one but this is a chance I really wish I could own the mint one because it's among my favorite colours #GalaxyZFlip8",
+   "truth": [
+    "purchase_price",
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "instagram",
+   "text": "I write \"Day [X]\" simply as my personal daily log of dedication, not to demand hardware or create obligation. I've spent over a year trying my luck in giveaways without success. Earning 30,000 PKR a month in Pakistan mak",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf My pick is definitely the Galaxy Z Fold8 Ultra! 🚀 More screen, more multitasking, more productivity! @SamsungGulf #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "instagram",
+   "text": "@u8d995ed9 Makes senses for a senseless person not looking for quality purchase. Also, looking for a poor quality product",
+   "truth": []
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "facebook",
+   "text": "Worst brand in egypt",
+   "truth": [
+    "complaint_general"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf The Z Fold8 Ultra is the statement piece. Big screen, bold design, instant upgrade. #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask",
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "x",
+   "text": "@SamsungGulf #GalaxyZFold8 Hello thanks @u0c0547fa @u9f2c7a1c @u5593daaa @ub0af83c9 @ud7dc8c30",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf CREAM #GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8 https://t.co/hphrBR1fts",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf I really really fw the mint 🍏 Hopefully Africans (Nigerians) can win too #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_buy",
+   "platform": "instagram",
+   "text": "Bro I want this phone too but I'm not capable to buy it🥲",
+   "truth": [
+    "purchase_price"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_price",
+   "platform": "facebook",
+   "text": "Get the Galaxy Z Fold8 Ultra 1TB for AED 8,799 instead of AED 10,399 with code FOLDABLES, available on Samsung.com or Shop App. ✨ Double the storage double the fun!",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "spam",
+   "platform": "facebook",
+   "text": "📕✉️......📡 About SuperAI and AGI amid the future ... \" Intelligent & SuperAI shall empower against any AI. I know SuperAI amid(in) the future, I know Intelligent SuperAI, [name] thinks empowering Intelligently S",
+   "truth": [
+    "spam"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "facebook",
+   "text": "Multi-window multitasking + S Pen for quick note-taking! Absolute power combo for getting things done on the go. 📱⚡️ #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "x",
+   "text": "@SamsungGulf This TV is using a very poor display panel. Twice I bought this TV and both times display panel got lines immediately after Samsung pushed an update. Stay away from Samsung products, if you wanna save your m",
+   "truth": [
+    "issue_screen",
+    "issue_update"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "instagram",
+   "text": "Disappointed with Samsung India's handling of a premium flagship device. I purchased a Samsung Galaxy S22 in February 2024, expecting a premium smartphone to deliver years of reliable service. Instead, after just over tw",
+   "truth": [
+    "complaint_service"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "facebook",
+   "text": "A fantastic step forward for Arabic language integration in mobile AI. This makes call screening much more practical and accessible for Arabic speakers.",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z fold8, buds4 pro, watch9 Manifesting 🍀 ✨ #GalaxyZFold8 https://t.co/RSBRslqKmx",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_availability",
+   "platform": "facebook",
+   "text": "Thank you for tuning in! 😊 Don’t forget to use code FOLDABLES and shop the Galaxy Z Fold8 Ultra, Galaxy Z Fold8 and Galaxy Z Flip8 on Samsung.com or Shop App to enjoy our exclusive LIVE offers. Offers are valid for 72 h",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "facebook",
+   "text": "Battery is a trash . One day after full charge. I don't recommend.",
+   "truth": [
+    "issue_battery"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "x",
+   "text": "@SamsungGulf My favourite pocket buddy is my power bank always ready for low-battery emergencies #GalaxyZFlip8",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_availability",
+   "platform": "facebook",
+   "text": "Congratulations to all Galaxy Z Series pre-order raffle winners! 🎉 Our team will reach out to each winner personally with details on how to collect their prize.",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Fold8 Ultra all the way! 🚀 Why settle for doing one task when I can do more at the same time? @SamsungGulf #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "tiktok",
+   "text": "damn, I thought my phone battery just died 🙂",
+   "truth": []
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "x",
+   "text": "@SamsungGulf I minimize notifications on my phone to check only the necessary info, and when I want to focus, I expand the screen to work. Just setting up the environment like this changes how much I can get done, even i",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "facebook",
+   "text": "Complete your Galaxy setup and enjoy 30% off selected Cases, 15% off selected Wearables and 10% off selected Galaxy Tabs when shopping on Samsung.com or Shop App.",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "x",
+   "text": "@SamsungGulf Give me Pink! 💕🔥 The Galaxy Z Flip8 in this shade is the perfect mix of cute and stylish #GalaxyZFlip8",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Flip8 would be my favourite pocket buddy for voice notes, bright photos, and a little extra style whenever I am on the move. #GalaxyZFlip8",
+   "truth": [
+    "praise_camera",
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_availability",
+   "platform": "facebook",
+   "text": "Samsung Wallet is already available here in the Philippines, but when will Samsung Pay for tap-to-pay finally be available for Philippine-issued bank cards? 👀 Knowing how GoTyme Bank PH has always been ahead when it com",
+   "truth": [
+    "purchase_availability"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_screen",
+   "platform": "facebook",
+   "text": "Samsung , what a joke! Your phone has given me 29 display lines in total—both green and pink lines. And yet you compare yourselves to Apple or others? That's embarrassing. A company whose flagship phones keep developing ",
+   "truth": [
+    "issue_screen"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "instagram",
+   "text": "I’d choose the Samsung Galaxy Z Fold8, Buds4, and Watch9 because they give me the ultimate all-in-one Galaxy experience—powerful productivity, immersive entertainment, smart connectivity, and seamless fitness tracking wh",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "facebook",
+   "text": "The worst company you can deal with them really the after-sales service is very bad there is no believing in the words I swear to God the great Samsung company guarantee dates really the screen did not complete 6 months ",
+   "truth": [
+    "complaint_service"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_screen",
+   "platform": "facebook",
+   "text": "أسوء شركه ممكن تتعامل معهوم بجد خدمه مابعد البيع وحشه جدا مفيش مصدقه في الكلام وله اي حاجه شاشه موديل السنه مكملتش 6شهر اقل اي عايزين 11300 تغير الشاشه حسبي الله ونعم الوكيل ربنا اقدر على كل شيء",
+   "truth": [
+    "complaint_service",
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_repair",
+   "platform": "facebook",
+   "text": "#Scamsung, Never buy a Samsung device, their screens always fail and #Scamsung wont repair it under warranty",
+   "truth": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf My Galaxy Z Series has completely changed the way I stay connected and get things done — sleek, powerful, and made for everyday life. ⭐#ReviewAndWin #GalaxyZFold8Ultra #GalaxyZFold8",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_buy",
+   "platform": "facebook",
+   "text": "يجب توقيف شركة سامسنج هي محتاله وشركة فاشلة وانصح عدم شراء اجهزتها هي فاشلة واريد رفع قضية عالمية لفشل شركة سامسنج ومنع شراء اجهزتها وبالذات اس 22التراء",
+   "truth": [
+    "complaint_general"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "instagram",
+   "text": "8 years and still crease is there on inner screen. No dual view finder for camera, and this Fold doesn’t support S-Pen….And just now iPhone Duo has crushed the competition with immersive software and titanium body Apple ",
+   "truth": [
+    "issue_screen"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf Work smart, multitask fast, and stay connected with Galaxy! #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "tiktok",
+   "text": "How many like Give me S26 ULTRA",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "instagram",
+   "text": "Dual screen preview makes every pet picture look professional! 📸✨",
+   "truth": [
+    "praise_camera"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "facebook",
+   "text": "When bangla will be added to the screening",
+   "truth": [
+    "gap_feature_request"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "x",
+   "text": "@SamsungGulf They have the worst after-sales service. Take this sincere advice: do not buy anything from them—especially refrigerators or washing machines—because no one will come to service them, and they show absolutel",
+   "truth": [
+    "complaint_service"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "instagram",
+   "text": "Day 5 asking Samsung for a free SSD gift! 💾 Storage safety is my biggest priority for my new gaming PC because power outages in Quetta cause severe data corruption. I’m sourcing each component individually from the best",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf My best vibe is Galaxy Z Fold8 + Buds4 pro + Watch9 combo to maximize my style #GalaxyZFold8 397",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "x",
+   "text": "@SamsungGulf my galaxy Z flip 8 is my outfit's best accessory. it would definitely complete my outfit and i can even take good pictures of my outfit using it. 🩷 #GalaxyZFlip8 https://t.co/4GmEcWQs0e",
+   "truth": [
+    "praise_camera",
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "instagram",
+   "text": "@uf99129c0 @u8d995ed9 @ub9ba8d17 @ua5580290 Very disappointing service from Samsung India! I purchased a Samsung AC through Flipkart, delivered on 14 October, but the installation has still not been completed d",
+   "truth": [
+    "complaint_service"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "facebook",
+   "text": "Father please prophecy eternal #Seat28G Look to God ETERNAL LIVES IMMERGZING HIMSELF, HIS WORDS, ORGANSIM,WEIGHT,WEIGHS, LIFTING,STRATEGIES,SOUNDS, PURPOSES, RESPONSE,PREPARE,WARNINGS, SHUT-UP, SHUT-UP, SHUT- UP! LISTEN,",
+   "truth": [
+    "spam"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_availability",
+   "platform": "facebook",
+   "text": "Scan the QR code at Backyard Al Jada or Mirdif to access exclusive offers available when purchasing through Samsung.com.",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Flip8 is the Galaxy I’d choose when my outfit needs a little spark before I head out. #GalaxyZFlip8",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "facebook",
+   "text": "My work is more efficient when my Galaxy is paired with Galaxy Watch Ultra + Galaxy Buds 4 + S Pen as an Afrobeat Artist. Galaxy watch ultra for my smart fashion statements,the pen to write down my creative thoughts proc",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf My favorite choice is Galaxy Z Fold8 Ultra! 💪 Work, multitask, create, and get more done from one device. @SamsungGulf #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf Watch Ultra + Buds3 Pro for max productivity! #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "tiktok",
+   "text": "give me one please😁😁😁",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "facebook",
+   "text": "ima.chosan.A.as. are.lake.Alines.manbar system fanashi ima",
+   "truth": [
+    "spam"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "facebook",
+   "text": "I just want my new watch. And ring. And no one can tell me anything. It's been over a MONTH. And no update, and no clue.",
+   "truth": [
+    "complaint_service"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "instagram",
+   "text": "#galaxyzfold8 galaxy fault buds4pro watch9",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "facebook",
+   "text": "Green finish, brighter screen or that 200MP camera? 👀 What’s winning you over on the Galaxy Z Fold8 Ultra?",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf My productivity pick: Galaxy Z Fold8 Ultra 💜 Bigger screen, better multitasking, maximum productivity! @SamsungGulf #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "instagram",
+   "text": "My \"Day [X]\" comment is simply my personal tracker, not a demand for free hardware. Living on 30,000 PKR a month in Pakistan, purchasing a high-speed 2TB/4TB M.2 NVMe SSD is beyond my budget. After 1 year of lost giveawa",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "x",
+   "text": "@SamsungGulf I would choose the Galaxy Z Fold8 Ultra as my pocket buddy because it feels ready for spontaneous photos and big ideas wherever the day takes me. #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_camera"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_repair",
+   "platform": "facebook",
+   "text": "If you want a Samsung product, especially a mobile phone contract, I recommend buying it from anywhere other than Samsung directly. They are incompetent and do not respect their customers. The negatives of purchasing thr",
+   "truth": [
+    "complaint_service"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "x",
+   "text": "@SamsungGulf when I acquire one, I will come back to this post",
+   "truth": [
+    "purchase_buy"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "x",
+   "text": "@SamsungGulf My favourite pocket buddy is my power bank, always ready for low-battery emergencies #GalaxyZFlip8 https://t.co/0POkuOxgw7",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "facebook",
+   "text": "Pls dont purchase samsung mobile I Already Purchaged 8 ultra 512 GB Very bad Experience No worth for money Always facing Network problems All aps are buffering and Company Refuse to Solve the problem after many times Vis",
+   "truth": [
+    "complaint_general",
+    "gap_issue_other"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "tiktok",
+   "text": "man am poor",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf GalaxyZflip8 pink 💕💕💕💕💕 يارب يكون من نصيبي 🤲🏻🤍 #GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8 ..",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "x",
+   "text": "@SamsungGulf Give me the Fold8 Ultra and Galaxy Buds and I’m ready to lock in 🎧📱 #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Fold8 + Watch9 📱⌚ مااحب استخدم السماعات صراحه #GalaxyZFold8 💖💖💖💖",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "instagram",
+   "text": "Galaxy Z Fold 8 With Buds 4 Pro and Watch 9 #GalaxyZFold8 @uae4db495 @u09d35938 @udd5d2239",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "facebook",
+   "text": "The worst company you can deal with them Really the after-sales service is very bad there is no believing in the words I swear to God the great Samsung company is a guarantee of dates really the screen did not complete 6",
+   "truth": [
+    "complaint_service"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf Foldable screen + DeX + Buds = pocket office unlocked. 📱💻🎧 #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask",
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "tiktok",
+   "text": "please give me an s24 ultra ♥️♥️♥️",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf My Galaxy Z Fold/Flip has completely changed how I work and create. Multitasking is effortless, the screen is incredibly immersive for movies and meetings, and the flex hinge is just genius for hands-free vi",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf One look at that Pink Galaxy Z Flip8 and I’m convinced! 💖😍 This is the pocket buddy I want #GalaxyZFlip8",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "instagram",
+   "text": "😍Total tech perfection in one picture. Galaxy Z Fold8, Buds4 Pro, and Watch9 all the way! #GalaxyZFold8 💖 @ub1a924ed",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "facebook",
+   "text": "Work smarter, multitask faster, and stay connected with Galaxy! 🚀 #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "tiktok",
+   "text": "I love support beginners ❤️",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "facebook",
+   "text": "Big screen, smart watch, endless productivity! 📱⌚ #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask",
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf my work is more efficient when my Galaxy is paired with earphones and a good to-do list!! #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "facebook",
+   "text": "My bad luck money problem💶💵📲",
+   "truth": [
+    "purchase_price"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_price",
+   "platform": "facebook",
+   "text": "First time shopping with Samsung? Enjoy up to an additional AED 500 off on Samsung.com or Shop App, on top of other benefits.",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf Upgrading to the Galaxy Z Series completely changed my daily workflow. The multitasking on the main screen is unmatched—running two apps side-by-side seamlessly makes handling business on the go effortless #",
+   "truth": [
+    "praise_multitask",
+    "purchase_buy"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "facebook",
+   "text": "\"Dear Samsung Team, ​I have been a devoted supporter and user of Samsung for years, truly admiring how your cutting-edge innovation constantly redefines what technology can do. As a passionate tech enthusiast, owning you",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "instagram",
+   "text": "Just beautiful",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "facebook",
+   "text": "Samsung Samsung I want to file an international complaint from Yemen regarding the closure of Samsung. It is a failed company and the world should boycott its products. I sacrificed $1,200 by buying an S22 Ultra device s",
+   "truth": [
+    "complaint_general"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "My favourite pocket buddy would definitely be the Galaxy Z Fold8. It’s the kind of phone I’d love to have with me every day, whether I’m watching something, scrolling, or getting things done. Big screen when I need it, e",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf My Ultimate tool for productivity would be Galaxy Z fold 9 Ultra + Galaxy Watch? Staying on big screen staying ahead.l Hope to win #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask",
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "facebook",
+   "text": "DO NOT BUY #FOLD, THE FOLDING DISPLAY IS FRAGILE, BREAKS & V HAVE TO PAY ~ 60k INR TO REPAIR IT. IT CAN HAPPEN, IF YOU KEEP UR PHONE IN UR PANT'S POCKETS (AS PER SERVICE CENTRE). IT'S A SCAM 😔 I had #Galaxy S2, S4, S6, ",
+   "truth": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "facebook",
+   "text": "Best when I pair it with my buds #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Flip8 ✨💗 It would be the perfect finishing touch to my outfit! I love how stylish and cute it looks, and it would definitely make my everyday campus fits even more fun. 🥹 #GalaxyZFlip8",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Flip8 in Cream #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf 📱 Fold8 + 🎧 Buds4 Pro + ⌚ Watch9 My dream combo! 💜 #GalaxyZFold8",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "x",
+   "text": "@SamsungGulf #GalaxyZFold8Ultra #GalaxyZFlip8 #GalaxyZFold8 @SamsungGulf @u215e37de @u6b88ad07 . ( اللهم صّلِ وسَلّمْ عَلۓِ نَبِيْنَامُحَمد ﷺ )",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "instagram",
+   "text": "اسواء خدمه عملاء قابلتها بحياتي موظف سامسونج بفرع مردف سيتي سنتر اسمه [name] اليوم قالي مش عايز اتكلم معاكي و مدير الفرع واقف قالي هابعت لمديره تخيلو الروعه الموظف بيعصب عليا و بيرميلي التليفونات و بيقولي مش عايز اتعا",
+   "truth": [
+    "complaint_service"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "facebook",
+   "text": "Extremely disappointed with Samsung’s product quality and after-sales service. I purchased a Samsung double-door refrigerator just 2 months ago, and I am already facing a serious overcooling issue. I raised a service req",
+   "truth": [
+    "complaint_service",
+    "gap_issue_other"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "instagram",
+   "text": "Much needed",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "facebook",
+   "text": "Please🙏 give me #GalaxyBuds4pro #Galaxy All ways the best",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "facebook",
+   "text": "I switched to the Galaxy Z series and I'm not going back 👀✨ The fold is so smooth, battery lasts my whole day, and the cameras are insane. It feels premium and makes multitasking so easy. Samsung really nailed it this t",
+   "truth": [
+    "purchase_buy",
+    "issue_battery",
+    "praise_camera",
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "x",
+   "text": "@SamsungGulf My Galaxy #GalaxzyZFold8Ultra is my outfit's best accessory I can already picture it 😉 I really hope I win So I can match with my outfits and post tons of pictures tagging @SamsungGulf",
+   "truth": [
+    "praise_design",
+    "praise_camera"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_price",
+   "platform": "facebook",
+   "text": "السعر",
+   "truth": [
+    "purchase_price"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "spam",
+   "platform": "facebook",
+   "text": "✉️ 《[name] bequeathed again because of so very important meaning 》 The US president of White House said recently, \" SI is Super Intelligence, Super Intelligence Force(SIF), the formation of Super Intelligence Forc",
+   "truth": [
+    "spam"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_battery",
+   "platform": "facebook",
+   "text": "#GalaxyZFold8Ultra love my Samsung until battery starts to drain after a year!!",
+   "truth": [
+    "issue_battery"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "facebook",
+   "text": "#GalaxyZFold8 is my choice… we had so much fun with the Galaxy stand at Joburg day",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Flip8 would be my favourite pocket buddy because it adds a playful finish to my look and makes every quick photo feel more special. #GalaxyZFlip8",
+   "truth": [
+    "praise_camera",
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "instagram",
+   "text": "Galaxy z fold8 BUDS4PRO WATCH9 #galaxyzfold8",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "facebook",
+   "text": "If you buy samsung you support Isreal",
+   "truth": [
+    "complaint_general"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Flip8 would be my pocket buddy for keeping small daily wins close, from a note to a photo worth saving. #GalaxyZFlip8",
+   "truth": [
+    "praise_camera"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_price",
+   "platform": "x",
+   "text": "@SamsungGulf Watching everything about the Samsung Z series online, the inner display and multitasking setups really make standard phones look outdated. The foldable tech seems like a total beast, even if the price is a ",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "facebook",
+   "text": "The 3rd photo shown was perfect #GalaxyZFold8",
+   "truth": [
+    "praise_camera"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf Obsessed with the Mint Galaxy Z Flip8 Clean, fresh and totally my style. 💚✨ #GalaxyZFold8 #GalaxyS26 #GalaxyZFold8Ultra #Samsung #GalaxyZFlip8",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "facebook",
+   "text": "Option 3 is 100% my vibe because having my folding screen, watch, and earbuds all talking to each other makes me feel like I'm living in 2040 while my actual life is still stuck in traffic. #GalaxyZFold8",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_price",
+   "platform": "facebook",
+   "text": "Get the Galaxy Z Flip8 256GB for AED 4,699 instead of AED 5,499 with code FOLDABLES, available on Samsung.com or Shop App. ✨ Double the storage!",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "facebook",
+   "text": "Galaxy Z Fold 8, Buds4 Pro, Watch9 will definitely be a dream come true 💖💖💖💖 #GalaxyZFold8",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_screen",
+   "platform": "x",
+   "text": "@SamsungGulf @u0e852cfe @SamsungGulf @u964ba463 @ua5580290 My S22 Ultra got green line without any drop! This is known manufacturing defect #GreenLineIssue You fix it for FREE in India &amp; UAE. Why not for Ye",
+   "truth": [
+    "issue_screen"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "instagram",
+   "text": "\"Unstable electricity in Pakistan, Balochistan (Quetta) often causes data corruption, making reliable storage critical. Showing local gamers how the Samsung 990 Pro NVMe SSD protects files during sudden power losses will",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_repair",
+   "platform": "x",
+   "text": "@SamsungGulf Don't buy anything from Samsung ... When any thing broke before warranty time the will show you the stars in the day time and the will never fix it",
+   "truth": [
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Flip8 Cream #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8. ش",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf Fold for multitasking, Buds for focus, Watch for staying on top of my day. Easy choice! #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask",
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Flip8 in Mint 💚☘️ #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_price",
+   "platform": "facebook",
+   "text": "What is the price",
+   "truth": [
+    "purchase_price"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf My favourite pocket buddy is the Galaxy Z Fold8 Ultra🔥 Sleek, powerful, and perfect for multitasking! #GalaxyZFold8Ultra #GalaxyZFold8 #GalaxyZFlip8",
+   "truth": [
+    "praise_design",
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_repair",
+   "platform": "facebook",
+   "text": "Absolutely unacceptable from @u8d995ed9! My Galaxy S23 (bought in UAE) got the infamous #RedLine hardware defect with ZERO physical damage. CEO desk rejected the free replacement and demands ₹12kfor YOUR manufacturing",
+   "truth": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf Flip8 Cream #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_screen",
+   "platform": "instagram",
+   "text": "@samsunggulf i like to raise that i have samsung S21 FE and it has got white line on screen due to software upgrade. I visited the official store and noted i can not fix because out of warranty period. However this is pu",
+   "truth": [
+    "issue_screen",
+    "issue_update",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "instagram",
+   "text": "I need this for content creation I hope samsung listens 😭 have to work on broken vivo #samsunggulf",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_repair",
+   "platform": "facebook",
+   "text": "Samsung expert repair team 💪🏻",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "instagram",
+   "text": "اسوء تلفون وعطيته لشركه ٣ مرات وماتصلح",
+   "truth": [
+    "complaint_repair",
+    "complaint_general"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf My best vibe is Galaxy Z Fold8 + Buds4 pro + Watch9 combo to maximize my style #GalaxyZFold8 473",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "instagram",
+   "text": "Disappointed with Samsung India's handling of a premium flagship device. I purchased a Samsung Galaxy S22 in February 2024, expecting a premium smartphone to deliver years of reliable service. Instead, after just over tw",
+   "truth": [
+    "complaint_service"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_screen",
+   "platform": "facebook",
+   "text": "Dear Samsung Gulf Support Team, I believe my concern has been misunderstood. I am not asking about repair options or cross-border warranty procedures. I am reporting an internal screen defect that appears to be a manufac",
+   "truth": [
+    "complaint_service"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_repair",
+   "platform": "x",
+   "text": "@SamsungGulf Caution before purchasing Samsung products. See how @u8d995ed9 damaged a perfectly fine phone, and when asked to take accountability and fix it, how they replied. According to their policy, Samsung has th",
+   "truth": [
+    "complaint_service",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_fingerprint",
+   "platform": "facebook",
+   "text": "🚨 𝟏𝟏 𝐌𝐎𝐍𝐓𝐇𝐒 — 𝐍𝐎 𝐑𝐄𝐒𝐎𝐋𝐔𝐓𝐈𝐎𝐍 — 𝐒𝐀𝐌𝐒𝐔𝐍𝐆 𝐆𝐀𝐋𝐀𝐗𝐘 𝐒𝟐𝟓 𝐔𝐋𝐓𝐑𝐀 🚨 Bought on 𝟏𝟕 𝐎𝐜𝐭 𝟐𝟎𝟐𝟓, reported a defective fingerprint sensor within 24 hours (𝟐𝟎 𝐎𝐜𝐭 𝟐𝟎𝟐𝟓) at Samsun",
+   "truth": [
+    "issue_fingerprint",
+    "complaint_service"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_repair",
+   "platform": "facebook",
+   "text": "Samsung Fold series has display problems. Samsung should recall or repair all phones free of charge. It's related to Samsung technology.",
+   "truth": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_battery",
+   "platform": "x",
+   "text": "مرحبا سامسونج، هل ممكن توضحون موضوع انتفاخ البطاريات في أجهزتكم للأسف كنت اعتقد المشكلة فقط في الفئات السابقة لكن الآن تكرر الموضوع مع S24 و S23 وبخصوص هالتغريدة تواصلت معكم وقتها وقلتوا توجهي للصيانة والصيانة افادوني بت",
+   "truth": [
+    "issue_battery"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_screen",
+   "platform": "facebook",
+   "text": "​🚨 SAMSUNG MEGA OFFER! 🚨 Buy a Samsung S23 today and get a ✨ FREE GREEN LINE ✨ exactly after 1 year! (100% Guaranteed!) 🟢📱 Feeling lucky? You might even get a Red Line combo! 🔴 Warranty support after 1 year? Absolut",
+   "truth": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf If I’m choosing one device to maximize my productivity, it’s definitely the Galaxy Z Fold8 Ultra 🚀 More screen, more multitasking, more done! @SamsungGulf #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_buy",
+   "platform": "facebook",
+   "text": "If your order it today, you'll get it in 2 months or more! Wheres my phone samsung!? It's been over 32 days!?",
+   "truth": [
+    "complaint_service"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "x",
+   "text": "@SamsungGulf THE BADDIEEE #GalaxyZFlip8",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Zlip8 -Mint - #GalaxyZFold8 #GalaxyFold8Ultra #GalaxyZlip8",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "instagram",
+   "text": "HELP ME GUYS I NEED THIS SAMSUNG SO BAD Galaxy z fold 8 ultra COME FROM A POOR FAMILY whyyyyyy AND I SWEAR I LOVE SAMSUNG SO MUCH 😭 BUT THIS PHONE??? SAMSUNG PLEASE NOTICE ME IS THERE A MIRACLE THAT CAN MAKE YOU SEE ONE",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "facebook",
+   "text": "I am biggest fan of Samsung. Pls give me some products for my study. 🥹❤️‍🩹",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf big screen + no distractions = pure focus mode #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Fold8 Ultra + S Pen + Samsung DeX = my “get it DONE” starter pack. 🚀 #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "x",
+   "text": "@SamsungGulf My best galaxy is #SamsungGalaxyZFlilp8 because it’s way lighter and easier to use one-handed for quick tasks. Thank u so much @SamsungGulf 💯 https://t.co/dbOespKa7O",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_screen",
+   "platform": "instagram",
+   "text": "Galaxy S23+ developed pink lines after a software update, yet the dealer refused a free repair. As a long-time customer, I request a fair resolution. My Samsung journey started with J2, A7, S10e, S23+, Tab S9, Watch 7, B",
+   "truth": [
+    "issue_screen",
+    "issue_update",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_price",
+   "platform": "facebook",
+   "text": "Enjoy an extra 10% off up to AED 500 with Select Cards, Tamara, Tabby, Samsung Wallet and Instalment Plans.",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf 💜 THE TRIO I NEED! 💜 📱 Galaxy Z Fold8 🎧 Galaxy Buds4 Pro ⌚ Galaxy Watch9 Big screen. Great sound. Smart style. 🔥✨ #GalaxyZFold8",
+   "truth": [
+    "praise_ecosystem",
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_repair",
+   "platform": "facebook",
+   "text": "بلاش سامسونج مفيش ضمان ولو حصل اي مشكلة هيقولك سوء استخدام نصيحه للناس الخامات سيئه جدا",
+   "truth": [
+    "complaint_repair",
+    "complaint_general"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Fold8 Ultra would be my favourite pocket buddy for a full day of calls, photos, and navigation while keeping every plan on track. #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_camera"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "facebook",
+   "text": "Samsung give me pls galaxy07 🙏🙏🙏",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "spam",
+   "platform": "tiktok",
+   "text": "plssss follow me",
+   "truth": [
+    "spam"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "instagram",
+   "text": "Fold 6 display line appeared automatically while I was simply reading no drop, no damage. What kind of quality are you making, Samsung? A premium phone should not develop a display line under normal use. Very disappointe",
+   "truth": [
+    "issue_screen"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf My choice? Galaxy Z Fold8 Ultra! 🔥 Big screen + multitasking + Samsung innovation = productivity unlocked! @SamsungGulf #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf Multitasking + organization + creativity + Samsung power = productivity maxxed! ⚡📱 #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "facebook",
+   "text": "Zoom and clear pics",
+   "truth": [
+    "praise_camera"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_buy",
+   "platform": "x",
+   "text": "@SamsungGulf My productivity setup is simple: tablet, headphones, notes, and a bit of controlled chaos. The tablet keeps everything in one place, while my headphones help me focus and get things done. A Galaxy S26 would ",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "instagram",
+   "text": "Day 5 asking Samsung for a free 4TB SSD gift! 💾 Power cuts in Quetta cause constant data loss on old HDDs because people don't know about high-speed NVMe protection. Showing my community how the Samsung 990 Pro 4TB SSD ",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "instagram",
+   "text": "Its disgusting to see you guys flexing so much after you guys make such sub standard devices. I was always apple and bough a samsung fold 6, top of the line, 1 tb with carbon fibre back, and in 1 year and few months my s",
+   "truth": [
+    "complaint_general"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "x",
+   "text": "@SamsungGulf I’d choose Galaxy Z Fold8 Ultra as my pocket buddy when I want one device ready for a long day of ideas, errands, and last minute changes. #GalaxyZFold8Ultra",
+   "truth": []
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "x",
+   "text": "#GalaxyZFold8 If I’m going out and putting together an outfit, I want something that feels just as polished as the look itself. I’d probably spend way too much time choosing the fit, then finish it off with the Fold8 bec",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_availability",
+   "platform": "facebook",
+   "text": "Samsung wallet is not available in nigeria 😑",
+   "truth": [
+    "purchase_availability"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "instagram",
+   "text": "Absolutely love the sparkling design on the Galaxy Z Flip8! ✨💎 #GalaxyZFold8",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_price",
+   "platform": "x",
+   "text": "@SamsungGulf The Samsung Galaxy Z series offers the most polished foldable hardware on the market, standing out for multi-window productivity and pocketable design, though it commands a premium price tag. @SamsungGulf #R",
+   "truth": [
+    "praise_multitask",
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "spam",
+   "platform": "tiktok",
+   "text": "plsss follow me plssssss",
+   "truth": [
+    "spam"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with Galaxy Tab for my productivity setup. #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "x",
+   "text": "@SamsungGulf asking for my cracked s10e, do live deals stack with trade-in or should i just wait",
+   "truth": [
+    "purchase_price"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "tiktok",
+   "text": "just gift me one",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "facebook",
+   "text": "How much",
+   "truth": [
+    "purchase_price"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "facebook",
+   "text": "Dear Samsung Pakistan Management, I am writing to formally complain about the poor support and unreasonable repair quote provided by the Samsung Pakistan service center for my premium Samsung 55\" 3D LED TV (Model: UA55D7",
+   "truth": [
+    "complaint_service",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_battery",
+   "platform": "facebook",
+   "text": "I strongly advise people not to buy Samsung devices. The latest software update has caused serious problems for my Samsung Galaxy A24 devices, including abnormal battery drain, overheating, severe performance issues, and",
+   "truth": [
+    "issue_update",
+    "issue_battery"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "x",
+   "text": "@SamsungGulf Itni badi fraud company market main exist kaise kar rahi hai exit karna chahiye",
+   "truth": [
+    "complaint_general"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "instagram",
+   "text": "Give me a gift Samsung my dream phone😢",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "facebook",
+   "text": "I'm going to post pictures of my local area",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_buy",
+   "platform": "x",
+   "text": "@SamsungGulf The Samsung Galaxy Z Fold 8 Ultra is what I would buy. #GalaxyZFold8Ultra",
+   "truth": [
+    "purchase_buy"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "facebook",
+   "text": "✨ Galaxy vibes all the way! ✨ My combo would be Galaxy S26 + Galaxy Buds 🎧📱 — the perfect duo for music, photos, and staying connected on the go! 😍💫 #GalaxyZFold8",
+   "truth": [
+    "praise_ecosystem",
+    "praise_camera"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_buy",
+   "platform": "instagram",
+   "text": "I write \"Day [X]\" purely as a daily log of my passion, not to track time or demand anything from your team. On my 30,000 PKR monthly income in Pakistan, basic living expenses take everything, making fast storage an impos",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_price",
+   "platform": "facebook",
+   "text": "Get the Galaxy Z Fold8 Ultra 512GB for AED 7,999 instead of AED 8,799 with code FOLDABLES, available on Samsung.com or Shop App. ✨",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "facebook",
+   "text": "Worst experience with Samsung! Don't buy Samsung devices—a total waste of time and money. My new phone has multiple issues right from day 1. The service center failed to fix it even after 5-6 visits. Escalating to Custom",
+   "truth": [
+    "complaint_service",
+    "gap_issue_other"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_price",
+   "platform": "facebook",
+   "text": "Get the Galaxy Z Fold8 1TB for AED 7,999 instead of AED 9,599 with code FOLDABLES, available on Samsung.com or Shop App. ✨ The price of 1TB for 512 GB!",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "x",
+   "text": "@SamsungGulf @ufb7aaa21 @uc4dd7a6f يوجد عدة مسابقات سابقة.. متى السحب؟!",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_repair",
+   "platform": "facebook",
+   "text": "Do not buy fold. They promise certain guarantee like 200000 folds as a USP for Foldabale phones. But just after warranty expires in a one year or so the fold line becomes black with no physical or liquid damage done. Thi",
+   "truth": [
+    "issue_screen"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf My best vibe is Galaxy Z Fold8 + Buds4 pro + Watch9 combo to maximize my style #GalaxyZFold8 640",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "x",
+   "text": "@SamsungGulf GalaxyZ Fold 8 is more than an accesory and for good style and for help when the working. #GalaxyZFold8 #GalaxyZFlip8",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "facebook",
+   "text": "Sumsung my dream one God pls give me Sumsung. galaxy a07",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf I'm team Pink all the way! 💕📱 This Galaxy Z Flip8 would be the cutest pocket buddy #GalaxyZFlip8",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf I spotted the Pink one and immediately knew my answer! 💖😍 Galaxy Z Flip8 in Pink for the win #GalaxyZFlip8",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_buy",
+   "platform": "facebook",
+   "text": "Order a Green Galaxy Matcha or any menu item during the takeover for a chance to win a Galaxy Z Fold8 or Galaxy Z Fold8 Ultra! ✨ Each purchase counts as an entry, so multiple purchases mean multiple chances to win.",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf Big screen, zero distractions, maximum execution. Open → focus → finish. ⚡ #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_repair",
+   "platform": "facebook",
+   "text": "Using Fold 6 Black limited Edition 512GB inner display got damaged automatically from hinge side n I'm gathering all customers with damaged flagship displays on one platform to file a case against Samsung. The company ne",
+   "truth": [
+    "issue_screen"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "instagram",
+   "text": "Pls gift me a fold phone to Make my Diwali 🎇🪔 Happy and Special Diwali 🎇🪔",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "facebook",
+   "text": "PLS DONT BUY/ PURCHAGE SAMSUNG PRODUCTS DONT WASTE UR MONEY ON SAMSUNG DEVICES . As a Samsung USER for LAST 19 YEARS +. I Never Expected This Type of NEGLIGENCE from a Brand I Trusted for So long time Unfortunately, I am",
+   "truth": [
+    "complaint_general"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Flip-8 Pink 💗 #GalaxyZFlip8 my color palette !!",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf My best vibe is Galaxy Z Fold8 + Buds4 pro + Watch9 combo to maximize my style #GalaxyZFold8 252",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_multitask",
+   "platform": "x",
+   "text": "@SamsungGulf Galaxy Z Fold8 Ultra 👑 One device, bigger possibilities, smarter multitasking, and productivity taken to the max! @SamsungGulf #GalaxyZFold8Ultra",
+   "truth": [
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_screen",
+   "platform": "facebook",
+   "text": "​🚨 SAMSUNG MEGA OFFER! 🚨 Buy a Samsung S series today and get a ✨ FREE GREEN LINE ✨ exactly after 1 year! (100% Guaranteed!) 🟢📱 Feeling lucky? You might even get a Red Line combo! 🔴 Warranty support after 1 year? Ab",
+   "truth": [
+    "issue_screen"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_screen",
+   "platform": "facebook",
+   "text": "Samsung , what a joke! Your Z Fold phone has given me 29 display lines in total—both green and pink lines. And yet you compare yourselves to Apple or other ? That's embarrassing. A company whose flagship phones keep deve",
+   "truth": [
+    "issue_screen"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_price",
+   "platform": "facebook",
+   "text": "Get the Galaxy Z Fold8 512GB for AED 7,199 instead of AED 7,999 with code FOLDABLES, available on Samsung.com or Shop App. ✨",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "facebook",
+   "text": "Using Fold 6 Black limited Edition 512GB inner display got damaged automatically from hinge side n repair cost is demand 54,000 company claim 20k time fold n open challenge at time of purchase only everyone is talking ab",
+   "truth": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "instagram",
+   "text": "Fold8, Buds4 Pro, and Watch9 are basically the dream combo. #GalaxyZFold8",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "facebook",
+   "text": "أريد هاتفا جديداً أرجوك",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "tiktok",
+   "text": "😅Give me a free phone please",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "instagram",
+   "text": "I found a 9-year-old Samsung A3 model phone buried in a sand pile that had been sitting there for about 15 years. It turned up while I was moving the sand for a concrete pouring project in our garden. Part of the phone's",
+   "truth": []
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_design",
+   "platform": "x",
+   "text": "@SamsungGulf Mint, Galaxy Z Flip8 💚✨ #GalaxyZFold8 #GalaxyS26 #GalaxyZFold8Ultra #Samsung #GalaxyZFlip8",
+   "truth": [
+    "praise_design"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf My best vibe is Galaxy Z Fold8 + Buds4 pro + Watch9 combo to maximize my style #GalaxyZFold8 231",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf My best vibe is Galaxy Z Fold8 + Buds4 pro + Watch9 combo to maximize my style #GalaxyZFold8 619",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "issue_screen",
+   "platform": "facebook",
+   "text": "I'll never have a Z Fold again... I have a Z Fold 6, which after a year and a half of use, and with meticulous care, the internal screen broke. And Samsung charged me over 6,000 to fix it. I bought it directly from a Sam",
+   "truth": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "x",
+   "text": "@SamsungGulf thank u so much #GalaxyZFold8Ultra",
+   "truth": []
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "facebook",
+   "text": "#growth Galaxy A31 you want upper right vimbo to z folding A next to me quickly carefully SMS check it last time Yes juses just public different types and hope support thank you ❤️ Thank 💖 yes eye open #GalaxyZSeries",
+   "truth": [
+    "spam"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "spam",
+   "platform": "tiktok",
+   "text": "plsssssssss follow me i beg yalll",
+   "truth": [
+    "spam"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "facebook",
+   "text": "Any idea about when the Diner's privilege will be added?",
+   "truth": [
+    "gap_feature_request"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "facebook",
+   "text": "Father please prophecy eternal #Seat28G A Positive Posture ETERNAL LIVES STRUCTURES,CREATINGS, MEANS, SYSTEMS,IMMERGZING HIMSELF, HIS WORDS,BEHAVIORS,MONITORING,CHILDISHNESS,PROBLEMS,THOUGHTS,SEEKING, STAGES,LEARNING,MAS",
+   "truth": [
+    "spam"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_buy",
+   "platform": "facebook",
+   "text": "I love Samsung,,,but I don't have money to buy one... Someone please gift me😭",
+   "truth": [
+    "request_free",
+    "purchase_price"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "facebook",
+   "text": "The most efficient combination when working or relaxing to some great tunes, is pairing my Galaxy with my Galaxy buds. louder volume for people like me who can't hear without all the noise and distraction. Instantly remo",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "tiktok",
+   "text": "my dad asked if I choose to buy iphone or samsung and I choosed samsung galaxy 26 ultra W or L",
+   "truth": [
+    "purchase_buy"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "facebook",
+   "text": "Samsung no se hacen responsables en las fallas de sus compresores en los refrigeradores con la excusa de que no hay ruta en mi zona, como si yo viviera en Narnia. Mentirosos con su publicidad engañosa en los 10 AÑOS DE G",
+   "truth": [
+    "complaint_repair",
+    "complaint_general"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "purchase",
+   "platform": "instagram",
+   "text": "In Future I'll Plan To Buy Samsung Phone 📱",
+   "truth": [
+    "purchase_buy"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "request_free",
+   "platform": "tiktok",
+   "text": "Samsung, how many likes will you give me to get an S27 Ultra?",
+   "truth": [
+    "request_free"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "facebook",
+   "text": "Using Fold 6 Black limited Edition 512GB inner display got damaged automatically from hinge side n repair cost is demand 54,000 company claim 20k time fold n open challenge at time of purchase only everyone is talking ab",
+   "truth": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf My best vibe is Galaxy Z Fold8 + Buds4 pro + Watch9 combo to maximize my style #GalaxyZFold8 675",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_repair",
+   "platform": "x",
+   "text": "@SamsungGulf Caution before purchasing Samsung products. See how @u8d995ed9 damaged a perfectly fine phone, and when asked to take accountability and fix it, how they replied. According to their policy, Samsung has th",
+   "truth": [
+    "complaint_service",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "purchase_availability",
+   "platform": "facebook",
+   "text": "All LIVE offers are valid for 72 hours from the start of the LIVE and are available on Samsung.com or Shop App. ✨",
+   "truth": [
+    "brand_reply"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_ecosystem",
+   "platform": "x",
+   "text": "@SamsungGulf My best vibe is Galaxy Z Fold8 + Buds4 pro + Watch9 combo to maximize my style #GalaxyZFold8 388",
+   "truth": [
+    "praise_ecosystem"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "facebook",
+   "text": "I've owned several earbuds including Galaxy buds Pro 2-3-4 . The 4's are really the best so far. ANC is excellent, Ambient is excellent, Sound quality is excellent, Battery life is excellent !",
+   "truth": []
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "complaint",
+   "platform": "x",
+   "text": "@SamsungGulf @ufb7aaa21 @uc4dd7a6f They have the worst after-sales service. Take this sincere advice: do not buy anything from them—especially refrigerators or washing machines—because no one will come to service them, and t",
+   "truth": [
+    "complaint_service"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "instagram",
+   "text": "We need UPDATE ASAP for fold 8 specific, alot of apps are not fully compatible with the phone,, you need to fix it @ue110fa52 @ua5580290",
+   "truth": [
+    "issue_update",
+    "gap_feature_request"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "facebook",
+   "text": "Nunca mais terei a linha z fold... Tenho um z fold 6, que com 1 ano é meio de uso, cuidando com zelo, e deu pau na tela interna. E a Samsung me cobrou mais de 6k para arruma. 🚨 ALERTA AO CONSUMIDOR: O ABSURDO DA LINHA S",
+   "truth": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "complaint_service",
+   "platform": "facebook",
+   "text": "Samsung I want to file an international complaint from Yemen regarding the closure of Samsung. It is a failed company and the world should boycott its products. I sacrificed $1,200 by buying an S22 Ultra device suddenly ",
+   "truth": [
+    "complaint_general"
+   ]
+  },
+  {
+   "kind": "matched",
+   "drawnFor": "praise_camera",
+   "platform": "x",
+   "text": "@SamsungGulf Definitely dropping a video review for the 2X boost! 🎥 The camera quality and multitasking on the new Galaxy line are unmatched. Fingers crossed for the weekly prize! 🤞✨ #ReviewAndWin\"",
+   "truth": [
+    "praise_camera",
+    "praise_multitask"
+   ]
+  },
+  {
+   "kind": "nearmiss",
+   "drawnFor": "product_issue",
+   "platform": "x",
+   "text": "@SamsungGulf a hot cup of coffee and my #GalaxyZFold8Ultra",
+   "truth": []
+  }
+ ]
+}

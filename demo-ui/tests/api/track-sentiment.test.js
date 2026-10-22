@@ -272,3 +272,17 @@ test('benchmarks route (7.2): 90-day read, snapshots re-filtered to owned accoun
     assert.ok(r.body.cells.some((c) => c.platform === 'instagram' && c.band === '1-3d' && c.n === 1));
   } finally { f.restore(); h.restore(); }
 });
+
+test('themes route (7.4): signed-in only, never cached, computed over the window read', async () => {
+  const f = mockFetch(trackerRoutes());
+  const h = api('track.js', ENV);
+  try {
+    let r = res(); await h.handler(req({ query: { themes: '1' }, session: false }), r);
+    assert.equal(r.statusCode, 401);
+    r = res(); await h.handler(req({ query: { themes: '1', days: '14' } }), r);
+    assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+    assert.equal(r.headers['cache-control'], 'private, no-store');
+    assert.equal(r.body.days, 14); assert.equal(r.body.total, 1); assert.match(r.body.version, /^themes-v3/);
+    assert.ok(Array.isArray(r.body.themes) && r.body.themes.every((t) => 'confidence' in t));
+  } finally { f.restore(); h.restore(); }
+});

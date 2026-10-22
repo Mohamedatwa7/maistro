@@ -1,0 +1,2146 @@
+{
+ "source": "/api/track?days=60 read 2026-10-22 ~11:00 UTC; every distinct customer comment text (brand replies excluded) that the theme patterns or a loose keyword net (battery|screen|display|repair|warranty|service|worst|don’t buy|خدم|صيان|شاش …) matched for product issues or complaints",
+ "labelledBy": "Claude (builder session maistro-5e), 2026-10-22: first pass blind on the first 150 characters; then every disagreement with the code re-read on the full text (adjudicated, not blind). Arabic, Portuguese and Spanish rows need a native-speaker check",
+ "note": "misses outside the loose keyword net are not counted, so recall is an upper bound",
+ "rows": [
+  {
+   "text": "#GalaxyZFold8Ultra love my Samsung until battery starts to drain after a year!!",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_battery"
+   ],
+   "adjudicated": [
+    "issue_battery"
+   ]
+  },
+  {
+   "text": "Fold8 يكسب طبعا. الشاشة الكبيرة دي حاجة تانية #GalaxyZFold8 🔥",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My work is more efficient when my Galaxy Z Fold8 Ultra is paired with the Galaxy Watch Ultra + Galaxy Buds3 Pro. Big inner screen for split-screen notes + email + browser, Watch for instant alerts and health tracking without grabbing the phone, and Buds for deep-focus calls and music. Add coffee and a notebook and productivity is maxxed. 💪 #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Samsung I want to file an international complaint from Yemen regarding the closure of Samsung. It is a failed company and the world should boycott its products. I sacrificed $1,200 by buying an S22 Ultra device suddenly without any fall or problem. Lines appear and problems appear on the screen. When I set 120 Hz, the screen changes and shows the colors of the money I bought the device with. I used it for two years and the device did not last for me for two years. It has been protected better than a child from any fall or suddenness and the device in my hand malfunctions. Is this the reputation of the company?",
+   "copies": 2,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "@samsunggulf i like to raise that i have samsung S21 FE and it has got white line on screen due to software upgrade. I visited the official store and noted i can not fix because out of warranty period. However this is purely software fault and this should not be transferred to the customer. If my matter is not resolved, i escalate and post on all social media",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [
+    "issue_screen",
+    "issue_update",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "issue_update",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "Samsung Fold series has display problems. Samsung should recall or repair all phones free of charge. It's related to Samsung technology.",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "@SamsungGulf My choice? Galaxy Z Fold8 Ultra! 🔥 Big screen + multitasking + Samsung innovation = productivity unlocked! @SamsungGulf #GalaxyZFold8Ultra",
+   "copies": 3,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "The world must know how to beware of buying Samsung products. They are fraudulent and a failed company. Their products are failures and are not worth buying. I am the first victim and there are millions of victims of this fraudulent company’s fraud. Samsung I want to file an international complaint from Yemen regarding the closure of Samsung. It is a failed company and the world should boycott its products. I sacrificed $1,200 by buying an S22 Ultra device suddenly without any fall or problem. Lines appear and problems appear on the screen. When I set 120 Hz, the screen changes and shows the colors of the money I bought the device with. I used it for two years and the device did not last for me for two years. It has been protected better than a child from any fall or suddenness and the device in my hand malfunctions. Is this the reputation of the company?",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "for me my best combo is Galaxy Zfold 8 and buds4pro,buds with a flip phone specially Z flip and Z fold 8 is the best combo that I recommend but the other options is great, don't buy ios pods and products hy samsungs instead,I promise you,you wont be disappointed,I would love to recieve a samsung s26 it would be the best thing in the world that I will recieve #GalaxyZFold8",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My ultimate productivity combo is the #GalaxyZFold8Ultra paired with the Galaxy Watch Ultra and Galaxy Buds4 Pro! 🚀With this setup, my work has no limits. I use the massive screen on the #GalaxyZFold8Ultra to run split-screen spreadsheets and take notes all at once. The Galaxy Watch Ultra keeps me on schedule hands-free, and the Galaxy Buds4 Pro block out the noise so I can stay in deep focus. This is how you power through the workday! 💼⚡️💃💃 Samsung",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My \"Day [X]\" comment is simply my personal tracker, not a demand for free hardware. Living on 30,000 PKR a month in Pakistan, purchasing a high-speed 2TB/4TB M.2 NVMe SSD is beyond my budget. After 1 year of lost giveaways, I am following a self-respectful 2-brand policy for storage. Kindly request your support team to leave a simple answer: can you help or not? Every day I post, people leave negative comments and send hurtful messages to my DMs. If your policy doesn't permit gifting, just let me know so I can stop commenting on your posts once and for all and let go of this hope. A gift of a Fast M.2 NVMe SSD (2TB/4TB) from [SAMSUNG] would complete my storage needs entirely. Thank you for reading and for giving me a clear reply! 💙",
+   "copies": 2,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Galaxy S23+ developed pink lines after a software update, yet the dealer refused a free repair. As a long-time customer, I request a fair resolution. My Samsung journey started with J2, A7, S10e, S23+, Tab S9, Watch 7, Buds, WindFree AC & Refrigerator.",
+   "copies": 5,
+   "platform": "instagram",
+   "firstPass": [
+    "issue_screen",
+    "issue_update",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "issue_update",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "@SamsungGulf My pick is definitely the Galaxy Z Fold8 Ultra! 🚀 More screen, more multitasking, more productivity! @SamsungGulf #GalaxyZFold8Ultra",
+   "copies": 3,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Focus + discipline + smart tools + consistency. That’s my ultimate productivity combo! 🔥✅ #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My combo: Galaxy Z Fold8 Ultra + Galaxy Watch8 Classic + Galaxy Buds3 Pro + Tab S10 Ultra - Z Fold8 Ultra for 3-app multitasking, S Pen notes, desktop DeX on the go - Watch8 for notifications without breaking focus - Buds3 for deep work - Tab S10 Ultra as second screen with Samsung Multi Control #GalaxyZFold8Ultra",
+   "copies": 3,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Big screen, smart watch, endless productivity! 📱⌚ #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "When bangla will be added to the screening",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "اسوء صيانه سامسونج بالعالم في سوريا",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "complaint_repair",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "@SamsungGulf As someone who jumps between meetings all day, my combo is Fold8 Ultra + Galaxy Watch Ultra. Quick replies from the wrist, calendar pings without unlocking the phone, and I still have the big screen when I need to get real work done. Let's go #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Dual screen preview makes every pet picture look professional! 📸✨",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "This is what a Samsung Frame TV screen looks like in under 3 years and Samsung do not want to know. be aware, don't buy Samsung.",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen",
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy Z Fold8 Ultra is paired with Galaxy Buds and Galaxy Watch Ultra. The big screen for multitasking, Buds for focus, and Watch for quick notifications without picking up the phone, absolute game changer! 🙇🫶 #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Its disgusting to see you guys flexing so much after you guys make such sub standard devices. I was always apple and bough a samsung fold 6, top of the line, 1 tb with carbon fibre back, and in 1 year and few months my screen is destroyed. When i approached the Samsung service center in Oman, the respsonse was nonsense. After going to your website, got a fancy CEO email for any issue with the phones which got redirected to the same stupid service center. SO SAMSUNG, have some dignity and stop with these cringe ads and try to make some real phones with real service backups.",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_service"
+   ]
+  },
+  {
+   "text": "@SamsungGulf The massive screen is an absolute game changer for my multi timeframe chart analysis. Spotting order blocks on the go has never been easier! 📈📱 #ReviewAndWin #GalaxyZFold8 #Samsung",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My ultimate combo pick for productivity maxxing is the Galaxy Z Fold8 Ultra + Galaxy Watch Ultra + Galaxy Buds! The Z Fold8 Ultra is my office on the go - massive screen for multitasking, emails and notes at once. The Watch keeps me on track with meetings and fitness, and the Buds keep me focused with calls and music. All synced, all powerful, all day productivity maxxed! Followed @samsunggulf ✅ #GalaxyZFold8Ultra Samsung",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@u8d995ed9 Makes senses for a senseless person not looking for quality purchase. Also, looking for a poor quality product",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "\"Dear Samsung Team, ​I have been a devoted supporter and user of Samsung for years, truly admiring how your cutting-edge innovation constantly redefines what technology can do. As a passionate tech enthusiast, owning your absolute masterpiece—the Galaxy S26 Ultra in its ultimate 1TB | 16GB configuration—would be an absolute dream come true and an incredible source of inspiration for my digital journey. ​I would be beyond honored if you could kindly consider gifting me this ultimate device. Thank you for always pushing boundaries and creating such phenomenal technology!\"",
+   "copies": 2,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "ima.chosan.A.as. are.lake.Alines.manbar system fanashi ima",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf I listen to podcast and so the Galaxy buds 8 the Watch 8 and the GalaxyZFold8 would be the best for me on the go #GalaxyZFold8 really hope to win my S21 plus just 💔 broke @u0ba813d2",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My pick is the galaxy zfold8 but too broke to have it but anyways goodluck to the winner My Galaxy zfold8 is my best outfit accessory #GalaxyZFold8 Please join Dauda Muhammed Obeta Sam Aminu Muhammad Aminu Aminu 👍😩",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "🚨 𝟏𝟏 𝐌𝐎𝐍𝐓𝐇𝐒 — 𝐍𝐎 𝐑𝐄𝐒𝐎𝐋𝐔𝐓𝐈𝐎𝐍 — 𝐒𝐀𝐌𝐒𝐔𝐍𝐆 𝐆𝐀𝐋𝐀𝐗𝐘 𝐒𝟐𝟓 𝐔𝐋𝐓𝐑𝐀 🚨 Bought on 𝟏𝟕 𝐎𝐜𝐭 𝟐𝟎𝟐𝟓, reported a defective fingerprint sensor within 24 hours (𝟐𝟎 𝐎𝐜𝐭 𝟐𝟎𝟐𝟓) at Samsung Service Centre, Multan. Replacement was refused despite the 7-day policy. 𝟏𝟏 𝐌𝐎𝐍𝐓𝐇𝐒 (𝟑𝟑𝟎+ 𝐃𝐀𝐘𝐒) later, Samsung still holds the phone with zero refund or fix. 🔴 𝐊𝐄𝐘 𝐅𝐀𝐂𝐓𝐒: ❌ 𝐏𝐡𝐨𝐧𝐞 𝐢𝐧 𝐂𝐮𝐬𝐭𝐨𝐝𝐲: Held over 𝟑𝟑𝟎 𝐝𝐚𝐲𝐬 without resolution. ❌ 𝐋𝐞𝐠𝐚𝐥 𝐀𝐜𝐭𝐢𝐨𝐧 𝐅𝐨𝐫𝐜𝐞𝐝: Active case filed in Consumer Court. ❌ 𝐅𝐢𝐧𝐚𝐧𝐜𝐢𝐚𝐥 𝐋𝐨𝐬𝐬: Incurred heavy expenses on court, lawyer, fuel, travel, and mental stress. 🔴 𝐃𝐄𝐌𝐀𝐍𝐃𝐒: 🔴 𝐈𝐦𝐦𝐞𝐝𝐢𝐚𝐭𝐞 𝐅𝐮𝐥𝐥 𝐑𝐞𝐟𝐮𝐧𝐝 𝐨𝐫 𝐃𝐞𝐯𝐢𝐜𝐞 𝐑𝐞𝐩𝐥𝐚𝐜𝐞𝐦𝐞𝐧𝐭. 🔴 𝐅𝐮𝐥𝐥 𝐅𝐢𝐧𝐚𝐧𝐜𝐢𝐚𝐥 𝐂𝐨𝐦𝐩𝐞𝐧𝐬𝐚𝐭𝐢𝐨𝐧 (حرجانہ) for all legal, travel, and indirect expenses. 🔴 𝐀𝐜𝐜𝐨𝐮𝐧𝐭𝐚𝐛𝐢𝐥𝐢𝐭𝐲 𝐟𝐨𝐫 𝐕𝐢𝐨𝐥𝐚𝐭𝐢𝐧𝐠 𝐂𝐨𝐧𝐬𝐮𝐦𝐞𝐫 𝐑𝐢𝐠𝐡𝐭𝐬. 📑 𝟏𝟎𝟎% 𝐃𝐎𝐂𝐔𝐌𝐄𝐍𝐓𝐄𝐃 𝐏𝐑𝐎𝐎𝐅𝐒 𝐀𝐕𝐀𝐈𝐋𝐀𝐁𝐋𝐄: Invoices, Service Receipts, Chat Logs & Court Documents. 📢 𝐒𝐇𝐀𝐑𝐄 𝐓𝐎 𝐌𝐀𝐊𝐄 𝐈𝐓 𝐑𝐄𝐀𝐂𝐇 𝐒𝐀𝐌𝐒𝐔𝐍𝐆 𝐏𝐀𝐊𝐈𝐒𝐓𝐀𝐍, 𝐒𝐀𝐌𝐒𝐔𝐍𝐆 𝐆𝐋𝐎𝐁𝐀𝐋 & 𝐂𝐎𝐍𝐒𝐔𝐌𝐄𝐑 𝐏𝐑𝐎𝐓𝐄𝐂𝐓𝐈𝐎𝐍 𝐀𝐔𝐓𝐇𝐎𝐑𝐈𝐓𝐈𝐄𝐒! #Samsung #SamsungPakistan #SamsungGlobal #SamsungFail #S25Ultra #GalaxyS25Ultra #ConsumerRights #JusticeDelayed #RefundOrReplace #StandWithConsumers",
+   "copies": 2,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_fingerprint",
+    "complaint_service"
+   ],
+   "adjudicated": [
+    "issue_fingerprint",
+    "complaint_service",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "@SamsungGulf If I’m choosing one device to maximize my productivity, it’s definitely the Galaxy Z Fold8 Ultra 🚀 More screen, more multitasking, more done! @SamsungGulf #GalaxyZFold8Ultra",
+   "copies": 3,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My option for #GalaxyZFold8; 1.Easy One-handed use. 2.Pro-Grand Cameras 📷 3.Power Multitasking and Battery. All in all #GalaxyZFold8 all the way! Absolutely love the new shorter, wider passport design- it looks like the perfect pocket-media machine! 🔥📱 ❤️",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My work actually feels lighter when the Galaxy Z Fold8 Ultra is paired with the Watch Ultra and Buds. The big inner screen lets me keep documents, notes, and a call open without jumping apps, the watch catches the small stuff so I don’t have to pick up the phone, and the buds keep me in the conversation instead of the notification noise. It’s less about doing more and more about staying in the same thought long enough to finish it. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Big screen for big tunes 🎵",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Samsung is my all-time favourite! ❤️ I’m still using my Note 20 Ultra, bought in December 2020, and it’s still in perfect condition. 😍 Now it’s time to upgrade myself! Looking forward to the #GalaxyZFold8 📱✨ @samsunggulf",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with my Galaxy Buds — ideas on the Fold, focus in my ears, goals on my screen. 🚀 #GalaxyZFold8Ultra oh and also coffee :)",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "اسوء تلفون وعطيته لشركه ٣ مرات وماتصلح",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [
+    "complaint_repair",
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_repair",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my #GalaxyZFold8Ultra is paired with Galaxy Watch Ultra and Galaxy Buds, because the Fold’s huge inner screen handles real multi-window work, the Watch keeps notifications &amp; health checks off my phone, &amp; the Buds cut distractions so I stay in flow",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "I found a 9-year-old Samsung A3 model phone buried in a sand pile that had been sitting there for about 15 years. It turned up while I was moving the sand for a concrete pouring project in our garden. Part of the phone's old case was still attached. Surprisingly, when I plugged it in to charge, the device turned on and worked. The last photo on the phone appears to have been taken in 2017. The screen, body, and battery are all intact and free of scratches. I would like to document this interesting find and share it with the Samsung Türkiye press team to discuss it with them. @ua5580290 @ue110fa52",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My work is more efficient when my Galaxy is paired with the large Fold display for multitasking like a pro! #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "DO NOT BUY #FOLD, THE FOLDING DISPLAY IS FRAGILE, BREAKS & V HAVE TO PAY ~ 60k INR TO REPAIR IT. IT CAN HAPPEN, IF YOU KEEP UR PHONE IN UR PANT'S POCKETS (AS PER SERVICE CENTRE). IT'S A SCAM 😔 I had #Galaxy S2, S4, S6, S9, Note 20 Ultra and the #Samsung #Fold6 ##GalaxyZFold8 #GalaxyAI #GalaxyZFold8Ultra #iPhone18 Unwillingly switching to iPhone",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general",
+    "issue_screen",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "issue_screen",
+    "complaint_repair",
+    "complaint_service"
+   ]
+  },
+  {
+   "text": "I'll never have a Z Fold again... I have a Z Fold 6, which after a year and a half of use, and with meticulous care, the internal screen broke. And Samsung charged me over 6,000 to fix it. I bought it directly from a Samsung store. Samsung Brazil is now letting consumers down 🚨 CONSUMER ALERT: THE ABSURDITY OF THE SAMSUNG Z FOLD 6 LINE AND THE DENIAL OF WARRANTY DUE TO \"HIDDEN DEFECT\" 🚨 I would like to register my deep dissatisfaction and issue a warning to everyone thinking of buying a premium Samsung smartphone, specifically the foldable screen models. I have a Samsung Galaxy Z Fold 6 that, after just over a year and a half of use and in perfect condition (without ANY drops or signs of misuse), presented a chronic defect: the touchscreen on the internal screen stopped working and a linear black line/stain appeared exactly in the central crease of the fold. Faced with the problem, I acted in complete good faith and followed all official procedures, but the company's attitude is unbelievable. Here's a timeline of the violation of the Consumer Protection Code (CDC): Diagnostic Phase: Before sending it, I performed the native Samsung system color tests (full screens in green, blue, and red), proving that the fault was strictly internal to the flexible display, without any external damage or glass breakage. 07/31/2026: I shipped the device via Sedex Reverso (Item: OY 879 381 588 BR) to the authorized service center BKV Express (Belo Horizonte/MG). 08/07/2026: The service center confirmed physical receipt of the smartphone under Service Order No. 4176374280. 08/17/2026: I received an exorbitant and astronomical quote via WhatsApp for R$ 6,683.00 (almost the price of a new device!). They issued a generic report stating only: \"Device with front casing with stain\". Well, the stain is a SYMPTOM of the flexible display leaking due to a manufacturing defect, not the cause. I immediately refused. 08/25/2026: I contacted Samsung's \"Talk to the President\" channel (Protocol No. 3102774042). The manufacturer simply washed their hands of the matter, claiming that the product was past the 12-month contractual warranty period, offering a mere commercial discount and closing the protocol. 09/01/2026: The technical assistance returned the cell phone to my residence completely broken and unrepairable. The package remains SEALED in my house as legal proof. THE CONFESSION OF THE ABSURDITY: I contacted the company on the Consumidor.gov.br website and, in an official response, Samsung had the audacity to reply verbatim: \"We inform you that technical reports are only carried out for products within the warranty period.\" In other words, they confessed in writing that they charged me almost 7,000 reais without even conducting a serious technical inspection of my device! ⚖️ WHAT THE LAW SAYS (CONSUMER LAW): Samsung's conduct blatantly violates the Consumer Protection Code (CDC) and the established jurisprudence of the Superior Court of Justice (STJ), which adopts the Useful Life Criterion of the Good (Precedents: REsp 984.106/SC and REsp 1.780.816/SP). The supplier is LIABLE for hidden defects in durable goods even after the end of the 1-year contractual warranty, provided that the defect manifests itself within the expected useful life of the product. A super premium smartphone like the Z Fold 6 was not made to last only 18 months! I have already filed a strong legal rebuttal on Consumidor.gov.br and also published the complaint on Reclame Aqui. I will not accept this loss resulting from a chronic engineering flaw that affects hundreds of consumers. If they don't resolve this administratively, the next stop will be the Small Claims Court! Consider this a warning: think twice before investing in a foldable phone from this brand. Their after-sales service doesn't respect the Brazilian consumer! #Samsung #ZFold6 #HiddenDefect #ConsumerProtectionCode #ConsumerRights #STJ #ConsumidorGovBr #ReclameAqui #Disrespect #BKVExpress Samsung Samsung Galaxy Brazil 🇧🇷 Samsung Global Samsung Electronics",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_repair",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "مرحبا سامسونج، هل ممكن توضحون موضوع انتفاخ البطاريات في أجهزتكم للأسف كنت اعتقد المشكلة فقط في الفئات السابقة لكن الآن تكرر الموضوع مع S24 و S23 وبخصوص هالتغريدة تواصلت معكم وقتها وقلتوا توجهي للصيانة والصيانة افادوني بتغيير البطارية بمبلغ مدفوع وضمان ٣ شهور فقط !!! واضطريت اشتري جهاز غيره والان واجهت نفس المشكلة مع S24 مع العلم أن الاستخدام جدا معقول مايستدعي انتفاخ البطاريات بهالشكل !!",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [
+    "issue_battery"
+   ],
+   "adjudicated": [
+    "issue_battery",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "@SamsungGulf setting deadlines is my only tip to productivity maxxing #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Fold8 Ultra for the big-screen multitasking + Galaxy Buds for zero distractions. That’s my combo 🤌 #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "💜 #GalaxyZFold8 💜 My vibe is definitely the Galaxy Z Fold8 + Galaxy Buds4 Pro + Galaxy Watch9! 😍✨ I’d love to have all three. I’m a Samsung user already with my Galaxy A05, so this would be an amazing, mindblowing upgrade! And also a dream come true!📱💜🤞🍀",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with the Galaxy Watch and Galaxy Buds. The Fold8 Ultra’s big screen plus those two just makes everything faster and more focused. @SamsungGulf #GalaxyZFold8Ultra",
+   "copies": 3,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Dear Samsung Pakistan Management, I am writing to formally complain about the poor support and unreasonable repair quote provided by the Samsung Pakistan service center for my premium Samsung 55\" 3D LED TV (Model: UA55D7000LR, Serial No: [redacted]). I purchased this TV for PKR 450,000. It has now developed vertical lines on the display, and its built-in Smart TV software no longer works, making apps like YouTube unusable. When I contacted the official service center, I was first informed that replacement parts were unavailable. Later, I received a quote of PKR 600,000 to replace the panel. Charging more than the TV's original purchase price for a repair is unreasonable, especially when a brand-new Samsung TV costs less today. I have been a loyal Samsung customer for many years and own Samsung WindFree AC, Washing Machine, Refrigerator, QLED TV, and Samsung mobile phones. Despite my loyalty, I have received no practical support. I respectfully request Samsung Pakistan's management to review my case and provide a fair solution, either through an affordable repair or a reasonable upgrade/compensation plan. I look forward to your prompt response and a satisfactory resolution. Thank you.",
+   "copies": 15,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_service",
+    "complaint_repair",
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_service",
+    "complaint_repair",
+    "complaint_general",
+    "issue_screen"
+   ]
+  },
+  {
+   "text": "Extremely disappointed with Samsung’s product quality and after-sales service. I purchased a Samsung double-door refrigerator just 2 months ago, and I am already facing a serious overcooling issue. I raised a service request (Ticket No. 3101290400). Both service engineers visited, agreed that there was an issue, and took photos and videos as evidence. However, Samsung later called me and claimed that the refrigerator is “working completely fine.” Very poor after-sales service. Think twice before buying Samsung appliances",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_service",
+    "complaint_general",
+    "gap_issue_other"
+   ],
+   "adjudicated": [
+    "complaint_service",
+    "complaint_general",
+    "gap_issue_other"
+   ]
+  },
+  {
+   "text": "@SamsungGulf The ultimate productivity combo: Split-screen multitasking with a dual document layout + S Pen for instant note-taking! 📝⚡ #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My bad luck money problem💶💵📲",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf I’d pick the Galaxy Z Fold8 Ultra as my pocket buddy for its immersive screen, making travel plans and catching up on content feel effortless wherever I go. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "يجب توقيف شركة سامسنج هي محتاله وشركة فاشلة وانصح عدم شراء اجهزتها هي فاشلة واريد رفع قضية عالمية لفشل شركة سامسنج ومنع شراء اجهزتها وبالذات اس 22التراء",
+   "copies": 2,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "For me, productivity maxxing means having the right trio by my side—Galaxy Z Fold8 Ultra for powerful multitasking, Galaxy Watch8 Ultra to stay on track, and Galaxy Buds4 Pro to stay focused! 🚀📱⌚🎧 This combo wouldn’t just boost my productivity, it would upgrade my whole day! ✨🤞 #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "man am poor",
+   "copies": 1,
+   "platform": "tiktok",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Using Fold 6 Black limited Edition 512GB inner display got damaged automatically from hinge side n I'm gathering all customers with damaged flagship displays on one platform to file a case against Samsung. The company needs to recall all damaged products and refund customers for their valuables. #customers #displays #case #Samsung 😠💸",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "My favourite pocket buddy would definitely be the Galaxy Z Fold8. It’s the kind of phone I’d love to have with me every day, whether I’m watching something, scrolling, or getting things done. Big screen when I need it, easy to carry when I don’t That’s why the Galaxy Z Fold8 would be my perfect pocket buddy.💜 #GalaxyZFold8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Caution before purchasing Samsung products. See how @u8d995ed9 damaged a perfectly fine phone, and when asked to take accountability and fix it, how they replied. According to their policy, Samsung has the right to potentially harm customers' phone &amp; decline to repair them https://t.co/fSxIsBbAaj",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [
+    "complaint_general",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my #GalaxyZFold8Ultra is paired with Galaxy Buds + a strong coffee ☕ Multitasking on the big screen while listening to focus music hits different! #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Worst experience with Samsung! Don't buy Samsung devices—a total waste of time and money. My new phone has multiple issues right from day 1. The service center failed to fix it even after 5-6 visits. Escalating to Customer Care, Service Head, or CEO Office is completely useless—no one listens or takes responsibility. Avoid buying Samsung! Complaint/Ref No: 1205745621, 3101286652",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general",
+    "complaint_service",
+    "gap_issue_other"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_service",
+    "gap_issue_other"
+   ]
+  },
+  {
+   "text": "@SamsungGulf Followed @SamsungGulf! 📱✨ Galaxy Z Fold8 would be the perfect upgrade for me! #GalaxyZFold8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "damn, I thought my phone battery just died 🙂",
+   "copies": 1,
+   "platform": "tiktok",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "​🚨 SAMSUNG MEGA OFFER! 🚨 Buy a Samsung S23 today and get a ✨ FREE GREEN LINE ✨ exactly after 1 year! (100% Guaranteed!) 🟢📱 Feeling lucky? You might even get a Red Line combo! 🔴 Warranty support after 1 year? Absolutely ZERO! 🚫 Bought the phone outside India? Congratulations, you just purchased a very expensive piece of electronic waste! 🗑️👏 Thank you Samsung, for turning our premium displays into colorful barcodes! 🤣👇Absolutely unacceptable from @u8d995ed9! My Galaxy S23 (bought in UAE) got the infamous #RedLine hardware defect with ZERO physical damage. CEO desk rejected the free replacement and demands ₹12kfor YOUR manufacturing flaw! Is this your \"Global Brand\" promise?",
+   "copies": 2,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_general",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "🚨 CONSUMER WARNING: MY EXPERIENCE WITH THE SAMSUNG GALAXY Z FOLD 6 — AND WHY I WILL NEVER BUY ANOTHER Z FOLD AGAIN 🚨 I will never buy another Samsung Z Fold device again. I own a Samsung Galaxy Z Fold 6, and after just over a year and a half of use—despite taking extremely good care of the device—the internal screen failed. Samsung quoted me more than R$6,000 (approximately US$1,000+) to repair it. For a supposedly premium smartphone that costs thousands of dollars, this is simply unacceptable. I want to share my experience as a warning to anyone considering purchasing a Samsung foldable phone. My Galaxy Z Fold 6 was in excellent physical condition. It had NO drops, NO impacts, NO cracks caused by accidents, and NO signs of misuse. Nevertheless, the device developed a serious problem with what appears to be one of the most critical components of any foldable smartphone: the internal display. The touchscreen on the main internal screen suddenly stopped working properly, and a black line/stain appeared exactly along the central folding crease. Let that sink in: the defect appeared precisely in the area that is repeatedly folded every time the device is used as designed. I acted in good faith and followed the official procedures. I sought technical assistance and expected Samsung to properly evaluate what I believe may be a latent or hidden manufacturing defect. Instead, I was faced with a repair estimate of more than R$6,000. This raises a very serious question: How can a company sell a premium foldable smartphone, designed to be opened and closed thousands of times, and then charge the consumer an extremely high amount when the display fails exactly in the device's folding area—despite the phone showing no signs of accidental damage or misuse? A foldable screen is not an optional accessory. It is the central feature and one of the main reasons consumers pay such a high price for a Z Fold device. Consumers purchase these phones expecting the folding mechanism and internal display to withstand normal use. When a serious failure occurs after a relatively short period of ownership, particularly in the exact area subjected to the device's intended folding mechanism, the consumer deserves a serious technical investigation—not simply an expensive repair bill. My frustration is not only about the financial cost. It is about the lack of confidence this experience has created. When you purchase a premium device, you expect premium quality, durability, customer service, and post-sale support. Unfortunately, my experience with the Galaxy Z Fold 6 has been the opposite. ⚠️ MY WARNING TO POTENTIAL BUYERS: Before spending a significant amount of money on a Samsung foldable device, consider carefully the potential cost of repairs after the warranty period. A failure involving the internal screen can result in an extremely expensive repair. In my case, despite careful use and the absence of any accidental damage, I was quoted more than R$6,000 to fix the internal display. That experience has completely changed my opinion about Samsung's foldable lineup. I bought a premium smartphone expecting innovation and durability. Instead, after approximately a year and a half, I found myself dealing with a failed internal screen and a repair cost that represents a significant portion of the value of a new device. For me, this was the last Samsung Z Fold I will ever own. 📢 I am sharing this experience so other consumers can make an informed decision before investing their hard-earned money in an expensive foldable smartphone. Think carefully. Research real-world experiences. Understand the potential repair costs. Because a premium price should come with premium reliability and premium customer support. #Samsung #SamsungGalaxy #GalaxyZFold6 #ZFold6 #SamsungFail #ConsumerWarning #FoldablePhone #RightToRepair #ConsumerRights #TechWarning",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "#growth Galaxy A31 you want upper right vimbo to z folding A next to me quickly carefully SMS check it last time Yes juses just public different types and hope support thank you ❤️ Thank 💖 yes eye open #GalaxyZSeries",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Samsung Wallet is already available here in the Philippines, but when will Samsung Pay for tap-to-pay finally be available for Philippine-issued bank cards? 👀 Knowing how GoTyme Bank PH has always been ahead when it comes to supporting digital wallets, I wouldn’t be surprised if they’re among the first Philippine digital banks (Phygital) to support Samsung Pay too—just like what we’ve seen recently with Google Pay, Garmin Pay, and Apple Pay. 🩵 Waiting for this! 🙌",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Worst brand in egypt",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "My productivity-maxxing combo: Galaxy Z Fold8 Ultra + Galaxy Buds + Galaxy Watch6 📱🎧⌚✨ Big-screen multitasking, focused listening, and staying on top of my day—all in one powerful setup! 🚀 #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Three sizes, but the crease is still consistent #GalaxyZFold8Ultra #GalaxyZFold8 #GalaxyZFlip8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [
+    "issue_screen"
+   ],
+   "adjudicated": [
+    "issue_screen"
+   ]
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with a Galaxy Watch + Buds, notifications on my wrist, calls and focus music in my ears, and the Fold screen for real multitasking. No more desk chaos. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf 1. Followed @SamsungGulf ✅ Galaxy Z Fold8 is definitely my dream upgrade! 🔥📱 #GalaxyZFold8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Galaxy Z Flip8 would be my pocket buddy for keeping small daily wins close, from a note to a photo worth saving. #GalaxyZFlip8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "This is absolutely unacceptable and extremely disappointing. My Galaxy A71 already suffered from the green line display issue, and now my Galaxy S23 Ultra — a premium flagship phone — has developed the same problem. Why am I being forced to face the same display defect again after spending a significant amount of money on a flagship device? Is this the level of quality and reliability Samsung offers its customers? I want Samsung to provide a clear explanation as to why this green line issue is occurring on my S23 Ultra and what Samsung is going to do about it. I should not have to pay for a display replacement for a problem that appears to be a recurring issue with Samsung's AMOLED displays. I expect Samsung to take responsibility and provide a fair solution, preferably a free display replacement or an appropriate resolution. Please do not give me a generic troubleshooting response. I want this complaint properly escalated and addressed by Samsung.",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen",
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_general",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "@SamsungGulf My Ultimate tool for productivity would be Galaxy Z fold 9 Ultra + Galaxy Watch? Staying on big screen staying ahead.l Hope to win #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My productivity setup is simple: tablet, headphones, notes, and a bit of controlled chaos. The tablet keeps everything in one place, while my headphones help me focus and get things done. A Galaxy S26 would definitely be a nice upgrade to the team. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My productivity pick: Galaxy Z Fold8 Ultra 💜 Bigger screen, better multitasking, maximum productivity! @SamsungGulf #GalaxyZFold8Ultra",
+   "copies": 3,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with my Galaxy Buds — ideas on the Fold, focus in my ears, goals on my screen. 🚀 #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Fold 6 display line appeared automatically while I was simply reading no drop, no damage. What kind of quality are you making, Samsung? A premium phone should not develop a display line under normal use. Very disappointed with this product and the support experience.@u8d995ed9",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [
+    "issue_screen"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "@SamsungGulf Galaxy Z Fold8 Ultra would be my favourite pocket buddy for a full day of calls, photos, and navigation while keeping every plan on track. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My home inspiration always starts with wall art and color harmony! 🎨 Having a screen that seamlessly turns into a gallery piece like this completely transforms the vibe of the room. ✨ #SamsungArtTV\"",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Eye safety and circadian rhythm support? Exactly what modern screens need.",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "I choose Galaxy Z Fold 8 Ultra for productivity maxxing - big screen, big results! #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "What about the crease? Will it still be there?",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [
+    "issue_screen"
+   ],
+   "adjudicated": [
+    "issue_screen"
+   ]
+  },
+  {
+   "text": "@SamsungGulf asking for my cracked s10e, do live deals stack with trade-in or should i just wait",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf #GalaxyZFold8Ultra my mine gwehh Upgrade my phone https://t.co/LlptL3vyr2",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Using Fold 6 Black limited Edition 512GB inner display got damaged automatically from hinge side n repair cost is demand 54,000 company claim 20k time fold n open challenge at time of purchase only everyone is talking about Ai but display is damaged Ai n camera both r zero use 😉 service center n support team both r worst not a word to say 😉 once Samsung sold the product u will not get any service or support just Ai generate mail n answer provide 😉 Before buying flagship Mobile pls check durability of display screen it is just like Chinese Mobile 📱 😉",
+   "copies": 2,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "Samsung Samsung I want to file an international complaint from Yemen regarding the closure of Samsung. It is a failed company and the world should boycott its products. I sacrificed $1,200 by buying an S22 Ultra device suddenly without any fall or problem. Lines appear and problems appear on the screen. When I set 120 Hz, the screen changes and shows the colors of the money I bought the device with. I used it for two years and the device did not last for me for two years. It has been protected better than a child from any fall or suddenness and the device in my hand malfunctions. Is this the reputation of the company?",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "@SamsungGulf Watching everything about the Samsung Z series online, the inner display and multitasking setups really make standard phones look outdated. The foldable tech seems like a total beast, even if the price is a bit high. Really curious to see one in person.🔥🔥",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy Z Fold8 Ultra is paired with Galaxy Watch Ultra and Galaxy Buds - Fold for big-screen multitasking, Watch for instant updates, Buds for focused work! #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8 https://t.co/6FHl0ByZfx",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My ultimate productivity-maxxing combo is the Galaxy Z Fold8 Ultra, Galaxy Watch, and Galaxy Buds! Multi-tasking, gaming, watching movie and web series on the big screen while staying connected on the go makes work so seamless. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Itni badi fraud company market main exist kaise kar rahi hai exit karna chahiye",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "@SamsungGulf Big screen to big goals - Galaxy Z Fold8 Ultra unfolds productivity, Watch Ultra tracks it, Buds3 Pro seals it. Efficiency redefined! #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Galaxy Z Fold8 Ultra + Watch Ultra + Buds is the combo. Galaxy AI on the big screen, quick replies from the watch, and Buds for calls and focus sessions. Work feels lighter. #GalaxyZFold8Ultra #GalaxyZFold8 #GalaxyZFlip8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with the Galaxy Watch and Galaxy Buds. The Fold8 Ultra’s big screen plus those two just makes everything faster and more productive. @SamsungGulf #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My favourite pocket buddy is my power bank always ready for low-battery emergencies #GalaxyZFlip8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My vibe is definitely the Galaxy Z Fold8 + Buds4 Pro + Watch9 combo! 💜✨ I want the full experience power, style, music and staying connected wherever I go. This would be the ultimate upgrade and a dream come true! 📱🎧⌚💫 #GalaxyZFold8",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf THE BADDIEEE #GalaxyZFlip8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf #GalaxyZFold8Ultra #GalaxyZFlip8 #GalaxyZFold8 @SamsungGulf @u215e37de @u6b88ad07 . ( اللهم صّلِ وسَلّمْ عَلۓِ نَبِيْنَامُحَمد ﷺ )",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf عملي يكون أكثر كفاءة عندما يتم اقتران هاتفي Galaxy مع Galaxy Watch و Galaxy Buds. شاشة Fold8 Ultra الكبيرة مع هذين الجهازين تجعل كل شيء أسرع وأكثر تركيزاً. @SamsungGulf #GalaxyZFold8Ultra",
+   "copies": 6,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Pls dont purchase samsung mobile I Already Purchaged 8 ultra 512 GB Very bad Experience No worth for money Always facing Network problems All aps are buffering and Company Refuse to Solve the problem after many times Visited authorized samsung service center they said that is third party app problem Wow google search Gmail Facebook Instagram YouTube All are buffering takes time to open Minutes & Minutes All are pre-installed aap hows that possible they all are Third Party Aap I installed Ajio Aap Amazon AAP from play store All apps are buffering Always Network Problem issues Not a single Aap working properly Always takes time to open aap bec of Network problem in both mode Wi-Fi and Sim Network Authorised samsung service center technical team self diagnosis and accepted YES Handset have Network problem issues But Higher team denied to replace/ Exchange the handset So pls don't waste ur money on samsung devices",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general",
+    "gap_issue_other"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "gap_issue_other",
+    "complaint_service"
+   ]
+  },
+  {
+   "text": "@SamsungGulf I would choose the Galaxy Z Fold8 Ultra as my pocket buddy because it feels ready for spontaneous photos and big ideas wherever the day takes me. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy Z Fold8 Ultra is paired with the Galaxy Watch Ultra &amp; Galaxy Buds3 Pro. Big inner screen for split-screen notes + browser, Watch for instant alerts and health tracking without grabbing the phone, &amp; Buds for deep-focus #GalaxyZFold8Ultra",
+   "copies": 2,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "If you buy samsung you support Isreal",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "Samsung , what a joke! Your Z Fold phone has given me 29 display lines in total—both green and pink lines. And yet you compare yourselves to Apple or other ? That's embarrassing. A company whose flagship phones keep developing display line issues should think twice before making such comparisons. After this experience, I have completely lost confidence in Samsung 's quality control",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen",
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "#Scamsung, Never buy a Samsung device, their screens always fail and #Scamsung wont repair it under warranty",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general",
+    "issue_screen",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "Disappointed with Samsung India's handling of a premium flagship device. I purchased a Samsung Galaxy S22 in February 2024, expecting a premium smartphone to deliver years of reliable service. Instead, after just over two years of careful use, the phone started continuously rebooting and became unusable. Samsung's authorised service centre at Kannur attempted to reinstall the software but could not complete the process because the phone kept rebooting. I was then informed that the motherboard had failed and would have to be replaced at a cost of approximately ₹22,000. I accepted that the phone was just outside its warranty period. However, my request was never for a warranty extension—it was for fair consideration of a premature motherboard failure in a flagship device. Over the past several days, I have: * Visited the authorised Samsung service centre. * Registered Service Request No. 4439849601. * Corresponded extensively with Samsung Customer Support. * Escalated the matter to the Service Head. * Escalated it further to the CEO Office. The response at every level has been the same: \"Out of policy.\" No one has addressed the real issue. No technical inspection report has been provided. Samsung even referred to \"physical/impact damage\" without producing any evidence or explaining what damage they are referring to. Every reply has been a standard template rather than a genuine review of the case. This is not the level of customer support one expects after purchasing a premium Samsung flagship phone. I am sharing this experience not to seek sympathy but to ask a simple question: Should a premium flagship smartphone become unusable after just over two years, with the customer expected to pay ₹22,000 for a motherboard replacement and receive nothing more than template replies from Samsung? I still hope Samsung India will review this matter objectively and resolve it fairly. If not, I will pursue the remedies available through the National Consumer Helpline and the Consumer Disputes Redressal Commission. @u8d995ed9, I invite you to explain publicly why a loyal customer deserves only an \"out of policy\" response instead of a proper technical review. #S",
+   "copies": 5,
+   "platform": "instagram",
+   "firstPass": [
+    "complaint_general",
+    "complaint_service"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_service",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "@SamsungGulf @ufb7aaa21 @uc4dd7a6f Don't purchase any product samsung if u purchased cry whole life 😭😭🙏🙏🙏",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "@SamsungGulf #GalaxyZFold8Ultra my mine gwehh LETS UPGRADE MY PHONE https://t.co/gLePXU4sV8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf They have the worst after-sales service. Take this sincere advice: do not buy anything from them—especially refrigerators or washing machines—because no one will come to service them, and they show absolutely no sense of responsibility toward their customers.",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [
+    "complaint_service",
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_service",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "What’s about taking accountability for your os update mistake which caused lines on display?",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen",
+    "issue_update"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "issue_update"
+   ]
+  },
+  {
+   "text": "Samsung , what a joke! Your phone has given me 29 display lines in total—both green and pink lines. And yet you compare yourselves to Apple or others? That's embarrassing. A company whose flagship phones keep developing display line issues should think twice before making such comparisons. After this experience, I have completely lost confidence in Samsung 's quality control",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen",
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "#GalaxyZFold8Ultra is my favourite phone because it combines a stunning foldable design, powerful performance, an immersive display, and innovative features that make it feel like the future of smartphones. 📱✨ #GalaxyZFold8, #GalaxyZFold8Ultra #GalaxyZFlip8",
+   "copies": 2,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "I strongly advise people not to buy Samsung devices. The latest software update has caused serious problems for my Samsung Galaxy A24 devices, including abnormal battery drain, overheating, severe performance issues, and eventually the complete failure of one of the devices. What makes this even more frustrating is that one of these phones belongs to my son. He worked for two years and saved his hard-earned money just to be able to buy this phone. Now, after a Samsung software update, the device has been completely ruined. Both phones were working normally before the update. This is not something I can simply ignore or accept. Samsung must take responsibility for what has happened and provide a real solution for affected customers. People work hard for their money, and they deserve to know that their expensive devices will not suddenly become unusable after an official software update. This experience has seriously damaged my trust in Samsung, and I will think twice before ever buying a Samsung device again.",
+   "copies": 2,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general",
+    "issue_update",
+    "issue_battery"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "issue_update",
+    "issue_battery",
+    "issue_heat"
+   ]
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with the Galaxy Watch and Galaxy Buds. The Fold8 Ultra’s big screen plus those two just makes everything faster and more focused. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Option 3 is 100% my vibe because having my folding screen, watch, and earbuds all talking to each other makes me feel like I'm living in 2040 while my actual life is still stuck in traffic. #GalaxyZFold8",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Green line free🥴no warantty guranty🥴",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "@SamsungGulf Galaxy Z Flip8 would be my favourite pocket buddy because it adds a playful finish to my look and makes every quick photo feel more special. #GalaxyZFlip8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "I've owned several earbuds including Galaxy buds Pro 2-3-4 . The 4's are really the best so far. ANC is excellent, Ambient is excellent, Sound quality is excellent, Battery life is excellent !",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "8 years and still crease is there on inner screen. No dual view finder for camera, and this Fold doesn’t support S-Pen….And just now iPhone Duo has crushed the competition with immersive software and titanium body Apple Pencil support, MagSafe charging… touch ID on side where it should be. Don’t think I am fanboy but just saying why iPhone Duo is something you should take seriously with respect. I am not a fan of foldable phones. I use S26 Ultra and 17 Pro Max both.",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [
+    "issue_screen"
+   ],
+   "adjudicated": [
+    "issue_screen"
+   ]
+  },
+  {
+   "text": "@SamsungGulf #GalaxyZFold8 Hello thanks @u0c0547fa @u9f2c7a1c @u5593daaa @ub0af83c9 @ud7dc8c30",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My workday is honestly easier when my Galaxy is paired with my other devices. I can move from my phone to my other screen without stopping what I’m doing, which saves me so much time. 📱 #GalaxyAI #SamsungGalaxy",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Nothing beats the summer heat like ice cream and the new #GalaxyZFold8 on the beach! 🌊🍦",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with Galaxy Watch for quick updates. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Definitely would be grateful for the 3 in 1 combo👀 I've been needing at least a phone upgrade for a while now. #GalazyZFold8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with Samsung Galaxy Buds and Galaxy Watch, seamless multitasking, communication, and productivity wherever I go. 💯 I broke my Samsung A34 5G, I think it’s time for an upgrade! 😋🔥 #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "​🚨 SAMSUNG MEGA OFFER! 🚨 Buy a Samsung S series today and get a ✨ FREE GREEN LINE ✨ exactly after 1 year! (100% Guaranteed!) 🟢📱 Feeling lucky? You might even get a Red Line combo! 🔴 Warranty support after 1 year? Absolutely ZERO! 🚫 Bought the phone outside India? Congratulations, you just purchased a very expensive piece of electronic waste! 🗑️👏 Thank you Samsung, for turning our premium displays into colorful barcodes! 🤣👇Absolutely unacceptable from @u8d995ed9! My Galaxy S23 (bought in UAE) got the infamous #RedLine hardware defect with ZERO physical damage. CEO desk rejected the free replacement and demands ₹12kfor YOUR manufacturing flaw! Is this your \"Global Brand\" promise?",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_general",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "My \"Day [X]\" comment is simply my personal tracker, not a demand for free hardware. Living on 30,000 PKR a month in Pakistan, purchasing a high-speed 2TB/4TB M.2 NVMe SSD is beyond my budget. After 1 year of lost giveaways, I am following a self-respectful 2-brand policy for storage. Kindly request your support team to leave a simple answer: can you help or not? Every day I post, people leave negative comments and send hurtful messages to my DMs. If your policy doesn't permit gifting, just let me know so I can stop commenting on your posts once and for all and let go of this hope. A gift of a Fast M.2 NVMe SSD (2TB/4TB) [SAMSUNG] would complete my storage needs entirely. Thank you for reading and for giving me a clear reply! 💙",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Galaxy Z Fold8 Ultra + Galaxy Buds = my ultimate productivity combo! 📱🎧 Multitask on the big screen, stay focused with immersive audio, and get more done wherever I am. Work smarter, create faster, and never miss a beat. 🚀 #GalaxyZFold8Ultra https://t.co/rQ68oUdmjT",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "I switched to the Galaxy Z series and I'm not going back 👀✨ The fold is so smooth, battery lasts my whole day, and the cameras are insane. It feels premium and makes multitasking so easy. Samsung really nailed it this time! #ReviewAndWin",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "#GalaxyZfold8Ultra It's an advanced upgraded AI smartphone it's superb and best for me",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My Galaxy #GalaxyZFlip8 is the best Samsung thank you 😊 I would love a new upgrade from my flip 4",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "The worst company you can deal with them really the after-sales service is very bad there is no believing in the words I swear to God the great Samsung company guarantee dates really the screen did not complete 6 months less Yes we want",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general",
+    "complaint_service"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_service"
+   ]
+  },
+  {
+   "text": "@SamsungGulf Absolutely loving my Galaxy Z Series! 🔥 The premium design, smooth performance, amazing display, and smart features make everyday use feel next-level. Samsung has really nailed the foldable experience! 💙📱✨ #ReviewAndWin #GalaxyZFold8Ultra #GalaxyZFold8 #GalaxyZFlip8 #Samsung",
+   "copies": 2,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf a hot cup of coffee and my #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Don't buy anything from Samsung ... When any thing broke before warranty time the will show you the stars in the day time and the will never fix it",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [
+    "complaint_general",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "Samsung fold has display problems",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen"
+   ],
+   "adjudicated": [
+    "issue_screen"
+   ]
+  },
+  {
+   "text": "I can fold open the all-new passport-style screen and multitask effortlessly on the go!",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Disappointed with Samsung India's handling of a premium flagship device. I purchased a Samsung Galaxy S22 in February 2024, expecting a premium smartphone to deliver years of reliable service. Instead, after just over two years of careful use, the phone started continuously rebooting and became unusable. Samsung's authorised service centre at Kannur attempted to reinstall the software but could not complete the process because the phone kept rebooting. I was then informed that the motherboard had failed and would have to be replaced at a cost of approximately ₹22,000. I accepted that the phone was just outside its warranty period. However, my request was never for a warranty extension—it was for fair consideration of a premature motherboard failure in a flagship device. Over the past several days, I have: * Visited the authorised Samsung service centre. * Registered Service Request No. 4439849601. * Corresponded extensively with Samsung Customer Support. * Escalated the matter to the Service Head. * Escalated it further to the CEO Office. The response at every level has been the same: \"Out of policy.\" No one has addressed the real issue. No technical inspection report has been provided. Samsung even referred to \"physical/impact damage\" without producing any evidence or explaining what damage they are referring to. Every reply has been a standard template rather than a genuine review of the case. This is not the level of customer support one expects after purchasing a premium Samsung flagship phone. I am sharing this experience not to seek sympathy but to ask a simple question: Should a premium flagship smartphone become unusable after just over two years, with the customer expected to pay ₹22,000 for a motherboard replacement and receive nothing more than template replies from Samsung? I still hope Samsung India will review this matter objectively and resolve it fairly. If not, I will pursue the remedies available through the National Consumer Helpline and the Consumer Disputes Redressal Commission. @u8d995ed9, I invite you to explain publicly why a loyal customer deserves only an \"out of policy\" response instead of a proper technical review. #",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [
+    "complaint_general",
+    "complaint_service"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_service",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy Z Fold8 Ultra is paired with Galaxy Watch. Big screen + wrist notifications = no distractions, pure focus. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Galaxy Z Fold8 Ultra + noise-cancelling Buds = my secret productivity weapon. Large flexible display for work, pure focus in my ears. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf big screen + no distractions = pure focus mode #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Freelance designer here. Fold + Buds is the pairing that saved my deadlines. Split-screen Figma and Slack, noise cancelling on, coffee in hand. That’s the whole setup. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Using Fold 6 Black limited Edition 512GB inner display got damaged automatically from hinge side n repair cost is demand 54,000 company claim 20k time fold n open challenge at time of purchase only everyone is talking about Ai but display is damaged Ai n camera both r zero use 😉 service center n support team both r worst not a word to say once Samsung sold the product u will not get any service or support just Ai generatmail n answer provide 😉 Before buying flagship Mobile pls check durability of display screen it is just like Chinese Mobile 📱 😉",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "My ultimate productivity combo is Samsung Galaxy Z Fold8 Ultra paired with the S Pen and the Notes app! Multitasking across a massive screen while sketching ideas on the fly is an absolute game-changer for workflow. #GalaxyZFold8Ultra\" Samsung",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Big screen, zero distractions, maximum execution. Open → focus → finish. ⚡ #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Samsung doesn't care about after sales... They have a real problem with their ring. Tons of people complaining that after less than a year, the battery degrades hard and they get less than a day on it. I had that, sent it in, they replaced it, 10 months later, same problem. A known defect as it's ALL over the place. They won't do anything about it. Given that I have samsung appliances, TV, vacuum, monitors, phone, watch and ring, it may be time to start transitioning to other brands. $550 ring, useless after 20 months. Keep deleting my message samsung, I'll keep putting it on here. Fix my problem and I'll stop",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_service",
+    "issue_battery"
+   ],
+   "adjudicated": [
+    "complaint_service",
+    "issue_battery",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "@SamsungGulf The Galaxy Z Fold8 Ultra is my outfit’s best accessory, bold screen, premium feel, and it instantly upgrades any look. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My ultimate productivity combo is definitely the Galaxy Z Fold8 Ultra, Galaxy Watch, and Galaxy Buds! Multi-tasking on the big screen while staying connected on the go makes work so seamless. #GalaxyZFold8Ultra",
+   "copies": 2,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf 💜 THE TRIO I NEED! 💜 📱 Galaxy Z Fold8 🎧 Galaxy Buds4 Pro ⌚ Galaxy Watch9 Big screen. Great sound. Smart style. 🔥✨ #GalaxyZFold8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My Galaxy Z Fold8 is my outfit's best accessory! 💜Style is all about how you express yourself, and this beautiful black-purple phone speaks my language perfectly. It folds down into a chic, lightweight statement piece that fits anywhere, then opens up into a beautiful big screen that handles everything I do. It truly is the missing piece to my daily look! 👌🏽👸🌸 #GalaxyZFold8 Samsung",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My Galaxy Z Fold/Flip has completely changed how I work and create. Multitasking is effortless, the screen is incredibly immersive for movies and meetings, and the flex hinge is just genius for hands-free video calls. It feels premium, powerful, and like the future in my pocket",
+   "copies": 2,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Battery is a trash . One day after full charge. I don't recommend.",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_battery"
+   ],
+   "adjudicated": [
+    "issue_battery"
+   ]
+  },
+  {
+   "text": "If you want a Samsung product, especially a mobile phone contract, I recommend buying it from anywhere other than Samsung directly. They are incompetent and do not respect their customers. The negatives of purchasing through Samsung directly: 1) Unreliable order updates. You may not be told your order has been dispatched. I wasn't. 2) No estimated delivery notificatios. I didn't receive an email from Samsung or DPD that my item was ready to be delivered, so I missed the delivery. 3) Your SIM card may be missing from the box when your phone is delivered. Samsung say they sent the phone and SIM in the same box. They didn't, but they sure made me check multiple times, as if I was blind. 4) Samsung may refuse to help you get a replacement SIM, for which they are responsible, and instead instruct you to contact the network provider (in this case, Vodafone) and try to place the blame on them. They also closed my support case, refusing to help fix the problem they created. This meant lots of phone calls, online chat conversations back and forth, and a visit to a Vodafone store. 5) Once Vodafone confirms in writing that they cannot help and that both the blame and responsibility lies with Samsung, and you update Samsung with this information, Samsung ghost you for days. 6) When the original SIM card finally arrives (around a week or so after the phone), in a small envelope on it's own, you try to activate it and it can't be activated because of Samsung's mistakes. I then had to chat with Samsung again to have this rectified. It took 5 days. 7) When you contact Samsung to say that your whole experience since placing the order until now has been an ordeal, with many problems and ask for compensation, they waste as much time as possible by trying to force you to accept Samsung vouchers. They do not seem to understand that their company's incompetence and the work they made you do to fix their mistakes is unacceptable, and that you no longer have faith in them. Why would I order more things from you when this order was so difficult?? 8) They refuse to compensate you with actual money and assign your case to a higher up employee at Samsung. 9) A CEO named Michael responds to you via email and says he cannot offer money as compensation, only vouchers. I find this very hard to believe. A CEO of a huge company can't offer me £50 compensation for all the hassle they caused and work they made a customer do? Pull the other one. 10) The CEO repeatedly offers vouchers despite understanding they have zero worth or use to me. Samsung don't respect their customers, so don't give them your money. I'm stuck in this contract and Samsung still won't compensate me, so it's all I can do to inform as many people as possible of their behaviour. Benefits of ordering directly with Samsung: 1) Green z-flip 8 handset, not available elsewhere. 2) Stress headaches. 3) Unpaid work.",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "@SamsungGulf My productivity-maxxing combo :📱✨ Galaxy Z Fold8 Ultra + Galaxy Buds = Work mode ON, distractions OFF! 💪🔥 Big screen for multitasking, seamless calls &amp; music on the go—basically my pocket-sized productivity powerhouse! 🚀⚡ #GalaxyZFold8Ultra @SamsungGulf",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My wish is to watch my favorite comfort films on the Samsung Galaxy Z Fold8. I imagine enjoying my favorite movies on its big, beautiful screen, feeling relaxed and comfortable. I hope one day I can experience the joy of watching films on this amazing phone. It would make my movie time even more special. ❤️📱",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "\"In Pakistan, Balochistan (Quetta), offline word-of-mouth is way more powerful than online sponsored posts. With frequent local power cuts, showing my fellow gamers how the Samsung 990 Pro NVMe SSD keeps data completely safe will inspire instant confidence in your brand. My creator friends will also cover my build. Please gift me this 2TB SSD to dominate storage sales in our area! 💾⚡🎁\"",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "سيكون رائعًا للدراسة مع هاتف الأحلام ذي الشاشة الكبيرة",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy Z Fold8 Ultra is paired with Galaxy Buds + matcha 🍵 Multitasking on the big screen while listening to focus music it's perfect #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "I need this for content creation I hope samsung listens 😭 have to work on broken vivo #samsunggulf",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "For productivity maxxing, my ultimate combo pick is the powerhouse #GalaxyZFold8Ultra, because its expansive screen unfolds my multitasking world, letting me juggle notes, calls, and creativity with seamless flow, while keeping every idea sharp, every task efficient, and every moment elevated to ultra‑level brilliance. Samsung",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My ultimate productivity combo: Galaxy Z Fold8 Ultra + Galaxy Buds + a strong coffee ☕ Multitasking on the big screen while listening to focus music hits different! #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Samsung expert repair team 💪🏻",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with Galaxy Tab for bigger-screen multitasking. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "dream upgrade 💜💜 #GalaxyZFold8",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf @u0e852cfe @SamsungGulf @u964ba463 @ua5580290 My S22 Ultra got green line without any drop! This is known manufacturing defect #GreenLineIssue You fix it for FREE in India &amp; UAE. Why not for Yemen? I'm from Sana'a, lost invoice due tNeed free screen replacement! #S22Ultra #Samsung https://t.co/6GtbGlMK7l",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [
+    "issue_screen"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "My combo: Galaxy Z Fold8 + S Pen + DeX Mode 💻 Big screen for emails, S Pen for notes, DeX for full desktop vibes. Productivity maxxed! #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Hi samsung 👋 I’m a student and I’m reaching out with a small request. I’m currently unable to afford a good smartphone, but I really need one for my studies, online learning, and video/photo editing work. I was wondering if your company would be willing to support me by providing a smartphone, even if it’s a previous-generation or budget model. It would genuinely help me a lot with my education and creative work. I’d be extremely grateful for any support you can provide. I’d also be happy to share my student details or any other information required to verify my request. Thank you for taking the time to read my message. ❤️",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf This TV is using a very poor display panel. Twice I bought this TV and both times display panel got lines immediately after Samsung pushed an update. Stay away from Samsung products, if you wanna save your money.",
+   "copies": 2,
+   "platform": "x",
+   "firstPass": [
+    "issue_screen",
+    "issue_update",
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "issue_update",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "@SamsungGulf Foldable screen + DeX + Buds = pocket office unlocked. 📱💻🎧 #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "PLS DONT BUY/ PURCHAGE SAMSUNG PRODUCTS DONT WASTE UR MONEY ON SAMSUNG DEVICES . As a Samsung USER for LAST 19 YEARS +. I Never Expected This Type of NEGLIGENCE from a Brand I Trusted for So long time Unfortunately, I am Now facing the Network Problem Issues on my New Samsung 8 Ultra 512 GB. On Both NETWORK, Wifi NETWORK and SIM NETWORK. For LOYAL and HARDCORE SAMSUNG USERS, This is Extremely DISAPPOINTING. When Customers STAY With a BRAND FOR 19 YEARS +, they expect QUALITY, ACCOUNTABILITY & AFTER-SALES PROPER SUPPORT —Not to feel Ignored When Such issues occurs.Honestly this experience has made me question on Samsung’s Commitment to its loyal Customers. I am Seriously considering Switching from Samsung to another brand. So Pls dont purchase samsung mobile I Already Purchaged 8 ultra 512 GB on August 2026. I have Very bad Experience No worth for money Always facing Network problems All aps are buffering and Company Refuse to Solve the problem after many times Visited authorized samsung service center they said that is third party app problem Wow Google search Gmail Facebook Instagram YouTube All are buffering takes time to open Minutes & Minutes All are pre-installed aap without Google Android phone not worked hows that possible they all are Third Party Aap I installed Ajio Aap Amazon AAP Telegram Aap Myntra Aap Jiohotstar Aap Netflix Aap Amazone prime Aap Wynk Music Aap From play store All apps are buffering .So Incredibly frustrating when multiple aaps keep buffering or loading slowly at the same time . Always Network Problem issues Not a single Aap working properly Always takes time to open aap bec of Network problem in both mode Wi-Fi and Sim Network Authorised samsung service center technical team self diagnosis and accepted YES Handset have Network problem issues But Higher team denied to replace/ Exchange the handset So pls don't waste ur money on samsung devices",
+   "copies": 2,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_service"
+   ]
+  },
+  {
+   "text": "Absolutely unacceptable from @u8d995ed9! My Galaxy S23 (bought in UAE) got the infamous #RedLine hardware defect with ZERO physical damage. CEO desk rejected the free replacement and demands ₹12kfor YOUR manufacturing flaw! Is this your \"Global Brand\" promise?",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_repair",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "@uf99129c0 @u8d995ed9 @ub9ba8d17 @ua5580290 Very disappointing service from Samsung India! I purchased a Samsung AC through Flipkart, delivered on 14 October, but the installation has still not been completed despite the promised installation date of 15 October. The service centre promised a technician visit today, but nobody arrived as committed. I contacted customer care, yet have not received a proper resolution or accurate information.constomer care service not right information on call and chat only provide soon and misleading information.",
+   "copies": 4,
+   "platform": "instagram",
+   "firstPass": [
+    "complaint_service",
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_service",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "My work is more efficient when my Galaxy is paired with Buds, a strong coffee, and split-screen on the Z Fold8 Ultra. Email on one half, notes on the other, music in my ears, caffeine in the system. That combo turns a messy morning into an actual productive block. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Student life combo: Z Fold8 Ultra + S Pen. Take notes on the cover screen in class, unfold it later to review everything properly. Feels like I brought a tiny laptop without the extra bag. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Caution before purchasing Samsung products. See how @u8d995ed9 damaged a perfectly fine phone, and when asked to take accountability and fix it, how they replied. According to their policy, Samsung has the right to potentially harm customers' phone &amp; decline to repair them https://t.co/zekkw7CF1L",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [
+    "complaint_general",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "@SamsungGulf Is this manufactured by the international company Samsung? It is a deception and a deception, and the world must boycott Samsung products. I use the S22 Ultra, which is known worldwide for its luxury. I have had it for about seven months. I explained my problem to Samsung, https://t.co/PQ8m1ZxowM",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "@SamsungGulf My productivity combo? Galaxy Z Fold8 Ultra + a good playlist 🎧📱 Multitasking feels so much easier when I can work, check messages, and keep everything I need on one screen. Basically, less switching tabs, more getting things done. 😭✨ #GalaxyZFold8Ultra https://t.co/Q72MNZ2jHV",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Dear Samsung Gulf Support Team, I believe my concern has been misunderstood. I am not asking about repair options or cross-border warranty procedures. I am reporting an internal screen defect that appears to be a manufacturing defect in my Galaxy Z Fold7. I purchased one of Samsung’s most expensive and premium smartphones, expecting the quality, reliability, and customer care associated with the Samsung brand. It is therefore unacceptable to receive a response that simply directs me to a service center in Egypt and suggests that repair costs may apply, without properly addressing the reported defect. My concern is not where the device can be repaired, but how Samsung intends to take responsibility for a potential manufacturing defect in a premium product. I request that Samsung Gulf review my case seriously and provide a clear response addressing the defect itself, rather than sending me generic warranty policy information. Case Reference: 404197034 I look forward to a meaningful response and a fair resolution that reflects Samsung’s commitment to product quality and customer satisfaction. Best regards, Ahmed Shafei",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_service"
+   ],
+   "adjudicated": [
+    "complaint_service",
+    "issue_screen",
+    "complaint_general",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "Do not buy fold. They promise certain guarantee like 200000 folds as a USP for Foldabale phones. But just after warranty expires in a one year or so the fold line becomes black with no physical or liquid damage done. This is a premium phone but no guarantee taken after once its sold. Similar case is with me but now instead replacing the screen they are asking 55k INR for it. You are treated as a money making machine for Samsung - You keep paying them almost every year for buying them once. I will post everywhere about Samsung Scam.",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general",
+    "issue_screen"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "✨ Galaxy vibes all the way! ✨ My combo would be Galaxy S26 + Galaxy Buds 🎧📱 — the perfect duo for music, photos, and staying connected on the go! 😍💫 #GalaxyZFold8",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Bonjour #GalaxyZFold8Ultra @ud7dc8c30",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My work is more efficient when my Galaxy is paired with Galaxy Watch Ultra + Galaxy Buds 4 + S Pen as an Afrobeat Artist. Galaxy watch ultra for my smart fashion statements,the pen to write down my creative thoughts process and the buds to get inspired. The laptop to make the beats. My Galaxy to take clean clear pictures and update my fans. Samsung got me with all their amazing products.😊 #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My work is more efficient when my Galaxy is paired with S Pen + Fold screen for note-taking! #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "اسواء خدمه عملاء قابلتها بحياتي موظف سامسونج بفرع مردف سيتي سنتر اسمه [name] اليوم قالي مش عايز اتكلم معاكي و مدير الفرع واقف قالي هابعت لمديره تخيلو الروعه الموظف بيعصب عليا و بيرميلي التليفونات و بيقولي مش عايز اتعامل معاكي و مفيش حلول عندي بقوله هاكلم حقوق المستهلك بيقةلي كلميهم تخيلو الخدمه الي بتقدمها سامسونج و الموظفين الي بيمثلوها براف سامسونج",
+   "copies": 6,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_service"
+   ],
+   "adjudicated": [
+    "complaint_service"
+   ]
+  },
+  {
+   "text": "Father please prophecy eternal #Seat28G Look to God ETERNAL LIVES IMMERGZING HIMSELF, HIS WORDS, ORGANSIM,WEIGHT,WEIGHS, LIFTING,STRATEGIES,SOUNDS, PURPOSES, RESPONSE,PREPARE,WARNINGS, SHUT-UP, SHUT-UP, SHUT- UP! LISTEN,REASONS, INSULTS, DISTRACT,COMMITTED, SUSPENS, PARTICIPATING, STRONG BOND,IMPERSONATING, EXTORTIONS ALLEGATIONS,SUES, INTERRUPTIONS,PLANS,DELIVERY, SERVICE,DISTURBANCE, PRESENCE,WHISPERING,EXPERIENCING, SWOLLEN,CHEST POISONED TO BREAST,IGNORANCE,ATTRACTIONS, DREAMS, PERFORMANCE,CRYING, ARGUMENT, CONVERSATION, PICTURES, COLLISIONS, COMPLAIN, SUPERVISING, DISEASES,BLOOD, STEALING, FIGHTING, KILLING, INJURIES, WORKING PLACE INSIDE, ALIFE BODIES 🎁 MUTTON BIRYANI 📌 GHANA/ASHAIMAN WEST -7125/JERICHO/HOUSE NO:J3/99 ☎️+233534993409RED MI A5📱 @ud0a881f8 Express",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "As a Samsung User for last 19 years +. I Never Expected This Type of Negligence from a Brand I Trusted for So long time Unfortunately, I am Now facing the Network Problem Issues on my New Samsung 8 Ultra 512 GB. On Both Network Wifi and Sim Network. For loyal and hardcore Samsung users, This is Extremely Disappointing. When Customers Stay With a Brand for 19 years +, they expect Quality, Accountability & After-Sales Proper Suppor Not to feel Ignored When Such issues occurs.Honestly this experience has made me question on Samsung’s Commitment to its loyal Customers. I am Seriously considering Switching from Samsung to another brand. So Pls dont purchase samsung mobile I Already Purchaged 8 ultra 512 GB on August 2026. I have Very bad Experience No worth for money Always facing Network problems All aps are buffering and Company Refuse to Solve the problem after many times Visited authorized samsung service center they said that is third party app problem Wow Google search Gmail Facebook Instagram YouTube All are buffering takes time to open Minutes & Minutes All are pre-installed aap without Google Android phone not worked hows that possible they all are Third Party Aap I installed Ajio Aap Amazon AAP Telegram Aap Myntra Aap Jiohotstar Aap Netflix Aap Amazone prime Aap Wynk Music Aap From play store All apps are buffering .So Incredibly frustrating when multiple aaps keep buffering or loading slowly at the same time . Always Network Problem issues Not a single Aap working properly Always takes time to open aap bec of Network problem in both mode Wi-Fi and Sim Network Authorised samsung service center technical team self diagnosis and accepted YES Handset have Network problem issues But Higher team denied to replace/ Exchange the handset So pls don't waste ur money on samsung devices",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general",
+    "gap_issue_other"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "gap_issue_other",
+    "complaint_service"
+   ]
+  },
+  {
+   "text": "@SamsungGulf Galaxy Z Fold8 Ultra + Watch + Buds. Split-screen on the inner display, health and calendar on my wrist, noise-cancelling audio for deep work. That’s how you actually get more done. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "HELP ME GUYS I NEED THIS SAMSUNG SO BAD Galaxy z fold 8 ultra COME FROM A POOR FAMILY whyyyyyy AND I SWEAR I LOVE SAMSUNG SO MUCH 😭 BUT THIS PHONE??? SAMSUNG PLEASE NOTICE ME IS THERE A MIRACLE THAT CAN MAKE YOU SEE ONE MESSAGE OUT OF THE MILLIONS YOU RECEIVE EVERY DAY? 😭I KNOW I’M JUST ONE PERSON, BUT I’M TRYING PLEASE SAMSUNG, i still love Samsung 😩",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My favourite pocket buddy is my power bank, always ready for low-battery emergencies #GalaxyZFlip8 https://t.co/0POkuOxgw7",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "I just want my new watch. And ring. And no one can tell me anything. It's been over a MONTH. And no update, and no clue.",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_service"
+   ],
+   "adjudicated": [
+    "complaint_service"
+   ]
+  },
+  {
+   "text": "Loving the sleek design and vibrant display! #GalaxyAI #GalaxyZFold8Ultra #GalaxyZFold8",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My favourite pocket buddy has to be the #GalaxyZFold8Ultra pink 🎀🎀🎀🎀📱✨ Big-screen luxury, powerful performance and the perfect pocket companion. 😍🤞🏽 Here’s hoping this one comes home with me! #GalaxyZFold8Ultra Tsholofelo Mukasa Thandiwe Thandi",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf I minimize notifications on my phone to check only the necessary info, and when I want to focus, I expand the screen to work. Just setting up the environment like this changes how much I can get done, even in a short time. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Definitely dropping a video review for the 2X boost! 🎥 The camera quality and multitasking on the new Galaxy line are unmatched. Fingers crossed for the weekly prize! 🤞✨ #ReviewAndWin\"",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My work is more efficient when my Galaxy is paired with my Galaxy Watch Ultra and Buds 🔋 Fold 8 Ultra for 3 apps at once on the big screen, Watch Ultra keeps me on track with meetings & health nudges, and Buds for deep focus calls with ANC. It's literally my mobile office. This is my productivity max combo for sure! #GalaxyZFold8Ultra #GalaxyZFold8 Samsung",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Option 1 For the boss move Which Galaxy is completing my outfit? The #GalaxyZFold8Ultra 💼✨ Big screen for work, fold it up for the streets. That’s the one! #GalaxyZFold8Ultra Option 2 For the style compact vibe Definitely the #GalaxyZFlip8💖 Fits in my pocket, pops in my photos, and completes every fit. Small but MIGHTY #GalaxyZFlip8 Option 3 For the multitasker I’m picking #GalaxyZFold8 📱➡️💻 Open it for Netflix, close it for calls. It’s literally 2 phones in 1 outfit. #GalaxyZFold8",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Definitely the Galaxy Z Fold + Galaxy Watch combo! 💯 Running 3 apps simultaneously on the Fold's huge screen while tracking my schedule on the Watch keeps my workflow seamless and super efficient. 🛠️📱 #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Galaxy Z Fold8 would complete my outfit with a modern creative touch, bringing a confident finish to a look built around clean lines. #GalaxyZFold8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "أسوء شركه ممكن تتعامل معهوم بجد خدمه مابعد البيع وحشه جدا مفيش مصدقه في الكلام وله اي حاجه شاشه موديل السنه مكملتش 6شهر اقل اي عايزين 11300 تغير الشاشه حسبي الله ونعم الوكيل ربنا اقدر على كل شيء",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general",
+    "complaint_service",
+    "issue_screen",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_service",
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "Nunca mais terei a linha z fold... Tenho um z fold 6, que com 1 ano é meio de uso, cuidando com zelo, e deu pau na tela interna. E a Samsung me cobrou mais de 6k para arruma. 🚨 ALERTA AO CONSUMIDOR: O ABSURDO DA LINHA SAMSUNG Z FOLD 6 E A NEGATIVA DE GARANTIA POR \"VÍCIO OCULTO\" 🚨Gostaria de deixar registrado o meu profundo descontentamento e um alerta a todos que pensam em adquirir um smartphone premium da Samsung, especificamente os modelos de tela dobrável.Tenho um Samsung Galaxy Z Fold 6 que, com pouco mais de 1 ano e meio de uso e em perfeito estado de conservação (sem NENHUMA queda ou marca de mau uso), apresentou um defeito crônico: o touch-screen da tela interna parou de funcionar e surgiu uma linha/mancha preta linear exatamente no vinco central da dobra.Diante do problema, agi com total boa-fé e segui todos os trâmites oficiais, mas a postura da empresa é inacreditável. Confiram a cronologia do desrespeito ao Código de Defesa do Consumidor (CDC):Fase de Diagnóstico: Antes de enviar, realizei os testes cromáticos nativos do sistema Samsung (telas cheias em verde, azul e vermelho), comprovando que a falha era estritamente interna do display flexível, sem qualquer avaria externa ou quebra de vidro.31/07/2026: Postei o aparelho via Sedex Reverso (Objeto: OY 879 381 588 BR) para a assistência técnica autorizada BKV Express (Belo Horizonte/MG).07/08/2026: A assistência confirmou o recebimento físico do smartphone sob a Ordem de Serviço nº 4176374280.17/08/2026: Recebi um orçamento abusivo e astronômico via WhatsApp no valor de R$ 6.683,00 (quase o preço de um aparelho novo!). Emitiram um laudo genérico dizendo apenas: \"Aparelho com gabinete frontal com mancha\". Ora, a mancha é o SINTOMA do vazamento do display flexível por falha de fabricação, e não a causa. Recusei imediatamente.25/08/2026: Acionei o canal \"Fale com o Presidente\" da Samsung (Protocolo nº 3102774042). A fabricante simplesmente lavou as mãos, alegando que o produto passou dos 12 meses de garantia contratual, oferecendo um mero desconto comercial e encerrando o protocolo.01/09/2026: A assistência técnica devolveu o celular na minha residência totalmente quebrado e sem conserto. O pacote permanece LACRADO na minha casa como contraprova jurídica.A CONFISSÃO DO ABSURDO: Acionei a empresa no site Consumidor.gov.br e, em resposta oficial, a Samsung teve a audácia de responder textualmente: \"Informamos que laudos técnicos são realizados apenas para produto dentro do prazo da garantia.\" Ou seja, confessaram por escrito que me cobraram quase 7 mil reais sem sequer realizar uma perícia técnica séria no meu aparelho!⚖️ O QUE DIZ A LEI (O DIREITO DO CONSUMIDOR):A conduta da Samsung viola frontalmente o CDC e a jurisprudência pacificada do Superior Tribunal de Justiça (STJ), que adota o Critério da Vida Útil do Bem (Precedentes: REsp 984.106/SC e REsp 1.780.816/SP). O fornecedor RESPONDE por vícios ocultos em produtos duráveis mesmo após o término da garantia contratual de 1 ano, desde que o defeito se manifeste dentro da vida útil esperada do produto. Um smartphone super premium como o Z Fold 6 não foi feito para durar apenas 18 meses!Já interpus uma réplica jurídica pesada no Consumidor.gov.br e também publiquei a denúncia no Reclame Aqui. Não vou aceitar esse prejuízo decorrente de uma falha crônica de engenharia que afeta centenas de consumidores. Se não resolverem administrativamente, a próxima parada será o Juizado Especial Cível!Fica o aviso: pensem duas vezes antes de investir em um dobrável da marca. O pós-venda não respeita o consumidor brasileiro!#Samsung #ZFold6 #VicioOculto #CodigoDeDefesaDoConsumidor #DireitoDoConsumidor #STJ #ConsumidorGovBr #ReclameAqui #Desrespeito #BKVExpress Samsung Samsung Galaxy Brasil 🇧🇷 Samsung Global Samsung Electronics 🚨 ALERTA AO CONSUMIDOR: O ABSURDO DA LINHA SAMSUNG Z FOLD 6 E A NEGATIVA DE GARANTIA POR \"VÍCIO OCULTO\" 🚨Gostaria de deixar registrado o meu profundo descontentamento e um alerta a todos que pensam em adquirir um smartphone premium da Samsung, especificamente os modelos de tela dobrável.Tenho um Samsung Galaxy Z Fold 6 que, com pouco mais de 1 ano e meio de uso e em perfeito estado de conservação (sem NENHUMA queda ou marca de mau uso), apresentou um defeito crônico: o touch-screen da tela interna parou de funcionar e surgiu uma linha/mancha preta linear exatamente no vinco central da dobra.Diante do problema, agi com total boa-fé e segui todos os trâmites oficiais, mas a postura da empresa é inacreditável. Confiram a cronologia do desrespeito ao Código de Defesa do Consumidor (CDC):Fase de Diagnóstico: Antes de enviar, realizei os testes cromáticos nativos do sistema Samsung (telas cheias em verde, azul e vermelho), comprovando que a falha era estritamente interna do display flexível, sem qualquer avaria externa ou quebra de vidro.31/07/2026: Postei o aparelho via Sedex Reverso (Objeto: OY 879 381 588 BR) para a assistência técnica autorizada BKV Express (Belo Horizonte/MG).07/08/2026: A assistência confirmou o recebimento físico do smartphone sob a Ordem de Serviço nº 4176374280.17/08/2026: Recebi um orçamento abusivo e astronômico via WhatsApp no valor de R$ 6.683,00 (quase o preço de um aparelho novo!). Emitiram um laudo genérico dizendo apenas: \"Aparelho com gabinete frontal com mancha\". Ora, a mancha é o SINTOMA do vazamento do display flexível por falha de fabricação, e não a causa. Recusei imediatamente.25/08/2026: Acionei o canal \"Fale com o Presidente\" da Samsung (Protocolo nº 3102774042). A fabricante simplesmente lavou as mãos, alegando que o produto passou dos 12 meses de garantia contratual, oferecendo um mero desconto comercial e encerrando o protocolo.01/09/2026: A assistência técnica devolveu o celular na minha residência totalmente quebrado e sem conserto. O pacote permanece LACRADO na minha casa como contraprova jurídica.A CONFISSÃO DO ABSURDO: Acionei a empresa no site Consumidor.gov.br e, em resposta oficial, a Samsung teve a audácia de responder textualmente: \"Informamos que laudos técnicos são realizados apenas para produto dentro do prazo da garantia.\" Ou seja, confessaram por escrito que me cobraram quase 7 mil reais sem sequer realizar uma perícia técnica séria no meu aparelho!⚖️ O QUE DIZ A LEI (O DIREITO DO CONSUMIDOR):A conduta da Samsung viola frontalmente o CDC e a jurisprudência pacificada do Superior Tribunal de Justiça (STJ), que adota o Critério da Vida Útil do Bem (Precedentes: REsp 984.106/SC e REsp 1.780.816/SP). O fornecedor RESPONDE por vícios ocultos em produtos duráveis mesmo após o término da garantia contratual de 1 ano, desde que o defeito se manifeste dentro da vida útil esperada do produto. Um smartphone super premium como o Z Fold 6 não foi feito para durar apenas 18 meses!Já interpus uma réplica jurídica pesada no Consumidor.gov.br e também publiquei a denúncia no Reclame Aqui. Não vou aceitar esse prejuízo decorrente de uma falha crônica de engenharia que afeta centenas de consumidores. Se não resolverem administrativamente, a próxima parada será o Juizado Especial Cível!Fica o aviso: pensem duas vezes antes de investir em um dobrável da marca. O pós-venda não respeita o consumidor brasileiro!#Samsung #ZFold6 #VicioOculto #CodigoDeDefesaDoConsumidor #DireitoDoConsumidor #STJ #ConsumidorGovBr #ReclameAqui #Desrespeito #BKVExpress",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "issue_screen",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "My work is more efficient when my Galaxy is paired with #GalaxyZFoldUltra ultra. I can use it for my daily job transactions as well as church events such as for multimedia ministry and even on preparing my line up songs and sharings.",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Upgrading to the Galaxy Z Series completely changed my daily workflow. The multitasking on the main screen is unmatched—running two apps side-by-side seamlessly makes handling business on the go effortless #ReviewAndWin #GalaxyZFold8Ultra #GalaxyZFold8 #GalaxyZFlip8 #GalaxyWatch",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf As someone who jumps between meetings all day, my combo is Fold8 Ultra + Galaxy Watch Ultra. Quick replies from the wrist, calendar pings without unlocking the phone, and I still have the big screen when I need to get real work done. #GalaxyZFold8Ultra",
+   "copies": 2,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf عملي أكثر كفاءة عندما يتم اقتران مجرتي مع شاشتي للحصول على مساحة وفيرة لزيادة إنتاجيتي #GalaxyZFold8Ultra #GalaxyZFold8U #GalaxyZFlip8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Routines help you switch between work and relaxation Even with tools to get things done faster, work can still be a distraction when you want to relax, but Routines can ensure it isn’t. With this Samsung Galaxy S26 Ultra feature, you can set up different routines for different situations, such as work, relaxing, sleep, driving, or whatever else. For each of these routines you can customise when or how it triggers, and how your phone behaves when it’s active, including restricting certain apps, adjusting the screen brightness, silencing certain notifications, and more. When it comes to finding a good work/life balance this is a very powerful tool, because you can ensure your work apps, like project management apps and email, are prioritised during work hours and silenced when you get home. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Caution before purchasing Samsung products. See how @u8d995ed9 damaged a perfectly fine phone, and when asked to take accountability and fix it, how they replied. According to their policy, Samsung has the right to potentially harm customers' phone &amp; decline to repair them https://t.co/x5kh5R8Ov3",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [
+    "complaint_general",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "❤️Galaxy Z Fold8 | Buds4 pro | Watch 9, this combo is my favourite vibe I’d love to have all three. I’m a Samsung user already with my Galaxy M21, so this would be an amazing, mindblowing upgrade. And also a dream come true #GalaxyZFold8",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf #GalaxyZFold8Ultra. My productivity setup is simple: tablet, headphones, notes, and a bit of controlled chaos. The tablet keeps everything in one place, while my headphones help me focus and get things done. A Galaxy S26 would definitely be a nice upgrade to the team.",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My work is more efficient when my Galaxy Z Fold8 Ultra is paired with Galaxy Watch Ultra and Galaxy Buds, because the Fold’s huge inner screen handles real multi-window work, the Watch keeps notifications and health checks off my phone, and the Buds cut distractions so I stay in flow. 🫶🏼 #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Galaxy Z Flip8 would be my favourite pocket buddy for voice notes, bright photos, and a little extra style whenever I am on the move. #GalaxyZFlip8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf 6. Followed @SamsungGulf! 📱✨ Galaxy Z Fold8 would be the perfect upgrade for me! #GalaxyZFold8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with the Galaxy Watch and Galaxy Buds. The Fold8 Ultra’s big screen plus those two just makes everything in my life feel better #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "I love support beginners ❤️",
+   "copies": 1,
+   "platform": "tiktok",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "The small dogs are the corniest ones bro wth with all these small dog people its disgusting they bark and pee thats it",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Fold 6 display line appeared automatically while I was simply reading no drop, no damage. What kind of quality are you making, Samsung? A premium phone should not develop a display line under normal use. Very disappointed with this product and the support experience.",
+   "copies": 6,
+   "platform": "instagram",
+   "firstPass": [
+    "issue_screen"
+   ],
+   "adjudicated": [
+    "issue_screen",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "PLS DONT BUY SAMSUNG PRODUCTS DONT WASTE UR MONEY ON SAMSUNG DEVICES As a Samsung User for last 19 years +. I Never Expected This Type of Negligence from a Brand I Trusted for So long time Unfortunately, I am Now facing the Network Problem Issues on my New Samsung 8 Ultra 512 GB. On Both Network Wifi and Sim Network. For loyal and hardcore Samsung users, This is Extremely Disappointing. When Customers Stay With a Brand for 19 years +, they expect Quality, Accountability & After-Sales Proper Support—Not to feel Ignored When Such issues occurs.Honestly this experience has made me question on Samsung’s Commitment to its loyal Customers. I am Seriously considering Switching from Samsung to another brand. So Pls dont purchase samsung mobile I Already Purchaged 8 ultra 512 GB on August 2026. I have Very bad Experience No worth for money Always facing Network problems All aps are buffering and Company Refuse to Solve the problem after many times Visited authorized samsung service center they said that is third party app problem Wow Google search Gmail Facebook Instagram YouTube All are buffering takes time to open Minutes & Minutes All are pre-installed aap without Google Android phone not worked hows that possible they all are Third Party Aap I installed Ajio Aap Amazon AAP Telegram Aap Myntra Aap Jiohotstar Aap Netflix Aap Amazone prime Aap Wynk Music Aap From play store All apps are buffering .So Incredibly frustrating when multiple aaps keep buffering or loading slowly at the same time . Always Network Problem issues Not a single Aap working properly Always takes time to open aap bec of Network problem in both mode Wi-Fi and Sim Network Authorised samsung service center technical team self diagnosis and accepted YES Handset have Network problem issues But Higher team denied to replace/ Exchange the handset So pls don't waste ur money on samsung devices",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general",
+    "gap_issue_other"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "gap_issue_other",
+    "complaint_service"
+   ]
+  },
+  {
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with the Galaxy Watch and Galaxy Buds. The Fold8 Ultra’s big screen plus those two just makes everything faster and more easy 😍😍💐 #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Fold 8 Ultra + Watch Ultra + Buds is the one for me. Big screen for actual work, watch so I don’t miss anything, buds when I need to lock in. That’s how you max productivity. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Morning planning, focus mode, motivational music, and getting things done before the deadline! 💪✨ #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "The 3rd photo shown was perfect #GalaxyZFold8",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Galaxy Z Fold8 + Watch9 📱⌚ مااحب استخدم السماعات صراحه #GalaxyZFold8 💖💖💖💖",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf The Z Fold8 Ultra is the statement piece. Big screen, bold design, instant upgrade. #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "My work is more efficient when my Galaxy is paired with all-day battery and seamless continuity! #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "I went to Festival City store. Amazing.. Doesn’t disappoint at all… 🔥🔥🔥🔥 Dubai mall and Mirdiff… I took videos of the couch set up.. 🛋️🔥🔥 #GalaxyZFold8",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "im broke 💔 😭",
+   "copies": 1,
+   "platform": "tiktok",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "This beast is in a league of its own that screen upgrade is incredible! 🔥📱 #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "The worst company you can deal with them Really the after-sales service is very bad there is no believing in the words I swear to God the great Samsung company is a guarantee of dates really the screen did not complete 6 months less Yes we want 11300 maintenance God is my suffice and the best deputy in Samsung company",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general",
+    "complaint_service"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_service"
+   ]
+  },
+  {
+   "text": "A foldable screen like the Galaxy Z Fold8 Ultra plus a tracking smartwatch makes the absolute dream productivity combo for me! #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf My productivity combo? Galaxy Z Fold8 Ultra + a good playlist 🎧📱 Multitasking feels so much easier when I can work, check messages, and keep everything I need on one screen. Basically, less switching tabs, more getting things done. 😭✨ #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "I never thought that after giving 150000 rupees, such a camera quality will be found. After opening the front camera, the fog starts coming in the camera. I am not able to take photos with the front camera. I visit 2 time samsung Service center, and i also call samsung support team but they are saying that this problem is occurring in all units of S26 ultra, we cannot help you in any way, you just use the phone like this, this problem will get fixed automatically. I believed in Samsung. After this problem, that belief is probably no longer the same as before. Samsung was a very good company, but such problems will come. I never thought of a phone like Samsung s26 ultra. Please fix this problem quickly.",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [
+    "gap_issue_other"
+   ],
+   "adjudicated": [
+    "gap_issue_other",
+    "complaint_service"
+   ]
+  },
+  {
+   "text": "A fantastic step forward for Arabic language integration in mobile AI. This makes call screening much more practical and accessible for Arabic speakers.",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf #GalaxyZFold8Ultra My go-to combo is 'checking info on videos + taking notes.' When you can have the screens side by side, you can follow the content and quickly jot down what's needed, which helps keep the workflow going. It's also handy on days with lots of moving around.",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf Followed @SamsungGulf ✅ Galaxy Z Fold8 is definitely my dream upgrade! 🔥📱 #GalaxyZFold8",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "I write \"Day [X]\" simply as my personal daily log of dedication, not to demand hardware or create obligation. I've spent over a year trying my luck in giveaways without success. Earning 30,000 PKR a month in Pakistan makes high-speed 2TB/4TB M.2 NVMe SSDs completely unaffordable for me. I maintain a strict rule of selecting only 2 main brand choices for storage. There is no pressure on your team. If gifting an M.2 SSD isn't possible, just let me know. I value self-respect, so I will politely step back, stop tagging you, and move to option two. If both options decline, I will end my daily outreach and let it go. Receiving a Fast M.2 NVMe SSD (2TB/4TB) from [SAMSUNG] would provide the storage my PC desperately needs. Thank you for reading and respecting my journey! 💙",
+   "copies": 3,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "for me my best combo is Galaxy Zfold 8 and buds4pro,buds with a flip phone specially Z flip and Z fold 8 is the best combo that I recommend but the other options is great, don't buy ios pods and products have Samsung Buds 4 pro instead. #GalaxyZFold8",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "Yo bro i'm broke so can you gimme a free fold phone?",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "بلاش سامسونج مفيش ضمان ولو حصل اي مشكلة هيقولك سوء استخدام نصيحه للناس الخامات سيئه جدا",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [
+    "complaint_general",
+    "complaint_repair"
+   ],
+   "adjudicated": [
+    "complaint_general",
+    "complaint_repair"
+   ]
+  },
+  {
+   "text": "@SamsungGulf For gaming especially PUBGM, getting smooth perfomance amd a long lasting battery that keeps me going during intense clutches #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf The Galaxy Z Fold8 Ultra is a total game-changer! The huge display is stunning, multitasking is seamless, and the performance is incredibly fast. Peak innovation @SamsungGulf #GalaxyZFold8Ultra #GalaxyZFold8 #GalaxyZFlip8 #GalaxyWatchUltra2 #GalaxyWatch9 #Samsung",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf The Galaxy Z Fold8 Ultra paired with the Watch and Buds is my productivity combo. The large screen handles multiple apps at once, the watch keeps notifications in check, and the buds help me stay focused. @SamsungGulf #GalaxyZFold8Ultra",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [],
+   "adjudicated": []
+  },
+  {
+   "text": "We need UPDATE ASAP for fold 8 specific, alot of apps are not fully compatible with the phone,, you need to fix it @ue110fa52 @ua5580290",
+   "copies": 1,
+   "platform": "instagram",
+   "firstPass": [
+    "issue_update"
+   ],
+   "adjudicated": []
+  },
+  {
+   "text": "@SamsungGulf @ufb7aaa21 @uc4dd7a6f They have the worst after-sales service. Take this sincere advice: do not buy anything from them—especially refrigerators or washing machines—because no one will come to service them, and they show absolutely no sense of responsibility toward their customers.",
+   "copies": 1,
+   "platform": "x",
+   "firstPass": [
+    "complaint_service",
+    "complaint_general"
+   ],
+   "adjudicated": [
+    "complaint_service",
+    "complaint_general"
+   ]
+  },
+  {
+   "text": "Father please prophecy eternal #Seat28G A Positive Posture ETERNAL LIVES STRUCTURES,CREATINGS, MEANS, SYSTEMS,IMMERGZING HIMSELF, HIS WORDS,BEHAVIORS,MONITORING,CHILDISHNESS,PROBLEMS,THOUGHTS,SEEKING, STAGES,LEARNING,MASTERING,COMMANDING,PRONOUNCIATION,LEVEL,LEVELS, LEVELING,REST,GROW,GROW UP,MATURITY, CONTROL,THINK,THINKING 🤔SPEAK 🗣️INNOCENCE,EXPERTS,SAYS,DESTROY,DESTROIES, RELATIONSHIP,MASCULINE,FEMININE, CORESPONSE,ASSETS,BLOW,HEAR,HEARING,ACTIONS,MARRIAGE,BEST,INTENTIONS,ATTENTION, ATTENTIONS, REFLECTION,REFLECT, REFLECTING,ORGANSIM,WEIGHT,WEIGHS, LIFTING,STRATEGIES,SOUNDS, PURPOSES, RESPONSE,PREPARE,WARNINGS, SHUT-UP, SHUT-UP, SHUT- UP! LISTEN,REASONS, INSULTS, DISTRACT,COMMITTED, SUSPENS, PARTICIPATING, STRONG BOND,IMPERSONATING, EXTORTIONS ALLEGATIONS,SUES, INTERRUPTIONS,PLANS,DELIVERY, SERVICE,DISTURBANCE, PRESENCE,WHISPERING,EXPERIENCING, SWOLLEN,CHEST POISONED TO BREAST, SOLUTIONS,SOLVENTS,SOLVENT, IGNORANCE,ATTRACTIONS, DREAMS, PERFORMANCE,CRYING, ARGUMENT, CONVERSATION, PICTURES, COLLISIONS, COMPLAIN, SUPERVISING, DISEASES,BLOOD, STEALING, FIGHTING, KILLING, INJURIES ON THE ABRAHAM,ISSAC, JACOB,MOSES,JOSHUA, DAVID,SOLOMON, WORKING PLACE INSIDE ALIFE BODIES 🎁 MUTTON BIRYANI 📌 GHANA/ASHAIMAN WEST -7125/JERICHO/HOUSE NO:J3/99 ☎️+233534993409RED MI A5📱 @ud0a881f8 Express",
+   "copies": 1,
+   "platform": "facebook",
+   "firstPass": [],
+   "adjudicated": []
+  }
+ ]
+}
