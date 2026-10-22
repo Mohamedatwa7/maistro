@@ -660,11 +660,18 @@ Status: **PASSED** by checker. CI green; local 173/173; production `revision: 85
 - R-8: every counted post's `platform:account` (lower-cased, "@" stripped) must be in `MAISTRO_OWNED_ACCOUNTS` (default samsunggulf on tiktok, instagram, facebook, x, twitter); the report carries `population {owned, foreign, sample}` and `ok` now requires R-8. A wrong population now fails the report. Live row 7 (08:09:25, builder's reading): ok:true, R-1, R-3, R-4, R-6 and R-8 all true, foreign 0.
 - Facebook: `viewsNotCollected()` marks any platform whose posts never carry views above zero; those zeros stay out of Total views, the KPI says "excludes Facebook (views not collected)", and post lines read "views not collected".
 
+## Video pricing from the provider's own rule (commit af5f558; released through the gate)
+
+Status: **PASSED** by checker.
+
+- The Seedance estimate returns a pricing description instead of a USD figure, identical for every video body: about **$0.2056 per second at 480p, $0.4622 at 720p, $1.1372 at 1080p** for 16:9 video without video input (a token formula is also given). `parsePerSecond()` accepts only that documented phrasing and prices a render as duration times the rate for the body's resolution, with the basis recorded ("provider rule: $0.4622/s at 720p x 8 s"); any other wording falls back to the $0.50 per second assumption rather than guessing. Checker's arithmetic matches the tests: 8 s at 720p = $3.6976, 5 s at 1080p = $5.686. Using the per-second figures rather than the token formula is reasonable; the provider calls them approximate, so the cap keeps its margin. Images unchanged ($0.006 each, $0.023 per set of four).
+- Cost of one full piece (5 shots of 5 s, 2 draft re-renders, 2 final re-renders, images), from GOLDEN_SET.md section 5: about **$20.87 at 720p** and **$51.24 at 1080p**; a 20-piece golden run about $420 at 720p. The $25 default cap leaves about $4 of margin at 720p and refuses any 1080p piece. The builder proposes $30 at 720p and $60 at 1080p; not changed in code pending the owner.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
 2. **Click-through for the database half of M2:** while signed in, create one Studio campaign; the builder confirms it in the database.
-2b. **Per-piece budget** (from 6.9): confirm the default cap ($25 per piece, warning at 80 %). Note: with video assumed at $0.50 per second until Higgsfield's video pricing is readable, a 7-clip draft counts about $17.50, so $25 may refuse a final that re-renders clips.
+2b. **Per-piece budget** (from 6.9): Higgsfield's own video rule is now read ($0.4622 per second at 720p, $1.1372 at 1080p). One full piece costs about $20.87 at 720p or $51.24 at 1080p, so the $25 default refuses every 1080p piece. Proposed: $30 per piece at 720p, $60 at 1080p (warning at 80 %). Say yes or set other numbers.
 2c. **TikTok reach was overstated** on the Performance page before 2026-10-22 (about six times, from another project's fan and news accounts in the tracker). Any figure taken from the page before that date should not be reused.
 3. **Licensed audio library** (from 6.7): QC fixes of type audio swap stay blocked until a licensed audio source is connected.
 3b. **Approved claims and mood approval policy** (from 6.4): supply the approved claim wording per device for the product catalog (every list is empty today, so briefs carry no claims), and say whether a brief may be written before the moodboard is approved (recorded but not enforced today).
