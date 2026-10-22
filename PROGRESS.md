@@ -528,10 +528,23 @@ Status: **PASSED** by checker; the live eval row comes from the 06:15 UTC run.
 - Eval set (`api/_trends/eval-set.js`, 8 cases): must-flag for each question (explicit sound, dangerous challenge, competitor origin, nightclub and alcohol), must-review for the two prior safety flags rebuilt from the recorded evidence, must-pass for two benign trends. The hourly cron runs it once per prompt version when at least 90 s remain after scoring and stores the result in `audit_log` (`trends.eval`), so any prompt change re-runs the eval automatically.
 - Bug found and fixed by the builder: since 6.5 the shot decisions, and since 6.8 the package export, wrote `audit_log` with columns that do not exist (`target`, `details`); a best-effort try/catch hid the 400, so no shot-decision audit rows exist in production for that period. The writes now use `entity`, `entity_id`, `after`; the fake database rejects unknown `audit_log` columns with 42703 and the tests assert the rows. Lesson for the remaining phases: a best-effort write should log and also count its failures somewhere visible (the ops phase).
 
+## Phase 6.9 cost control (commit 37e9963; released; migration 015 applied)
+
+Status: **PASSED with two gaps noted.** CI green; local 159/159; production `/` byte-identical (sha256 94a6b6a4…), health ok.
+
+- Priced equals submitted: `buildRequest()` builds the endpoint and body for both `submit()` and `estimateRequest()`, and the test asserts the estimate body deep-equals the submit body.
+- `budgetGate()` runs once per render job before its first submit, stores `jobs.estimate_usd`, refuses when spent (succeeded) plus committed (queued or running, already priced) plus this estimate exceeds the cap, and warns at `budget_warn_pct` (default 80); failed and moderated renders do not count because Higgsfield does not charge them; a refused job keeps its estimate for audit with cost 0 on its generation record. Migration 015 adds `budget_usd` and `budget_warn_pct` on pieces and `estimate_usd` on jobs. The default cap is $25 per piece (builder default, owner to confirm); changing it is limited to line managers and admins and audit-logged.
+
+Gaps:
+
+1. **The gate fails open.** A render with no price (the v1 product-reference path, which has no estimate endpoint, or any estimate call that errors) is submitted unpriced and never counts toward the cap. Product-photo renders therefore escape the budget. Either price v1 renders at the most recent observed cost of the same kind, or count them at a fixed conservative figure until Higgsfield prices them.
+2. **Parallel jobs can overshoot the cap.** A job's estimate is written only after its own gate check, so storyboard or draft jobs created together and gated in separate invocations (the tick, an inline submit, page polls) each see the others as unpriced. The overshoot is bounded by one batch of shots; acceptable for now, but a reservation (write the estimate before the comparison, filtered on the job row) would close it.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
 2. **Click-through for the database half of M2:** while signed in, create one Studio campaign; the builder confirms it in the database.
+2b. **Per-piece budget** (from 6.9): confirm the default cap ($25 per piece, warning at 80 %).
 3. **Licensed audio library** (from 6.7): QC fixes of type audio swap stay blocked until a licensed audio source is connected.
 3b. **Approved claims and mood approval policy** (from 6.4): supply the approved claim wording per device for the product catalog (every list is empty today, so briefs carry no claims), and say whether a brief may be written before the moodboard is approved (recorded but not enforced today).
 4. **After the team is invited** (Members entry in the sidebar, admins only): set `MAISTRO_REQUIRE_MEMBER=1` on Vercel so decisions need a member session, and later unset `MAISTRO_APP_PASSWORD` to retire the shared password. (Turning off public sign-ups in Supabase Auth is now optional: since cd8e9e4 the login page only requests links for members and bootstrap admins.)
