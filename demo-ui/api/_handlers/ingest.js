@@ -102,13 +102,16 @@ module.exports = async (req, res) => {
     // push onto it is refused outright — nothing lands in campaign_events
     // either, and the agent is told to ask for a reopen. Any other store
     // failure (storage down) does not block the push and is reported.
-    let stored = false, storeError;
+    let stored = false, storeError, checks = [];
     try {
       const meta = stage === 'plan'
         ? { origin: 'external_hermes', title: artifact.title, product: artifact.product, msg: artifact.msg, angle: artifact.angle, markets: artifact.markets, platforms: artifact.platforms, trendId: trend && trend.id, trendName: trend && trend.name }
         : { origin: 'external_hermes' };
-      await recordVersion(projectId, stage, artifact, { piece: meta, producedBy: 'external_hermes' });
+      const rec = await recordVersion(projectId, stage, artifact, { piece: meta, producedBy: 'external_hermes' });
       stored = true;
+      // 6.9 Hermes parity: the same automated checks as a Studio artifact (best effort, reported)
+      try { const { createJob } = require('../_jobs.js'); checks = await require('../_studio/parity.js').queueChecks({ legacyId: projectId, stage, artifact, versionId: rec.versionId, createJob }); }
+      catch (e) { checks = [{ queued: false, reason: `checks could not be queued: ${String(e.message || e).slice(0, 160)}` }]; }
     } catch (e) {
       if (e instanceof StoreError && e.code === 'approved_immutable') {
         res.status(409).json({ error: e.message, code: e.code });
@@ -123,7 +126,7 @@ module.exports = async (req, res) => {
       trend: trend || null,
       artifact,
     });
-    res.status(200).json({ ok: true, projectId, stage, agent: agentName, stored, ...(storeError ? { storeError } : {}) });
+    res.status(200).json({ ok: true, projectId, stage, agent: agentName, stored, checks, ...(storeError ? { storeError } : {}) });
   } catch (err) {
     res.status(502).json({ error: String((err && err.message) || err) });
   }

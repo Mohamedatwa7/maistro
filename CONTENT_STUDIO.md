@@ -143,6 +143,12 @@ Hardening (checker findings): an unpriced render (v1 reference path, or a failed
 | Enforcement | Approving a stale version → 409 `stale_inputs` naming the out-of-date inputs; the delivery package refuses while any stage is stale; approved stages stay immutable (an admin reopen is the only way to change one, and everything built on it then shows stale) |
 | UI | `listPieces` exposes `stale` per stage; the Studio shows an "Out of date" note on the stage naming what changed |
 
+Known window (checker note): a reopened stage keeps its version id until it is regenerated, so stages built on it read fresh until the new version lands — to be shown as "upstream reopened" later.
+
+### Hermes parity
+
+Every push through `POST /api/ingest` that lands in the store runs the same automated checks as a Studio artifact (`api/_studio/parity.js`): images (mood, thumbnail, storyboard sheet) are copied into the private bucket and get the 6.2 vision check (product expected on thumbnail and storyboard when the piece names one); a structured brief gets the 6.4 code checks, a legacy-shaped brief is recorded as failing "structured brief missing"; a final video is copied in and analysed by F1X8 bound to its version. When an asset cannot be copied (host outside the media allow-list, fetch failure) a **failing** check records it — a push is never silently unchecked. The response lists what was queued.
+
 ## Open owner inputs (collected from the seed's `gaps`)
 
 1. Disclaimers by claim type and market; logo and end-card rules; overlay typeface.
