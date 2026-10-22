@@ -638,11 +638,17 @@ Status: **PASSED** by checker. CI green; local 169/169; production `revision: cd
   Checker's view: v1.4 is the calibrated baseline. Agreed to freeze prompt changes until the owner reviews the ranked board; any later change must pass the recorded eval and add the production case that motivated it.
 - **Price card:** Soul V2 priced again ($0.006 per image, $0.023 per set of four). Every Seedance estimate answers with a pricing type and description but no USD figure, so `/estimate` cannot price video; c5ec98d keeps the provider's pricing text on the card. Until the rule is read, video renders are budgeted at the fail-closed fallback. **Risk:** the fallback is $1.00 per render for every kind, which is likely far below a Seedance clip's real cost, so the per-piece cap under-protects video. Use a kind-specific fallback for video (a conservative per-second figure, written down as an assumption) until the provider's rule is parsed.
 
+## Kind-specific budget fallback for unpriced renders (commit ee77666; released through the gate)
+
+Status: **PASSED** by checker. Unpriced video is budgeted at an assumed $0.50 per second of clip (duration clamped 4 to 30 s, so a 5 s clip counts $2.50 and an 8 s clip $4.00), unpriced images at $0.05 or the last provider-priced job of the same kind; video never reuses another kind's figure; the basis is recorded on every job including refused ones. The assumption is written in CONTENT_STUDIO.md 6.9 and GOLDEN_SET.md section 5. $0.50 per second is a reasonable deliberately high figure until the provider's rule is parsed.
+
+**Consequence for the owner:** under this assumption one piece with about 7 clips of 5 s costs about $17.50 for the draft alone, so a final that re-renders even a few clips can reach the default $25 cap and be refused. The cap and the per-second assumption should be decided together (owner gate item on the per-piece budget).
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
 2. **Click-through for the database half of M2:** while signed in, create one Studio campaign; the builder confirms it in the database.
-2b. **Per-piece budget** (from 6.9): confirm the default cap ($25 per piece, warning at 80 %).
+2b. **Per-piece budget** (from 6.9): confirm the default cap ($25 per piece, warning at 80 %). Note: with video assumed at $0.50 per second until Higgsfield's video pricing is readable, a 7-clip draft counts about $17.50, so $25 may refuse a final that re-renders clips.
 3. **Licensed audio library** (from 6.7): QC fixes of type audio swap stay blocked until a licensed audio source is connected.
 3b. **Approved claims and mood approval policy** (from 6.4): supply the approved claim wording per device for the product catalog (every list is empty today, so briefs carry no claims), and say whether a brief may be written before the moodboard is approved (recorded but not enforced today).
 4. **After the team is invited** (Members entry in the sidebar, admins only): set `MAISTRO_REQUIRE_MEMBER=1` on Vercel so decisions need a member session, and later unset `MAISTRO_APP_PASSWORD` to retire the shared password. (Turning off public sign-ups in Supabase Auth is now optional: since cd8e9e4 the login page only requests links for members and bootstrap admins.)
