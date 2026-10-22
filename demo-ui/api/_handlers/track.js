@@ -236,13 +236,23 @@ async function reconcile(days, R, get, H, base) {
 
   // R-3: raw comments in the comment window
   let dbSeen = null;
-  try { dbSeen = await countRows(base, H, `social_comments?select=id&published_at=gte.${floor}${excl}`); } catch (e) { report.comments.seenError = e.message; }
+  // counted in 7-day windows: one exact count over 60+ days of comments exceeded the tracker database's
+  // statement limit (500 on 2026-10-22); every window must succeed or the check reports the error
+  try {
+    dbSeen = 0;
+    for (let t = Date.parse(floor); t < Date.now(); t += 7 * 864e5) {
+      const a = new Date(t).toISOString(), b = new Date(Math.min(t + 7 * 864e5, Date.now() + 60e3)).toISOString();
+      const n = await countRows(base, H, `social_comments?select=id&published_at=gte.${a}&published_at=lt.${b}${excl}`);
+      if (n == null) throw new Error(`count unavailable for ${a.slice(0, 10)}`);
+      dbSeen += n;
+    }
+  } catch (e) { report.comments.seenError = e.message; dbSeen = null; }
   // R-4: canonical-id matches (lower bound; alias forms are the gap)
   const ids = out.map((p) => p.postId);
   let dbMatchedCanonical = 0;
   try {
-    for (let i = 0; i < ids.length; i += 40) {
-      const chunk = ids.slice(i, i + 40).map(encodeURIComponent).join(',');
+    for (let i = 0; i < ids.length; i += 10) { // small chunks: 40 ids per exact count also hit the statement limit
+      const chunk = ids.slice(i, i + 10).map(encodeURIComponent).join(',');
       dbMatchedCanonical += (await countRows(base, H, `social_comments?select=id&external_post_id=in.(${chunk})&published_at=gte.${floor}`)) || 0;
     }
   } catch (e) { report.comments.matchedError = e.message; dbMatchedCanonical = null; }

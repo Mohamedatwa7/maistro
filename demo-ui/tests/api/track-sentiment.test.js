@@ -112,12 +112,12 @@ test('sentiment GET: latest snapshot per post, sorted newest post first; POST ne
 });
 
 test('reconcile (7.0): reader counts vs database counts, twins removed, alias-only matches, window boundary rules and freshness; ingest key or cron only; never cached', async () => {
-  const counts = { posts: { instagram: 1, tiktok: 0, facebook: 0, twitter: 0 }, commentsSeen: 2, canonical: 2 };
+  const counts = { posts: { instagram: 1, tiktok: 0, facebook: 0, twitter: 0 }, commentsSeen: 2, canonical: 2 }; const windows = [];
   const headRoute = [(u, init) => (init.method || 'GET') === 'HEAD', (u) => {
     let n = 0;
     if (u.includes('/social_posts?')) { const m = u.match(/platform=eq\.(\w+)/); n = counts.posts[m[1]] ?? 0; }
     else if (u.includes('external_post_id=in.')) n = counts.canonical;
-    else if (u.includes('/social_comments?')) n = counts.commentsSeen;
+    else if (u.includes('/social_comments?')) { const ge = u.match(/published_at=gte\.([^&]+)/), lt = u.match(/published_at=lt\.([^&]+)/); const at = Date.now() - 864e5; const a = ge ? Date.parse(decodeURIComponent(ge[1])) : 0, b = lt ? Date.parse(decodeURIComponent(lt[1])) : Infinity; n = at >= a && at < b ? counts.commentsSeen : 0; windows.push([a, b]); }
     return new Response('', { status: 206, headers: { 'content-range': `0-0/${n}` } });
   }];
   const f = mockFetch([headRoute, ...trackerRoutes()]);
@@ -138,14 +138,16 @@ test('reconcile (7.0): reader counts vs database counts, twins removed, alias-on
     // a database count that disagrees shows up as a failed check, with the numbers
     counts.posts.instagram = 3; counts.commentsSeen = 5;
     r = res(); await h.handler(req({ query: { days: '14', reconcile: '1' }, headers: { 'user-agent': 'Mozilla/5.0', authorization: 'Bearer ingest' } }), r);
-    assert.equal(r.body.ok, false); assert.deepEqual(r.body.posts.instagram, { reader: 1, db: 3, equal: false }); assert.equal(r.body.checks.R3_commentsSeen, false); assert.equal(r.body.comments.dbSeen, 5);
+    assert.equal(r.body.ok, false); assert.deepEqual(r.body.posts.instagram, { reader: 1, db: 3, equal: false }); assert.equal(r.body.checks.R3_commentsSeen, false); assert.equal(r.body.comments.dbSeen, 5); assert.ok(windows.length >= 3 && windows.every(([a, b]) => b - a <= 7 * 864e5 + 60e3), 'counted in windows of at most 7 days');
     assert.equal(r.body.posts, r.body.posts); assert.equal('posts' in r.body && !Array.isArray(r.body.posts), true, 'a report, not page data');
   } finally { f.restore(); h.restore(); }
 });
 
 test('reconcile (7.0): the daily cron stores a reconciliation report row next to the snapshot; ?reconcile=latest reads the series back for a session holder', async () => {
   const reports = [];
-  const headRoute = [(u, init) => (init.method || 'GET') === 'HEAD', (u) => new Response('', { status: 206, headers: { 'content-range': u.includes('/social_posts?') ? (u.includes('platform=eq.instagram') ? '0-0/1' : '0-0/0') : '0-0/2' } })];
+  // comment counts are per 7-day window: only the window holding the fixture comments (a day old) counts them
+  const inWindow = (u) => { const ge = u.match(/published_at=gte\.([^&]+)/), lt = u.match(/published_at=lt\.([^&]+)/); const at = Date.now() - 864e5; return (!ge || at >= Date.parse(decodeURIComponent(ge[1]))) && (!lt || at < Date.parse(decodeURIComponent(lt[1]))); };
+  const headRoute = [(u, init) => (init.method || 'GET') === 'HEAD', (u) => new Response('', { status: 206, headers: { 'content-range': u.includes('/social_posts?') ? (u.includes('platform=eq.instagram') ? '0-0/1' : '0-0/0') : (inWindow(u) ? '0-0/2' : '0-0/0') } })];
   const f = mockFetch([
     headRoute,
     ['https://maistro.test/rest/v1/reconciliation_reports', (u, init) => { if (init.method === 'POST') { reports.push(JSON.parse(init.body)); return new Response('', { status: 201 }); } return json(reports.map((r, i) => ({ id: i + 1, at: '2026-10-21T06:30:00Z', ...r }))); }],
