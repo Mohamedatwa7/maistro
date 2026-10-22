@@ -549,6 +549,14 @@ Status: **PASSED** by checker. CI green; local 163/163; production `/` byte-iden
 - Budget gaps closed: an unpriced render (v1 reference path or a failed estimate call) is charged at the last observed estimate of the same job kind, else `MAISTRO_UNPRICED_USD` ($1.00), with the basis recorded; the estimate is reserved on the job before the piece total is read, so parallel gates count each other (test: two $1.20 renders against a $2.00 cap, at most one goes through; both refused is the safe failure).
 - Note, not blocking: a reopened stage that has not yet been regenerated keeps its old version id, so nothing downstream reads stale until a new version lands. That matches "stale means built from a replaced version", but the page could say "upstream reopened" in the meantime.
 
+## Hermes parity, policy refusals, and a release made on red CI (commits 8171252, 64a44a8, 6f2c435; released)
+
+Status: **PASSED now; one process failure recorded.** Production is on 6f2c435 with CI green (runs 39729726123 branch, 39729802929 main); local 165/165; `/` byte-identical (sha256 4f8a33b9…), health ok.
+
+- Hermes parity (8171252): pushes to `/api/ingest` now run the Studio checks through `api/_studio/parity.js`: mood, thumb and board images are copied into the private bucket and vision-checked (product expected on thumb and board when the piece names one); a structured brief gets the 6.4 code checks and a legacy-shaped brief records a failing copy check; a pushed final is copied and analysed by F1X8 bound to its version. A copy that fails (host outside the allow-list, fetch error) is stored as a failing check, never silence.
+- Policy refusals (64a44a8): a moderated render triggers one Sonnet call that names the likely trigger and proposes a compliant rewrite, stored on the failed job and shown in the Studio; cost 0; never resubmitted automatically.
+- **Process failure:** 64a44a8 reached production with red CI (runs 39729501053 and 39729569021) because the builder's release command continued after the CI wait. Production behaviour was correct; only a test lookup was wrong, fixed in 6f2c435. The builder now releases through a gate script that stops on a red suite, red CI for the exact SHA, a failed deploy, a failed health check or a served-page mismatch. **The script is not committed**: it should live in the repo (for example `demo-ui/scripts/release.ps1`) so the gate is reviewable and survives the session.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
