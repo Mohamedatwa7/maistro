@@ -712,6 +712,13 @@ Status: **PASSED** by checker.
 - Live benchmarks (10:09, builder's reading): TikTok ER median 6.91 % (n 114), Instagram video 4.19 % (83), X video 1.08 % (53), Instagram image engagements median 98 (37), Facebook engagements median 66 (177). No young age band has reached n 20 yet, so mature rankings are labelled "not boost advice".
 - **Process note:** af4ada7 (PERFORMANCE_INSIGHTS.md only) reached main by a plain push instead of the gate. Checker's verification: the CI workflow is path-filtered to `demo-ui`, so a root docs commit triggers no run by design; no deploy happened (both hosts still answer b1ec22d). Harmless, recorded so the rule stays: everything goes through the gate.
 
+## Benchmark panel and per-post standing; headline engagement is a median (commit dadc7a1; released through the gate)
+
+Status: **PASSED** by checker, verified independently because the builder's own checks are blocked: CI run 39763479605 green; both hosts report `revision: dadc7a1` and serve a page byte-identical to `index.html`.
+
+- The panel shows the server's cells exactly as computed (no statistic derived in the browser): n and P25, median, P75, P90 for mature organic cells; "n < 20: count only" below that; the count excluded for views under 500; young-band counts with their expected dates; giveaways counted separately; a line saying "a benchmark, not boost advice". Each post shows one standing line or why it is not ranked, and a suspected-giveaway note to confirm.
+- A further breach of the no-means rule fixed: the headline "Avg engagement" was a mean over every post including those under 500 views; it is now "Median engagement", nearest-rank over posts with at least 500 views, with the count shown.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
