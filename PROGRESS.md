@@ -698,6 +698,10 @@ Status: **PASSED** by checker. CI green; local 179/179; production `revision: 09
 - A piece's resolution is now its first video job's, so a 720p piece cannot reach the $50 default by requesting a 1080p render; the test refuses a 5 s 1080p clip on a 720p piece with $19 spent at $24.69 of its $20 cap (checker's arithmetic: 19 + 5 x 1.1372 = 24.69). Moving a piece up goes through "Set cap" by a line manager or admin.
 - Every `/api/track` post carries `commentsCollected` (rows stored before the collapse); the page shows "N comments analyzed · M collected" when they differ. Checker's independent count on production (14 days): 88 posts, all with the field, 200 collected, 192 after collapse, and no post with more collapsed than collected.
 
+## 7.0 closed: the 14-day / 60-day merge keeps everything (commit 7a26881; released through the gate)
+
+Status: **PASSED** by checker. CI green; production `revision: 7a26881`. The page used to replace its 14-day read with the 60-day read whenever the latter had at least as many posts, so a partial 60-day comment page could drop comments. `sentiMergeWindows()` now keeps every post from either read; a post in both takes the later read's metrics and the union of comments. The golden test covers the checker's two edge cases, single-read posts and both fetch orders; the builder's live comparison found 88 of 88 posts present, no metric differences and no comments lost.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
