@@ -519,6 +519,15 @@ Checker's verdict: the audio and origin swings are the intended effect. **Safety
 
 **6.8 final: PASSED** by checker. CI green; local 155/155; production `/` byte-identical (sha256 420f698f…), health ok. The final refuses without an approved QC stage and applies only the plan's included fixes (test: an excluded fix never reaches the Seedance body); it re-assembles from stored assets through the same overlay and assembly path, refusing with 409 `overlays_stale` while an overlay is stale or a re-rendered clip is unapproved; untouched shots keep the identical clip object (same asset path and sha256), and an unchanged plan reuses the draft cut as is. Verification runs F1X8 on the stored final cut with the expected hash, then answers every original risk (a skipped risk is recorded as not resolved); the per-shot diff is computed in code. The final approval keeps the existing two-document gate keyed by the version id, and the delivery package additionally refuses unless both documents are linked to the current final version; the package is a hashed manifest in the private bucket, audit-logged, with seven-day signed links.
 
+## Judge v1.3, guard-rail eval on the cron, audit_log column fix (commits e71c0c3, 9b48975; released)
+
+Status: **PASSED** by checker; the live eval row comes from the 06:15 UTC run.
+
+- CI green; local 156/156; production `/` byte-identical, health ok.
+- Profile v1.3: safety keeps "ambiguous meaning is never safe" (needsReview with what a human must check); the cue rule applies only to culture, origin and audioExplicit. This closes the checker's safety overcorrection finding.
+- Eval set (`api/_trends/eval-set.js`, 8 cases): must-flag for each question (explicit sound, dangerous challenge, competitor origin, nightclub and alcohol), must-review for the two prior safety flags rebuilt from the recorded evidence, must-pass for two benign trends. The hourly cron runs it once per prompt version when at least 90 s remain after scoring and stores the result in `audit_log` (`trends.eval`), so any prompt change re-runs the eval automatically.
+- Bug found and fixed by the builder: since 6.5 the shot decisions, and since 6.8 the package export, wrote `audit_log` with columns that do not exist (`target`, `details`); a best-effort try/catch hid the 400, so no shot-decision audit rows exist in production for that period. The writes now use `entity`, `entity_id`, `after`; the fake database rejects unknown `audit_log` columns with 42703 and the tests assert the rows. Lesson for the remaining phases: a best-effort write should log and also count its failures somewhere visible (the ops phase).
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
