@@ -176,3 +176,29 @@ Each failing check keeps **one** open `ops_alerts` row, which is resolved when t
 POSTed to `MAISTRO_ALERT_WEBHOOK` (a Slack-compatible `{text}`; optional, owner to set) and marked `sent_at`.
 `GET /api/monitor` (signed-in) lists the open alerts, and `/api/health` shows `integrations` as ok or alert per
 check.
+
+## Environments (Phase 12 O3)
+| Scope | Serves | Data |
+|---|---|---|
+| Production | ma1stro.com, maistro-demo.vercel.app | the Maistro Supabase project |
+| Preview | every non-main push or PR (Vercel git integration) | **today the same project** — `/api/health` shows `dataIsolation: "preview uses the production database"` on a preview |
+| Development | `vercel dev` / local | the developer's own env |
+
+**Owner action for separation:**
+1. Create a second Supabase project, `maistro-preview` (free tier).
+2. Apply the migrations to it (`MAISTRO_DATABASE_URL=<preview url> node db/migrate.mjs`).
+3. Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in the **Preview** scope to
+   that project, plus `MAISTRO_PREVIEW_DB=1`.
+4. Leave the tracker key in Preview **read-only**, or unset.
+
+Never put production keys in the Development scope.
+
+## Production cutover for ma1stro.com (Phase 12 O8)
+ma1stro.com already serves this Vercel project (an alias on the `demo-ui` project), so there is no pending
+cutover. For a future move (a new project, region or domain), keep it zero-downtime:
+1. Lower the DNS TTL to 300 s a day ahead.
+2. Deploy the new target and verify it on its own URL: `/api/health` ok, the page, the crons listed and the
+   migrations applied.
+3. Add the domain to the new project (Vercel verifies it) **before** removing it from the old one.
+4. Move the alias; check `www.ma1stro.com/api/health` for the new revision from two networks.
+5. Keep the old deployment for 48 h as the rollback target, then raise the TTL again.

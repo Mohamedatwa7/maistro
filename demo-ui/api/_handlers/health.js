@@ -33,6 +33,9 @@ module.exports = async (req, res) => {
     // CLI deploys carry no git metadata: the release gate passes MAISTRO_REVISION (the SHA CI tested) as a deployment env
     revision: (process.env.VERCEL_GIT_COMMIT_SHA || process.env.MAISTRO_REVISION || '').slice(0, 7) || null,
     environment: process.env.VERCEL_ENV || 'local',
+    // Phase 12 O3: a Preview deployment should use its own Supabase project; until the owner points Preview at one
+    // and sets MAISTRO_PREVIEW_DB=1 in the Preview scope, this says previews read and write production data
+    dataIsolation: process.env.VERCEL_ENV === 'preview' && process.env.MAISTRO_PREVIEW_DB !== '1' ? 'preview uses the production database' : 'ok',
     configured,
     missing,
     features,
