@@ -782,11 +782,22 @@ Status: **PASSED** by checker, verified independently: CI green; both hosts repo
 
 **Phase 7 code is complete.** Its data-dependent parts wait on migration 018 and on linked posts.
 
+## Phase 8c: tracker ingestion diagnosis (commit 743d9f7, TRACKER_INGESTION.md; docs, on the branch, ships with the next gated release)
+
+Status: **PASSED** by checker; spot-checked against the tracker repo and its live routes.
+
+- F1, the labelling cap: confirmed in `lib/apify-sync.ts:1158`: `analyzeUnanalyzedComments(limit = 500)` takes unlabelled comments newest first from the last 30 days only (the comment there says older backlog is "a one-off backfill, not the daily sync's job"). Coverage by age 96, 81, 51 and 30 %; 4,092 of 6,067 comments in the 60-day window unlabelled.
+- F2, X and Facebook stop at 2026-10-16: the X and Facebook actors (ids confirmed in the same file) reported success daily on 10-20 to 10-22 in under a minute each, but the sync reads only successful runs and logs only an all-platform total, so an empty successful run leaves no trace. The likely cause (empty datasets: login wall, cookie or input filter) needs the Apify console to confirm.
+- F3: the TikTok comments actor has no successful runs; TikTok comments arrive by the URL-driven path. F4: Facebook comments last succeeded 10-19, following from F2.
+- F5: the tracker's `/api/apify/status` and `/api/apify/sync` answer 200 publicly with sync logs (checker probe), and their counts come from a select capped at 1,000 rows.
+- Fix plan P1 to P7 is a proposal for the owner (no change made to the tracker): inspect the Apify runs; a per-platform freshness alarm in the sync; remove the dead TikTok actor; a paid sentiment backfill with a cost estimate first; prompt fixes re-measured on the 7.3 fixture; gate the status routes and count exactly; push 39d2568.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
 2. **Click-through for the database half of M2:** while signed in, create one Studio campaign; the builder confirms it in the database.
 2b. ~~Per-piece budget~~ **decided by the owner on 2026-10-22: $20 per piece at 720p, $50 at 1080p** (warning at 80 %), sized for an average video of 10 to 15 s (replaces the owner's first answer of $10 and $20). Basis: a 15 s piece generates about 35 s of video including four re-rendered clips, about $16.18 at 720p and $39.80 at 1080p, plus about 20 % headroom. Implementation handed to the builder. **Live in 8b4b06d.**
+2i. **Tracker fixes** (from 8c, TRACKER_INGESTION.md): approve or decline P1 to P7. P1 needs you to open the Apify console and look at the X and Facebook runs since 10-17 (item counts), because they report success while collecting nothing.
 2h. **Apply migration 018** (attribution storage): from `D:\MAISTRO\demo-ui` in PowerShell run `$env:MAISTRO_DATABASE_URL='<the Supabase connection string>'; node db/migrate.mjs`. Until then linking a final to its post answers "not migrated".
 2g. **Push the tracker change** SamsungSentiment `39d2568` (the push-to-Maistro script sends the ingest key when it reads Maistro's snapshots back). Pushing deploys the tracker, so it is your call; until then that script's read-back answers 401.
 2f. **Sentiment coverage** (from 7.3): over 60 days two thirds of comments have no tracker label, so the page leaves them out (the keyword fallback was 43 % accurate). Decide whether to fund a labelling backfill in the tracker (proposal and cost in PERFORMANCE_INSIGHTS section 3), and arrange a native Arabic speaker to check the Arabic, Gulf, Arabizi and sarcasm labels.
