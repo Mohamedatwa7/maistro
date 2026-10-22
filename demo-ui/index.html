@@ -3228,7 +3228,7 @@ function pfStats(list){
  for(const p of list){
   const m=p.metrics||{};
   if(!s.viewsNotCollected.includes(p.platform))s.views+=+m.views||0;s.cmts+=+m.comments||0;
-  if(m.er!=null)s.ers.push(m.er);
+  if(m.er!=null&&(+m.views||0)>=500)s.ers.push(m.er); /* 7.2: ER only at ≥ 500 views */
   s.plats[p.platform]=(s.plats[p.platform]||0)+1;
   for(const c of (p.comments||[])){
    if(s[c.sentiment]!=null)s[c.sentiment]++;
@@ -3238,7 +3238,8 @@ function pfStats(list){
  const tot=s.pos+s.neu+s.neg;
  s.posRate=tot?Math.round(s.pos/tot*100):null;
  s.ratio=s.neg?(s.pos/s.neg):null;
- s.avgEr=s.ers.length?s.ers.reduce((a,b)=>a+b,0)/s.ers.length:null;
+ /* 7.2: a median, never a mean (a few viral posts dominate a mean); nearest rank, like api/_perf/benchmarks.js */
+ s.medEr=s.ers.length?s.ers.slice().sort((a,b)=>a-b)[Math.ceil(s.ers.length/2)-1]:null;
  s.analyzed=tot;
  return s;
 }
@@ -3496,7 +3497,7 @@ function rSentimentSection(list){
     </div>
     <p dir="auto" style="font-size:13px;line-height:1.6;margin-top:7px;unicode-bidi:plaintext">${esc(p.caption||'')}</p>
     ${feats.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">${feats.map(f=>`<span class="mono" style="font-size:9.5px;letter-spacing:.08em;color:var(--muted);border:1px solid var(--hairline);border-radius:99px;padding:2px 8px">${f.toUpperCase()}</span>`).join('')}</div>`:''}
-    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;align-items:center" class="mono">${stats}</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;align-items:center" class="mono">${stats}</div>${benchChip(p)}
     <div style="margin-top:13px;border-top:1px solid var(--hairline);padding-top:11px;display:flex;flex-direction:column;gap:9px">
      ${shown.map(c=>{const fl=stFlags(c.text);return `<div style="display:flex;gap:10px;align-items:flex-start;${c.sentiment==='pos'?'border-left:2px solid #34d399;padding-left:10px':c.sentiment==='neg'?'border-left:2px solid #fb7185;padding-left:10px':''}">
         <div style="flex:1;font-size:12.5px;line-height:1.55"><b style="font-size:12px">${esc(c.author||'')}</b>
@@ -4309,6 +4310,52 @@ function perfAgePill(){
    :`<span class="pill"><span class="dot"></span>${label}</span>`}).join(' ');
 }
 let PF_NOVIEWS=[];
+/* 7.2 — benchmarks (GET /api/track?benchmarks=1, computed in api/_perf/benchmarks.js; PERFORMANCE_INSIGHTS.md §2).
+   The page only formats what the server computed: no statistic is derived here. */
+const BENCH={data:null,busy:false,err:null};
+async function loadBench(){
+ if(BENCH.busy||BENCH.data)return;BENCH.busy=true;
+ try{const r=await fetch('/api/track?benchmarks=1');const d=await r.json().catch(()=>({}));if(r.ok&&d.cells){BENCH.data=d}else BENCH.err=d.error||('benchmarks unavailable ('+r.status+')')}
+ catch(e){BENCH.err='benchmarks unavailable'}
+ finally{BENCH.busy=false;if(location.hash.replace(/^#\//,'').split('/')[0]==='performance'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rPerformance();reveal()}}
+}
+const BENCH_PLAT={tiktok:'TikTok',instagram:'Instagram',facebook:'Facebook',x:'X'};
+const BENCH_FMT={all:'',video:' video',image:' image / carousel',text:' text'};
+const BENCH_BAND={'0-1d':'0–1 day','1-3d':'1–3 days','3-7d':'3–7 days',mature:'7 days +'};
+function benchVal(metric,v){return v==null?'—':metric==='er'?(v*100).toFixed(2)+' %':fmt(Math.round(v))}
+function benchFor(p){const b=BENCH.data;return b?(b.posts[sentiId(p)]||b.posts[p.postId]||null):null}
+/* one line under a post: its standing among mature posts (labelled: not boost advice), or why there is none */
+function benchChip(p){
+ const e=benchFor(p);if(!e)return '';
+ let t;
+ if(e.giveaway==='caption')t='Giveaway — counted apart from organic posts, not ranked';
+ else if(e.standing)t=`${e.standing.metric==='er'?'ER':'Engagements'} ${benchVal(e.standing.metric,e.standing.value)} — P${e.standing.percentile} of ${e.standing.of} ${e.band==='mature'?'mature':BENCH_BAND[e.band]} ${BENCH_PLAT[p.platform]||p.platform}${BENCH_FMT[e.format]||''} organic posts (${BENCH.data.windowDays} d)${e.standing.note?' · '+e.standing.note:''}`;
+ else if(e.young)t=e.young.n>=BENCH.data.minN?'':`${e.young.reason}${e.young.expected?' — expected '+e.young.expected:''} (n = ${e.young.n} of ${BENCH.data.minN})`;
+ else if(e.excluded)t=`Not ranked on ER: ${e.excluded}`;
+ if(e.giveaway==='suspected')t=(t?t+' · ':'')+'suspected giveaway (comments concentrated) — confirm';
+ return t?`<div class="dim" style="font-size:10.5px;margin-top:6px" data-bench="${esc(p.postId)}">⌖ ${esc(t)}</div>`:'';
+}
+function rBenchPanel(){
+ if(!BENCH.data&&!BENCH.err)loadBench();
+ if(!BENCH.data)return `<div class="card p4" style="margin-bottom:18px"><span class="kick">Benchmarks</span><div class="dim" style="font-size:12px;margin-top:6px">${BENCH.err?esc(BENCH.err):'Computing benchmarks over the last 90 days…'}</div></div>`;
+ const b=BENCH.data;
+ const mature=b.cells.filter(c=>c.band==='mature'&&c.kind==='organic');
+ const row=c=>`<tr><td>${esc((BENCH_PLAT[c.platform]||c.platform)+(BENCH_FMT[c.format]||''))}</td><td>${c.metric==='er'?'ER':'engagements'}</td><td class="num">${c.n}</td>${c.median!=null?['p25','median','p75','p90'].map(k=>`<td class="num">${benchVal(c.metric,c[k])}</td>`).join(''):`<td colspan="4" class="dim">n &lt; ${b.minN}: count only</td>`}<td class="num dim">${c.excludedLowViews||''}</td></tr>`;
+ const young={};
+ for(const c of b.cells)if(c.band!=='mature'&&c.kind==='organic'){const k=(BENCH_PLAT[c.platform]||c.platform)+(BENCH_FMT[c.format]||'');(young[k]=young[k]||[]).push(`${BENCH_BAND[c.band]} n = ${c.n}`)}
+ const gw=b.cells.filter(c=>c.kind==='giveaway').map(c=>`${BENCH_PLAT[c.platform]||c.platform}${BENCH_FMT[c.format]||''} ${c.n}`).join(' · ');
+ const reasons=[...new Set(Object.values(b.posts).filter(e=>e.young&&e.young.reason).map(e=>e.young.reason+(e.young.expected?' — expected '+e.young.expected:'')))];
+ return `<div class="card p4" style="margin-bottom:18px">
+  <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="kick">Benchmarks · mature organic posts (7 days +) · last ${b.windowDays} days</span><span class="dim mono" style="font-size:10px">as of ${esc(b.asOf.slice(0,16).replace('T',' '))} UTC</span></div>
+  <div style="font-size:12px;margin:6px 0 10px;color:var(--gold,#e6c26b)">These rank posts against mature peers — a benchmark, not boost advice: the window to boost closes in the first 24–72 h, and benchmarks for posts under 7 days are not available yet.</div>
+  <div style="overflow-x:auto"><table class="mono" style="width:100%;font-size:11px;border-collapse:collapse">
+   <thead><tr class="dim"><th align="left">Platform</th><th align="left">Metric</th><th>n</th><th>P25</th><th>Median</th><th>P75</th><th>P90</th><th>views &lt; ${b.minViews} left out</th></tr></thead>
+   <tbody>${mature.map(row).join('')}</tbody></table></div>
+  <div class="dim" style="font-size:11px;margin-top:8px;line-height:1.5">Nearest-rank percentiles, shown only at n ≥ ${b.minN}. ER = engagements / views, only for posts with ≥ ${b.minViews} views; Facebook and Instagram images are ranked on engagements (no views collected); Instagram engagements exclude shares (not collected).<br>
+  Young posts — ${Object.entries(young).map(([k,v])=>`${esc(k)}: ${esc(v.join(', '))}`).join(' · ')||'none observed yet'}. ${reasons.map(esc).join('; ')}.<br>
+  Giveaways, counted apart and never ranked: ${esc(gw||'none')}.</div>
+ </div>`;
+}
 function rPerformance(){
  PF_NOVIEWS=viewsNotCollected(SENTI.posts||[]);
  if(SENTI.posts.length){
@@ -4327,7 +4374,7 @@ function rPerformance(){
   <div class="kpis c4" style="margin-bottom:12px">
    <div class="card kpi p4 click" onclick="kpiDrill('posts')" title="Click to see the posts behind this number"><span class="kick">Posts</span><div class="v num">${s.posts}</div><div class="hint">${dayLab} · our accounts${pf.plat!=='all'?' · '+(PLAT[pf.plat]?PLAT[pf.plat].n:pf.plat):''} · ⌕</div></div>
    <div class="card kpi p4 click" onclick="kpiDrill('views')" title="Click to see the top posts by views"><span class="kick">Total views</span><div class="v num">${fmt(s.views)}</div><div class="hint">${dayLab}${s.viewsNotCollected.length?' · excludes '+s.viewsNotCollected.map(k=>({x:'X',twitter:'X',facebook:'Facebook',tiktok:'TikTok',instagram:'Instagram'}[k]||k)).join(', ')+' (views not collected)':''} · ⌕</div></div>
-   <div class="card kpi p4 click" onclick="kpiDrill('er')" title="Click to see the best-engaging posts"><span class="kick">Avg engagement</span><div class="v num" style="color:var(--go)">${s.avgEr!=null?pct(s.avgEr):'—'}</div><div class="hint">likes + comments + shares / views · ⌕</div></div>
+   <div class="card kpi p4 click" onclick="kpiDrill('er')" title="Click to see the best-engaging posts"><span class="kick">Median engagement</span><div class="v num" style="color:var(--go)">${s.medEr!=null?pct(s.medEr):'—'}</div><div class="hint">engagements / views · posts with ≥ 500 views (${s.ers.length}) · all platforms in view · ⌕</div></div>
    <div class="card kpi p4 click" onclick="kpiDrill('cmts')" title="Click to see the most-liked comments"><span class="kick">Comments</span><div class="v num">${fmt(s.cmts)}</div><div class="hint">reported on these posts · ⌕</div></div>
   </div>
   <div class="kpis c4" style="margin-bottom:18px">
@@ -4336,6 +4383,7 @@ function rPerformance(){
    <div class="card kpi p4 click" onclick="kpiDrill('alerts')" title="Click to see every flagged comment"><span class="kick">Critical alerts</span><div class="v num" style="color:${s.flags?'var(--alert)':'var(--muted)'}">${s.flags}</div><div class="hint">refund · technical · support · competitor flags · ⌕</div></div>
    <div class="card kpi p4 click" onclick="kpiDrill('plats')" title="Click for the top comment per platform"><span class="kick">Platform split</span><div class="v num" style="font-size:17px;line-height:1.4;padding-top:5px">${platSplit}</div><div class="hint">posts per platform · ⌕</div></div>
   </div>
+  ${rBenchPanel()}
   ${rReviewsDash(list,s)}
   ${rSentimentSection(list)}
  </section>`;

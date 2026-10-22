@@ -6,10 +6,10 @@ const { fixture, loadPage, json } = require('../helpers');
 const track = fixture('track-14d.json');
 const snap = fixture('sentiment-snapshot.json');
 
-function pageWith({ track14 = track, track7 = null, track60 = null, snapshot = snap } = {}) {
+function pageWith({ track14 = track, track7 = null, track60 = null, snapshot = snap, bench = null } = {}) {
   const fetchImpl = async (url) => {
     const u = String(url);
-    const pick = u.includes('/api/sentiment') ? snapshot : u.includes('days=14') ? track14 : u.includes('days=7') ? track7 : u.includes('days=60') ? track60 : null;
+    const pick = u.includes('benchmarks=1') ? bench : u.includes('/api/sentiment') ? snapshot : u.includes('days=14') ? track14 : u.includes('days=7') ? track7 : u.includes('days=60') ? track60 : null;
     if (!pick) throw new Error('down');
     return json(pick);
   };
@@ -116,5 +116,38 @@ test('7.0 window merge: the 60-day read widens the 14-day one — a post in both
     // the page itself ends on the merged window
     assert.deepEqual(X.SENTI.posts.map((p) => p.postId).sort(), ['both', 'fastOnly', 'old']);
     assert.equal(X.SENTI.posts.find((p) => p.postId === 'both').comments.length, 3);
+  } finally { X.restore(); }
+});
+
+test('7.2 benchmark panel: the server\'s cells as computed (no statistic derived in the page), labelled not boost advice; per-post lines for standing, young, giveaway; the KPI is a median at ≥ 500 views', async () => {
+  const id = track.posts[0].postId.replace(/^(tiktok|instagram|facebook|x)-/, '');
+  const bench = {
+    asOf: '2026-10-21T09:00:00.000Z', windowDays: 90, minN: 20, minViews: 500, snapshotsSince: '2026-10-20T06:30:00Z', excludedLowViews: { tiktok: 42 },
+    cells: [
+      { platform: 'tiktok', format: 'all', band: 'mature', kind: 'organic', metric: 'er', n: 114, p25: 0.053596, median: 0.069100, p75: 0.081713, p90: 0.098361, excludedLowViews: 42, sharesAssumedZero: 0 },
+      { platform: 'x', format: 'text', band: 'mature', kind: 'organic', metric: 'er', n: 3, excludedLowViews: 20, sharesAssumedZero: 0 },
+      { platform: 'instagram', format: 'video', band: '3-7d', kind: 'organic', metric: 'er', n: 15, excludedLowViews: 0, sharesAssumedZero: 0 },
+      { platform: 'facebook', format: 'all', band: 'mature', kind: 'giveaway', metric: 'engagements', n: 18, excludedLowViews: 0, sharesAssumedZero: 0 },
+    ],
+    posts: { [id]: { band: 'mature', format: 'all', giveaway: null, standing: { metric: 'er', value: 0.0841, percentile: 80, of: 114, aboveP75: true, note: 'benchmark among mature posts — not boost advice' } } },
+  };
+  const X = pageWith({ bench });
+  try {
+    await new Promise((r) => setTimeout(r, 80));
+    const html = X.rBenchPanel();
+    assert.match(html, /a benchmark, not boost advice/);
+    assert.match(html, /TikTok<\/td><td>ER<\/td><td class="num">114<\/td><td class="num">5\.36 %<\/td><td class="num">6\.91 %<\/td><td class="num">8\.17 %<\/td><td class="num">9\.84 %<\/td><td class="num dim">42<\/td>/);
+    assert.match(html, /X text<\/td><td>ER<\/td><td class="num">3<\/td><td colspan="4" class="dim">n &lt; 20: count only/);
+    assert.match(html, /Instagram video: 3–7 days n = 15/);
+    assert.match(html, /Giveaways, counted apart and never ranked: Facebook 18/);
+    const p = track.posts[0];
+    assert.match(X.benchChip({ ...p, platform: 'tiktok' }), /ER 8\.41 % — P80 of 114 mature TikTok organic posts \(90 d\) · benchmark among mature posts — not boost advice/);
+    X.BENCH.data.posts[id] = { band: '0-1d', format: 'video', giveaway: 'suspected', young: { n: 3, expected: '2026-10-29', reason: 'benchmarks for posts under 7 days not yet available' } };
+    assert.match(X.benchChip({ ...p, platform: 'instagram' }), /benchmarks for posts under 7 days not yet available — expected 2026-10-29 \(n = 3 of 20\) · suspected giveaway \(comments concentrated\) — confirm/);
+    X.BENCH.data.posts[id] = { band: 'mature', format: 'all', giveaway: 'caption' };
+    assert.match(X.benchChip(p), /Giveaway — counted apart from organic posts, not ranked/);
+    // the headline ER is a nearest-rank median over posts with ≥ 500 views, never a mean
+    const s = X.pfStats([{ platform: 'tiktok', metrics: { views: 1000, er: 0.01 } }, { platform: 'tiktok', metrics: { views: 1000, er: 0.02 } }, { platform: 'tiktok', metrics: { views: 1000, er: 0.9 } }, { platform: 'tiktok', metrics: { views: 100, er: 0.5 } }]);
+    assert.equal(s.medEr, 0.02); assert.equal(s.ers.length, 3);
   } finally { X.restore(); }
 });

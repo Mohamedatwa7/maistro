@@ -120,7 +120,7 @@ function benchmarks({ posts, snapshots = [], now = Date.now(), windowDays = 90, 
   for (const p of posts) {
     const id = String(p.postId), age = (now - Date.parse(p.postedAt)) / 864e5, band = age >= 7 ? 'mature' : bandOf(Math.max(0, age));
     const conc = concentration(p);
-    const entry = { band, giveaway: gw.get(id) ? 'caption' : conc.suspected ? 'suspected' : null, ...(conc.suspected ? { concentration: conc } : {}) };
+    const entry = { band, format: format(p), giveaway: gw.get(id) ? 'caption' : conc.suspected ? 'suspected' : null, ...(conc.suspected ? { concentration: conc } : {}) };
     const c = out.find((x) => x.platform === p.platform && x.format === format(p) && x.band === band && x.kind === kindOf(p));
     if (band !== 'mature') {
       const n = c ? c.n : 0;
