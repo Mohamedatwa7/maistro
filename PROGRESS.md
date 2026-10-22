@@ -685,11 +685,17 @@ Caveats for the owner:
 1. **The labels are the builder's (a model), not a person's.** The fixture says the owner may re-label any disputed case; a human spot-check of the 72 is advisable before the rates are quoted.
 2. **Definitional choice:** most merged groups are the same person re-posting a giveaway entry. Collapsing them counts people, not entries, which lowers comment totals on giveaway posts. That is the right reading for sentiment, but if comment volume is reported as engagement, the uncollapsed count should be shown alongside.
 
+## Owner's budget caps live: $20 at 720p, $50 at 1080p (commit 8b4b06d; released through the gate)
+
+Status: **PASSED** by checker, with one loophole to close. CI green; local 178/178; production `revision: 8b4b06d`. A piece's own cap (set by a line manager or admin) wins; otherwise the default follows the piece's resolution ($20 for 720p, $50 once any of its video jobs is 1080p), env-overridable; warning at 80 %. The budget view reports the cap's basis; a refusal names the cap, its basis and how to raise it; the page gained a "Set cap" control (role check stays on the server). The sizing assumption is written in GOLDEN_SET.md and CONTENT_STUDIO.md, including that the 5-shot golden-set pieces exceed the defaults and need their caps raised for that run.
+
+Loophole: the 1080p default applies as soon as one 1080p video job exists on the piece, and the job under consideration is itself counted. A 720p piece that has reached its $20 cap can therefore request a 1080p render and jump to the $50 cap. Decide the resolution from the piece's setting (or from its first video job) rather than from any job, or require a line manager or admin to switch a piece to 1080p.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
 2. **Click-through for the database half of M2:** while signed in, create one Studio campaign; the builder confirms it in the database.
-2b. ~~Per-piece budget~~ **decided by the owner on 2026-10-22: $20 per piece at 720p, $50 at 1080p** (warning at 80 %), sized for an average video of 10 to 15 s (replaces the owner's first answer of $10 and $20). Basis: a 15 s piece generates about 35 s of video including four re-rendered clips, about $16.18 at 720p and $39.80 at 1080p, plus about 20 % headroom. Implementation handed to the builder.
+2b. ~~Per-piece budget~~ **decided by the owner on 2026-10-22: $20 per piece at 720p, $50 at 1080p** (warning at 80 %), sized for an average video of 10 to 15 s (replaces the owner's first answer of $10 and $20). Basis: a 15 s piece generates about 35 s of video including four re-rendered clips, about $16.18 at 720p and $39.80 at 1080p, plus about 20 % headroom. Implementation handed to the builder. **Live in 8b4b06d.**
 2d. **Twin-collapse sample** (from 0b82631): run the reader the builder gave you so the duplicate-comment audit can be labelled.
 2c. **TikTok reach was overstated** on the Performance page before 2026-10-22 (about six times, from another project's fan and news accounts in the tracker). Any figure taken from the page before that date should not be reused.
 3. **Licensed audio library** (from 6.7): QC fixes of type audio swap stay blocked until a licensed audio source is connected.
