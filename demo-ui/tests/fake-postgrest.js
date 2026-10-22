@@ -54,10 +54,13 @@ function fakePostgrest(base = 'https://sb.test') {
 
   // columns of tables whose shape the code must respect exactly (a wrong column is a 400 in PostgREST)
   const COLUMNS = { audit_log: ['id', 'actor', 'action', 'entity', 'entity_id', 'before', 'after', 'at'] };
+  const ENUMS = require('./schema-constraints.js').load();
   function checkColumns(table, row) {
-    const cols = COLUMNS[table]; if (!cols) return;
-    const bad = Object.keys(row).filter((k) => !cols.includes(k));
-    if (bad.length) throw Object.assign(new Error(`fake-postgrest: column ${bad.join(', ')} of ${table} does not exist`), { pgColumn: true });
+    const cols = COLUMNS[table];
+    if (cols) { const bad = Object.keys(row).filter((k) => !cols.includes(k)); if (bad.length) throw Object.assign(new Error(`fake-postgrest: column ${bad.join(', ')} of ${table} does not exist`), { pgCode: '42703' }); }
+    for (const [col, allowed] of Object.entries(ENUMS[table] || {})) {
+      if (row[col] !== undefined && row[col] !== null && !allowed.includes(row[col])) throw Object.assign(new Error(`fake-postgrest: ${table}.${col} = '${row[col]}' violates its check constraint (${allowed.join(', ')})`), { pgCode: '23514' });
+    }
   }
   function defaults(table, row) {
     const r = { ...row };
@@ -96,7 +99,7 @@ function fakePostgrest(base = 'https://sb.test') {
       const list = Array.isArray(body) ? body : [body];
       const inserted = [];
       for (const raw of list) {
-        try { checkColumns(p.table, raw); } catch (e) { return new Response(JSON.stringify({ code: '42703', message: e.message }), { status: 400, headers: { 'content-type': 'application/json' } }); }
+        try { checkColumns(p.table, raw); } catch (e) { return new Response(JSON.stringify({ code: e.pgCode || '42703', message: e.message }), { status: 400, headers: { 'content-type': 'application/json' } }); }
         const r = defaults(p.table, raw);
         const keys = UNIQUE[p.table] || [];
         const dupRow = rows.find((x) => keys.some((cols) => cols.every((c) => String(x[c]) === String(r[c]))));
@@ -115,6 +118,7 @@ function fakePostgrest(base = 'https://sb.test') {
     }
     if (method === 'PATCH') {
       const patch = JSON.parse(init.body);
+      try { checkColumns(p.table, patch); } catch (e) { return new Response(JSON.stringify({ code: e.pgCode || '42703', message: e.message }), { status: 400, headers: { 'content-type': 'application/json' } }); }
       const out = [];
       for (const r of rows) if (matches(r, p.filters)) { Object.assign(r, patch, p.table === 'stages' ? { updated_at: now() } : {}); out.push(r); }
       return new Response(JSON.stringify(out), { status: 200, headers: { 'content-type': 'application/json' } });
