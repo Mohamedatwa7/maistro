@@ -540,6 +540,15 @@ Gaps:
 1. **The gate fails open.** A render with no price (the v1 product-reference path, which has no estimate endpoint, or any estimate call that errors) is submitted unpriced and never counts toward the cap. Product-photo renders therefore escape the budget. Either price v1 renders at the most recent observed cost of the same kind, or count them at a fixed conservative figure until Higgsfield prices them.
 2. **Parallel jobs can overshoot the cap.** A job's estimate is written only after its own gate check, so storyboard or draft jobs created together and gated in separate invocations (the tick, an inline submit, page polls) each see the others as unpriced. The overshoot is bounded by one batch of shots; acceptable for now, but a reservation (write the estimate before the comparison, filtered on the job row) would close it.
 
+## Phase 6.9: lineage and stage invalidation; budget gaps closed (commit 03d1263; released; migration 016 applied)
+
+Status: **PASSED** by checker. CI green; local 163/163; production `/` byte-identical (sha256 ec2a07ed…), health ok.
+
+- Lineage: every new version records `inputs`, the current version id of each stage it consumes (`CONSUMES`: mood from plan, thumb from mood, brief from mood and thumb, board from brief and mood, draft from board, QC from draft, final from QC and draft). `staleStages()` is pure and walks the stages in order, so staleness carries transitively through the chain with a `via` list. Versions created before migration 016 have no inputs and are never called stale.
+- `decide()` refuses to approve a stale version with 409 `stale_inputs` naming the replaced inputs; approved stages stay immutable, so an upstream change needs an admin reopen, after which everything built on it reads stale; the delivery package refuses while any stage is stale; the pieces list and the Studio show "Out of date". The test walks a full reopen, regenerate and re-approve sequence.
+- Budget gaps closed: an unpriced render (v1 reference path or a failed estimate call) is charged at the last observed estimate of the same job kind, else `MAISTRO_UNPRICED_USD` ($1.00), with the basis recorded; the estimate is reserved on the job before the piece total is read, so parallel gates count each other (test: two $1.20 renders against a $2.00 cap, at most one goes through; both refused is the safe failure).
+- Note, not blocking: a reopened stage that has not yet been regenerated keeps its old version id, so nothing downstream reads stale until a new version lands. That matches "stale means built from a replaced version", but the page could say "upstream reopened" in the meantime.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
