@@ -55,6 +55,11 @@ read needs a session, so this is an owner action (save `/api/track?days=7` while
 | Price card (6.9) | every render body priced by the provider | `audit_log` action `higgsfield.prices` (daily, retried hourly) | complete, 2026-10-22 09:15 UTC |
 | Freshness (R-9) | newest post and comment per platform under 48 h | each reconciliation report; the Performance header pills | **Facebook and X stale since 2026-10-16** (TRACKER_INGESTION F2) |
 
+`npm run evals` reads the newest row of each monitor when the store credentials are present (`SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY`, e.g. after `vercel env pull`). In CI it prints "not read by this command — see
+<table>", never a remembered value. The "Latest known" column above is this document's snapshot, not a live
+reading.
+
 The age of each monitor is the timestamp of its newest row. A monitor whose newest row is older than its
 schedule is itself a failure (e.g. no reconciliation row for 2 days means the cron stopped).
 
@@ -62,12 +67,12 @@ schedule is itself a failure (e.g. no reconciliation row for 2 days means the cr
 
 | Eval | What | Cost | How |
 |---|---|---|---|
-| `content_golden_set` (6.10) | the 20-piece golden set rated on the rubric (GOLDEN_SET.md) | ≈ $420 per run at 720p | owner approval of the set, rubric and budget, then the Studio run |
+| `content_golden_set` (6.10) | the 20-piece golden set rated on the rubric (GOLDEN_SET.md) | ≈ $420 per run at 720p | **not authorised** — owner decision 2026-10-22: no Higgsfield spend for testing (no golden-set run, no eval or benchmark that renders, no "quick check" render); guarded in code |
 | `f1x8_consistency` (9) | score spread when the same final is scored repeatedly; proposed 5 finals × 5 runs | F1X8 is not Higgsfield-billed — confirm the Modal cost of 25 analyses first | extend `scripts/f1x8-test.js` with a repeat flag; proposed threshold: spread ≤ 0.5 points per final |
 
 ## 4. Owner decisions
 1. Agree or amend each proposed threshold.
-2. Approve the paid runs and their budgets.
+2. Approve the paid runs and their budgets. Higgsfield-rendering evals are not authorised (2026-10-22); F1X8 consistency spends no Higgsfield money but still needs its cost confirmed.
 3. The held-out themes sample (a signed-in export).
 
 Once a threshold is agreed, it becomes blocking in CI.

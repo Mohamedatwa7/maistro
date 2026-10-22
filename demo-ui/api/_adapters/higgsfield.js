@@ -87,6 +87,9 @@ async function estimateRequest(reqBody) {
  *  opts.idempotencyKey (the job id) makes a retried submit replay the
  *  original request instead of generating — and charging — twice. */
 async function submit(reqBody, opts = {}) {
+  // Owner decision 2026-10-22: no Higgsfield spend for testing. The eval runner and scripts set MAISTRO_NO_RENDER;
+  // a real render happens only when a person generates a piece in the Studio. (Free /estimate calls are unaffected.)
+  if (process.env.MAISTRO_NO_RENDER === '1') throw Object.assign(new Error('Higgsfield renders are disabled here (MAISTRO_NO_RENDER=1): no spend for testing — owner decision 2026-10-22'), { status: 403, code: 'renders_disabled' });
   const creds = credentials();
   if (!creds) throw Object.assign(new Error('HF_CREDENTIALS is not configured'), { status: 503 });
   const { kind, prompt, resolution, aspect_ratio, ref, duration, batch, seed, imageUrl, endImageUrl, generateAudio } = normalizeRequest(reqBody);

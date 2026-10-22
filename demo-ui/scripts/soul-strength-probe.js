@@ -1,3 +1,6 @@
+// DISABLED (owner decision 2026-10-22): no Higgsfield spend for testing. Real renders happen only when a person
+// generates a piece in the Studio. This script renders, so it refuses to run. (tests/api/no-paid-renders.test.js)
+console.error('Disabled: paid Higgsfield renders from scripts are not authorised (owner, 2026-10-22).'); process.exit(1);
 // Probe: does /v1/text2image/soul accept a strength for image_reference?
 // FastAPI validation errors reveal the schema without spending a render.
 async function probe(extra, label) {

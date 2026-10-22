@@ -3,6 +3,9 @@
 // paid calls) and lists the paid ones with their cost estimate. Writes evals-report.json next to this repo's
 // demo-ui and prints a table. `--ci` exits non-zero only when a BLOCKING eval fails; thresholds marked
 // "proposed" are advisory until the owner agrees them (then set blocking: true here).
+// owner decision 2026-10-22: the suite never renders with Higgsfield — no credentials, and the adapter refuses submits
+delete process.env.HF_CREDENTIALS;
+process.env.MAISTRO_NO_RENDER = '1';
 const fs = require('node:fs');
 const path = require('node:path');
 const ROOT = path.join(__dirname, '..');
@@ -70,16 +73,43 @@ const byInterval = (ci, min) => (!ci ? null : ci[0] >= min ? true : ci[1] < min 
   add({ id: 'themes_audit_table', phase: '7.4', kind: 'free', what: 'the AUDIT table the page shows equals the recomputation (tests/perf/themes.test.js)', value: same ? 'checked in the test suite' : 'missing', threshold: 'equal', guards: 'the confidence marks on the page match the measured audit', pass: same, blocking: true, thresholdStatus: 'frozen' });
 }
 // live or paid — listed, not computed here
-add({ id: 'reconciliation_live', layer: 'live monitor', where: 'reconciliation_reports (newest row; the 06:30 track cron)', phase: '7.0', kind: 'live (daily cron report)', what: 'R-1 posts, R-3 comments seen, R-4 matched bound, R-6 unique, R-8 owned only', value: 'see reconciliation_reports (2026-10-22: all true)', threshold: 'all true (zero tolerance)', pass: null, note: 'logic covered by tests/api/track-sentiment.test.js; the live result is the daily stored report' });
-add({ id: 'judge_live', layer: 'live monitor', where: 'audit_log action trends.eval (once per prompt version, hourly trends cron)', phase: '5.9', kind: 'live', what: 'the live judge on the 10 eval cases', value: 'profile-v1.4: 10/10 on 2026-10-22', threshold: '10/10', pass: null });
-add({ id: 'price_card', layer: 'live monitor', where: 'audit_log action higgsfield.prices (daily, retried hourly until complete)', phase: '6.9', kind: 'live', what: 'every render body priced by the provider', value: 'complete on 2026-10-22 09:15 UTC', threshold: 'complete', pass: null });
-add({ id: 'freshness', layer: 'live monitor', where: 'R-9 in each reconciliation report; the Performance header pills', phase: '7.0', kind: 'live', what: 'newest post / comment per platform under 48 h', value: 'Facebook and X stale since 2026-10-16', threshold: '< 48 h', pass: null, note: 'TRACKER_INGESTION F2' });
-add({ id: 'content_golden_set', layer: 'paid / on demand', phase: '6.10', kind: 'paid', what: 'golden-set content run (20 pieces)', value: 'not run', threshold: 'rubric per GOLDEN_SET.md §3 (owner)', pass: null, cost: '≈ $420 per run at 720p (GOLDEN_SET.md §5)', note: 'owner approval of set, rubric and budget pending' });
+// live monitors: read the newest row of each when the store's credentials are present (SUPABASE_URL +
+// SUPABASE_SERVICE_ROLE_KEY, e.g. `vercel env pull`); otherwise report "not read" — never a remembered value.
+// A monitor whose newest row is older than its schedule allows is itself a failure.
+const MONITORS = [
+  { id: 'reconciliation_live', phase: '7.0', where: 'reconciliation_reports', maxAgeH: 26, what: 'R-1 posts, R-3 comments seen, R-4 matched bound, R-6 unique, R-8 owned only (zero tolerance)', threshold: 'all true, newest row ≤ 26 h old',
+    read: async (q) => { const [r] = await q('reconciliation_reports', 'select=at,ok,report&order=at.desc&limit=1'); return r ? { at: r.at, value: r.ok ? 'all true' : `failed: ${Object.entries((r.report || {}).checks || {}).filter(([, v]) => v === false).map(([k]) => k).join(', ')}`, ok: Boolean(r.ok), row: r } : null; } },
+  { id: 'judge_live', phase: '5.9', where: "audit_log action 'trends.eval'", maxAgeH: null, what: 'the live judge on the 10 eval cases, once per prompt version', threshold: 'all cases pass',
+    read: async (q) => { const [r] = await q('audit_log', "select=at,after&action=eq.trends.eval&order=at.desc&limit=1"); return r ? { at: r.at, value: `${r.after.promptVersion}: ${r.after.passed}/${r.after.total}`, ok: r.after.passed === r.after.total } : null; } },
+  { id: 'price_card', phase: '6.9', where: "audit_log action 'higgsfield.prices'", maxAgeH: 26, what: 'every render body priced by the provider (daily, retried hourly)', threshold: 'complete, newest row ≤ 26 h old',
+    read: async (q) => { const [r] = await q('audit_log', "select=at,after&action=eq.higgsfield.prices&order=at.desc&limit=1"); return r ? { at: r.at, value: r.after && r.after.complete ? 'complete' : 'incomplete', ok: Boolean(r.after && r.after.complete) } : null; } },
+  { id: 'freshness', phase: '7.0', where: 'reconciliation_reports.report.freshness (R-9)', maxAgeH: 26, what: 'newest post per platform under 48 h old', threshold: 'every platform < 48 h',
+    read: async (q) => { const [r] = await q('reconciliation_reports', 'select=at,report&order=at.desc&limit=1'); if (!r) return null; const f = (r.report || {}).freshness || {}; const stale = Object.entries(f).filter(([, v]) => !v.newestPost || Date.parse(r.at) - Date.parse(v.newestPost) > 48 * 36e5).map(([k, v]) => `${k} (newest ${String(v.newestPost || 'none').slice(0, 10)})`); return { at: r.at, value: stale.length ? `stale: ${stale.join(', ')}` : 'all fresh', ok: !stale.length }; } },
+];
+async function readMonitors() {
+  const canRead = Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const { queryRows } = canRead ? require(path.join(ROOT, 'api', '_supabase.js')) : {};
+  for (const m of MONITORS) {
+    const base = { id: m.id, layer: 'live monitor', phase: m.phase, kind: 'live', where: m.where, what: m.what, threshold: m.threshold };
+    if (!canRead) { add({ ...base, value: `not read by this command — see ${m.where}`, pass: null }); continue; }
+    try {
+      const r = await m.read(queryRows);
+      if (!r) { add({ ...base, value: `no row in ${m.where}`, pass: false }); continue; }
+      const ageH = +((Date.now() - Date.parse(r.at)) / 36e5).toFixed(1);
+      const stale = m.maxAgeH != null && ageH > m.maxAgeH;
+      add({ ...base, value: `${r.value} (newest row ${ageH} h old${stale ? ' — STALE' : ''})`, at: r.at, ageH, pass: r.ok && !stale });
+    } catch (e) { add({ ...base, value: `read failed: ${String(e.message).slice(0, 120)}`, pass: false }); }
+  }
+}
+add({ id: 'content_golden_set', layer: 'paid / on demand', phase: '6.10', kind: 'paid', what: 'golden-set content run (20 pieces)', value: 'NOT AUTHORISED — no Higgsfield spend for testing (owner, 2026-10-22)', threshold: 'rubric per GOLDEN_SET.md §3 (owner)', pass: null, cost: '≈ $420 per run at 720p (GOLDEN_SET.md §5)', note: 'guarded: the adapter refuses submits under MAISTRO_NO_RENDER, which this runner sets' });
 add({ id: 'f1x8_consistency', layer: 'paid / on demand', phase: '9', kind: 'paid', what: 'F1X8 score spread when the same final is scored repeatedly (proposed 5 finals × 5 runs)', value: 'not run', threshold: 'spread ≤ 0.5 points per final (proposed)', pass: null, cost: 'F1X8 is not Higgsfield-billed; 25 analyses — confirm the Modal cost before running', command: 'node scripts/f1x8-test.js (to extend with --repeat)' });
 add({ id: 'boost_backtest', layer: 'regression (once data exists)', phase: '8a', kind: 'free once data exists', what: 'precision / recall of Boost+Watch on top performers (mature ≥ P90), per platform', value: 'not runnable before ≈ mid-November 2026', threshold: 'recall ≥ 0.6, precision ≥ 0.5 on ≥ 30 top performers (proposed)', pass: null, note: 'BOOST_PROPOSAL.md §4' });
 
-const report = { generatedAt: new Date().toISOString(), evals };
-if (!process.argv.includes('--no-write')) fs.writeFileSync(path.join(ROOT, 'evals-report.json'), JSON.stringify(report, null, 1));
-for (const e of evals) console.log(`${e.pass === true ? 'PASS' : e.pass === false ? 'FAIL' : e.pass === 'inconclusive' ? 'INCL' : '—   '} ${e.layer.slice(0, 10).padEnd(10)} ${e.blocking ? '[blocking] ' : ''}${e.id.padEnd(28)} ${String(e.value).padEnd(22)} threshold ${e.threshold} (${e.thresholdStatus})`);
-const blockingFail = evals.filter((e) => e.blocking && e.pass === false);
-if (process.argv.includes('--ci') && blockingFail.length) { console.error('blocking evals failed:', blockingFail.map((e) => e.id).join(', ')); process.exit(1); }
+(async () => {
+  await readMonitors();
+  const report = { generatedAt: new Date().toISOString(), evals };
+  if (!process.argv.includes('--no-write')) fs.writeFileSync(path.join(ROOT, 'evals-report.json'), JSON.stringify(report, null, 1));
+  for (const e of evals) console.log(`${e.pass === true ? 'PASS' : e.pass === false ? 'FAIL' : e.pass === 'inconclusive' ? 'INCL' : '—   '} ${e.layer.slice(0, 10).padEnd(10)} ${e.blocking ? '[blocking] ' : ''}${e.id.padEnd(28)} ${String(e.value).padEnd(22)} threshold ${e.threshold} (${e.thresholdStatus})`);
+  const blockingFail = evals.filter((e) => e.blocking && e.pass === false);
+  if (process.argv.includes('--ci') && blockingFail.length) { console.error('blocking evals failed:', blockingFail.map((e) => e.id).join(', ')); process.exit(1); }
+})();

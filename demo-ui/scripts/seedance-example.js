@@ -1,3 +1,6 @@
+// DISABLED (owner decision 2026-10-22): no Higgsfield spend for testing. Real renders happen only when a person
+// generates a piece in the Studio. This script renders, so it refuses to run. (tests/api/no-paid-renders.test.js)
+console.error('Disabled: paid Higgsfield renders from scripts are not authorised (owner, 2026-10-22).'); process.exit(1);
 // Higgsfield SDK example — Seedance 2.5 text-to-video.
 // Run: node --env-file=.env.local scripts/seedance-example.js
 // Makes ONE billable generation request and prints the video URL.

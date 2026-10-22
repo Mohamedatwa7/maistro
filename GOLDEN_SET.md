@@ -1,8 +1,14 @@
 # GOLDEN_SET — Phase 6.10 content evaluation (proposal, not yet run)
 
-Status 2026-10-22: **proposal for the owner.** Nothing in this document has been generated; the baseline run is a paid
-spend (Higgsfield renders) and waits for the owner's approval of the set, the rubric and the budget below. The
-mandate asks for the set to be chosen "with me" — this is the builder's starting point, to be amended.
+Status 2026-10-22: **not authorised — owner decision 2026-10-22: no Higgsfield spend for testing.**
+- The golden-set run renders with Higgsfield, so it does not run.
+- Free `/estimate` calls (the price card) and tests against the fake stay allowed.
+- Real renders happen only when a person generates a piece in the Studio.
+- Guards: the adapter refuses submits under `MAISTRO_NO_RENDER=1`, the eval runner sets it, and every script that
+  could render refuses to run (`tests/api/no-paid-renders.test.js`).
+
+The set, rubric and budget below stay on file as the builder's proposal in case the owner reverses the decision.
+Nothing has been generated.
 
 ## 1. Source and constraints
 
