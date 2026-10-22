@@ -19,9 +19,15 @@ test('nearest rank by hand: 1..10 → P25 = 3, median = 5, P75 = 8, P90 = 9; 1..
 });
 
 test('giveaway captions: word-bounded terms in English and Arabic; explicit false positives are not giveaways', () => {
-  for (const t of ['Enter our GIVEAWAY now', 'Win a Galaxy Z Flip8', 'Winners announced Friday', 'Join the contest', 'مسابقة سامسونج الخليج', 'اربح جالكسي', 'السحب يوم الجمعة', 'سحب على ٣ أجهزة'])
+  for (const t of ['Enter our GIVEAWAY now', 'Win a Galaxy Z Flip8', 'Winners announced Friday', 'Join the contest', 'مسابقة سامسونج الخليج', 'اربح جالكسي', 'السحب يوم الجمعة', 'سحب على ٣ أجهزة',
+    // hand-read live captions (90 days, 2026-10-22): giveaways the first pattern caught or missed
+    'Comment below and WIN✨ Pick your Galaxy Z Series device', 'Complete the challenges & stand a chance to win the all-new Z Fold8', 'enter the raffle for a chance to win a Galaxy Z Flip8',
+    'You could still win a Galaxy Z Fold8.', 'Plus, you might walk away with an exciting prize!', 'رايك بوابتك لربح جهاز Galaxy القادم', 'Compete for your chance to win a Beta code'])
     assert.equal(B.isGiveawayCaption(t), true, t);
-  for (const t of ['Light from the window', 'Winter look with Watch9', 'Twin cameras, one shot', 'Galaxy Wink filter', 'Meet the Galaxy Win', 'سحب الهاتف من الجيب بسهولة', 'Twinkle lights for the holidays', 'swing into the weekend'])
+  for (const t of ['Light from the window', 'Winter look with Watch9', 'Twin cameras, one shot', 'Galaxy Wink filter', 'Meet the Galaxy Win', 'سحب الهاتف من الجيب بسهولة', 'Twinkle lights for the holidays', 'swing into the weekend',
+    // hand-read live captions the first pattern flagged wrongly, and prize-adjacent words that are not giveaways
+    'Virgin Radio pulled up with games, giveaways & plenty of fun at Dubai Mall.', 'That’s a wrap on GoClimb’s Haraka Bouldering Competition with Galaxy.', 'Stop searching. Start winning.',
+    'Multi-Window on Galaxy Z Fold8 lets you run three apps at once', 'Enjoy 5X Reward Points, exclusive savings on cases', 'أرباح الربع الثالث'])
     assert.equal(B.isGiveawayCaption(t), false, t);
 });
 
@@ -76,6 +82,10 @@ test('young posts: no percentile below n = 20, expected date from the posting ra
   // rate = 2 posts / 2.229 d since 2026-10-20T06:30Z; (20 − 1) / rate ≈ 21.2 d → 2026-11-12
   assert.deepEqual(y.young, { n: 1, expected: '2026-11-12', reason: 'benchmarks for posts under 7 days not yet available' });
   assert.equal(y.standing, undefined);
+  // fresh platform, but no posts of this format since snapshots began: no date, and it says why
+  const img = post({ platform: 'instagram', mediaType: 'Image', postedAt: '2026-10-19T08:00:00Z' });
+  const ri = B.benchmarks({ posts: [img], now: Date.parse('2026-10-20T10:00:00Z'), newestByPlatform: { instagram: '2026-10-20T09:00:00Z' } });
+  assert.deepEqual(ri.posts[img.postId].young, { n: 0, expected: null, reason: 'benchmarks for posts under 7 days not yet available — no image posts since snapshots began, so no expected date' });
   const s = B.benchmarks({ posts: [young], now: NOW, newestByPlatform: { tiktok: '2026-10-17T08:00:00Z' } });
   assert.deepEqual(s.posts[young.postId].young, { n: 0, expected: null, reason: 'no recent data — tracker last collected 2026-10-17' });
 });

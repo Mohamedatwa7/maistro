@@ -20,5 +20,28 @@ Every number here is computed in code from the tracker's rows and Maistro's dail
 | D9 | **Population**: the live read is post-fix (owned accounts only, R-8). Snapshot rows are re-filtered to owned accounts and non-ifold/unpacked/roster ids on read, so rows stored before the 2026-10-22 population fix drop out; stored aggregates are never reused. | the TikTok figures before the fix were ~6× too high |
 | D10 | **Standing**: a post's percentile within its own cell, shown as e.g. "ER 1.6 % — P80 of 20 mature TikTok organic posts (90 d)"; "above P75" is the quantitative half of "Recommended to boost" only once young bands are populated. | |
 
+**Giveaway classifier, hand-read on the live 90-day captions (2026-10-22, 732 posts).** The first word-bounded
+pattern flagged 60. Read by hand, 3 were not giveaways (an event recap mentioning "games, giveaways & plenty of
+fun", and a sponsored bouldering competition posted twice) and 2 giveaways were missed ("لربح جهاز Galaxy",
+"you might walk away with an exciting prize"). The pattern now needs prize-entry wording (a giveaway, a raffle, an
+entry instruction, a chance to win). It flags 59, and a scan of every unflagged caption containing a prize-adjacent
+word (win / winning / prize / reward / raffle / ربح / سحب …) found no giveaway left. These captions are in the
+test's true and false lists. The classification was read by Claude, so the owner may re-read it.
+
+**First live read (2026-10-22 10:03 UTC, 90 days, 3,373 owned snapshot rows).** Mature organic cells with
+percentiles:
+
+| Platform · format | Metric | n | P25 | Median | P75 | P90 | Left out (views < 500) |
+|---|---|---|---|---|---|---|---|
+| TikTok | ER | 115 | 5.36 % | 7.01 % | 8.17 % | 9.84 % | 41 |
+| Instagram video | ER | 81 | 2.50 % | 4.21 % | 10.0 % | 15.1 % | 50 |
+| X video | ER | 53 | 0.87 % | 1.08 % | 1.38 % | 1.74 % | 55 |
+| Instagram image / carousel | engagements | 37 | 64 | 98 | 204 | 291 | — |
+| Facebook | engagements | 178 | 27 | 65 | 165 | 305 | — |
+
+X text (3 posts) and every giveaway cell show counts only. No young band has reached n ≥ 20 yet: the largest is
+Instagram video at 3–7 d, with n = 15. Facebook and X have been stale since 2026-10-16 (tracker collection), so
+their young posts show "no recent data" and no expected date.
+
 Not yet: a line manager / admin flag to confirm or clear a giveaway (needs a stored flag); young-band history
 fills daily from the 06:30 snapshot.

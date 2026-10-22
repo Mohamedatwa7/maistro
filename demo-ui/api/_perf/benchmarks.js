@@ -21,9 +21,19 @@ const MIN_N = 20, MIN_VIEWS = 500, STALE_H = 48;
 const SNAPSHOTS_SINCE = '2026-10-20T06:30:00Z';
 const BANDS = [['0-1d', 0, 1], ['1-3d', 1, 3], ['3-7d', 3, 7], ['mature', 7, Infinity]];
 
-// word-bounded (so not window / winter / twin / Galaxy Wink) and not the "Galaxy Win" product name; "سحب" (also
-// pull / withdraw) only as a draw: "السحب" or "سحب على"
-const GIVEAWAY_RE = /\bgive\s?aways?\b|(?<!galaxy\s)\bwin\b|\bwinners?\b|\bcontests?\b|\bcompetitions?\b|مسابق[ةه]|اربح|(?:^|\s)فز\s?ب|السحب|سحب\s+على/i;
+// Prize-entry wording, not prize-adjacent words. The first, word-bounded pattern ("win", "contest",
+// "competition", "giveaways") flagged 60 of 732 posts on the live 90-day read (2026-10-22); read by hand, 3 were
+// wrong — an event recap ("games, giveaways & plenty of fun") and a sponsored bouldering competition (twice) —
+// and 2 giveaways were missed ("لربح جهاز Galaxy", "you might walk away with an exciting prize"). So: a giveaway,
+// a raffle, an entry instruction or a chance to win. Never window / winter / twin / Galaxy Wink / the "Galaxy
+// Win" name; "سحب" (also pull / withdraw) only as a draw; "ربح" (also profit) only as "اربح" / "لربح".
+const GIVEAWAY_RE = new RegExp([
+  String.raw`\bgive\s?away\b`, String.raw`\braffle\b`, String.raw`\bhow to enter\b`,
+  String.raw`\b(?:enter|join) (?:the |a |our )?(?:raffle|draw|giveaway|contest|competition)\b`,
+  String.raw`\bchance to win\b`, String.raw`\b(?:could|might|can) (?:still |even )?win\b`, String.raw`\b(?:comment|share|tag|reply)\b[^.!?\n]{0,30}\band win\b`,
+  String.raw`^\s*win\b`, String.raw`\bwinners? (?:will be|announced)\b`, String.raw`\b(?:could|might|can) walk away with\b`,
+  'مسابق[ةه]', 'اربح', 'لربح', String.raw`(?:^|\s)فز\s?ب`, 'السحب', String.raw`سحب\s+على`,
+].join('|'), 'i');
 const isGiveawayCaption = (caption) => GIVEAWAY_RE.test(String(caption || ''));
 
 // second signal: mostly short entries and many repeats → suspected, for a person to confirm (stays organic)
@@ -119,7 +129,9 @@ function benchmarks({ posts, snapshots = [], now = Date.now(), windowDays = 90, 
       const rate = posts.filter((q) => q.platform === p.platform && format(q) === format(p) && q.postedAt >= SNAPSHOTS_SINCE).length / sinceDays;
       entry.young = n >= MIN_N ? { n } : stale
         ? { n, expected: null, reason: `no recent data — tracker last collected ${newest ? newest.slice(0, 10) : 'never'}` }
-        : { n, expected: rate > 0 ? new Date(now + ((MIN_N - n) / rate) * 864e5).toISOString().slice(0, 10) : null, reason: 'benchmarks for posts under 7 days not yet available' };
+        : rate > 0
+          ? { n, expected: new Date(now + ((MIN_N - n) / rate) * 864e5).toISOString().slice(0, 10), reason: 'benchmarks for posts under 7 days not yet available' }
+          : { n, expected: null, reason: `benchmarks for posts under 7 days not yet available — no ${format(p) === 'all' ? '' : `${format(p)} `}posts since snapshots began, so no expected date` };
     }
     const mv = metricOf(p);
     if (mv.excluded) entry.excluded = mv.excluded;
