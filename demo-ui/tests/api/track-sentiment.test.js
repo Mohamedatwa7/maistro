@@ -52,7 +52,8 @@ test('browser read: shape, twin collapse (author+text, a minute apart), cache he
   assert.equal(p.comments[0].sentiment, 'pos', 'the analyzed copy wins; sentiment mapped to pos/neu/neg');
   assert.equal(p.comments[0].sentimentSource, 'tracker', 'the label is the tracker model’s, not the keyword fallback');
   assert.equal(p.comments[0].likes, 3);
-  assert.equal(r.headers['cache-control'], 's-maxage=600, stale-while-revalidate=86400');
+  assert.equal(r.headers['cache-control'], 'private, max-age=300', 'customer comments: never in a shared cache');
+  assert.equal(r.headers['access-control-allow-origin'], undefined, 'no open CORS on customer data');
   assert.equal(stores.length, 0);
   assert.equal(r.body.stored, null);
   assert.ok(calls.some((c) => c.url.includes('platform=eq.instagram&raw_data->>ownerUsername=ilike.*samsung*')), 'Samsung-account predicate');
@@ -285,4 +286,26 @@ test('themes route (7.4): signed-in only, never cached, computed over the window
     assert.equal(r.body.days, 14); assert.equal(r.body.total, 1); assert.match(r.body.version, /^themes-v3/);
     assert.ok(Array.isArray(r.body.themes) && r.body.themes.every((t) => 'confidence' in t));
   } finally { f.restore(); h.restore(); }
+});
+
+test('security (2026-10-22): customer comments need the session or the ingest key — /api/track browser read and /api/sentiment GET; benchmarks and the cron stay open', async () => {
+  const f = mockFetch([['https://maistro.test/rest/v1/sentiment_posts', () => json([])], ...trackerRoutes()]);
+  const t = api('track.js', ENV), s = api('sentiment.js', ENV);
+  try {
+    let r = res(); await t.handler(req({ query: { days: '7' }, session: false }), r);
+    assert.equal(r.statusCode, 401); assert.equal(r.body.posts, undefined);
+    r = res(); await t.handler(req({ query: { days: '7' }, session: false, headers: { authorization: `Bearer ${ENV.MAISTRO_INGEST_KEY}` } }), r);
+    assert.equal(r.statusCode, 200, 'the ingest key reads');
+    r = res(); await t.handler(req({ query: { benchmarks: '1' }, session: false }), r);
+    assert.equal(r.statusCode, 200, 'benchmarks carry no comment text');
+    assert.equal(JSON.stringify(r.body).includes('Love it'), false);
+    r = res(); await t.handler(req({ query: { cron: '1' }, session: false }), r);
+    assert.equal(r.statusCode, 401, 'the cron URL is still the cron’s');
+    r = res(); await s.handler(req({ session: false }), r);
+    assert.equal(r.statusCode, 401);
+    r = res(); await s.handler(req({ session: false, headers: { authorization: `Bearer ${ENV.MAISTRO_INGEST_KEY}` } }), r);
+    assert.equal(r.statusCode, 200); assert.equal(r.headers['cache-control'], 'private, no-store');
+    r = res(); await s.handler(req(), r);
+    assert.equal(r.statusCode, 200, 'a signed-in session reads');
+  } finally { f.restore(); t.restore(); s.restore(); }
 });

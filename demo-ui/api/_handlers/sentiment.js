@@ -60,8 +60,7 @@ async function markHandled(req, res, b) {
 }
 
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Cache-Control', 'private, no-store');
 
   try {
     if (req.method === 'GET' && String((req.query || {}).handled || '') === '1') return await handled(req, res);
@@ -112,6 +111,9 @@ module.exports = async (req, res) => {
     res.status(405).json({ error: 'GET or POST only' });
     return;
   }
+  // the snapshots carry customer comments with author handles: a signed-in session, or the ingest key for the
+  // tracker's own scripts (scrape-and-push-maistro.mjs reads them back with SKIP_TIKTOK=1)
+  if (!bearerMatches(req.headers && req.headers.authorization, process.env.MAISTRO_INGEST_KEY) && !requireSession(req, res)) return;
 
   try {
     const rows = await listRows(

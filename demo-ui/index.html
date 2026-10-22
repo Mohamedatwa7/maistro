@@ -979,6 +979,8 @@ function doLogin(){
  document.body.classList.remove('locked');
  const sm=$('#sb-members');if(sm)sm.style.display=AUTH.member&&AUTH.member.role==='admin'?'':'none';
  loadPieces();loadScored();loadKb();
+ // the sentiment reads need the session (2026-10-22), so load them once signed in
+ if(!SENTI.track&&!SENTI.snap)loadSentiment();
  if(!location.hash||location.hash==='#')location.hash='#/';
  route();
 }
@@ -3114,7 +3116,7 @@ async function loadSentiment(){
  }catch(e){/* tracker not wired yet — section simply hidden */}
  finally{SENTI.busy=false}
 }
-loadSentiment();
+if(!document.body.classList.contains('locked'))loadSentiment();
 setInterval(loadSentiment,60000);
 function playVideo(id){
  STATE.playing=STATE.playing||{};STATE.playing[id]=true;

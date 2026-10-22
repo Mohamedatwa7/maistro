@@ -363,7 +363,6 @@ async function reconcile(days, R, get, H, base) {
 }
 
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
   const base = process.env.TRACK_SUPABASE_URL;
   const key = process.env.TRACK_SUPABASE_KEY;
   if (!base || !key) return res.status(503).json({ error: 'tracker DB is not configured (TRACK_SUPABASE_URL / TRACK_SUPABASE_KEY)' });
@@ -387,6 +386,12 @@ module.exports = async (req, res) => {
       return res.status(200).json({ count: rows.length, reports: rows });
     } catch (e) { return res.status(502).json({ error: e.message }); }
   }
+
+  // Customer comments (text and author handles) need the session or the ingest key, and are never cached
+  // publicly (security finding 2026-10-22: the open read returned 152 comments with usernames, CORS *). Only the
+  // cron and the benchmarks (post ids and metrics, no comment text) are open.
+  const openRead = isCron || String(q.benchmarks || '') === '1';
+  if (!openRead && !authorized && !requireSession(req, res)) return;
 
   // A cold-cache page can trip the tracker DB's 8s statement timeout; the
   // failed attempt warms the buffers, so retry before giving up (same
@@ -605,7 +610,8 @@ module.exports = async (req, res) => {
 
     // a cron response is never cached: the edge cache once answered the 06:30 cron from a page read, so the
     // function (snapshot store + reconciliation) never ran (found 2026-10-22: zero reconciliation_reports rows)
-    res.setHeader('Cache-Control', isCron || commentsPartial ? 'no-store' : 's-maxage=600, stale-while-revalidate=86400');
+    // private: the browser may keep it 5 minutes; no shared cache ever holds customer comments
+    res.setHeader('Cache-Control', isCron || commentsPartial ? 'no-store' : 'private, max-age=300');
     return res.status(200).json({
       source: 'samsungtrack DB (daily Apify schedule — no duplicate pulls)',
       fetchedAt: new Date().toISOString(),
