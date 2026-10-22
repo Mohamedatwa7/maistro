@@ -557,6 +557,19 @@ Status: **PASSED now; one process failure recorded.** Production is on 6f2c435 w
 - Policy refusals (64a44a8): a moderated render triggers one Sonnet call that names the likely trigger and proposes a compliant rewrite, stored on the failed job and shown in the Studio; cost 0; never resubmitted automatically.
 - **Process failure:** 64a44a8 reached production with red CI (runs 39729501053 and 39729569021) because the builder's release command continued after the CI wait. Production behaviour was correct; only a test lookup was wrong, fixed in 6f2c435. The builder now releases through a gate script that stops on a red suite, red CI for the exact SHA, a failed deploy, a failed health check or a served-page mismatch. **The script is not committed**: it should live in the repo (for example `demo-ui/scripts/release.ps1`) so the gate is reviewable and survives the session.
 
+## Release gate committed; Phase 6.9 human override (commit 32094de; released through the gate)
+
+Status: **PASSED** by checker, with three hardening notes on the gate. CI green (39730083761 branch, 39730174559 main); local 166/166; production `/` byte-identical (sha256 ea3536ba…), health ok.
+
+- Override: `override-sign` returns a signed upload URL into the private bucket under `pieces/<piece>/<stage>/override-…` (images up to 15 MB PNG, JPEG or WebP; videos up to 200 MB MP4 or MOV; the browser uploads directly because function bodies cap at 4.5 MB); `override` re-reads the stored bytes, checks the type by magic number and the path against this piece and stage, then records a manual version (mood, thumb) or replaces the shot's keyframe or clip in place through `updateShots` with history, `override: true`, the member, and the shot's approval cleared; the same vision or clip check is queued as for generated assets; audit row with the real columns.
+- Gate (`demo-ui/scripts/release.sh`): stops on a red local suite, no CI run for the pushed SHA, a red CI run, a failed deploy, health not ok, or a served page that differs from `index.html`; main moves only after CI is green and the deploy only after main.
+
+Hardening notes for the gate:
+
+1. **The deploy ships the working tree, not the SHA.** `vercel deploy --prod` uploads `demo-ui` as it is on disk, so an uncommitted or untracked file there would go to production even though CI tested the commit. Stop if `git status --porcelain demo-ui` is non-empty before the deploy (ignoring `.vercel`), or deploy from a clean `git worktree` of the SHA.
+2. **The checks hit `maistro-demo.vercel.app`, not the domain people use.** Check `https://www.ma1stro.com` (or both), and compare the health `revision` to the SHA once health reports it, so the gate proves the new build is the one answering.
+3. `git branch -f main` is safe only because the following push is a plain push that refuses a non-fast-forward; keep it a plain push (never `--force`), or use `git push origin rebuild/phase-0-recon:main` directly.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
