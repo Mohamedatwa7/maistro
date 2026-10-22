@@ -58,8 +58,8 @@ test('budget: the v1 reference path has no estimate endpoint — it is charged a
   try {
     let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-bud2', stage: 'plan', artifact: { title: 'B', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] } } }), r);
     r = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-bud2', stage: 'thumb', kind: 'higgsfield_image', payload: { prompt: 'p', aspect_ratio: '9:16', ref: 'https://sb.test/storage/v1/object/public/refs/x.jpg' } } }), r);
-    assert.equal(r.body.job.state, 'running', JSON.stringify(r.body.job)); assert.equal(r.body.job.estimateUsd, 1, 'no estimate endpoint → the conservative fallback, so it still counts');
-    assert.match(pg.tables.jobs[0].payload.estimateBasis, /v1 reference path\) → conservative fallback/);
+    assert.equal(r.body.job.state, 'running', JSON.stringify(r.body.job)); assert.equal(r.body.job.estimateUsd, 0.05, 'no estimate endpoint → the assumed image price, so it still counts');
+    assert.match(pg.tables.jobs[0].payload.estimateBasis, /v1 reference path\) → assumed image price/);
   } finally { f.restore(); jobs.restore(); pieces.restore(); }
 });
 
@@ -101,4 +101,20 @@ test('estimate parser: the documented { credits, usd }, a nested usd one level d
     await assert.rejects(hg.estimate('bytedance/seedance-2.5/image-to-video', {}), (e) => /no usd \(keys: credits,model\)/.test(e.message) && e.credits === 30);
     await assert.rejects(hg.estimate('bytedance/seedance-2.5/image-to-video', {}), (e) => e.pricingType === 'per_second' && e.pricingDescription === '6 credits per second at 720p' && /— 6 credits per second/.test(e.message));
   } finally { f.restore(); if (saved === undefined) delete process.env.HF_CREDENTIALS; else process.env.HF_CREDENTIALS = saved; }
+});
+
+test('budget: a video render without a provider USD is budgeted per second of clip (assumption), not at a flat figure', async () => {
+  const pg = fakePostgrest();
+  const f = mockFetch([[/api\.higgsfield\.ai\/estimate\//, () => json({ type: 'per_second', pricing_description: 'credits per second' })], [/\/bytedance\/seedance-2\.5\/text-to-video$/, () => json({ status: 'queued', request_id: 'vidfb0001x', status_url: 'x', cancel_url: 'y' })], pg.route]);
+  const env5 = { ...ENV, MAISTRO_PIECE_BUDGET_USD: '5' }; const jobs = api('jobs.js', env5); const pieces = api('pieces.js', env5);
+  try {
+    let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-bud4', stage: 'plan', artifact: { title: 'B', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] } } }), r);
+    for (const [stage, artifact] of [['brief', { objective: 'o', msg: 'k', markets: ['UAE'], platforms: ['tiktok'], mandatories: ['a'], deadline: '30 Oct 2026' }], ['board', [{ tc: '0:00', d: 'x', g: ['#000000', '#111111'] }]]]) { r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-bud4', stage, artifact } }), r); assert.equal(r.statusCode, 200, JSON.stringify(r.body)); }
+    r = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-bud4', stage: 'draft', kind: 'higgsfield_video', payload: { prompt: 'p', aspect_ratio: '9:16', duration: 8 } } }), r);
+    assert.ok(r.body.job, JSON.stringify(r.body));
+    assert.equal(r.body.job.estimateUsd, 4, '8 s × $0.50/s'); assert.match(pg.tables.jobs[0].payload.estimateBasis, /assumed \$0\.50\/s × 8 s/); assert.match(r.body.job.budgetWarning, /\$4\.00 of \$5\.00/);
+    pg.tables.stages.find((s) => s.kind === 'draft').state = 'generated';
+    r = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-bud4', stage: 'draft', kind: 'higgsfield_video', payload: { prompt: 'p2', aspect_ratio: '9:16', duration: 5 } } }), r);
+    assert.equal(r.body.job.state, 'failed'); assert.match(r.body.job.error, /budget cap/, 'a second clip ($2.50) would pass the $5 cap'); assert.match(pg.tables.jobs[1].payload.estimateBasis, /assumed/, 'a refused job records why it was priced so');
+  } finally { f.restore(); jobs.restore(); pieces.restore(); }
 });

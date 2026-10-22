@@ -133,7 +133,7 @@ async function advance(job) {
         // 6.9: price the exact body before submitting and hold the piece to its budget
         if (job.kind.startsWith('higgsfield') && job.estimate_usd == null && !job.payload.budgetChecked) {
           const gate = await budgetGate(job);
-          if (gate.refuse) { if (gate.estimateUsd != null) { await patchRows('jobs', `id=eq.${q(job.id)}`, { estimate_usd: gate.estimateUsd }); job = { ...job, estimate_usd: gate.estimateUsd }; } await fail(job, 'failed', gate.refuse); return 'failed'; }
+          if (gate.refuse) { if (gate.estimateUsd != null) { const pl = { ...job.payload, budgetChecked: true, estimateBasis: gate.basis }; await patchRows('jobs', `id=eq.${q(job.id)}`, { estimate_usd: gate.estimateUsd, payload: pl }); job = { ...job, estimate_usd: gate.estimateUsd, payload: pl }; } await fail(job, 'failed', gate.refuse); return 'failed'; }
           job = { ...job, estimate_usd: gate.estimateUsd, payload: { ...job.payload, budgetChecked: true, estimateBasis: gate.basis, ...(gate.warning ? { budgetWarning: gate.warning } : {}) } };
           await patchRows('jobs', `id=eq.${q(job.id)}`, { estimate_usd: gate.estimateUsd, payload: job.payload });
         }
@@ -302,9 +302,16 @@ async function budgetGate(job) {
   try { const e = await higgsfield.estimateRequest({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }); estimateUsd = e ? Math.round(e.usd * 10000) / 10000 : null; if (!e) basis = 'no estimate endpoint (v1 reference path)'; }
   catch (e) { basis = `estimate failed: ${String(e.message || e).slice(0, 80)}`; console.warn('[jobs] estimate failed:', e.message); }
   if (estimateUsd == null) {
-    const last = await queryRows('jobs', `select=estimate_usd&kind=eq.${q(job.kind)}&estimate_usd=not.is.null&order=created_at.desc&limit=1`).catch(() => []);
-    estimateUsd = last[0] ? Number(last[0].estimate_usd) : Number(process.env.MAISTRO_UNPRICED_USD || 1);
-    basis += last[0] ? ' → last observed price for this kind' : ' → conservative fallback';
+    // ASSUMPTION (2026-10-22, owner to replace with real prices): Seedance /estimate returns no USD, so video is
+    // budgeted per second of clip at MAISTRO_UNPRICED_VIDEO_USD_PER_S ($0.50/s); images at MAISTRO_UNPRICED_IMAGE_USD
+    // ($0.05). A provider-priced job of the same kind (never a fallback) is preferred when one exists.
+    const isVideo = job.kind === 'higgsfield_video';
+    const secs = Math.min(30, Math.max(4, Math.ceil(Number(job.payload.duration) || 5)));
+    const fallback = isVideo ? Math.round(secs * Number(process.env.MAISTRO_UNPRICED_VIDEO_USD_PER_S || 0.5) * 10000) / 10000 : Number(process.env.MAISTRO_UNPRICED_IMAGE_USD || 0.05);
+    const last = await queryRows('jobs', `select=estimate_usd,payload&kind=eq.${q(job.kind)}&estimate_usd=not.is.null&order=created_at.desc&limit=20`).catch(() => []);
+    const priced = last.find((r) => r.payload && r.payload.estimateBasis === 'provider estimate');
+    estimateUsd = priced && !isVideo ? Number(priced.estimate_usd) : fallback;
+    basis += priced && !isVideo ? ' → last provider price for this kind' : isVideo ? ` → assumed $${(fallback / secs).toFixed(2)}/s × ${secs} s (no provider USD for video)` : ' → assumed image price';
   }
   // reserve first, then compare: jobs gated at the same time in other invocations see each other
   await patchRows('jobs', `id=eq.${q(job.id)}`, { estimate_usd: estimateUsd });

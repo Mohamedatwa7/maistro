@@ -76,11 +76,11 @@ Unit prices from the provider's own `/estimate` (price card of 2026-10-22 06:17 
 |---|---|
 | Soul V2, 1 image, 1080p | $0.006 (0.09 credits) |
 | Soul V2, set of 4, 1080p (moodboard) | $0.023 (0.36 credits) |
-| Seedance 2.5 image-to-video, 4–8 s, 720p / 1080p | **not yet priced** — the estimate response for video carries no `usd` field; the parser now reports its shape and the card retries hourly |
+| Seedance 2.5 image-to-video, 4–8 s, 720p / 1080p | **not priced by the provider** — `/estimate` answers `{ type, pricing_description }` with no number. **Budgeting assumption until real prices:** $0.50 per second of clip (`MAISTRO_UNPRICED_VIDEO_USD_PER_S`), i.e. a 5 s clip = $2.50 |
 
 Image cost per piece (Soul only): moodboard $0.023 + thumbnail $0.006 + 5 keyframes $0.030 + a few re-renders ≈ **$0.07**,
 i.e. ≈ $1.40 for 20 pieces — negligible. The baseline budget is dominated by the video clips (≈ 6–8 per piece incl.
-re-renders) and is filled in as soon as the card prices Seedance. Claude calls and F1X8 analyses are not
+re-renders). Under the assumption above: ≈ 7 clips × 5 s × $0.50 = **≈ $17.50 per piece**, ≈ **$350 for the 20-piece baseline** and the same again for the after-run — an upper-bound guess to be replaced by the provider's pricing rule. Claude calls and F1X8 analyses are not
 Higgsfield-billed (Anthropic usage is on the generation records; F1X8 runs on our own service).
 
 ## 6. What the owner decides
