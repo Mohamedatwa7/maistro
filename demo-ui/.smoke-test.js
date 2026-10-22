@@ -54,14 +54,11 @@ check('rHome has enter link', home.includes('#/trends'));
 check('startAscii defined', typeof X.startAscii === 'function');
 check('slideshow removed', X.ssGone);
 
-// Calendar
-check('CAL restored (11 events)', X.CAL.length === 11);
+// Calendar (8b, ADR-008): manual mode, no simulated events, no claimed Sprinklr connection
+check('simulated calendar retired', X.CAL.length === 0);
 const cal = X.rCalendar();
-check('rCalendar renders July grid', cal.includes('July 2026'));
-check('rCalendar shows Pocket Dimension selected', cal.includes('Pocket Dimension'));
-check('rCalendar has OPT slots', cal.includes('OPT SLOT'));
-check('rCalendar has Sprinklr publish card', cal.includes('Post now via Sprinklr'));
-check('rCalendar no empty-state', !cal.includes('PILLAR NOT STARTED'));
+check('rCalendar states manual mode', /NOT CONNECTED — MANUAL MODE|not connected — manual mode/i.test(cal));
+check('rCalendar claims no Sprinklr connection', !/SPRINKLR API · CONNECTED|Post now via Sprinklr|Publish via Sprinklr/.test(cal));
 
 // Other routes still render
 check('rTrends renders', typeof X.rTrends() === 'string');

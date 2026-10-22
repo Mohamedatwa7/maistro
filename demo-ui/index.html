@@ -725,7 +725,7 @@ footer b{letter-spacing:.25em;font-weight:600}
     <canvas id="mesh"></canvas>
     <div class="tag">
       <span class="kick" style="color:#7dd3fc">Trend → Post, end to end</span>
-      <p>Hermes pulls live trends over MCP, six agents carry each piece from moodboard to final cut, humans sign the gate, Sprinklr posts it — and Performance closes the loop.</p>
+      <p>Hermes pulls live trends over MCP, six agents carry each piece from moodboard to final cut, humans sign the gate, the post goes out (by hand until Sprinklr is connected) — and Performance closes the loop.</p>
     </div>
   </div>
 </section>
@@ -843,33 +843,8 @@ const STAGES=[
 const PROJECTS=[]; /* filled by Hermes dispatches + /api/projects */
 /* production center deliverables */
 const DELIVS=[];   /* filled as campaign stages arrive */
-/* calendar */
-const SPRINKLR_ACCOUNTS={tiktok:['@SamsungGulf','@SamsungKSA','@SamsungEgypt'],instagram:['@samsunggulf','@samsungksa','@samsungtr'],youtube:['Samsung MENA','Samsung Türkiye'],x:['@SamsungGulf','@SamsungKSA','@SamsungTR']};
-/* Calendar demo data — pillar 03 runs on simulated events until Sprinklr
-   publishing goes live (restored from the original vision mockup). */
-const CAL=[
- {id:'cal-unpacked-teaser',t:'Unpacked 2026 teaser',date:'2026-07-15',time:'19:00',plats:['tiktok','instagram','youtube','x'],mkt:'MENA',st:'scheduled',type:'priority',product:'Galaxy Z Fold8',
-  opt:{why:'HQ mandatory slot — clean 24h window protected around the teaser.',uplift:null}},
- {id:'cal-pocket-dimension',proj:'pocket-dimension',t:'Pocket Dimension',date:'2026-07-16',time:'19:00',plats:['tiktok','instagram'],mkt:'KSA · UAE',st:'ready',type:'priority',product:'Galaxy Z Fold8',
-  opt:{why:'Thu 19:00 GST is the weekly engagement peak for KSA + UAE and clears the HQ 24h exclusivity window.',uplift:18}},
- {id:'cal-watch8-sleep-2',t:'Watch8 sleep series #2',date:'2026-07-05',time:'18:00',plats:['instagram'],mkt:'UAE',st:'published',type:'always-on',product:'Galaxy Watch8',
-  opt:{why:'Sunday early-evening wellness window — best save-rate slot for health content in UAE.',uplift:9}},
- {id:'cal-community-reel',t:'#SamsungMENA community reel',date:'2026-07-09',time:'20:00',plats:['instagram','tiktok'],mkt:'MENA',st:'published',type:'always-on',product:'Galaxy S26 Ultra',
-  opt:{why:'Thursday 20:00 rides the weekend scroll-up across all four subsidiaries.',uplift:11}},
- {id:'cal-natl-day-teaser',t:'Saudi National Day teaser',date:'2026-07-11',time:'10:00',plats:['x'],mkt:'KSA',st:'scheduled',type:'seasonal',product:'Z Fold8 · National Day edition',
-  opt:{why:'Morning X window in KSA — cultural-moment posts peak before noon prayers.',uplift:7}},
- {id:'cal-dss-bundle',t:'Dubai Summer Surprises bundle',date:'2026-07-14',time:'17:00',plats:['instagram','x'],mkt:'UAE',st:'scheduled',type:'seasonal',product:'Galaxy A56 · Buds3 bundle',
-  opt:{why:'Retail-footfall window — offer content converts best pre-evening in UAE malls season.',uplift:8}},
- {id:'cal-unpacked-live',t:'Unpacked 2026 live',date:'2026-07-22',time:'18:00',plats:['youtube','x'],mkt:'MENA',st:'scheduled',type:'priority',product:'Z Fold8 · Watch8',
-  opt:{why:'HQ mandatory livestream slot with regional watch-party framing.',uplift:null}},
- {id:'cal-fold8-creator-drop',t:'Z Fold8 creator unboxing wave',date:'2026-07-21',time:'19:00',plats:['tiktok','youtube'],mkt:'KSA',st:'scheduled',type:'priority',product:'Galaxy Z Fold8',
-  opt:{why:'48h before the Unpacked recap to prime pre-orders — embargo lifts in one wave.',uplift:14}},
- {id:'cal-match-night',proj:'match-night',t:'Match Night',date:'2026-07-24',time:'20:00',plats:['tiktok','youtube'],mkt:'KSA · Egypt',st:'in-production',type:'priority',product:'Neo QLED 8K',
-  opt:{why:'Friday 20:00 — Saudi Pro League opening night; content lands while the match is live.',uplift:16}},
- {id:'cal-kahvalti',proj:'kahvalti-test',t:'Kahvaltı Stress Test',date:'2026-07-26',time:'09:00',plats:['instagram','youtube'],mkt:'Türkiye',st:'in-production',type:'always-on',product:'Bespoke AI Oven',
-  opt:{why:'Sunday 09:00 TRT — kahvaltı content peaks while Türkiye is at the breakfast table.',uplift:12}},
- {id:'cal-flexcam-tips',t:'Z Fold8 FlexCam tips',date:'2026-07-30',time:'18:00',plats:['tiktok'],mkt:'UAE',st:'scheduled',type:'always-on',product:'Galaxy Z Fold8',
-  opt:{why:'Post-launch how-to window — search interest peaks 7 days after delivery wave.',uplift:6}}];
+/* calendar: the simulated July 2026 events and accounts retired 2026-10-22 (ADR-008, 8b) — the Calendar reads publishing_slots */
+const CAL=[];
 /* performance */
 /* ================= helpers ================= */
 const $=s=>document.querySelector(s);
@@ -3636,7 +3611,7 @@ const FX_SECTIONS=[
   img:'https://images.unsplash.com/photo-1522542550221-31fd19575a2d?q=80&w=1920&auto=format&fit=crop'},
  {l:'Approve',t:'Governance',r:'ADLCP Gate',
   img:'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1920&auto=format&fit=crop'},
- {l:'Publish',t:'Calendar',r:'Sprinklr',
+ {l:'Publish',t:'Calendar',r:'Manual · Sprinklr later',
   img:'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1920&auto=format&fit=crop'},
  {l:'Measure',t:'Performance',r:'Boost Loop',
   img:'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1920&auto=format&fit=crop'},
@@ -4191,173 +4166,70 @@ async function confirmReject(id){
 $('#modal-back').addEventListener('click',e=>{if(e.target.id==='modal-back')closeModal()});
 
 /* ================= 03 CALENDAR ================= */
-function calSel(id){STATE.calSel=id;$('#view').innerHTML=rCalendar();reveal()}
-function sprCaption(ev){
- return `${ev.t} — ${ev.product}, made for ${ev.mkt}. Watch till the end. #Samsung #${ev.product.replace(/[^A-Za-z0-9]/g,'')}`;
+/* 8b (ADR-008): the Calendar is real in manual/export mode. Approved finals wait for a slot (sorted by their
+   trend's post-by date); a line manager or admin plans the platform, owned account, Gulf time and caption,
+   exports the delivery package, posts by hand, and links the published post on the final, which marks the slot
+   posted. Sprinklr is "not connected" until access exists — nothing here claims an integration. */
+const CALV={data:null,busy:false,msg:{}};
+async function loadCalendar(){
+ if(CALV.busy)return;CALV.busy=true;
+ try{const r=await authFetch('/api/studio?calendar=1');const d=await r.json().catch(()=>({}));CALV.data=r.ok&&d.slots?d:{error:d.error||('calendar unavailable ('+r.status+')'),code:d.code}}
+ catch(e){CALV.data={error:'calendar unavailable'}}
+ finally{CALV.busy=false;if(location.hash.replace(/^#\//,'').split('/')[0]==='calendar'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rCalendar();reveal()}}
 }
-const sprIco=(d,s=17)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
-const SPR_ICO={heart:'M12 21s-7.6-4.9-10-9.4C.5 8 2.3 4.5 5.8 4.5c2 0 3.3 1 4.2 2.4.9-1.4 2.2-2.4 4.2-2.4 3.5 0 5.3 3.5 3.8 7.1C19.6 16.1 12 21 12 21z',cmt:'M21 11.5c0 4.1-4 7.5-9 7.5-1 0-2-.1-2.9-.4L3 20l1.6-3.8C3.6 15 3 13.3 3 11.5 3 7.4 7 4 12 4s9 3.4 9 7.5z',share:'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',save:'M19 21l-7-5-7 5V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1z'};
-function sprPreview(ev,cap,acc){
- const p=STATE.sprPlat;
- const pr=PROJECTS.find(x=>x.id===ev.proj);
- const g=pr?pr.th:['#1c2740','#3d5aa8'];
- if(p==='tiktok'||p==='youtube')return `
-  <div style="width:210px;aspect-ratio:9/16;margin:0 auto;border-radius:16px;overflow:hidden;position:relative;border:1px solid var(--hairline);background:linear-gradient(165deg,${g[0]},${g[1]})">
-   <div style="position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 20%,transparent,rgba(0,0,0,.55))"></div>
-   <div style="position:absolute;top:10px;left:0;right:0;text-align:center;font-family:var(--font-m);font-size:9px;letter-spacing:.12em;color:rgba(255,255,255,.75)">Following · <b style="color:#fff">For You</b></div>
-   <div style="position:absolute;right:9px;bottom:74px;display:flex;flex-direction:column;gap:12px;align-items:center;text-align:center">
-    ${[[SPR_ICO.heart,'128K'],[SPR_ICO.cmt,'2,416'],[SPR_ICO.share,'9,301']].map(x=>`<span>${sprIco(x[0])}<span style="display:block;font-family:var(--font-m);font-size:8.5px;color:#fff;margin-top:2px">${x[1]}</span></span>`).join('')}
-   </div>
-   <div style="position:absolute;left:10px;right:52px;bottom:12px;color:#fff">
-    <div id="spr-prev-acc" style="font-size:11.5px;font-weight:600">${acc}</div>
-    <div id="spr-prev-cap" style="font-size:10px;line-height:1.5;color:rgba(255,255,255,.9);margin-top:4px;max-height:44px;overflow:hidden">${esc(cap)}</div>
-    <div style="font-size:9px;color:rgba(255,255,255,.7);margin-top:5px">♫ original sound — ${esc(ev.product)}</div>
-   </div>
-  </div>`;
- return `
-  <div style="width:280px;margin:0 auto;border:1px solid var(--hairline);border-radius:14px;overflow:hidden;background:#05070c">
-   <div style="display:flex;align-items:center;gap:9px;padding:9px 11px">
-    <span style="width:27px;height:27px;border-radius:50%;flex:none;background:linear-gradient(130deg,${g[0]},${g[1]});border:1px solid rgba(255,255,255,.25)"></span>
-    <div><div id="spr-prev-acc" style="color:#fff;font-size:12px;font-weight:600">${acc}</div><div style="font-size:9.5px;color:var(--muted)">${ev.mkt} · Sponsored</div></div>
-    <span style="margin-left:auto;color:var(--muted);letter-spacing:2px">···</span>
-   </div>
-   <div style="aspect-ratio:4/5;background:linear-gradient(160deg,${g[0]},${g[1]});display:grid;place-items:center;text-align:center;padding:16px">
-    <div><div style="color:#fff;font-weight:600;font-size:15px;letter-spacing:.02em">${ev.t}</div>
-     <div style="font-family:var(--font-m);font-size:9px;letter-spacing:.16em;color:rgba(255,255,255,.8);margin-top:6px">${ev.product.toUpperCase()}</div></div>
-   </div>
-   <div style="padding:9px 11px 12px">
-    <div style="display:flex;gap:12px;align-items:center">${sprIco(SPR_ICO.heart)}${sprIco(SPR_ICO.cmt)}${sprIco(SPR_ICO.share)}<span style="margin-left:auto">${sprIco(SPR_ICO.save)}</span></div>
-    <div style="color:#fff;font-size:11px;font-weight:600;margin-top:8px">12,438 likes</div>
-    <div style="font-size:10.5px;line-height:1.5;color:rgba(255,255,255,.88);margin-top:3px;max-height:46px;overflow:hidden"><b>${acc.replace('@','')}</b> <span id="spr-prev-cap">${esc(cap)}</span></div>
-    <div style="font-family:var(--font-m);font-size:8.5px;color:var(--muted);margin-top:6px;letter-spacing:.08em">SCHEDULED · ${ev.time} GST</div>
-   </div>
-  </div>`;
+/* a datetime-local value is read as Gulf time (Asia/Dubai, UTC+4, no DST — ADR-011) */
+const gulfToIso=v=>v?new Date(v+':00+04:00').toISOString():null;
+async function calAction(pid,body,after){
+ CALV.msg[pid]=null;
+ try{
+  const r=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pieceId:pid,...body})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok){CALV.msg[pid]=d.error||('not saved ('+r.status+')');$('#view').innerHTML=rCalendar();reveal();return}
+  if(after)after(d);
+  CALV.data=null;loadCalendar();
+ }catch(e){CALV.msg[pid]='not saved'}
 }
-function openSprinklr(id){
- const ev=CAL.find(x=>x.id===id);
- const pref=$('#spr-acc')?$('#spr-acc').value:null;
- STATE.sprPlat=ev.plats[0];
- renderSprModal(ev,ev.caption||sprCaption(ev),pref);
- $('#modal-back').classList.add('open');
+function calPlan(pid){
+ const g=k=>document.querySelector(`[data-cal="${CSS.escape(pid)}:${k}"]`);
+ const [platform,account]=(g('acc').value||':').split(':');
+ calAction(pid,{action:'slot-plan',platform,account,slotAt:gulfToIso(g('when').value),caption:g('cap').value});
 }
-function sprSetPlat(id,p){
- STATE.sprPlat=p;
- const cap=$('#spr-cap')?$('#spr-cap').value:'';
- renderSprModal(CAL.find(x=>x.id===id),cap,null);
-}
-function renderSprModal(ev,cap,pref){
- const p=STATE.sprPlat;
- const accs=SPRINKLR_ACCOUNTS[p]||[];
- const accSel=pref&&accs.includes(pref)?pref:accs[0];
- $('#modal').innerHTML=`
-  <h3>Post via Sprinklr — ${ev.t}</h3>
-  <p class="msub">Review the post, choose the platform and set the caption. Sprinklr publishes through the API and syncs the permalink back to Performance.</p>
-  <div style="margin-bottom:16px">
-   <span class="kick accent">Post preview</span>
-   <div style="margin-top:10px">${sprPreview(ev,cap,accSel)}</div>
-   <p class="dim" style="font-size:11px;margin-top:9px;text-align:center">${esc(ev.product)} · ${esc(ev.mkt)} · ${new Date(ev.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · ${ev.time} GST</p>
-  </div>
-  <div class="f-field"><label>Platform</label>
-   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    ${ev.plats.map(pl=>`<button type="button" class="plat" style="cursor:pointer;padding:7px 12px;border-radius:99px;border:1px solid ${pl===p?'rgba(125,211,252,.6)':'var(--hairline)'};background:${pl===p?'rgba(125,211,252,.1)':'rgba(255,255,255,.02)'};color:${pl===p?'#fff':'var(--muted)'}" onclick="sprSetPlat('${ev.id}','${pl}')"><i style="background:${PLAT[pl].c}"></i>${PLAT[pl].n}</button>`).join('')}
-   </div></div>
-  <div class="f-field" style="margin-top:12px"><label>Account</label>
-   <select class="inp" id="spr-macc" style="width:100%" onchange="const e=document.getElementById('spr-prev-acc');if(e)e.textContent=this.value">${accs.map(a=>`<option ${a===accSel?'selected':''}>${a}</option>`).join('')}</select></div>
-  <div class="f-field" style="margin-top:12px"><label>Caption</label>
-   <textarea id="spr-cap" rows="3" placeholder="Write the caption that goes out with the post…" oninput="const e=document.getElementById('spr-prev-cap');if(e)e.textContent=this.value">${esc(cap)}</textarea></div>
-  <div class="mrow"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
-   <button class="btn btn-ai btn-sm" onclick="sprinklrPost('${ev.id}')">▶ Publish via Sprinklr</button></div>`;
-}
-function sprinklrPost(id){
- const ev=CAL.find(x=>x.id===id);
- const acc=$('#spr-macc').value,cap=$('#spr-cap').value.trim();
- if(!cap){$('#spr-cap').style.borderColor='rgba(251,113,133,.7)';return}
- STATE.posted[id]=acc;ev.st='published';ev.caption=cap;ev.postedPlat=STATE.sprPlat;
- closeModal();$('#view').innerHTML=rCalendar();reveal();
- toast(`<b style="color:#7dd3fc">Sprinklr API</b> <span class="mono" style="font-size:11px">POST /v2/publish → 202 ACCEPTED</span><br><span style="font-size:12.5px">“${ev.t}” is publishing to <b>${acc}</b> on ${PLAT[ev.postedPlat].n}${ev.plats.length>1?' + '+(ev.plats.length-1)+' linked channels':''} — permalinks will sync to <a href="#/performance" style="color:#7dd3fc">Performance</a>.</span>`);
-}
+function calExport(pid,id){calAction(pid,{action:'slot-export',id},d=>{toast(`<span style="font-size:12.5px"><b>Exported.</b> ${esc(d.instruction||'')}</span>`);if(typeof finalPackage==='function')finalPackage(pid)})}
+function calCancel(pid,id){calAction(pid,{action:'slot-cancel',id,reason:'canceled from the calendar'})}
 function rCalendar(){
- if(!CAL.length)return `
- <section>
-  <div class="section-head"><div><span class="kick accent">03 · Optimized timing → one-click publish</span><h2>Calendar</h2></div>
-   <span class="pill">PILLAR NOT STARTED</span></div>
-  <div class="card p5" style="text-align:center;padding:56px 24px">
-   <span class="kick accent">Automated posting — next build phase</span>
-   <p class="dim" style="font-size:13px;line-height:1.7;margin-top:12px;max-width:560px;margin-inline:auto">Approved final content will be scheduled here at its optimized slot and pushed to Sprinklr through the official Samsung accounts. This pillar hasn't started yet — approvals in the <a href="#/studio" style="color:#7dd3fc">Content Studio</a> are the step before it.</p>
-  </div>
- </section>`;
- const sel=CAL.find(x=>x.id===STATE.calSel)||CAL[1];
- const first=new Date('2026-07-01').getDay();       /* 3 = Wednesday */
- const daysIn=31;
- let cellsH='';
- for(let i=0;i<first;i++)cellsH+='<div class="day empty"></div>';
- for(let d=1;d<=daysIn;d++){
-  const iso=`2026-07-${String(d).padStart(2,'0')}`;
-  const evs=CAL.filter(e=>e.date===iso);
-  const isOpt=evs.some(e=>e.opt&&e.opt.uplift>=14);
-  cellsH+=`<div class="day ${isOpt?'opt':''}"><div class="dn">${d}${isOpt?'<span class="optlab">OPT SLOT</span>':''}</div>
-   ${evs.map(e=>`<button class="ev ev-${e.st==='published'?'live':e.type} ${e.id===sel.id?'sel':''}" onclick="calSel('${e.id}')">
-     <span class="tm">${e.time}</span><span class="ti">${e.t}</span></button>`).join('')}</div>`;
- }
- const total=first+daysIn;for(let i=total;i<Math.ceil(total/7)*7;i++)cellsH+='<div class="day empty"></div>';
- const posted=STATE.posted[sel.id];
- const canPost=sel.st==='ready'||sel.st==='scheduled';
- const accs=SPRINKLR_ACCOUNTS[sel.plats[0]]||[];
- return `
- <section>
-  <div class="section-head"><div><span class="kick accent">03 · Optimized timing → one-click publish</span><h2>Calendar</h2></div>
-   <span class="pill"><span class="dot blue"></span>SPRINKLR API · CONNECTED · 12 ACCOUNTS</span></div>
-  <div class="legend" style="margin-bottom:14px">
-   <span><i style="background:#fff"></i>Priority</span><span><i style="background:var(--signal)"></i>Seasonal</span>
-   <span><i style="background:var(--muted)"></i>Always-on</span><span><i style="background:var(--go)"></i>Published</span>
-   <span class="mono" style="font-size:10px;color:#7dd3fc">▢ OPT SLOT — engagement-peak day, model-picked</span>
-  </div>
-  <div class="grid2">
-   <div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-     <h3 style="font-size:16px">July 2026</h3><span class="pill">SLOTS PICKED BY THE OPTIMIZER · GST</span></div>
-    <div class="cal"><div class="dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
-     <div class="days">${cellsH}</div></div>
-   </div>
-   <div style="display:flex;flex-direction:column;gap:14px">
-    <div class="card p5">
-     <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
-      <div><span class="kick accent">Selected post</span><h3 style="font-size:18px;margin-top:8px">${sel.t}</h3>
-       <div class="dim" style="font-size:12px;margin-top:4px">${esc(sel.product)} · ${esc(sel.mkt)}</div></div>
-      ${sel.st==='published'?badge('go','PUBLISHED'):sel.st==='ready'?badge('ai','READY — APPROVED'):sel.st==='in-production'?badge('gold','IN PRODUCTION'):badge('c','SCHEDULED')}
-     </div>
-     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">${sel.plats.map(plat).join(' ')}</div>
-     <hr class="hl">
-     <div style="border:1px solid rgba(125,211,252,.3);border-radius:12px;padding:12px;background:rgba(125,211,252,.05)">
-      <span class="kick" style="color:#7dd3fc">Optimized slot</span>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:7px">
-       <b style="color:#fff;font-size:14px">${new Date(sel.date+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})} · ${sel.time} GST</b>
-       ${sel.opt.uplift?`<span class="delta-up">+${sel.opt.uplift}% projected</span>`:badge('v','HQ MANDATORY')}</div>
-      <p class="dim" style="font-size:11.5px;margin-top:6px;line-height:1.6">${sel.opt.why}</p></div>
-    </div>
-    <div class="card p5">
-     <span class="kick accent">Publish via Sprinklr</span>
-     ${sel.st==='published'?`
-      <div style="margin-top:12px">${badge('go','LIVE ON '+ (posted||accs[0]||'CHANNELS'))}${sel.postedPlat?' '+plat(sel.postedPlat):''}</div>
-      ${sel.caption?`<div style="margin-top:10px"><span class="kick" style="font-size:9.5px">Caption</span><p class="dim" style="font-size:12px;margin-top:4px;line-height:1.6">“${esc(sel.caption)}”</p></div>`:''}
-      <p class="dim" style="font-size:12px;margin-top:10px;line-height:1.6">Published through the Sprinklr API${posted?' to <b>'+posted+'</b>':''} — 0 retries. Permalinks synced; tracking is live in <a href="#/performance" style="color:#7dd3fc">Performance</a>.</p>`
-     :sel.st==='in-production'?`
-      <p class="dim" style="font-size:12.5px;margin-top:12px;line-height:1.65">Still in the studio — stage 0${(PROJECTS.find(p=>p.id===sel.proj)||{stage:'?'}).stage}/07. The publish button unlocks when the QC report is approved in the Production Center.</p>
-      <div style="margin-top:12px"><a class="btn btn-ghost btn-sm" href="#/studio">Open in Content Studio</a></div>`
-     :`
-      <div class="f-field" style="margin-top:12px"><label>Preferred account</label>
-       <select class="inp" id="spr-acc" style="width:100%">${accs.map(a=>`<option>${a}</option>`).join('')}</select></div>
-      <p class="dim" style="font-size:11px;margin-top:10px;line-height:1.6">Posts through the Sprinklr publishing API to the selected account${sel.plats.length>1?' and mirrors to '+(sel.plats.length-1)+' linked platform channel(s)':''} at the optimized slot — or right now.</p>
-      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-       <button class="btn btn-ai btn-sm" onclick="openSprinklr('${sel.id}')" ${canPost?'':'disabled'}>▶ Post now via Sprinklr</button>
-       <button class="btn btn-ghost btn-sm" onclick="toast('<span style=&quot;font-size:12.5px&quot;>Locked to the optimized slot — Sprinklr will auto-publish <b>${sel.t}</b> at ${sel.time} GST.</span>')" ${canPost?'':'disabled'}>Keep optimized slot</button>
-      </div>`}
-    </div>
-   </div>
+ if(!CALV.data){loadCalendar()}
+ const d=CALV.data;
+ const head=`<div class="section-head"><div><span class="kick accent">03 · Publishing</span><h2>Calendar</h2></div>
+   <span class="pill"><span class="dot"></span>${d&&d.label?esc(d.label.split(' (')[0]):'SPRINKLR: NOT CONNECTED — MANUAL MODE'}</span></div>`;
+ if(!d)return `<section>${head}<div class="card p5 dim" style="font-size:12.5px">Loading the publishing calendar…</div></section>`;
+ if(d.code==='not_migrated')return `<section>${head}<div class="card p5"><div class="pc-note">The calendar is not available yet: the publishing table (migration 019) has not been applied.</div></div></section>`;
+ if(d.error)return `<section>${head}<div class="card p5 dim" style="font-size:12.5px">${esc(d.error)}</div></section>`;
+ const accOpts=Object.entries(d.owned||{}).flatMap(([p,as])=>as.map(a=>`<option value="${esc(p)}:${esc(a)}">${esc(p)} · @${esc(a)}</option>`)).join('');
+ const wait=d.unscheduled.map(u=>`<div style="padding:10px 0;border-top:1px solid var(--hairline)">
+   <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b style="font-size:13px">${esc(u.title||u.pieceId)}</b><span class="mono dim" style="font-size:10.5px">${u.postBy?'POST BY '+esc(fmtStamp(Date.parse(u.postBy))):'no post-by date'}${u.trend?' · '+esc(u.trend):''}</span></div>
+   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+    <select data-cal="${esc(u.pieceId)}:acc" style="font-size:11.5px">${accOpts}</select>
+    <input type="datetime-local" data-cal="${esc(u.pieceId)}:when" style="font-size:11.5px" title="Gulf time (GST, UTC+4)">
+    <input type="text" data-cal="${esc(u.pieceId)}:cap" placeholder="Caption" style="flex:1;min-width:180px;font-size:11.5px">
+    <button class="btn btn-sm" onclick="calPlan('${esc(u.pieceId)}')">Plan post</button></div>
+   ${CALV.msg[u.pieceId]?`<div style="font-size:11px;color:var(--alert);margin-top:4px">${esc(CALV.msg[u.pieceId])}</div>`:''}
+  </div>`).join('')||'<div class="dim" style="font-size:12px;margin-top:6px">No approved finals are waiting for a slot.</div>';
+ const tone={planned:'muted',exported:'gold',posted:'go',canceled:'alert'};
+ const byDay={};for(const s of d.slots){const k=fmtStamp(Date.parse(s.slotAt)).split(',')[0];(byDay[k]=byDay[k]||[]).push(s)}
+ const planned=Object.entries(byDay).map(([day,ss])=>`<div style="margin-top:10px"><span class="kick" style="font-size:10px">${esc(day)}</span>${ss.map(s=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px dashed var(--hairline);font-size:12px">
+   ${badge(tone[s.status]||'muted',esc(s.status.toUpperCase()))}<span class="mono dim">${esc(fmtStamp(Date.parse(s.slotAt)))}</span><b>${esc(s.title||s.pieceId||'')}</b><span class="dim">${esc(s.platform)} · @${esc(s.account)}</span>
+   ${s.caption?`<span class="dim" style="flex-basis:100%;font-size:11px" dir="auto">${esc(s.caption)}</span>`:''}
+   ${s.status==='planned'||s.status==='exported'?`<button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="calExport('${esc(s.pieceId)}',${Number(s.id)})">${s.status==='exported'?'Export again':'Export package'}</button><button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="calCancel('${esc(s.pieceId)}',${Number(s.id)})">Cancel</button><span class="dim" style="font-size:10.5px">after posting, link the post on the final ("Published as")</span>`:''}
+   ${s.status==='canceled'&&s.cancelReason?`<span class="dim" style="font-size:10.5px">${esc(s.cancelReason)}</span>`:''}
+  </div>`).join('')}</div>`).join('')||'<div class="dim" style="font-size:12px;margin-top:6px">Nothing planned yet.</div>';
+ return `<section>${head}
+  <div class="pc-note" style="margin-bottom:12px">${esc(d.label)}. Times are Gulf time (GST).</div>
+  <div class="grid2e">
+   <div class="card p5"><span class="kick accent">Approved finals waiting for a slot</span>${wait}</div>
+   <div class="card p5"><span class="kick accent">Planned posts</span>${planned}</div>
   </div>
  </section>`;
 }
-
 /* ================= 04 PERFORMANCE ================= */
 /* How old is what the page shows? Newest post or comment across the loaded
    data; red when older than 48 h (comment ingestion stalled for 3 weeks in

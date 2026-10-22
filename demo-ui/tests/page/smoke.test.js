@@ -9,6 +9,7 @@ test('.smoke-test.js: every check passes', () => {
   const passes = (r.stdout.match(/^PASS /gm) || []).length;
   const fails = (r.stdout.match(/^FAIL /gm) || []).length;
   assert.equal(fails, 0, r.stdout.split('\n').filter((l) => l.startsWith('FAIL')).join('\n'));
-  assert.ok(passes >= 67, `expected at least 67 PASS lines, got ${passes}\n${r.stderr}`);
+  // 64 since 2026-10-22: six simulated-calendar checks became three manual-mode checks (8b, ADR-008)
+  assert.ok(passes >= 64, `expected at least 64 PASS lines, got ${passes}\n${r.stderr}`);
   assert.equal(r.status, 0);
 });

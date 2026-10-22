@@ -15,3 +15,24 @@ Option 1. `PublishingAdapter` interface (`schedule`, `publish`, `status`, `recor
 
 ## Consequences
 The calendar becomes real in manual mode (approved pieces, chosen slots, posted and permalink state) instead of simulated events; the simulated July 2026 data retires when the page is rebuilt.
+
+## Amendment 2026-10-22 (8b built)
+- **Manual/export mode is live.**
+  - `publishing_slots` (migration 019) holds the plan: an approved final, platform, owned account (R-8's list),
+    Gulf time and caption.
+  - The Calendar lists approved finals waiting for a slot, sorted by their trend's post-by date, plus the planned
+    posts.
+  - **Export** marks the slot exported and downloads the existing delivery package (`final-package`). The
+    operator posts by hand.
+  - Linking the published post on the final ("Published as", `piece_posts`, migration 018) marks the slot
+    **posted**. Cancel keeps the row.
+  - The simulated July 2026 events, the invented account list and the "SPRINKLR API · CONNECTED" claims are
+    removed.
+- **Deviation: the Sprinklr adapter is a gated stub, not a client.** Sprinklr's developer documentation is not
+  publicly reachable; a web search on 2026-10-22 found only help-centre pages and a third-party listing. Writing
+  calls against guessed endpoints would be the kind of faked integration this ADR forbids.
+  - `SprinklrAdapter` reads `SPRINKLR_API_KEY`, `SPRINKLR_API_SECRET` and `SPRINKLR_ENV` only to report
+    "configured". `publish()` throws 501 `sprinklr_not_implemented`.
+  - The app always uses `ManualExportAdapter`.
+  - When access is granted, implement asset upload, message creation, scheduling and status from the real
+    documentation, behind the same interface, with recorded-response tests.

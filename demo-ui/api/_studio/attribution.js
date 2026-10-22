@@ -36,7 +36,9 @@ async function link({ piece, url, member, resolve }) {
     if (active.length) return { status: 409, body: { error: 'this post is already linked to this piece', code: 'already_linked', id: active[0].id } };
     const [row] = await insertRows('piece_posts', [{ piece_id: piece.id, platform: post.platform, post_id: post.postId, url: post.url, account: post.account, source: 'manual', linked_by: member ? member.id : null, linked_by_label: who(member) }], { returning: true });
     try { await insertRows('audit_log', [{ actor: member ? member.id : null, action: 'piece.post.link', entity: 'content_piece', entity_id: piece.id, after: { platform: post.platform, postId: post.postId, url: post.url } }]); } catch (e) { /* best effort */ }
-    return { status: 200, body: { ok: true, id: row ? row.id : null, post } };
+    // 8b: the piece's earliest open planned post on that platform is now posted
+    const slot = row ? await require('./publishing.js').markPosted({ pieceId: piece.id, platform: post.platform, piecePostId: row.id }) : null;
+    return { status: 200, body: { ok: true, id: row ? row.id : null, post, slotPosted: slot ? slot.id : null } };
   } catch (e) {
     if (storageMissing(e)) return MISSING;
     if (/23505|duplicate/.test(String(e.message))) return { status: 409, body: { error: 'this post is already linked to this piece', code: 'already_linked' } };
