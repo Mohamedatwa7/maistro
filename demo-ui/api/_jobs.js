@@ -282,16 +282,29 @@ async function pollRender(job) {
   return 'running';
 }
 
-/** 6.9: the piece's budget — cap from the piece or MAISTRO_PIECE_BUDGET_USD (default 25), warning at
- *  budget_warn_pct. Spent = estimates of succeeded renders; committed = queued/running renders already
+/** 6.9: the piece's budget. The cap is the piece's own (set by a line manager or admin), else the default for
+ *  the piece's resolution, owner decision 2026-10-22: $20 for a 720p piece, $50 once any of its video renders
+ *  is 1080p (MAISTRO_PIECE_BUDGET_USD_720P / _1080P override; MAISTRO_PIECE_BUDGET_USD, if set, overrides both
+ *  as before). Sized for a 10–15 s piece: 3 shots × 5 s plus 2 draft and 2 final re-renders of 5 s = 35 s of
+ *  video, $16.18 at 720p and $39.80 at 1080p at Higgsfield's per-second rule, with ~20 % headroom. Warning at
+ *  budget_warn_pct (80). Spent = estimates of succeeded renders; committed = queued/running renders already
  *  priced; failed / moderated / canceled renders are not charged by Higgsfield and do not count. */
+const DEFAULT_CAP_USD = { '720p': 20, '1080p': 50 };
+function defaultCap(resolution) {
+  const env = process.env[`MAISTRO_PIECE_BUDGET_USD_${resolution.toUpperCase()}`] || process.env.MAISTRO_PIECE_BUDGET_USD;
+  return env != null && env !== '' ? Number(env) : DEFAULT_CAP_USD[resolution];
+}
 async function pieceBudget(pieceId) {
   const [p] = await queryRows('content_pieces', `select=id,budget_usd,budget_warn_pct&id=eq.${q(pieceId)}&limit=1`);
-  const capUsd = p && p.budget_usd != null ? Number(p.budget_usd) : Number(process.env.MAISTRO_PIECE_BUDGET_USD || 25);
+  const hd = await queryRows('jobs', `select=id&piece_id=eq.${q(pieceId)}&kind=eq.higgsfield_video&payload->>resolution=eq.1080p&limit=1`);
+  const resolution = hd.length ? '1080p' : '720p';
+  const own = p && p.budget_usd != null;
+  const capUsd = own ? Number(p.budget_usd) : defaultCap(resolution);
+  const capBasis = own ? 'set for this piece' : `default for ${resolution} pieces`;
   const warnPct = p && p.budget_warn_pct ? Number(p.budget_warn_pct) : 80;
   const rows = await queryRows('jobs', `select=id,state,estimate_usd,kind&piece_id=eq.${q(pieceId)}&estimate_usd=not.is.null&limit=1000`);
   const sum = (f) => Math.round(rows.filter(f).reduce((a, r) => a + Number(r.estimate_usd || 0), 0) * 10000) / 10000;
-  return { capUsd, warnPct, spentUsd: sum((r) => r.state === 'succeeded'), committedUsd: sum((r) => r.state === 'queued' || r.state === 'running'), jobs: rows.length };
+  return { capUsd, capBasis, resolution, warnPct, spentUsd: sum((r) => r.state === 'succeeded'), committedUsd: sum((r) => r.state === 'queued' || r.state === 'running'), jobs: rows.length };
 }
 
 async function budgetGate(job) {
@@ -317,7 +330,7 @@ async function budgetGate(job) {
   await patchRows('jobs', `id=eq.${q(job.id)}`, { estimate_usd: estimateUsd });
   const b = await pieceBudget(job.piece_id);
   const after = Math.round((b.spentUsd + b.committedUsd) * 10000) / 10000; // includes this job (queued, reserved)
-  if (b.capUsd > 0 && after > b.capUsd) return { refuse: `budget cap: this render (~$${estimateUsd.toFixed(2)}, ${basis}) would take the piece to $${after.toFixed(2)} of its $${b.capUsd.toFixed(2)} cap — raise the budget to continue`, estimateUsd, basis };
+  if (b.capUsd > 0 && after > b.capUsd) return { refuse: `budget cap: this render (~$${estimateUsd.toFixed(2)}, ${basis}) would take the piece to $${after.toFixed(2)} of its $${b.capUsd.toFixed(2)} cap (${b.capBasis}) — a line manager or admin can raise this piece's budget ("Set cap" on the piece's budget line, or POST /api/studio action "budget" with budgetUsd)`, estimateUsd, basis };
   const warning = b.capUsd > 0 && after >= b.capUsd * b.warnPct / 100 ? `piece at $${after.toFixed(2)} of $${b.capUsd.toFixed(2)} (${Math.round(after / b.capUsd * 100)} %)` : null;
   return { estimateUsd, basis, warning };
 }

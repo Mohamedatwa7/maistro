@@ -84,12 +84,15 @@ One full piece (5 shots of 5 s, typical re-renders):
 Golden-set runs (20 pieces): **≈ $420 per run at 720p** (≈ $840 for baseline + after-run), ≈ $1,025 per run at
 1080p. Claude calls and F1X8 analyses are not Higgsfield-billed and are not included.
 
-**Default per-piece cap — proposal:** the current $25 fits a typical 720p piece with ~$4 of margin, so one extra
-re-render can trip it, and any 1080p piece needs about $55. Proposed: **$30 default for 720p pieces, $60 for pieces
-rendered at 1080p**. Not changed in code until you decide.
+**Default per-piece cap — owner decision 2026-10-22:** **$20 for a 720p piece, $50 for a piece rendered at 1080p**
+(warning at 80 %), sized for an average video of 10–15 s: 3 shots × 5 s (15 s) + 2 draft re-renders + 2 final
+re-renders of 5 s (20 s) = 35 s generated; 35 × $0.4622 = $16.18 at 720p, 35 × $1.1372 = $39.80 at 1080p, images
+≈ $0.05; the caps leave ~20 % headroom. The golden-set pieces above are costed at 5 shots (≈ $20.87 / $51.24), so
+they exceed the default and **each needs its cap raised for the run** (e.g. $25 at 720p, $60 at 1080p) by a line
+manager or admin with Set cap on the piece — the default is not changed for them.
 
 ## 6. What the owner decides
 
 1. Approve or amend the set; supply 3–4 Gulf-Arabic trends.
 2. Approve the rubric (or name the reviewer who rates).
-3. Approve the budget for the baseline run (and the second run after improvements).
+3. Approve the budget for the baseline run (and the second run after improvements). The default caps are decided ($20 / $50); the run raises each piece's cap.

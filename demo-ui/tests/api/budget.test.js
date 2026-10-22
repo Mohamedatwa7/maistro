@@ -34,6 +34,7 @@ test('budget: estimate = the submitted body; warning at 80 %; refusal past the c
     pg.tables.stages.find((s) => s.kind === 'thumb').state = 'generated';
     r = await submit(4);
     assert.equal(r.body.job.state, 'failed'); assert.match(r.body.job.error, /budget cap: .*\$2\.40 of its \$2\.00 cap/); assert.equal(submits.length, 3, 'nothing submitted past the cap');
+    assert.match(r.body.job.error, /\(default for 720p pieces\) — a line manager or admin can raise this piece's budget \("Set cap"/, 'the refusal names the cap and how to raise it');
     r = res(); await studio.handler(req({ method: 'GET', query: { budget: 'gen-bud1' } }), r);
     assert.equal(r.body.capUsd, 2); assert.equal(r.body.spentUsd, 0.8); assert.equal(r.body.committedUsd, 0.8);
     // raise the budget (password session = no member), audit-logged with real columns
@@ -131,4 +132,31 @@ test('estimate: the provider’s per-second pricing sentence prices video exactl
     assert.equal(e2.usd, 5.686);
     assert.deepEqual(hg.parsePerSecond('costs 6 credits per second'), {});
   } finally { f.restore(); if (saved === undefined) delete process.env.HF_CREDENTIALS; else process.env.HF_CREDENTIALS = saved; }
+});
+
+test('budget defaults (owner 2026-10-22): $20 for a 720p piece, $50 once any of its video renders is 1080p; env overrides per resolution; a piece cap wins and is named', async () => {
+  const pg = fakePostgrest();
+  const f = mockFetch([pg.route]);
+  const base = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', HF_CREDENTIALS: 'id:secret', MAISTRO_PIECE_BUDGET_USD: undefined, MAISTRO_PIECE_BUDGET_USD_720P: undefined, MAISTRO_PIECE_BUDGET_USD_1080P: undefined };
+  const run = async (env, fn) => { const pieces = api('pieces.js', env); const studio = api('studio.js', env); try { return await fn(pieces, studio); } finally { pieces.restore(); studio.restore(); } };
+  const budget = async (studio) => { const r = res(); await studio.handler(req({ method: 'GET', query: { budget: 'gen-def1' } }), r); assert.equal(r.statusCode, 200, JSON.stringify(r.body)); return r.body; };
+  try {
+    await run(base, async (pieces, studio) => {
+      const r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-def1', stage: 'plan', artifact: { title: 'B', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] } } }), r);
+      const pid = pg.tables.content_pieces[0].id;
+      let b = await budget(studio);
+      assert.deepEqual([b.capUsd, b.resolution, b.capBasis, b.warnPct], [20, '720p', 'default for 720p pieces', 80]);
+      pg.tables.jobs.push({ id: 'j1', piece_id: pid, kind: 'higgsfield_video', state: 'succeeded', estimate_usd: 2.311, payload: { resolution: '720p' } });
+      assert.equal((await budget(studio)).capUsd, 20, 'a 720p clip keeps the 720p default');
+      pg.tables.jobs.push({ id: 'j2', piece_id: pid, kind: 'higgsfield_video', state: 'queued', estimate_usd: 5.686, payload: { resolution: '1080p' } });
+      b = await budget(studio);
+      assert.deepEqual([b.capUsd, b.resolution, b.capBasis], [50, '1080p', 'default for 1080p pieces']);
+    });
+    await run({ ...base, MAISTRO_PIECE_BUDGET_USD_1080P: '60' }, async (pieces, studio) => assert.equal((await budget(studio)).capUsd, 60));
+    await run(base, async (pieces, studio) => {
+      pg.tables.content_pieces[0].budget_usd = 120;
+      const b = await budget(studio);
+      assert.deepEqual([b.capUsd, b.capBasis], [120, 'set for this piece']);
+    });
+  } finally { f.restore(); }
 });

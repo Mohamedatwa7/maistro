@@ -2458,7 +2458,14 @@ function budgetLine(p){
  if(BUDGET[p.id]===undefined){BUDGET[p.id]=null;loadBudget(p.id)}
  const b=BUDGET[p.id];if(!b)return '';
  const used=b.spentUsd+b.committedUsd,pct=b.capUsd>0?Math.round(used/b.capUsd*100):0,tone=pct>=100?'alert':pct>=b.warnPct?'gold':'muted';
- return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">${badge(tone,'BUDGET $'+used.toFixed(2)+' / $'+b.capUsd.toFixed(2)+' · '+pct+' %')}<span class="dim" style="font-size:11px">$${b.spentUsd.toFixed(2)} spent · $${b.committedUsd.toFixed(2)} rendering · warns at ${b.warnPct} % · each render is priced by Higgsfield before it is sent and refused past the cap</span></div>`;
+ return `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">${badge(tone,'BUDGET $'+used.toFixed(2)+' / $'+b.capUsd.toFixed(2)+' · '+pct+' %')}<span class="dim" style="font-size:11px">$${b.spentUsd.toFixed(2)} spent · $${b.committedUsd.toFixed(2)} rendering · warns at ${b.warnPct} % · each render is priced by Higgsfield before it is sent and refused past the cap · cap ${esc(b.capBasis||'')}</span><span style="display:inline-flex;gap:4px;align-items:center"><input type="number" min="0" max="10000" step="1" data-budget-for="${esc(p.id)}" placeholder="new cap $" style="width:90px;font-size:11px"><button class="btn ghost" style="font-size:11px;padding:2px 8px" data-budget-set="${esc(p.id)}" onclick="setBudget(this.dataset.budgetSet)">Set cap</button></span>${b.err?`<span class="dim" style="font-size:11px;color:var(--alert,#c33)">${esc(b.err)}</span>`:''}</div>`;
+}
+/* 6.9: a line manager or admin sets this piece's cap (the server refuses other roles) */
+async function setBudget(pid){
+ const el=document.querySelector(`[data-budget-for="${CSS.escape(pid)}"]`);const cap=Number(el&&el.value);
+ if(!el||el.value===''||!(cap>=0&&cap<=10000))return;
+ try{const r=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'budget',pieceId:pid,budgetUsd:cap})});const d=await r.json().catch(()=>({}));
+  BUDGET[pid]=r.ok?d:{...(BUDGET[pid]||{}),err:d.error||('budget not changed ('+r.status+')')};studioRefresh()}catch(e){}
 }
 /* 6.7 — the QC report: score, checklist, located fixes with cost; approve, edit the plan, or send back */
 const QC_EDIT={};
