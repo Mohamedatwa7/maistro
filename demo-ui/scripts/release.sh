@@ -32,10 +32,16 @@ DIRTY=$(git status --porcelain . | grep -v '\.vercel' || true)
 [ -z "$DIRTY" ] || { echo "RELEASE STOPPED: demo-ui has uncommitted or untracked files:"; echo "$DIRTY"; exit 1; }
 SHORT=${SHA:0:7}
 vercel deploy --prod --yes --env MAISTRO_REVISION="$SHA" > /dev/null 2>&1 || { echo "RELEASE STOPPED: deploy failed"; exit 1; }
+# every push to main also triggers Vercel's git deployment, so for a short while the hosts can answer the
+# git build of another commit (e.g. a PROGRESS push); wait up to 3 minutes for both to converge on this SHA
 for HOST in https://maistro-demo.vercel.app https://www.ma1stro.com; do
-  H=$(curl -s "$HOST/api/health")
-  echo "$H" | grep -q '"ok":true' || { echo "RELEASE STOPPED: $HOST health not ok"; exit 1; }
-  echo "$H" | grep -q "\"revision\":\"$SHORT\"" || { echo "RELEASE STOPPED: $HOST answers revision $(echo "$H" | grep -o '"revision":[^,]*'), expected $SHORT"; exit 1; }
+  OK=""
+  for i in $(seq 1 18); do
+    H=$(curl -s "$HOST/api/health")
+    if echo "$H" | grep -q '"ok":true' && echo "$H" | grep -q "\"revision\":\"$SHORT\""; then OK=1; break; fi
+    sleep 10
+  done
+  [ -n "$OK" ] || { echo "RELEASE STOPPED: $HOST did not converge on $SHORT within 3 min (answers $(echo "$H" | grep -o '"revision":[^,]*'), health $(echo "$H" | grep -o '"ok":[a-z]*'))"; exit 1; }
   [ "$(curl -s "$HOST/" | sha256sum | cut -c1-64)" = "$(sha256sum index.html | cut -c1-64)" ] || { echo "RELEASE STOPPED: $HOST serves a page that differs from index.html"; exit 1; }
 done
 echo "RELEASED $(git log --oneline -1) at $(date -u +%H:%M) UTC"

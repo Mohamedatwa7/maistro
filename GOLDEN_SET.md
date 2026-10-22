@@ -70,7 +70,18 @@ Per piece, the Studio submits roughly: 1 moodboard set (Soul V2 ×4), 1 thumbnai
 product photo is attached), 4–6 storyboard keyframes (Soul ×1), 4–6 first-draft clips (Seedance image-to-video,
 4–8 s at 720p), 1–2 final re-renders, plus Claude calls and F1X8 analyses (not Higgsfield-billed).
 
-Unit prices: **to be filled from the first `higgsfield.prices` card** (written by the hourly cron, 2026-10-22 06:15 UTC).
+Unit prices from the provider's own `/estimate` (price card of 2026-10-22 06:17 UTC):
+
+| Item | Provider estimate |
+|---|---|
+| Soul V2, 1 image, 1080p | $0.006 (0.09 credits) |
+| Soul V2, set of 4, 1080p (moodboard) | $0.023 (0.36 credits) |
+| Seedance 2.5 image-to-video, 4–8 s, 720p / 1080p | **not yet priced** — the estimate response for video carries no `usd` field; the parser now reports its shape and the card retries hourly |
+
+Image cost per piece (Soul only): moodboard $0.023 + thumbnail $0.006 + 5 keyframes $0.030 + a few re-renders ≈ **$0.07**,
+i.e. ≈ $1.40 for 20 pieces — negligible. The baseline budget is dominated by the video clips (≈ 6–8 per piece incl.
+re-renders) and is filled in as soon as the card prices Seedance. Claude calls and F1X8 analyses are not
+Higgsfield-billed (Anthropic usage is on the generation records; F1X8 runs on our own service).
 
 ## 6. What the owner decides
 
