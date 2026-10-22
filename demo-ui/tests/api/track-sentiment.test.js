@@ -333,3 +333,35 @@ test('attribution route (7.5): signed-in only; 503 before migration 018; records
     assert.equal(r.statusCode, 503); assert.equal(r.body.code, 'not_migrated');
   } finally { f.restore(); h.restore(); }
 });
+
+test('Phase 10 stored payload: the cron writes the complete 60-day read; the signed-in page read serves it when ≤ 26 h old, else (stale, partial, missing, ?live=1) reads live; never without a session', async () => {
+  const store = {};
+  const M = 'https://maistro.test/rest/v1/';
+  const headRoute = [(u, init) => ((init && init.method) || 'GET') === 'HEAD', () => new Response('', { status: 206, headers: { 'content-range': '0-0/0' } })];
+  const payloads = [M + 'perf_payloads', (u, init) => {
+    if (init && init.method === 'POST') { for (const r of JSON.parse(init.body)) store[r.kind] = r; return new Response('', { status: 201 }); }
+    return json(store.track_60d ? [store.track_60d] : []);
+  }];
+  const f = mockFetch([headRoute, payloads, [M + 'reconciliation_reports', () => new Response('', { status: 201 })], ...trackerRoutes()]);
+  const h = api('track.js', { ...ENV, CRON_SECRET: 'cron' });
+  const trackerCalls = () => f.calls.filter((c) => String(c.url).startsWith('https://tracker.test')).length;
+  try {
+    let r = res(); await h.handler(req({ query: { days: '60' } }), r);
+    assert.equal(r.body.served, 'live', 'no stored copy yet');
+    r = res(); await h.handler(req({ query: { cron: '1' }, headers: { authorization: 'Bearer cron' } }), r);
+    assert.equal(r.statusCode, 200); assert.equal(r.body.payloadStored.ok, true); assert.equal(r.body.posts, undefined, 'the cron response stays small');
+    assert.ok(store.track_60d && store.track_60d.payload.posts.length === 1 && store.track_60d.tracker_newest, 'stored with the tracker’s newest data date');
+    let before = trackerCalls();
+    r = res(); await h.handler(req({ query: { days: '60' } }), r);
+    assert.equal(r.body.served, 'stored'); assert.equal(trackerCalls(), before, 'no tracker read'); assert.ok(r.body.computedAt && r.body.trackerNewest);
+    assert.equal(r.headers['cache-control'], 'private, max-age=300');
+    r = res(); await h.handler(req({ query: { days: '60' }, session: false }), r);
+    assert.equal(r.statusCode, 401, 'the stored copy is customer data: session only');
+    r = res(); await h.handler(req({ query: { days: '60', live: '1' } }), r); assert.equal(r.body.served, 'live');
+    r = res(); await h.handler(req({ query: { days: '14' } }), r); assert.equal(r.body.served, 'live', 'only the 60-day read is stored');
+    store.track_60d.computed_at = new Date(Date.now() - 27 * 36e5).toISOString();
+    r = res(); await h.handler(req({ query: { days: '60' } }), r); assert.equal(r.body.served, 'live', 'older than 26 h: live');
+    store.track_60d.computed_at = new Date().toISOString(); store.track_60d.comments_partial = true;
+    r = res(); await h.handler(req({ query: { days: '60' } }), r); assert.equal(r.body.served, 'live', 'a partial copy is never served');
+  } finally { f.restore(); h.restore(); }
+});

@@ -32,12 +32,13 @@
 // (post_url first, a single JSON field only where the URL has no account),
 // and page along the published_at index, never ORDER BY id.
 
-const { insertRow, queryRows } = require('../_supabase.js');
+const { insertRow, queryRows, upsertRows } = require('../_supabase.js');
 const { requireSession, bearerMatches, isCron: isCronRequest } = require('../_auth.js');
 const { fetchT } = require('../_http.js');
 
 const DAYS_MAX = 90;
 const FALLBACK_DAYS = 14; // cron snapshot window when the full read fails or is partial
+const STORED_MAX_H = 26; // Phase 10: the stored 60-day payload is served only when this fresh (daily cron + slack)
 const PAGE = 1000;
 
 // Sentiment is the tracker model's label or none. The keyword fallback once used here (ported from
@@ -519,6 +520,18 @@ module.exports = async (req, res) => {
     if (wantThemes && !requireSession(req, res)) return;
     const wantAttr = !isCron && String(q.attribution || '') === '1';
     let days = Math.min(DAYS_MAX, Math.max(1, parseInt(isCron ? 60 : wantBench || wantAttr ? DAYS_MAX : q.days, 10) || 60));
+    // Phase 10: the 60-day page read is served from perf_payloads (written by the 06:30 cron right after the
+    // tracker's sync) when that copy is complete and ≤ 26 h old; otherwise, or with ?live=1, the live read below
+    const wantStored = !isCron && !wantBench && !wantAttr && !wantThemes && String(q.reconcile || '') !== '1' && days === 60 && String(q.live || '') !== '1';
+    if (wantStored) {
+      try {
+        const [row] = await queryRows('perf_payloads', 'select=computed_at,tracker_newest,comments_partial,payload&kind=eq.track_60d&limit=1');
+        if (row && !row.comments_partial && Date.now() - Date.parse(row.computed_at) <= STORED_MAX_H * 36e5) {
+          res.setHeader('Cache-Control', 'private, max-age=300');
+          return res.status(200).json({ ...row.payload, served: 'stored', computedAt: row.computed_at, trackerNewest: row.tracker_newest });
+        }
+      } catch (e) { console.error('[track] stored payload unavailable, reading live:', e.message); }
+    }
     let R;
     try {
       R = await readWindow(days);
@@ -638,7 +651,7 @@ module.exports = async (req, res) => {
     // function (snapshot store + reconciliation) never ran (found 2026-10-22: zero reconciliation_reports rows)
     // private: the browser may keep it 5 minutes; no shared cache ever holds customer comments
     res.setHeader('Cache-Control', isCron || commentsPartial ? 'no-store' : 'private, max-age=300');
-    return res.status(200).json({
+    const body = {
       source: 'samsungtrack DB (daily Apify schedule — no duplicate pulls)',
       fetchedAt: new Date().toISOString(),
       days,
@@ -648,7 +661,22 @@ module.exports = async (req, res) => {
       reconciled,
       timings,
       posts: out,
-    });
+    };
+    // Phase 10: the cron keeps the complete 60-day read for the page (service-role table, session-gated reader)
+    let payloadStored = null;
+    if (isCron && days === 60 && !commentsPartial) {
+      let newest = null;
+      for (const p of out) { if (p.postedAt && (!newest || p.postedAt > newest)) newest = p.postedAt; for (const c of p.comments) if (c.at && (!newest || c.at > newest)) newest = c.at; }
+      try {
+        await upsertRows('perf_payloads', [{ kind: 'track_60d', days, computed_at: body.fetchedAt, tracker_newest: newest, comments_partial: false, payload: { ...body, stored: null, reconciled: null } }], 'kind');
+        payloadStored = { ok: true, trackerNewest: newest };
+      } catch (e) { console.error('[track] perf payload store failed:', e.message); payloadStored = { error: e.message }; }
+    }
+    if (isCron) {
+      // the cron's own response stays small: the payload is in perf_payloads, not in the cron log
+      return res.status(200).json({ ...body, posts: undefined, count: out.length, payloadStored });
+    }
+    return res.status(200).json({ ...body, served: 'live' });
   } catch (e) {
     res.setHeader('Cache-Control', 'no-store');
     return res.status(502).json({ error: e.message || 'tracker read failed', timings });

@@ -3104,7 +3104,9 @@ function sentiMergeWindows(fast,full){
  });
  for(const p of byId.values())posts.push(p);
  posts.sort((a,b)=>String(b.postedAt||'').localeCompare(String(a.postedAt||'')));
- return {...newer,posts,count:posts.length,days:Math.max(+fast.days||0,+full.days||0),merged:true};
+ /* Phase 10: remember when the stored 60-day copy was computed, whichever read is newer */
+ const storedAt=full.served==='stored'?full.computedAt:fast.served==='stored'?fast.computedAt:null;
+ return {...newer,posts,count:posts.length,days:Math.max(+fast.days||0,+full.days||0),merged:true,storedComputedAt:storedAt};
 }
 async function loadSentiment(){
  if(SENTI.busy)return;
@@ -4256,8 +4258,10 @@ function perfNewestByPlatform(){
 }
 function perfAgePill(){
  const by=perfNewestByPlatform();const keys=Object.keys(by).sort();if(!keys.length)return '';
+ const tr=SENTI.track||{},st=tr.storedComputedAt||(tr.served==='stored'?tr.computedAt:null);
+ const storedPill=st?`<span class="pill" title="Days 15–60 come from the copy the 06:30 job stored; the last 14 days are read live"><span class="dot"></span>60-DAY COPY COMPUTED ${fmtStamp(Date.parse(st))}</span> `:'';
  const name={x:'X',twitter:'X',tiktok:'TikTok',instagram:'Instagram',facebook:'Facebook'};
- return keys.map(k=>{const n=by[k],h=(Date.now()-n)/36e5,label=`${(name[k]||k).toUpperCase()} · DATA AS OF ${fmtStamp(n)}`;
+ return storedPill+keys.map(k=>{const n=by[k],h=(Date.now()-n)/36e5,label=`${(name[k]||k).toUpperCase()} · DATA AS OF ${fmtStamp(n)}`;
   return h>PERF_STALE_H
    ?`<span class="pill" style="border-color:rgba(251,113,133,.5);color:#fda4af"><span class="dot" style="background:#fb7185"></span>STALE · ${label}</span>`
    :`<span class="pill"><span class="dot"></span>${label}</span>`}).join(' ');

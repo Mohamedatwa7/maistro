@@ -261,3 +261,16 @@ test('7.6 learnings on the attribution panel: withheld below 30; proposals label
     assert.match(html, /Content generation \(6.10\)/); assert.match(html, /not applied automatically/);
   } finally { X.restore(); }
 });
+
+test('Phase 10: the header says when the stored 60-day copy was computed, also after merging with the live 14-day read', async () => {
+  const X = pageWith();
+  try {
+    await new Promise((r) => setTimeout(r, 50));
+    const fast = { ...track, fetchedAt: '2026-10-21T09:58:00Z', days: 14, served: 'live' };
+    const full = { ...track, fetchedAt: '2026-10-21T06:31:00Z', days: 60, served: 'stored', computedAt: '2026-10-21T06:31:00Z' };
+    const m = X.sentiMergeWindows(fast, full);
+    assert.equal(m.storedComputedAt, '2026-10-21T06:31:00Z');
+    X.SENTI.track = m;
+    assert.match(X.rPerformance(), /60-DAY COPY COMPUTED 21 Oct 2026, 10:31 GST/);
+  } finally { X.restore(); }
+});
