@@ -3182,11 +3182,17 @@ function pfPosts(){
  else list.sort((a,b)=>new Date(b.postedAt)-new Date(a.postedAt));
  return list;
 }
+/* 7.x: a platform whose posts never carry a view count (the tracker does not collect Facebook views)
+   is "not collected", not zero — its zeros are kept out of totals and shown as such */
+function viewsNotCollected(list){
+ const by={};for(const p of list){const k=p.platform;by[k]=by[k]||{n:0,with:0};by[k].n++;if(+((p.metrics||{}).views)>0)by[k].with++}
+ return Object.keys(by).filter(k=>by[k].n>0&&by[k].with===0).sort();
+}
 function pfStats(list){
- const s={posts:list.length,views:0,cmts:0,pos:0,neu:0,neg:0,flags:0,plats:{},ers:[]};
+ const s={posts:list.length,views:0,cmts:0,pos:0,neu:0,neg:0,flags:0,plats:{},ers:[],viewsNotCollected:viewsNotCollected(list)};
  for(const p of list){
   const m=p.metrics||{};
-  s.views+=+m.views||0;s.cmts+=+m.comments||0;
+  if(!s.viewsNotCollected.includes(p.platform))s.views+=+m.views||0;s.cmts+=+m.comments||0;
   if(m.er!=null)s.ers.push(m.er);
   s.plats[p.platform]=(s.plats[p.platform]||0)+1;
   for(const c of (p.comments||[])){
@@ -3252,7 +3258,7 @@ function kpiDrill(kind){
    <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.55">
     ${p.platform&&PLAT[p.platform]?plat(p.platform):''} <b style="font-size:12px">${esc(p.account||'')}</b>
     <span class="dim" dir="auto" style="unicode-bidi:plaintext"> ${esc((p.caption||'').slice(0,100))}${(p.caption||'').length>100?'…':''}</span>
-    <div class="mono dim" style="font-size:10px;margin-top:3px">${m.views!=null?fmt(m.views)+' views · ':''}${m.er!=null?pct(m.er)+' ER · ':''}${(p.comments||[]).length} comments${p.url?` · <a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:#7dd3fc;text-decoration:none">OPEN ↗</a>`:''}</div>
+    <div class="mono dim" style="font-size:10px;margin-top:3px">${m.views!=null&&!(PF_NOVIEWS.includes(p.platform)&&!(+m.views>0))?fmt(m.views)+' views · ':PF_NOVIEWS.includes(p.platform)?'views not collected · ':''}${m.er!=null?pct(m.er)+' ER · ':''}${(p.comments||[]).length} comments${p.url?` · <a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:#7dd3fc;text-decoration:none">OPEN ↗</a>`:''}</div>
    </div></div>`};
  const D={
   posts:['Posts in this view','Every post counted by this KPI, newest first.',list.slice(0,10).map(postRow).join('')],
@@ -4267,7 +4273,9 @@ function perfAgePill(){
    ?`<span class="pill" style="border-color:rgba(251,113,133,.5);color:#fda4af"><span class="dot" style="background:#fb7185"></span>STALE · ${label}</span>`
    :`<span class="pill"><span class="dot"></span>${label}</span>`}).join(' ');
 }
+let PF_NOVIEWS=[];
 function rPerformance(){
+ PF_NOVIEWS=viewsNotCollected(SENTI.posts||[]);
  if(SENTI.posts.length){
   const list=pfPosts();
   const s=pfStats(list);
@@ -4283,7 +4291,7 @@ function rPerformance(){
    ${perfAgePill()}<span class="pill"><span class="dot"></span>CONSUMER SENTIMENT TRACKER · ${SENTI.track?'LIVE':'SNAPSHOT'}</span></div>
   <div class="kpis c4" style="margin-bottom:12px">
    <div class="card kpi p4 click" onclick="kpiDrill('posts')" title="Click to see the posts behind this number"><span class="kick">Posts</span><div class="v num">${s.posts}</div><div class="hint">${dayLab} · our accounts${pf.plat!=='all'?' · '+(PLAT[pf.plat]?PLAT[pf.plat].n:pf.plat):''} · ⌕</div></div>
-   <div class="card kpi p4 click" onclick="kpiDrill('views')" title="Click to see the top posts by views"><span class="kick">Total views</span><div class="v num">${fmt(s.views)}</div><div class="hint">${dayLab} · ⌕</div></div>
+   <div class="card kpi p4 click" onclick="kpiDrill('views')" title="Click to see the top posts by views"><span class="kick">Total views</span><div class="v num">${fmt(s.views)}</div><div class="hint">${dayLab}${s.viewsNotCollected.length?' · excludes '+s.viewsNotCollected.map(k=>({x:'X',twitter:'X',facebook:'Facebook',tiktok:'TikTok',instagram:'Instagram'}[k]||k)).join(', ')+' (views not collected)':''} · ⌕</div></div>
    <div class="card kpi p4 click" onclick="kpiDrill('er')" title="Click to see the best-engaging posts"><span class="kick">Avg engagement</span><div class="v num" style="color:var(--go)">${s.avgEr!=null?pct(s.avgEr):'—'}</div><div class="hint">likes + comments + shares / views · ⌕</div></div>
    <div class="card kpi p4 click" onclick="kpiDrill('cmts')" title="Click to see the most-liked comments"><span class="kick">Comments</span><div class="v num">${fmt(s.cmts)}</div><div class="hint">reported on these posts · ⌕</div></div>
   </div>

@@ -13,7 +13,7 @@ function trackerRoutes({ failCommentsForDays = null, stores = [] } = {}) {
       // the tracker also holds other projects' rows (ifold_ competitor/fan/news posts): only an excluding query avoids them
       if (u.includes('platform=eq.tiktok') && !u.includes('external_id=not.like.ifold%5C_*')) return json([{ external_id: 'ifold_7682900409832262945', platform: 'tiktok', post_url: 'https://www.tiktok.com/@samsung_galaxy2026/video/7682900409832262945', published_at: new Date(Date.now() - 864e5).toISOString(), caption: 'iPhone Fold vs Z Fold8', views_count: 1126218, likes_count: 9, comments_count: 0, shares_count: 0 }]);
       if (!u.includes('platform=eq.instagram')) return json([]);
-      return json([{ external_id: 'p1', platform: 'instagram', post_url: 'https://www.instagram.com/p/ABC/', published_at: new Date(Date.now() - 2 * 864e5).toISOString(), caption: 'x', views_count: 10, likes_count: 1, comments_count: 2, shares_count: 0, raw_data: {} }]);
+      return json([{ external_id: 'p1', platform: 'instagram', owner_ig: 'samsunggulf', post_url: 'https://www.instagram.com/p/ABC/', published_at: new Date(Date.now() - 2 * 864e5).toISOString(), caption: 'x', views_count: 10, likes_count: 1, comments_count: 2, shares_count: 0, raw_data: {} }]);
     }],
     ['/social_comments?', (u) => {
       const m = u.match(/published_at=gte\.([^&]+)/);
@@ -135,7 +135,7 @@ test('reconcile (7.0): reader counts vs database counts, twins removed, alias-on
     assert.deepEqual(R.sums.instagram, { views: 10, likes: 1, commentsCount: 2, shares: 0 });
     assert.equal(R.comments.seen, 2); assert.equal(R.comments.dbSeen, 2); assert.equal(R.comments.matched, 2); assert.equal(R.comments.dbMatchedCanonical, 2); assert.equal(R.comments.aliasOnly, 0);
     assert.equal(R.comments.deduped, 1); assert.equal(R.comments.twinsRemoved, 1); assert.equal(R.comments.matchRate, 1);
-    assert.deepEqual(R.checks, { R1_posts: true, R3_commentsSeen: true, R4_matchedLowerBound: true, R6_postsUniqueById: true }); assert.equal(R.ok, true);
+    assert.deepEqual(R.checks, { R1_posts: true, R3_commentsSeen: true, R4_matchedLowerBound: true, R6_postsUniqueById: true, R8_ownedAccountsOnly: true }); assert.equal(R.ok, true);
     assert.equal(R.boundary.rolling, 1); assert.equal(R.boundary.calendarDubai, 1); assert.equal(R.boundary.calendarUtc, 1); assert.deepEqual(R.boundary.withinADayOfSince, []);
     assert.ok(R.freshness.instagram.newestPost); assert.ok(R.freshness.instagram.newestComment);
     // a database count that disagrees shows up as a failed check, with the numbers
@@ -162,7 +162,7 @@ test('reconcile (7.0): the daily cron stores a reconciliation report row next to
     r = res(); await h.handler(req({ query: { cron: '1' }, headers: { authorization: 'Bearer cron' } }), r);
     assert.equal(r.headers['cache-control'], 'no-store', 'a cron response is never cached (the edge cache once swallowed the 06:30 cron)');
     const vj = JSON.parse(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', '..', 'vercel.json'), 'utf8')); assert.ok(vj.crons.some((c) => c.path.startsWith('/api/track?cron=1') && c.schedule === '30 6 * * *'), 'the track cron has its own URL, distinct from the page read');
-    assert.equal(r.statusCode, 200); assert.deepEqual(r.body.reconciled, { ok: true, checks: { R1_posts: true, R3_commentsSeen: true, R4_matchedLowerBound: true, R6_postsUniqueById: true } });
+    assert.equal(r.statusCode, 200); assert.deepEqual(r.body.reconciled, { ok: true, checks: { R1_posts: true, R3_commentsSeen: true, R4_matchedLowerBound: true, R6_postsUniqueById: true, R8_ownedAccountsOnly: true } });
     assert.equal(reports.length, 1); assert.equal(reports[0].ok, true); assert.equal(reports[0].days, 60); assert.equal(reports[0].report.comments.twinsRemoved, 1);
     r = res(); await h.handler(req({ query: { reconcile: 'latest' }, session: false }), r); assert.equal(r.statusCode, 401);
     r = res(); await h.handler(req({ query: { reconcile: 'latest' } }), r);
@@ -175,4 +175,15 @@ test('population: posts from other tracker projects (ifold_ competitor, fan and 
   assert.equal(out.r.statusCode, 200);
   assert.ok(out.r.body.posts.length >= 1, 'the Samsung post is there');
   assert.ok(out.r.body.posts.every((p) => !String(p.postId).startsWith('ifold_')), JSON.stringify(out.r.body.posts.map((p) => p.postId)));
+});
+
+test('reconcile R-8: a counted post outside the owned accounts fails the report and is named', async () => {
+  const headRoute = [(u, init) => (init.method || 'GET') === 'HEAD', (u) => new Response('', { status: 206, headers: { 'content-range': u.includes('/social_posts?') ? (u.includes('platform=eq.instagram') ? '0-0/1' : '0-0/0') : '0-0/0' } })];
+  const f = mockFetch([headRoute, ...trackerRoutes()]);
+  const h = api('track.js', { ...ENV, MAISTRO_OWNED_ACCOUNTS: 'tiktok:samsunggulf' });
+  try {
+    const r = res(); await h.handler(req({ query: { days: '14', reconcile: '1' }, headers: { authorization: 'Bearer ingest' } }), r);
+    assert.equal(r.body.checks.R8_ownedAccountsOnly, false); assert.equal(r.body.ok, false);
+    assert.equal(r.body.population.foreign, 1); assert.deepEqual(r.body.population.sample[0], { postId: 'p1', platform: 'instagram', account: 'samsunggulf', url: 'https://www.instagram.com/p/ABC/' });
+  } finally { f.restore(); h.restore(); }
 });

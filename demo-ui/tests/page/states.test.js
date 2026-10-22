@@ -94,3 +94,14 @@ test('scored board (5.5): ranked cards show rank, score, lifecycle, post-by or L
     assert.match(html, /No scoring run has completed yet/);
   } finally { X.restore(); }
 });
+
+test('performance: a platform that never reports views is "not collected", kept out of the total, not shown as zero', () => {
+  const { loadPage } = require('../helpers');
+  const X = loadPage({ fetchImpl: async () => new Promise(() => {}) });
+  try {
+    const list = [{ platform: 'facebook', metrics: { views: 0, comments: 2 }, comments: [] }, { platform: 'facebook', metrics: { views: null }, comments: [] }, { platform: 'tiktok', metrics: { views: 100, comments: 1 }, comments: [] }];
+    assert.deepEqual(X.viewsNotCollected(list), ['facebook']);
+    const s = X.pfStats(list);
+    assert.equal(s.views, 100); assert.deepEqual(s.viewsNotCollected, ['facebook']);
+  } finally { X.restore(); }
+});

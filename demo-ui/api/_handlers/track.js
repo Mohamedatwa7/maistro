@@ -297,7 +297,14 @@ async function reconcile(days, R, get, H, base) {
     for (const c of p.comments) if (c.at && (!f.newestComment || c.at > f.newestComment)) f.newestComment = c.at;
   }
   report.checks.R6_postsUniqueById = new Set(ids).size === ids.length;
-  report.ok = Boolean(report.checks.R1_posts && report.checks.R3_commentsSeen && report.checks.R4_matchedLowerBound && report.checks.R6_postsUniqueById);
+  // R-8 population: every counted post belongs to an owned account (the two-sided counts agree even on a
+  // wrong population — the ifold_ rows passed R-1 until 2026-10-22). MAISTRO_OWNED_ACCOUNTS overrides,
+  // as "platform:account,…"; default: the Samsung Gulf accounts on the four platforms.
+  const owned = new Set(String(process.env.MAISTRO_OWNED_ACCOUNTS || 'tiktok:samsunggulf,instagram:samsunggulf,facebook:samsunggulf,x:samsunggulf,twitter:samsunggulf').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean));
+  const foreign = out.filter((p) => !owned.has(`${String(p.platform).toLowerCase()}:${String(p.account || '').toLowerCase().replace(/^@/, '')}`));
+  report.population = { owned: [...owned], foreign: foreign.length, sample: foreign.slice(0, 5).map((p) => ({ postId: p.postId, platform: p.platform, account: p.account || null, url: p.url })) };
+  report.checks.R8_ownedAccountsOnly = foreign.length === 0;
+  report.ok = Boolean(report.checks.R1_posts && report.checks.R3_commentsSeen && report.checks.R4_matchedLowerBound && report.checks.R6_postsUniqueById && report.checks.R8_ownedAccountsOnly);
   return report;
 }
 
