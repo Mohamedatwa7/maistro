@@ -88,3 +88,33 @@ test('critical alerts and drill-downs fold the same author+text pasted under sev
     assert.equal(X.sentiFoldAcross(X.allComments(X.SENTI.posts)).filter((c) => c.author === 'complainant').map((c) => c.likes)[0], 5, 'the most-liked copy survives');
   } finally { X.restore(); }
 });
+
+test('7.0 window merge: the 60-day read widens the 14-day one — a post in both takes the later read\'s metrics and keeps comments only the 14-day read had; posts of either read are kept', async () => {
+  const c = (author, text, at) => ({ author, text, at, likes: 0, sentiment: 'neu' });
+  const post = (id, postedAt, views, comments, collected) => ({ postId: id, platform: 'tiktok', account: 'samsunggulf', caption: id, url: null, postedAt, mediaType: null, metrics: { views, likes: 1, comments: comments.length, shares: 0, er: null, thumb: null }, commentsCollected: collected, comments });
+  const fast = { source: track.source, fetchedAt: '2026-10-21T09:58:00Z', days: 14, count: 2, posts: [
+    post('both', '2026-10-20T08:00:00Z', 100, [c('a', 'only in the 14-day read', '2026-10-20T09:00:00Z'), c('b', 'in both', '2026-10-20T09:05:00Z')], 2),
+    post('fastOnly', '2026-10-19T08:00:00Z', 50, [], 0),
+  ] };
+  const full = { source: track.source, fetchedAt: '2026-10-21T09:59:00Z', days: 60, count: 2, comments: { partial: true }, posts: [
+    post('both', '2026-10-20T08:00:00Z', 140, [c('b', 'in both', '2026-10-20T09:05:00Z'), c('c', 'new since', '2026-10-21T09:50:00Z')], 2),
+    post('old', '2026-09-01T08:00:00Z', 900, [c('d', 'old post comment', '2026-09-01T09:00:00Z')], 1),
+  ] };
+  const X = pageWith({ track14: fast, track60: full, snapshot: null });
+  try {
+    await new Promise((r) => setTimeout(r, 1800)); // the missing snapshot is retried once after 1.5 s before the 60-day read
+    const m = X.sentiMergeWindows(fast, full);
+    assert.deepEqual(m.posts.map((p) => p.postId), ['both', 'fastOnly', 'old'], 'every post of either read, newest first');
+    const both = m.posts[0];
+    assert.equal(both.metrics.views, 140, 'metrics from the read fetched later');
+    assert.deepEqual(both.comments.map((x) => x.text).sort(), ['in both', 'new since', 'only in the 14-day read'], 'union of comments, none duplicated');
+    assert.equal(both.commentsCollected, 2);
+    assert.equal(m.days, 60); assert.equal(m.count, 3);
+    // the other order (14-day read fetched later) takes the 14-day metrics
+    const late = X.sentiMergeWindows({ ...fast, fetchedAt: '2026-10-21T10:00:00Z' }, full);
+    assert.equal(late.posts.find((p) => p.postId === 'both').metrics.views, 100);
+    // the page itself ends on the merged window
+    assert.deepEqual(X.SENTI.posts.map((p) => p.postId).sort(), ['both', 'fastOnly', 'old']);
+    assert.equal(X.SENTI.posts.find((p) => p.postId === 'both').comments.length, 3);
+  } finally { X.restore(); }
+});

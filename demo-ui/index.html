@@ -3078,6 +3078,23 @@ function sentiCompose(){
   $('#view').innerHTML=rPerformance();reveal();
  }
 }
+/* 7.0: widen the 14-day read to the 60-day one without losing anything. Every post of either read is kept;
+   a post in both takes its metrics from the read fetched later and the union of both reads' comments (a
+   partial 60-day comment read must not drop comments the 14-day read had); collected = the larger count. */
+function sentiMergeWindows(fast,full){
+ if(!fast)return full;if(!full)return fast;
+ const newer=String(full.fetchedAt||'')>=String(fast.fetchedAt||'')?full:fast,older=newer===full?fast:full;
+ const byId=new Map(older.posts.map(p=>[sentiId(p),p]));
+ const ck=c=>[c.author||'',c.text||'',c.at||''].join('\u0001');
+ const posts=newer.posts.map(p=>{
+  const o=byId.get(sentiId(p));if(!o)return p;byId.delete(sentiId(p));
+  const seen=new Set((p.comments||[]).map(ck)),extra=(o.comments||[]).filter(c=>!seen.has(ck(c)));
+  return {...p,comments:(p.comments||[]).concat(extra),commentsCollected:Math.max(+p.commentsCollected||0,+o.commentsCollected||0)||undefined};
+ });
+ for(const p of byId.values())posts.push(p);
+ posts.sort((a,b)=>String(b.postedAt||'').localeCompare(String(a.postedAt||'')));
+ return {...newer,posts,count:posts.length,days:Math.max(+fast.days||0,+full.days||0),merged:true};
+}
 async function loadSentiment(){
  if(SENTI.busy)return;
  SENTI.busy=true;
@@ -3092,7 +3109,7 @@ async function loadSentiment(){
   /* 3 · widen to the full window for the 30/60-day filters, off the critical path */
   if(SENTI.win<SENTI_WIN.full){
    const full=await fetchPosts('/api/track?days='+SENTI_WIN.full,1);
-   if(full&&full.posts.length>=(SENTI.track?SENTI.track.posts.length:0)){SENTI.track=full;SENTI.win=SENTI_WIN.full;sentiCompose()}
+   if(full){SENTI.track=sentiMergeWindows(SENTI.track,full);SENTI.win=SENTI_WIN.full;sentiCompose()}
   }
  }catch(e){/* tracker not wired yet — section simply hidden */}
  finally{SENTI.busy=false}
