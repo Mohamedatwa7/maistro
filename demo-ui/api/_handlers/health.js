@@ -20,7 +20,8 @@ module.exports = async (req, res) => {
   const features = { MAISTRO_ADMIN_EMAILS: Boolean(process.env.MAISTRO_ADMIN_EMAILS), MAISTRO_REQUIRE_MEMBER: process.env.MAISTRO_REQUIRE_MEMBER === '1', MAISTRO_APP_PASSWORD: Boolean(process.env.MAISTRO_APP_PASSWORD) };
   return res.status(missing.length ? 503 : 200).json({
     ok: missing.length === 0,
-    revision: (process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 7) || null,
+    // CLI deploys carry no git metadata: the release gate passes MAISTRO_REVISION (the SHA CI tested) as a deployment env
+    revision: (process.env.VERCEL_GIT_COMMIT_SHA || process.env.MAISTRO_REVISION || '').slice(0, 7) || null,
     environment: process.env.VERCEL_ENV || 'local',
     configured,
     missing,
