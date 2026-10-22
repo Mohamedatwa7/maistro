@@ -773,6 +773,15 @@ Status: **PASSED** by checker, verified independently: CI green; local 209/209; 
 - Analysis groups by path, product, platform and format, trend confidence, revision rounds and angle; only mature organic standings rank; a median percentile needs 20 ranked posts in a group; criterion weights are withheld until 30 posts are attributed. The page has an Attribution panel with the "N of 30" count and the zero and not-migrated states.
 - The 7.5 code is complete; real data waits on the owner applying migration 018 and linking published finals.
 
+## Phase 7.6 closing the loop and the Phase 7 report (commit e734361; released through the gate) — Phase 7 code complete
+
+Status: **PASSED** by checker, verified independently: CI green; both hosts report `revision: e734361` with the page byte-identical; the report's benchmark figures match the live `?benchmarks=1` route exactly (TikTok ER 6.91 % n 114, Instagram video 4.19 % n 83, X video 1.08 % n 53, Instagram image engagements 98 n 37, Facebook engagements 66 n 177).
+
+- `learnings.js` turns the attribution analysis into proposals only when at least 30 posts are attributed and a group of at least 20 ranked posts differs from the rest by at least 15 percentile points in both halves of the window (split at the median post date, at least 5 per side per half); every proposal is labelled "Hypothesis", carries its n, the comparison count and the half gaps, is computed on read, and is never applied automatically (trend calibration stays frozen behind its eval). Tests: 29 attributed is withheld; a gap holding in both halves yields one proposal per target; a 2-point gap, a gap holding only in the first half, and young standings yield none. Today the page shows "Learnings: withheld — 0 of 30 attributed posts".
+- PERFORMANCE_INSIGHTS section 6 is the Phase 7 report: three decisions the page now supports (Respond, Mix, Trust), each against what the page showed before, with dated figures; what waits on attribution (boost, stop by product and market, every learning); the reconciliation and sentiment-accuracy summaries; the open owner decisions. A count correction (three complaint themes, not four) is on the branch for the next release.
+
+**Phase 7 code is complete.** Its data-dependent parts wait on migration 018 and on linked posts.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
