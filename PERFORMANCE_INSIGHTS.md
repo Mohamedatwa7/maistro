@@ -16,6 +16,58 @@ A strip at the top of Performance names each decision, its state and its evidenc
 | D-d **Product sentiment** | comments by device | **Mapped from caption text**: a comment counts for the device its post's caption names. The share of comments on posts naming no device is shown, and each device shows its analysed n, so a device with few mapped comments is not read as low praise. |
 | D-e **Trust the numbers** | per-platform data-as-of pills; "no recent data" | Facebook and X stale since 2026-10-16 (tracker collection). |
 
+## 3. Sentiment quality (7.3) — audit of 2026-10-22
+
+**Method.** I took the live 60-day read at 10:45 UTC: 6,067 comments after the twin collapse. Each comment was
+bucketed by language after removing @mentions, #hashtags and links: emoji-only, Arabic script, mixed Arabic and
+Latin, Arabizi (Latin with 2/3/5/7 letter-digits or a Gulf word list), and English (other Latin). Each was also
+classed by whose label it carried: the **tracker's model**, or **Maistro's keyword fallback** where the tracker
+had none. I drew a seeded sample of 20 comments per bucket × source (200 in all). Claude labelled them **blind**:
+the stored labels were hidden while labelling and joined afterwards. The labelling rule is written into the
+fixture (`tests/fixtures/sentiment-audit-2026-10-22.json`; authors tokenised, no ids, names in text redacted).
+Every figure below is recomputed by `tests/perf/sentiment-audit.test.js`. 645 comments with no letters and no
+emoji (hashtags or numbers only, once mentions are removed) are outside the buckets.
+
+| Bucket | Tracker | Keyword fallback |
+|---|---|---|
+| English | 18/20 · 90 % (70–97 %) | 14/20 · 70 % (48–86 %) |
+| Emoji only | 19/20 · 95 % (76–99 %) | **1/20 · 5 % (1–24 %)** |
+| Arabizi | 17/20 · 85 % (64–95 %) | 7/20 · 35 % (18–57 %) |
+| Mixed Arabic + Latin | 17/20 · 85 % (64–95 %) | 11/20 · 55 % (34–74 %) |
+| Arabic | **13/20 · 65 % (43–82 %)** | 10/20 · 50 % (30–70 %) |
+| **All sampled** | 84/100 · 84 % (76–90 %); **90 %** weighted by the population | **43/100 · 43 % (34–53 %)**; 64 % weighted |
+
+Wilson 95 % intervals in brackets. The population-weighted figure weights each bucket by its share of the real
+60-day comments: tracker-labelled 1,801, fallback-labelled 3,621.
+
+- **Tracker, per class:** positive recall 96 % / precision 81 %; neutral recall **62 %** / precision 88 %;
+  negative 93 % / 93 %. Its main error is calling neutral comments positive (12 of 34): giveaway entries and bare
+  product names. Arabic is its weakest bucket. Sarcasm: 5 comments flagged, 4 of them the same Arabic
+  customer-service complaint ("تخيلو الروعه"); the tracker read all 5 by intent.
+- **Keyword fallback:** it called 53 of 64 positive comments neutral, scored 19 of 20 emoji-only comments wrong,
+  and found neither negative comment. **It carried 64 % of the comments in the 60-day view.** Since 2026-10-22
+  it is no longer used. A comment the tracker has not analysed is shown as **"not analysed"** and left out of
+  every sentiment rate; the pill reads "N analysed · M comments".
+- **Why the tracker leaves comments unlabelled** (read-only look at SamsungSentiment `lib/apify-sync.ts`
+  `analyzeUnanalyzedComments`): the daily sync labels at most 500 comments, newest first, from the **last 30
+  days only**. Coverage in the live read is 96 % for comments under 7 days old, 81 % at 7–14 days, 51 % at
+  14–30 days and 30 % beyond 30 days. The older backlog is described in the code as "a one-off backfill, not the
+  daily sync's job", and it has not been run.
+- **Model labels — needs a native-speaker check:** the Arabic, Gulf-dialect, Arabizi, mixed-language and sarcasm
+  calls are the least trustworthy part of this audit, and they are on the owner gate.
+
+**Fix plan for SamsungSentiment (proposal only; that repo is not changed without approval):**
+1. Run the existing resumable backfill (`POST /api/analyze-sentiment/run`, in batches until `remaining` = 0)
+   for Samsung Gulf comments older than 30 days. This is a paid LLM run over about 4,000 comments; the cost
+   should be estimated first.
+2. Exclude the other corpora (ifold_ / unpacked_ / roster_) from the brand sync's 500-comment cap, or give them
+   their own cap, so brand comments are not crowded out.
+3. Tell the model that a giveaway entry or a bare product name is neutral, and re-measure against this fixture.
+4. Add Arabic and Gulf-dialect examples to the prompt, then have a native speaker re-label the Arabic bucket
+   before re-measuring.
+5. The tracker's own dashboard uses the same keyword list Maistro dropped, so the same "not analysed"
+   treatment applies there.
+
 ## 2. Benchmarks (7.2) — definitions, settled with the checker on 2026-10-22
 
 | # | Rule | Why |

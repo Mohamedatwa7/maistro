@@ -1,0 +1,2023 @@
+{
+ "source": "/api/track?days=60 read at 2026-10-22T10:44:58.447Z; 6067 comments; seeded sample of 20 per language bucket × label source",
+ "labelledBy": "Claude (builder session maistro-5e), 2026-10-22, blind (stored labels hidden while labelling, joined after); Arabic, Gulf dialect, Arabizi, mixed and sarcasm need a native-speaker check",
+ "labellingRule": "pos = praise or liking (incl. heart/fire/heart-eyes emoji); neg = complaint, anger, a problem report; neu = a product named without evaluation, a prayer-style giveaway entry, a request, a greeting, a question, spam; sarcasm flagged and labelled by its intent",
+ "buckets": "after removing @mentions, #hashtags and links: emoji_only (no letters), arabic (Arabic script only), mixed (Arabic and Latin), arabizi (Latin with 2/3/5/7 letter-digits or a Gulf word list), english (other Latin)",
+ "population": {
+  "emoji_only|tracker": 257,
+  "english|tracker": 1429,
+  "arabic|tracker": 39,
+  "other|tracker": 174,
+  "other|lexicon": 471,
+  "arabizi|tracker": 46,
+  "emoji_only|lexicon": 266,
+  "english|lexicon": 3131,
+  "arabic|lexicon": 38,
+  "arabizi|lexicon": 76,
+  "mixed|tracker": 30,
+  "mixed|lexicon": 110
+ },
+ "rows": [
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "tiktok",
+   "author": "u29f18655",
+   "text": "اول",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u6571bdc4",
+   "text": "I’d choose Pink 🎀💗 — it feels stylish, fun, and totally pocket-friendly!\n\nMy pocket buddy would be Galaxy Z Flip8 – Pink! 🎀📱✨ #GalaxyZFlip8",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u55260476",
+   "text": "@SamsungGulf Galxy Z Flip8 - Cream\n\n#GalaxyZFold8 #GalaxyS26\nء\n#GalaxyZFold8Ultra #Samsung\n\n#GalaxyZFlip8",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "u7c767518",
+   "text": "🍏",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u1176ab25",
+   "text": "@SamsungGulf My Galaxy Z Fold8 Ultra is my outfit’s best accessory. Premium, sleek, and always on point.\n\n#GalaxyZFold8Ultra",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "uc6b4ab23",
+   "text": "@SamsungGulf CREAM 🍦\n.\n..\nيارب يكون من نصيبي 🤲🏻🤍\n\n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8\n..",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "u5acac89b",
+   "text": "Amin amin nenek",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u616db641",
+   "text": "😍",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "ud61b1e6e",
+   "text": "@SamsungGulf My work is more efficient when my Galaxy Z Fold8 Ultra is paired with  Galaxy Buds and Galaxy Watch Ultra. The big screen for multitasking, Buds for focus, and Watch for quick notifications without picking up the phone, absolute game changer! 🙇🫶\n\n#GalaxyZFold8Ultra",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "ue3dc8578",
+   "text": "My \"Day [X]\" comment is simply my personal tracker, not a demand for free hardware.\nLiving on 30,000 PKR a month in Pakistan, purchasing a high-speed 2TB/4TB M.2 NVMe SSD is beyond my budget. After 1 year of lost giveaways, I am following a self-respectful 2-brand policy for storage.\nKindly request ",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "u5592feb5",
+   "text": "The GalaxyZFold8 Ultra completes my outfit. \n#GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u355325f8",
+   "text": "افضل شركه موبايل",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u531e3ec2",
+   "text": "@SamsungGulf مفتون بالـ Mint Galaxy Z Flip8 نظيف، منعش ويتناسب تمامًا مع أسلوبي. 💚✨\n#GalaxyZFold8 #GalaxyS26 #GalaxyZFold8Ultra #Samsung #GalaxyZFlip8",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u03e28ce4",
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with Galaxy Buds3 Pro and Galaxy Book. #GalaxyZFold8Ultra",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "ube4ba3d7",
+   "text": "هاتف مميز دائما جربت الجيل ٢٣ الي الان ممتاز جدا من حيث الاداء 😍👏 سامسونج في تطور مستمر",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u3cad532e",
+   "text": "Galaxy Z Fold 8 /Buds 4 pro #GalaxyZFold8",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u7ac0edbd",
+   "text": "@SamsungGulf GalaxyZFold8Ultra \n\n#GalaxyZFold8Ultra #Samsung\n\n📲📱📱📱\n\nيارب توفيقك\n\n🩷💕✨🦋💫🌿",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "u50e323cb",
+   "text": "The 3rd one which is the phone, pods and watch..",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "ud36e94a0",
+   "text": "Galaxy Z Fold8 and Watch9 are my favorites 💜 #galaxyzfold8",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u6499d98b",
+   "text": "✉️ 《[name] bequeathed again because of so very important meaning 》\n\nThe US president of White House said recently,\n\" SI is Super Intelligence, \nSuper Intelligence Force(SIF), \nthe formation of Super Intelligence Force ..... \" \n\nThe US president and the government of USA changed, \n\" SI is Supe",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u59221773",
+   "text": "😍 Amazing",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "x",
+   "author": "uca196577",
+   "text": "@SamsungGulf \"Heading straight over to drop my review! Loving the Galaxy ecosystem daily. Fingers crossed! 🤞✨\"",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "udbf7555d",
+   "text": "..... don't get what it is I should do but I'll try...... My galaxy J3(2016) is my outfit best accessory #GalaxyZFold8ultra",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "x",
+   "author": "uade3e4b6",
+   "text": "@SamsungGulf My best   vibe is Galaxy Z Fold8 + Buds4 pro + Watch9 combo to maximize my style   #GalaxyZFold8 419",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u3325bf78",
+   "text": "GalaxyZFold8  and Buds4 Pro\n #GalaxyZFold8",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "uf95dae43",
+   "text": "The 3rd photo shown was perfect #GalaxyZFold8",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u32846c8e",
+   "text": "@SamsungGulf Work. Create. Achieve. Repeat. With Galaxy Z Fold8 Ultra + Watch Ultra + Buds3 Pro, every minute is maximized! #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u03e28ce4",
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with my Galaxy Book5 Pro. #GalaxyZFold8Ultra",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u126b0ada",
+   "text": "Dear Samsung Pakistan Management,\n\nI am writing to formally complain about the poor support and unreasonable repair quote provided by the Samsung Pakistan service center for my premium Samsung 55\" 3D LED TV (Model: UA55D7000LR, Serial No: 217638YC100001X).\n\nI purchased this TV for PKR 450,000. It ha",
+   "stored": "neg",
+   "truth": "neg",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "ud87c90ba",
+   "text": "@SamsungGulf My work is more efficient when my Galaxy Z Fold8 Ultra is paired with the Galaxy Watch Ultra &amp; Galaxy Buds3 Pro.\n\nBig inner screen for split-screen notes + browser, Watch for instant alerts and health tracking without grabbing the phone, &amp; Buds for deep-focus\n\n#GalaxyZFold8Ultra",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u452535a8",
+   "text": "@SamsungGulf Galaxy2 Fold and Watch9",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "tiktok",
+   "author": "u004a24d0",
+   "text": "🥰🥰🥰",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u05ca610e",
+   "text": "@SamsungGulf ./Galaxy Z Fold8 + Buds4 Pro + Watch9 📱🎧⌚\n\nكمال سامسونج💜🤩\n\n#GalaxyZFold8",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "tiktok",
+   "author": "uca4f0ea6",
+   "text": "هلا",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u77e1f096",
+   "text": "📲💻",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u7d4ec199",
+   "text": "#galaxyzfold8 يارب توفيقك @",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "ue7b71e97",
+   "text": "❤️❤️",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "udc6863f2",
+   "text": "🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰🥰",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u58a35068",
+   "text": "🚨 𝟏𝟏 𝐌𝐎𝐍𝐓𝐇𝐒 — 𝐍𝐎 𝐑𝐄𝐒𝐎𝐋𝐔𝐓𝐈𝐎𝐍 — 𝐒𝐀𝐌𝐒𝐔𝐍𝐆 𝐆𝐀𝐋𝐀𝐗𝐘 𝐒𝟐𝟓 𝐔𝐋𝐓𝐑𝐀 🚨\n\nBought on 𝟏𝟕 𝐎𝐜𝐭 𝟐𝟎𝟐𝟓, reported a defective fingerprint sensor within 24 hours (𝟐𝟎 𝐎𝐜𝐭 𝟐𝟎𝟐𝟓) at Samsung Service Centre, Multan. Replacement was refused despite the 7-day policy. 𝟏\ud835",
+   "stored": "neg",
+   "truth": "neg",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "ufde7fd7d",
+   "text": "@SamsungGulf عملي أكثر كفاءة عندما يتم اقتران Galaxy الخاص بي مع galaxyzfold8ultra وسماعات Samsung buds!\n\n#GalaxyZFold8Ultra 👍🏽\n.",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u55260476",
+   "text": "@SamsungGulf يارب يكون من نصيبي 🤲🏻🤍\n\n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8\n.\n188",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u4e54870e",
+   "text": "Always #Galaxy 😍",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "ue9dacb03",
+   "text": "I found a 9-year-old Samsung A3 model phone buried in a sand pile that had been sitting there for about 15 years. It turned up while I was moving the sand for a concrete pouring project in our garden. Part of the phone's old case was still attached. Surprisingly, when I plugged it in to charge, the ",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "ue08b2ccf",
+   "text": "Please Samsung, Give me a Galaxy A57 5g 🥺🙏",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u9307fe12",
+   "text": "❤️❤️❤️",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "ufa12f436",
+   "text": "يجب توقيف شركة سامسنج هي محتاله وشركة فاشلة وانصح عدم شراء اجهزتها هي فاشلة واريد رفع قضية عالمية لفشل شركة سامسنج ومنع شراء اجهزتها وبالذات اس 22التراء",
+   "stored": "neg",
+   "truth": "neg",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u32846c8e",
+   "text": "@SamsungGulf Power through the day with Galaxy Z Fold8 Ultra + Watch Ultra + Buds3 Pro - Where productivity meets style. My everyday efficiency essentials! #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u33c9a0c4",
+   "text": "❤️❤️",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u8b3f2e48",
+   "text": "@SamsungGulf My Galaxy #GalaxyZFlip8 is my outfit's best accessory 😁😁😁😁",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u884e1faf",
+   "text": "السعر",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u74258e88",
+   "text": "Dear Samsung Gulf Support Team,\n\nI believe my concern has been misunderstood. I am not asking about repair options or cross-border warranty procedures. I am reporting an internal screen defect that appears to be a manufacturing defect in my Galaxy Z Fold7.\n\nI purchased one of Samsung’s most expensiv",
+   "stored": "neg",
+   "truth": "neg",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u1a10af04",
+   "text": "@SamsungGulf #ReviewAndWin #GalaxyZFold8Ultra #GalaxyZFold8 #GalaxyZFlip8 #GalaxyWatchUltra2 #GalaxyWatch9 #Samsung\n\nسامسونج الأفضل Samsung The best",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "ufc106828",
+   "text": "@SamsungGulf #ReviewAndWin #GalaxyZFold8Ultra #GalaxyZFold8 #GalaxyZFlip8 #GalaxyWatchUltra2 #GalaxyWatch9 #Samsung\n\nسلسلة Galaxy Z و Watch إبداع",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "udca55e0a",
+   "text": "@SamsungGulf ستكون إنتاجيتي في العمل في أوجها إذا تم اقتران هاتفي Galaxy مع أمريكانو مثلج جيد، مزيج بسيط، القهوة لتعزيز مزاجي، Galaxy لإطالة هذا المزاج الجيد! ثنائي رائع!\n\n#GalaxyZFold8Ultra #GalaxyZFold8U #GalaxyZFlip8",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u8c7a937b",
+   "text": "Galaxy S23+ developed pink lines after a software update, yet the dealer refused a free repair. As a long-time customer, I request a fair resolution. My Samsung journey started with J2, A7, S10e, S23+, Tab S9, Watch 7, Buds, WindFree AC & Refrigerator.",
+   "stored": "neg",
+   "truth": "neg",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u616db641",
+   "text": "🙌❤️",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u6a2e1c17",
+   "text": "@SamsungGulf GalaxyZFold8Ultra \n\n#GalaxyZFold8Ultra #Samsung\n.. \n. \n.\n📲📱📱📱 .",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u8c7a937b",
+   "text": "Galaxy S23+ developed pink lines after a software update, yet the dealer refused a free repair. As a long-time customer, I request a fair resolution. My Samsung journey started with J2, A7, S10e, S23+, Tab S9, Watch 7, Buds, WindFree AC & Refrigerator.",
+   "stored": "neg",
+   "truth": "neg",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u03e28ce4",
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with Galaxy Ring and Galaxy Buds3 Pro. #GalaxyZFold8Ultra",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u55260476",
+   "text": "@SamsungGulf يارب يكون من نصيبي 🤲🏻🤍\n\n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8\n.\n189",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u60b543ea",
+   "text": "My productivity max combo is Galaxy Z Fold8 Ultra + S Pen + Galaxy Buds3 Pro + Galaxy Watch7 Ultra = meetings, notes, and calls all day without switching devices 💼⚡️ #GalaxyZFold8Ultra",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u4e295b33",
+   "text": "🔥🔥🔥❤️❤️",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u87938b1b",
+   "text": "#GalaxyZfold8 Samsung Galaxy Z Fold 8 with Samsung Galaxy Watch 9 and Samsung Galaxy Buds 4 Pro",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u23c44f9d",
+   "text": "🔥🔥🔥🙌",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "uade3e4b6",
+   "text": "@SamsungGulf My best   vibe is Galaxy Z Fold8 + Buds4 pro + Watch9 combo to maximize my style   #GalaxyZFold8 620",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u3b9bfe98",
+   "text": "Galaxy Z Fold 8 ❤️ Buds4 Pro ❤️ Watch9 \n#GalaxyZFold8",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u5f746e85",
+   "text": "My combo: Galaxy Z Fold8 Ultra + Galaxy Watch8 Classic + Galaxy Buds3 Pro + Tab S10 Ultra\n\n- Z Fold8 Ultra for 3-app multitasking, S Pen notes, desktop DeX on the go\n- Watch8 for notifications without breaking focus\n- Buds3 for deep work \n- Tab S10 Ultra as second screen with Samsung Multi Control\n\n",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "tiktok",
+   "author": "u99185e2c",
+   "text": "اول",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u8aa5d263",
+   "text": "@SamsungGulf The Pink Galaxy Z Flip8 is calling my name! 💗✨ Stylish enough to turn heads and compact enough for my pocket #GalaxyZFlip8",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u1029646d",
+   "text": "@SamsungGulf Galaxy Z. Flip 8 - Mint\n\n#GalaxyZFold8Ultra #GalaxyZFlip8 #GalaxyZFold8\nيارب العالمين توفيقك\n\n@ueb33af40",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "uade3e4b6",
+   "text": "@SamsungGulf My best   vibe is Galaxy Z Fold8 + Buds4 pro + Watch9 combo to maximize my style   #GalaxyZFold8 689",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u6a985e6f",
+   "text": "😍😍😍😍",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "uaad98a38",
+   "text": "Galaxy Z Fold8 Ultra and Galaxy Buds3 Pro #GalaxyZFold8Ultra",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "ud0ffe6cd",
+   "text": "العمل بجدية واهتمام وزكاء بطريقة علمية وفنية>\ntechnically and Scientifically",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u1cb3cf92",
+   "text": "@SamsungGulf GalaxyZFold8Ultra \n-\n\n#GalaxyZFold8Ultra #Samsung\n\n📲📱📱📱\n.✔️✔️\n.\n\nيارب توفيقك 👏",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u6875aaab",
+   "text": "❤️❤️❤️❤️",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "uaea8e363",
+   "text": "Loving the sleek design and powerful features of the #GalaxyS26 FE!🔥",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "ua6622f67",
+   "text": "@SamsungGulf Galaxy Z Flip8 mint\n\n#GalaxyZFold8",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u2030d862",
+   "text": "🔥🔥🔥🔥🔥",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u0eb1302e",
+   "text": "@SamsungGulf رفيقي المفضل في الجيب؟ بالتأكيد Galaxy Z Flip8 بلون الكريمي 🤍\nإنه يمنح إحساسًا بالإحجام المدمج، والأناقة، وجاهز للذهاب معي إلى أي مكان. من جولات القهوة السريعة إلى المغامرات العفوية، أحب أن أملك هاتفًا يشعر وكأنه رفيق يومي صغير. 📱\nاتمنى ان املكه🫶🏼\n#GalaxyZFlip8",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u55260476",
+   "text": "@SamsungGulf يارب يكون من نصيبي 🤲🏻🤍\n\n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8\n.\n190",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "u04ba7397",
+   "text": "My favourite pocket buddy is the chic Mint #GalaxyZFlip8 fresh, stylish, and always ready to unfold possibilities! ✨",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u33cf1478",
+   "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n181",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u1fbc8c70",
+   "text": "😍😍😍😍",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u6a4498fc",
+   "text": "@SamsungGulf #GalaxyZFold8Ultra #GalaxyZFlip8 #GalaxyZFold8\n\n@SamsungGulf \n\n@u6263eb3a \n@uf4a75231 \n.\n( اللهم صّلِ وسَلّمْ عَلۓِ نَبِيْنَامُحَمد ﷺ )",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u63324e9d",
+   "text": "ننتظــر كل جديــد ✨️✨️\n#GalaxyZFold8 @u1a0a6224",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u3980310f",
+   "text": "@SamsungGulf Galaxy Z Flip8 in Cream \n\n#GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8. شqp",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "uc985d737",
+   "text": "@SamsungGulf عملي يكون أكثر كفاءة عندما يتم اقتران هاتفي Galaxy مع Galaxy Watch و Galaxy Buds. شاشة Fold8 Ultra الكبيرة مع هذين الجهازين تجعل كل شيء أسرع وأكثر تركيزاً. @SamsungGulf \n\n #GalaxyZFold8Ultra",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u96f2d7f8",
+   "text": "@SamsungGulf CREAM 🍦\n.\n..\nيارب يكون من نصيبي 🤲🏻🤍\n\n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8\n..",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "udca55e0a",
+   "text": "@SamsungGulf عملي أكثر كفاءة عندما يتم اقتران Galaxy الخاص بي مع galaxyzfold8ultra وسماعات Samsung buds!\n\n#GalaxyZFold8Ultra 👍🏽\n.",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "udd5deee3",
+   "text": "@SamsungGulf #GalaxyZFold8 \nGalaxy flip 8 pink 🎀",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u637b4d7d",
+   "text": "Thanks",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u214e9b2c",
+   "text": "سيكون رائعًا للدراسة مع هاتف الأحلام ذي الشاشة الكبيرة",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u57beb6ac",
+   "text": "Samsung expert repair team 💪🏻",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": "sarcasm?"
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u32846c8e",
+   "text": "@SamsungGulf Galaxy Z Fold8 Ultra for multitasking, Watch Ultra for health, Buds3 Pro for immersive sound - My ultimate efficiency trio that never quits! #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "ub844fc41",
+   "text": "@SamsungGulf Galaxy Z Fold8 + Watch9 📱⌚\nمااحب استخدم السماعات صراحه \n#GalaxyZFold8 \n💖💖💖💖",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "uba71fcbe",
+   "text": "@SamsungGulf عملي يكون أكثر كفاءة عندما يتم اقتران هاتفي Galaxy مع Galaxy Watch و Galaxy Buds. شاشة Fold8 Ultra الكبيرة مع هذين الجهازين تجعل كل شيء أسرع وأكثر تركيزاً. @SamsungGulf \n\n #GalaxyZFold8Ultra",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u9c6f2939",
+   "text": "💖💖💖💖 #GalaxyZFold8Ultra ✨",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "ue61c91d3",
+   "text": "😂😂😂",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": "ambiguous"
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u80a245cd",
+   "text": "#GalaxyZFold8 ما شاء الله galaxyzfold8",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "ucbc3f97f",
+   "text": "@SamsungGulf Galaxy Z. Flip 8 - Mint\n\n#GalaxyZFold8Ultra #GalaxyZFlip8 #GalaxyZFold8\nيارب العالمين توفيقك\n\n@ua46302e8",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "u126b0ada",
+   "text": "Dear Samsung Pakistan Management,\n\nI am writing to formally complain about the poor support and unreasonable repair quote provided by the Samsung Pakistan service center for my premium Samsung 55\" 3D LED TV (Model: UA55D7000LR, Serial No: 217638YC100001X).\n\nI purchased this TV for PKR 450,000. It ha",
+   "stored": "neu",
+   "truth": "neg",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u1b64dbf5",
+   "text": "@SamsungGulf GalaxyZFold8Ultra \n\n#GalaxyZFold8Ultra #Samsung\n\nيارب توفيقك https://t.co/szt8XEMFRT",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u13423de6",
+   "text": "@SamsungGulf GalaxyZFold8Ultra \n\n#GalaxyZFold8Ultra #Samsung\n\n📲📱📱📱\n\nيارب توفيقك",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "tiktok",
+   "author": "ued554700",
+   "text": "سامسونج الاروع",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u021794a9",
+   "text": "@SamsungGulf CREAM 🍦\n.\n..\nيارب يكون من نصيبي 🤲🏻🤍\n\n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8\n..",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "ua87ee20f",
+   "text": "@SamsungGulf alaxy Z Fold8 + Buds4 Pro + Watch9 📱🎧⌚\n\n#GalaxyZFold8 \n\nيارب",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u4b845744",
+   "text": "ابدعتوا هالسنة بالالوان 😍🔥",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u9a2c03ba",
+   "text": "😍🔥",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "ud872cb3c",
+   "text": "#GalaxyZFold8Ultra and Samsung Galaxy s26 ultra is my dream  phone. Samsung is on of my favourite company. Samsung pls complete my dream. 🥹🥹",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "uade3e4b6",
+   "text": "@SamsungGulf My best   vibe is Galaxy Z Fold8 + Buds4 pro + Watch9 combo to maximize my style   #GalaxyZFold8 814",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "uea8086bd",
+   "text": "أريد هاتفا جديداً أرجوك",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u6fe58c97",
+   "text": "@SamsungGulf عملي أكثر كفاءة عندما يتم اقتران مجرتي مع شاشتي للحصول على مساحة وفيرة لزيادة إنتاجيتي\n\n#GalaxyZFold8Ultra #GalaxyZFold8U #GalaxyZFlip8",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u567ca1be",
+   "text": "😍😍",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "u6c69b58a",
+   "text": "My Galaxy ZFold8Ultra is my outfit's best accessory!!!",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "ua210053a",
+   "text": "مرحبا سامسونج، \n\nهل ممكن توضحون موضوع انتفاخ البطاريات في أجهزتكم \n\nللأسف كنت اعتقد المشكلة فقط في الفئات السابقة لكن الآن تكرر الموضوع مع S24  و S23\n\nوبخصوص هالتغريدة تواصلت معكم وقتها وقلتوا توجهي للصيانة والصيانة افادوني بتغيير البطارية بمبلغ مدفوع وضمان ٣ شهور فقط !!! واضطريت اشتري جهاز غيره وال",
+   "stored": "neg",
+   "truth": "neg",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "uf29b0756",
+   "text": "@SamsungGulf عملي يكون أكثر كفاءة عندما يتم اقتران هاتفي Galaxy مع Galaxy Watch و Galaxy Buds. شاشة Fold8 Ultra الكبيرة مع هذين الجهازين تجعل كل شيء أسرع وأكثر تركيزاً. @SamsungGulf \n\n #GalaxyZFold8Ultra",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u32627845",
+   "text": "😍❤️😍😍❤️",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "ub634c2c9",
+   "text": "@SamsungGulf عظيم جداً مقالات رائعه بالتوفيق",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u0dbb1896",
+   "text": "@SamsungGulf #galaxyzfold8 combo 3, zfold8, budspro4, watch",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "u5841b7df",
+   "text": "I am going for the Mint it would be a great gift for my granddaughter birthday \n#GalaxyZFlip5Retro",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u32846c8e",
+   "text": "@SamsungGulf Unfold more in less time! With Galaxy Z Fold8 Ultra, Watch Ultra and Buds3 Pro, efficiency isn't just a habit - it's a lifestyle. #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "uea8086bd",
+   "text": "أريد هاتفا",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "ucf0ac011",
+   "text": "@SamsungGulf يكون من نصيبي 🤲🏻🤍\n\n.. \n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8\n.\n\nيارب",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "ua4f357f1",
+   "text": "#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8  الأفضل The best",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u77e8a89d",
+   "text": "😍",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "tiktok",
+   "author": "ued554700",
+   "text": "رائع",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "ue4f36cbe",
+   "text": "@SamsungGulf Galaxy Z Flip8 in Cream\n\n#GalaxyZFold8\n#GalaxyZFold8Ultra #GalaxyZFlip8",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u03e28ce4",
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with Galaxy Book5 Ultra. #GalaxyZFold8Ultra",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u5b5e4e99",
+   "text": "@SamsungGulf Mint Galaxy Z Flip8 نظيف، منعش ويتناسب تمامًا مع أسلوبي. 💚\n.\n.\n⁦#GalaxyZFold8⁩ ⁦#GalaxyS26⁩ ⁦#GalaxyZFold8Ultra⁩ ⁦#Samsung⁩ ⁦#GalaxyZFlip8⁩",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "ue3dc8578",
+   "text": "I won't claim this was a childhood dream, but since 2022 when I first saw a custom PC build, having one of my own became my ultimate goal. Asking directly is not in my nature and my conscience struggles with it, but my financial state leaves me no choice. Living in Pakistan on a 30,000 PKR monthly i",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "ud52d9e2c",
+   "text": "اديهم🤣",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": "ambiguous"
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u7fb9d94f",
+   "text": "😍😍😍😍😍😍",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "uc81560aa",
+   "text": "@SamsungGulf GalaxyZflip8 pink 💕💕💕💕💕\nيارب يكون من نصيبي 🤲🏻🤍\n\n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8\n..",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "uad6ccf19",
+   "text": "😍",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "tiktok",
+   "author": "u02441c67",
+   "text": "🤭",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": "ambiguous"
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u1f663c53",
+   "text": "اسواء خدمه عملاء قابلتها بحياتي موظف سامسونج بفرع مردف سيتي سنتر اسمه [name] اليوم قالي مش عايز اتكلم معاكي و مدير الفرع واقف قالي هابعت لمديره تخيلو الروعه الموظف بيعصب عليا و بيرميلي التليفونات و بيقولي مش عايز اتعامل معاكي و مفيش حلول عندي بقوله هاكلم حقوق المستهلك بيقةلي كلميهم \nتخيلو الخدمه ",
+   "stored": "neg",
+   "truth": "neg",
+   "flag": "sarcasm"
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u164bd6c0",
+   "text": "@SamsungGulf @u9adc2c10 @uc377dac4 يوجد عدة مسابقات سابقة.. متى السحب؟!",
+   "stored": "neu",
+   "truth": "neg",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u1f663c53",
+   "text": "اسواء خدمه عملاء قابلتها بحياتي موظف سامسونج بفرع مردف سيتي سنتر اسمه [name] اليوم قالي مش عايز اتكلم معاكي و مدير الفرع واقف قالي هابعت لمديره تخيلو الروعه الموظف بيعصب عليا و بيرميلي التليفونات و بيقولي مش عايز اتعامل معاكي و مفيش حلول عندي بقوله هاكلم حقوق المستهلك بيقةلي كلميهم \nتخيلو الخدمه ",
+   "stored": "neg",
+   "truth": "neg",
+   "flag": "sarcasm"
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "udcc14eed",
+   "text": "@u225179f3 اريده 🌚",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "ub3c5bedc",
+   "text": "@SamsungGulf GalaxyZflip8 pink 💕💕💕💕💕\nيارب يكون من نصيبي 🤲🏻🤍\n\n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8\n..",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u164bd6c0",
+   "text": "@SamsungGulf #ReviewAndWin #GalaxyZFold8Ultra #GalaxyZFold8 #GalaxyZFlip8 #GalaxyWatchUltra2 #GalaxyWatch9 #Samsung\n\nسلسلة Galaxy Z و Watch الأفضل.",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "uccf7ddb8",
+   "text": "اكيد الz fold 8 لانه افضل من iphone duo بالنسبه لي",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u82184c6b",
+   "text": "#GalaxyZFold8💜",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u23c44f9d",
+   "text": "👏👏",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "u06563296",
+   "text": "💜💜",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "ufd254eef",
+   "text": "على كم",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u6a66f01d",
+   "text": "@SamsungGulf تم  \n\n#GalaxyAI \n​#galaxyunpacked\n#GaalxyZFold8",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u9a89a65b",
+   "text": "@SamsungGulf CREAM 🍦\n.\n..\nيارب يكون من نصيبي \n\n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8\n..",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "ubad3c8c7",
+   "text": "@SamsungGulf #GalaxyZFold8Ultra لا يكمل إطلالتي فحسب، بل يكملني أيضًا.",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "uc5e3bd70",
+   "text": "😍❤️❤️",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u2a6dc64f",
+   "text": "@SamsungGulf #GalaxyZFlip8 \nPink please\n@uf6524352",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "uf129c619",
+   "text": "@SamsungGulf ستكون إنتاجيتي في العمل في أوجها إذا تم اقتران هاتفي Galaxy مع أمريكانو مثلج جيد، مزيج بسيط، القهوة لتعزيز مزاجي، Galaxy لإطالة هذا المزاج الجيد! ثنائي رائع!\n\n#GalaxyZFold8Ultra #GalaxyZFold8U #GalaxyZFlip8\n.\n.\n.\n🦋💙🦋💙",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u33cf1478",
+   "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n631",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "uea8086bd",
+   "text": "أريد هاتفا هدية 🙏🙏🙏🥺🥺🥺🥺",
+   "stored": "neg",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "tiktok",
+   "author": "u20a6a037",
+   "text": "if i hit 1k. like can u give me A57 5g",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "u0c9ed5e6",
+   "text": "أسوء شركه ممكن تتعامل معهوم بجد خدمه مابعد البيع وحشه جدا مفيش مصدقه في الكلام وله اي حاجه شاشه موديل السنه مكملتش 6شهر اقل اي عايزين 11300 تغير الشاشه حسبي الله ونعم الوكيل\nربنا اقدر على كل شيء",
+   "stored": "neu",
+   "truth": "neg",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u504fc88b",
+   "text": "❤️🔥🔥❤️",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u243f6223",
+   "text": "❤️❤️❤️",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "uc9f47e41",
+   "text": "❤️😍",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "ue3dc8578",
+   "text": "\"Unstable electricity in Pakistan, Balochistan (Quetta) often causes data corruption, making reliable storage critical. Showing local gamers how the Samsung 990 Pro NVMe SSD protects files during sudden power losses will give everyone full confidence to buy Samsung. My creator friends will cover my ",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u9307fe12",
+   "text": "❤️❤️❤️",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u0a516b38",
+   "text": "@SamsungGulf 💖💖💖💖 #GalaxyZFold8",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "x",
+   "author": "ube5bafa2",
+   "text": "@SamsungGulf تم \nربي إني لما أنزلت إلي من خير فقير 💙 \n#GalaxyS26",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "x",
+   "author": "uaac3bbcb",
+   "text": "@SamsungGulf My  work is more efficient when my galaxy Z fold 8 Ultra is paired with galaxy buds \nmy life is good with Samsung 🥰\n\n#GalaxyZFold8Ultra",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u126b0ada",
+   "text": "Dear Samsung Pakistan Management,\n\nI am writing to formally complain about the poor support and unreasonable repair quote provided by the Samsung Pakistan service center for my premium Samsung 55\" 3D LED TV (Model: UA55D7000LR, Serial No: 217638YC100001X).\n\nI purchased this TV for PKR 450,000. It ha",
+   "stored": "neg",
+   "truth": "neg",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "ucfa74b15",
+   "text": "❤️",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u567ca1be",
+   "text": "❤️❤️",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "ua6f61291",
+   "text": "#GalaxyZFold8Ultra to be the most current",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "u07e92cba",
+   "text": "My #GalaxyZFold8 is my outfit's best accessory!",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u8aa5d263",
+   "text": "@SamsungGulf Pink is such a perfect match for the Galaxy Z Flip8! 💖✨ Definitely my favourite #GalaxyZFlip8",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u03e28ce4",
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with Galaxy Buds3 Pro and Galaxy Tab. #GalaxyZFold8Ultra",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u32846c8e",
+   "text": "@SamsungGulf No limits, just unfolds! My everyday power combo - Galaxy Z Fold8 Ultra + Watch Ultra + Buds3 Pro for non-stop efficiency. #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u72d83207",
+   "text": "هكي جونا حني",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": "ambiguous"
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u4fab0896",
+   "text": "🔥🔥🔥",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u6a985e6f",
+   "text": "😍😍😍😍😍😍😍",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "uade3e4b6",
+   "text": "@SamsungGulf My best vibe is Galaxy Z Fold8 + Buds4 pro + Watch9   combo to maximize my style #GalaxyZFold8 262",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u6e09f0f2",
+   "text": "3rd one the whole package #GalaxyZFold8",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u3980310f",
+   "text": "@SamsungGulf Galaxy Z Flip8 in Cream \n\n#GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8. شlp",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u4d38562e",
+   "text": "@SamsungGulf فولد8 + بودز4 برو + واتش9 = فريق الأحلام! 📱🎧⌚\n\nمزيج سامسونج المثالي! ✨\nأنيق، ذكي وجاهز لكل شيء 🔥\n\n#GalaxyZFold8\n\n٠",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "u3d2d9be6",
+   "text": "My combo :GalaxyBuds3 Pro +Tab S10 Ultra +Galaxy Watch8 Classic\n#GalaxyZFold8Ultra",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u4e54870e",
+   "text": "😍",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u00a4b883",
+   "text": "@SamsungGulf I would really love the 3rd combo as it captures the optimal use of Samsung's Ecosystem through the Galaxy Z Fold8 + Buds4 pro + Watch9💖💖💖💖\n\n@SamsungGulf\n#GalaxyZFold8 https://t.co/yTF3QTYzra",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "facebook",
+   "author": "u7e24e233",
+   "text": "Earn 5X Samsung Rewards Points.",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u6499d98b",
+   "text": "📕✉️......📡 \nAbout SuperAI and AGI amid the future ...\n\"  Intelligent & SuperAI shall empower against any AI. \n   I know SuperAI amid(in) the future,      \n   I know Intelligent SuperAI, [name] thinks empowering Intelligently Super Quantum ...... \" \n\n📡 Intelligent SuperAI shall empower agai",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u55260476",
+   "text": "@SamsungGulf يارب يكون من نصيبي 🤲🏻🤍\n\n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8\n.\n187",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u457fd392",
+   "text": "@SamsungGulf CREAM 🍦\n.\n..\nيارب يكون من نصيبي 🤲🏻🤍\n\n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8\n.\n. https://t.co/tboEa4Yi1w",
+   "stored": "neu",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u44a8ce23",
+   "text": "اسواء خدمه عملاء قابلتها بحياتي موظف سامسونج بفرع مردف سيتي سنتر اسمه [name] اليوم قالي مش عايز اتكلم معاكي و مدير الفرع واقف قالي هابعت لمديره تخيلو الروعه الموظف بيعصب عليا و بيرميلي التليفونات و بيقولي مش عايز اتعامل معاكي و مفيش حلول عندي بقوله هاكلم حقوق المستهلك بيقةلي كلميهم \nتخيلو الخدمه ",
+   "stored": "neg",
+   "truth": "neg",
+   "flag": "sarcasm"
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u7d4ec199",
+   "text": "‏#galaxyzfold8ultra @u1a0a6224 #galaxyzfold8ultra يارب توفيقك",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "english",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "ue92c0a2d",
+   "text": "Bombeeee🔥",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "instagram",
+   "author": "u1f663c53",
+   "text": "اسواء خدمه عملاء قابلتها بحياتي موظف سامسونج بفرع مردف سيتي سنتر اسمه [name] اليوم قالي مش عايز اتكلم معاكي و مدير الفرع واقف قالي هابعت لمديره تخيلو الروعه الموظف بيعصب عليا و بيرميلي التليفونات و بيقولي مش عايز اتعامل معاكي و مفيش حلول عندي بقوله هاكلم حقوق المستهلك بيقةلي كلميهم \nتخيلو الخدمه ",
+   "stored": "neg",
+   "truth": "neg",
+   "flag": "sarcasm"
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "uba576458",
+   "text": "😍😍😍",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u03e28ce4",
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with Galaxy Book5 Pro for meetings. #GalaxyZFold8Ultra",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "tracker",
+   "platform": "facebook",
+   "author": "u126b0ada",
+   "text": "Dear Samsung Pakistan Management,\n\nI am writing to formally complain about the poor support and unreasonable repair quote provided by the Samsung Pakistan service center for my premium Samsung 55\" 3D LED TV (Model: UA55D7000LR, Serial No: 217638YC100001X).\n\nI purchased this TV for PKR 450,000. It ha",
+   "stored": "neg",
+   "truth": "neg",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u32846c8e",
+   "text": "@SamsungGulf Three devices, one mission: Maximum Efficiency. Galaxy Z Fold8 Ultra powers my work, Watch Ultra powers my health, Buds3 Pro powers my focus! #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "emoji_only",
+   "source": "lexicon",
+   "platform": "instagram",
+   "author": "u09db7ee5",
+   "text": "🔥🔥❤️❤️",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "arabizi",
+   "source": "lexicon",
+   "platform": "x",
+   "author": "u083a3ce7",
+   "text": "@SamsungGulf My work is more efficient when my Galaxy is paired with Samsung Galaxy Buds and Galaxy Watch, seamless multitasking, communication, and productivity wherever I go. 💯 \n\nI broke my Samsung A34 5G, I think it’s time for an upgrade! 😋🔥\n\n#GalaxyZFold8Ultra",
+   "stored": "neu",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u40055385",
+   "text": "@SamsungGulf #GalaxyZFold8 أنا أحب Samsung! لن أنظر إلى أي علامة تجارية أخرى أبداً!! خياري هو الكومبو #3 - Galaxy Z Fold8 | Buds4 Pro | Watch9 🙌\n\nأود أن أمتلك جهاز #Samsung رائع آخر وهذا @SamsungGulf مناسب تماماً! 🥰❤️💯👌🤞🏆🙏❤️\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.",
+   "stored": "pos",
+   "truth": "pos",
+   "flag": null
+  },
+  {
+   "bucket": "mixed",
+   "source": "tracker",
+   "platform": "x",
+   "author": "u3f7212dc",
+   "text": "@SamsungGulf GalaxyZFold8Ultra \n\n#GalaxyZFold8Ultra #Samsung\n\n📲📱📱📱\n\nيارب توفيقك https://t.co/jgFPFrDRgS",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": null
+  },
+  {
+   "bucket": "arabic",
+   "source": "tracker",
+   "platform": "tiktok",
+   "author": "uca3fb0a0",
+   "text": "كم لايك وتنطني موبايل جديد 🔥🔥🔥",
+   "stored": "pos",
+   "truth": "neu",
+   "flag": null
+  }
+ ],
+ "anonymisation": "authors and @mentions (except @SamsungGulf) replaced by md5 tokens; no comment ids; a store employee and a commenter named in comment text redacted as [name]"
+}

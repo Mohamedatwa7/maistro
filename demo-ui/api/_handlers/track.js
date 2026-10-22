@@ -40,26 +40,10 @@ const DAYS_MAX = 90;
 const FALLBACK_DAYS = 14; // cron snapshot window when the full read fails or is partial
 const PAGE = 1000;
 
-// ── sentiment lexicon, ported 1:1 from samsungtrack's dashboard route ──
-const POS = [
-  /love|amazing|awesome|excellent|fantastic|great|best|perfect|beautiful|stunning/i,
-  /impressed|happy|excited|recommend|worth|incredible|brilliant/i,
-  /thank|appreciate|satisfied|pleased|delighted/i,
-];
-const NEG = [
-  /hate|terrible|worst|awful|horrible|disappointing|waste|garbage|trash/i,
-  /broken|defective|useless|poor|bad|fail|sucks|regret/i,
-  /angry|frustrated|annoyed|upset|unhappy|dissatisfied/i,
-  /refund|return|complaint|issue|problem|bug|error|crash/i,
-];
-function lexSentiment(text) {
-  const s = String(text || '');
-  let p = 0, n = 0;
-  for (const re of POS) if (re.test(s)) p++;
-  for (const re of NEG) if (re.test(s)) n++;
-  return p > n ? 'pos' : n > p ? 'neg' : 'neu';
-}
-
+// Sentiment is the tracker model's label or none. The keyword fallback once used here (ported from
+// samsungtrack's dashboard) scored 43 of 100 in the 7.3 audit (tests/fixtures/sentiment-audit-2026-10-22.json):
+// it called 53 of 64 positive comments neutral and 19 of 20 emoji-only comments wrong. A comment the tracker has
+// not analysed is shown as "not analysed" and left out of every sentiment rate.
 const SENT_MAP = { positive: 'pos', neutral: 'neu', negative: 'neg' };
 
 // raw_data subfields, projected out as flat columns (alias → JSON path).
@@ -493,9 +477,9 @@ module.exports = async (req, res) => {
         text: c.text || '',
         likes: c.likes_count ?? null,
         at: c.published_at || null,
-        sentiment: SENT_MAP[c.sentiment] || lexSentiment(c.text),
-        // 7.3: whose label this is — the tracker's model, or Maistro's keyword fallback when the tracker has none
-        sentimentSource: SENT_MAP[c.sentiment] ? 'tracker' : 'lexicon',
+        sentiment: SENT_MAP[c.sentiment] || null,
+        // 7.3: whose label this is — the tracker's model, or nobody yet
+        sentimentSource: SENT_MAP[c.sentiment] ? 'tracker' : null,
       })).sort((a, b) => (b.likes || 0) - (a.likes || 0));
       const views = +p.views_count || 0, likes = +p.likes_count || 0,
         cn = +p.comments_count || 0, shares = +p.shares_count || 0;

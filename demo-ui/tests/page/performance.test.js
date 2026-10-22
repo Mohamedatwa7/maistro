@@ -176,3 +176,13 @@ test('7.1 decisions strip and "handled": the page key equals the server key for 
     assert.match(strip, /Stop<\/span>/);
   } finally { X.restore(); }
 });
+
+test('7.3: a comment the tracker has not analysed shows "not analysed" and stays out of every sentiment count', async () => {
+  const X = pageWith();
+  try {
+    await new Promise((r) => setTimeout(r, 50));
+    assert.match(X.sentiBadge(null), /NOT ANALYSED/); assert.doesNotMatch(X.sentiBadge('neu'), /NOT ANALYSED/);
+    const s = X.pfStats([{ platform: 'tiktok', metrics: {}, comments: [{ text: 'a', sentiment: 'pos' }, { text: 'b', sentiment: null }, { text: 'c', sentiment: 'neg' }] }]);
+    assert.deepEqual([s.pos, s.neu, s.neg, s.analyzed, s.posRate], [1, 0, 1, 2, 50]);
+  } finally { X.restore(); }
+});

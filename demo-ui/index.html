@@ -3139,6 +3139,8 @@ function isVideoPost(p){
 /* sentiment badge — same format as the Sentiment Tracker dashboard:
    outlined pill, thumbs icon, capitalised label, green/gray/red */
 function sentiBadge(s){
+ /* 7.3: no tracker label → "not analysed", never a guessed neutral (the keyword fallback scored 43/100) */
+ if(s!=='pos'&&s!=='neu'&&s!=='neg')return '<span class="mono dim" style="font-size:8.5px;letter-spacing:.06em;border:1px dashed rgba(154,163,181,.4);border-radius:99px;padding:1px 7px;white-space:nowrap;flex:none" title="The tracker has not analysed this comment yet; it is left out of every sentiment rate">NOT ANALYSED</span>';
  const cfg=s==='pos'?['#34d399','rgba(52,211,153,.4)','M7 10v12M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z','Positive']
   :s==='neg'?['#fb7185','rgba(251,113,133,.4)','M17 14V2M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z','Negative']
   :['#9aa3b5','rgba(154,163,181,.35)','M5 12h14','Neutral'];
@@ -3426,7 +3428,7 @@ function rReviewsDash(list,s){
 
  return `
  <div class="section-head" style="margin-top:6px;margin-bottom:14px"><div><span class="kick accent">samsungtrack · same daily schedule, zero duplicate pulls</span><h2 style="font-size:clamp(20px,2.4vw,28px)">Social Reviews Dashboard</h2></div>
-  <span class="pill" title="One voice, one comment: the same author repeating the same message on a post counts once. Collected = every comment row the tracker stored.">${fmt(cmts.length)} COMMENTS ANALYZED${collected>cmts.length?' · '+fmt(collected)+' COLLECTED':''}</span></div>
+  <span class="pill" title="One voice, one comment: the same author repeating the same message on a post counts once. Collected = every comment row the tracker stored. Analysed = comments the tracker's model labelled; the rest are not in any sentiment rate.">${fmt(cmts.filter(c=>c.sentiment==='pos'||c.sentiment==='neu'||c.sentiment==='neg').length)} ANALYZED · ${fmt(cmts.length)} COMMENTS${collected>cmts.length?' · '+fmt(collected)+' COLLECTED':''}</span></div>
 
  <div class="grid2e" style="margin-bottom:16px">
   <div class="card p5"><span class="kick accent">Comment health</span>
