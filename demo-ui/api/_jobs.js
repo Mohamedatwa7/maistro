@@ -299,7 +299,7 @@ async function budgetGate(job) {
   // fails, the last observed estimate for the same kind, else MAISTRO_UNPRICED_USD (default $1.00) —
   // an unpriced render never escapes the cap
   let estimateUsd = null, basis = 'provider estimate';
-  try { const e = await higgsfield.estimateRequest({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }); estimateUsd = e ? Math.round(e.usd * 10000) / 10000 : null; if (!e) basis = 'no estimate endpoint (v1 reference path)'; }
+  try { const e = await higgsfield.estimateRequest({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }); estimateUsd = e ? Math.round(e.usd * 10000) / 10000 : null; if (!e) basis = 'no estimate endpoint (v1 reference path)'; else if (e.basis) basis = e.basis; }
   catch (e) { basis = `estimate failed: ${String(e.message || e).slice(0, 80)}`; console.warn('[jobs] estimate failed:', e.message); }
   if (estimateUsd == null) {
     // ASSUMPTION (2026-10-22, owner to replace with real prices): Seedance /estimate returns no USD, so video is

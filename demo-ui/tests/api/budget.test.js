@@ -118,3 +118,17 @@ test('budget: a video render without a provider USD is budgeted per second of cl
     assert.equal(r.body.job.state, 'failed'); assert.match(r.body.job.error, /budget cap/, 'a second clip ($2.50) would pass the $5 cap'); assert.match(pg.tables.jobs[1].payload.estimateBasis, /assumed/, 'a refused job records why it was priced so');
   } finally { f.restore(); jobs.restore(); pieces.restore(); }
 });
+
+test('estimate: the provider’s per-second pricing sentence prices video exactly (8 s at 720p = 8 × $0.4622); other prose is not guessed', async () => {
+  const RULE = 'For 16:9 video without video input, your request costs roughly $0.2056 per second of generated video at 480p, $0.4622 at 720p, and $1.1372 at 1080p. Each 1,000 video tokens costs $0.0214 at 480p or 720p and $0.0234 at 1080p.';
+  const f = mockFetch([[/api\.higgsfield\.ai\/estimate\//, () => json({ type: 'description', pricing_description: RULE })]]);
+  const saved = process.env.HF_CREDENTIALS; process.env.HF_CREDENTIALS = 'id:secret';
+  try {
+    const hg = require('../../api/_adapters/higgsfield.js');
+    const e = await hg.estimateRequest({ kind: 'video', prompt: 'p', imageUrl: 'https://x/k.png', duration: 8, resolution: '720p' });
+    assert.equal(e.usd, 3.6976); assert.match(e.basis, /provider rule: \$0\.4622\/s at 720p × 8 s/);
+    const e2 = await hg.estimateRequest({ kind: 'video', prompt: 'p', imageUrl: 'https://x/k.png', duration: 5, resolution: '1080p' });
+    assert.equal(e2.usd, 5.686);
+    assert.deepEqual(hg.parsePerSecond('costs 6 credits per second'), {});
+  } finally { f.restore(); if (saved === undefined) delete process.env.HF_CREDENTIALS; else process.env.HF_CREDENTIALS = saved; }
+});

@@ -64,24 +64,29 @@ and at final · cost per approved piece (generation_records.cost_usd) · time pe
 final approval). The before/after table compares the baseline run with the run after improvements; a stage change
 ships only if it beats the baseline without regressing another metric.
 
-## 5. Budget (from the provider's own price card)
+## 5. Budget (from the provider's own prices)
 
-Per piece, the Studio submits roughly: 1 moodboard set (Soul V2 ×4), 1 thumbnail (Soul, v1 reference path when a
-product photo is attached), 4–6 storyboard keyframes (Soul ×1), 4–6 first-draft clips (Seedance image-to-video,
-4–8 s at 720p), 1–2 final re-renders, plus Claude calls and F1X8 analyses (not Higgsfield-billed).
+Prices from Higgsfield itself (price card 2026-10-22 08:15 UTC): Soul V2 through `/estimate` — **$0.006 per image,
+$0.023 per set of four** (1080p); Seedance 2.5 through its own pricing rule (the estimate returns a sentence, which
+Maistro now parses) — **$0.2056 per second at 480p, $0.4622 at 720p, $1.1372 at 1080p** (stated for 16:9 output;
+billed on output pixels, so 9:16 is the same).
 
-Unit prices from the provider's own `/estimate` (price card of 2026-10-22 06:17 UTC):
+One full piece (5 shots of 5 s, typical re-renders):
 
-| Item | Provider estimate |
-|---|---|
-| Soul V2, 1 image, 1080p | $0.006 (0.09 credits) |
-| Soul V2, set of 4, 1080p (moodboard) | $0.023 (0.36 credits) |
-| Seedance 2.5 image-to-video, 4–8 s, 720p / 1080p | **not priced by the provider** — `/estimate` answers `{ type, pricing_description }` with no number. **Budgeting assumption until real prices:** $0.50 per second of clip (`MAISTRO_UNPRICED_VIDEO_USD_PER_S`), i.e. a 5 s clip = $2.50 |
+| Part | 720p | 1080p |
+|---|---|---|
+| Images: moodboard set, thumbnail, 5 keyframes, 2 keyframe re-renders | $0.07 | $0.07 |
+| First draft: 5 clips × 5 s | $11.56 | $28.43 |
+| 2 clip re-renders during draft review | $4.62 | $11.37 |
+| Final: 2 re-renders from the QC plan | $4.62 | $11.37 |
+| **Total per piece** | **≈ $20.87** | **≈ $51.24** |
 
-Image cost per piece (Soul only): moodboard $0.023 + thumbnail $0.006 + 5 keyframes $0.030 + a few re-renders ≈ **$0.07**,
-i.e. ≈ $1.40 for 20 pieces — negligible. The baseline budget is dominated by the video clips (≈ 6–8 per piece incl.
-re-renders). Under the assumption above: ≈ 7 clips × 5 s × $0.50 = **≈ $17.50 per piece**, ≈ **$350 for the 20-piece baseline** and the same again for the after-run — an upper-bound guess to be replaced by the provider's pricing rule. Claude calls and F1X8 analyses are not
-Higgsfield-billed (Anthropic usage is on the generation records; F1X8 runs on our own service).
+Golden-set runs (20 pieces): **≈ $420 per run at 720p** (≈ $840 for baseline + after-run), ≈ $1,025 per run at
+1080p. Claude calls and F1X8 analyses are not Higgsfield-billed and are not included.
+
+**Default per-piece cap — proposal:** the current $25 fits a typical 720p piece with ~$4 of margin, so one extra
+re-render can trip it, and any 1080p piece needs about $55. Proposed: **$30 default for 720p pieces, $60 for pieces
+rendered at 1080p**. Not changed in code until you decide.
 
 ## 6. What the owner decides
 

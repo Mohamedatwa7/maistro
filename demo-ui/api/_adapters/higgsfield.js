@@ -157,6 +157,16 @@ async function status(ref, v = 0) {
   return { status: d.status, video, images, raw_status: d.status };
 }
 
+/** Per-second USD by resolution from the provider's pricing sentence. Only the documented phrasing is accepted;
+ *  anything else returns {} so the caller falls back rather than guessing. */
+function parsePerSecond(text) {
+  const t = String(text || '');
+  const m = t.match(/\$([0-9.]+) per second of generated video at (480p|720p|1080p),\s*\$([0-9.]+) at (480p|720p|1080p),?\s*and\s*\$([0-9.]+) at (480p|720p|1080p)/);
+  if (!m) return {};
+  const out = {}; out[m[2]] = Number(m[1]); out[m[4]] = Number(m[3]); out[m[6]] = Number(m[5]);
+  return Object.values(out).every((v) => Number.isFinite(v) && v > 0) ? out : {};
+}
+
 /** Cost before generating (HIGGSFIELD.md H-8): POST /estimate/<endpoint-id> with the same body → { credits, usd }. */
 async function estimate(endpoint, body) {
   const creds = credentials();
@@ -171,6 +181,14 @@ async function estimate(endpoint, body) {
   const cands = [d, pick(d, 'estimate'), pick(d, 'cost'), pick(d, 'price'), pick(d, 'data'), pick(d, 'result')];
   const num = (k) => { for (const o of cands) { const v = pick(o, k); if (v !== undefined && v !== null && v !== '' && Number.isFinite(Number(v))) return Number(v); } return null; };
   const usd = num('usd'), credits = num('credits');
+  // Seedance answers with a per-second rule in prose (2026-10-22): "roughly $0.2056 per second of generated
+  // video at 480p, $0.4622 at 720p, and $1.1372 at 1080p" — priced from the provider's own figures
+  if (usd == null && typeof d.pricing_description === 'string') {
+    const rates = parsePerSecond(d.pricing_description);
+    const res = String((body && body.resolution) || '720p');
+    const secs = Number(body && body.duration);
+    if (rates[res] != null && Number.isFinite(secs) && secs > 0) return { usd: Math.round(rates[res] * secs * 10000) / 10000, credits: null, basis: `provider rule: $${rates[res]}/s at ${res} × ${secs} s`, rates };
+  }
   if (usd == null) {
     const shape = Object.entries(d || {}).map(([k, v]) => (v && typeof v === 'object' && !Array.isArray(v) ? `${k}{${Object.keys(v).join(',')}}` : k)).join(',');
     // video endpoints answer { type, pricing_description } (2026-10-22): keep the provider's public pricing text
@@ -180,4 +198,4 @@ async function estimate(endpoint, body) {
   return { usd, credits };
 }
 
-module.exports = { submit, status, estimate, estimateRequest, buildRequest, normalizeRequest, classify, MODELS, API };
+module.exports = { submit, status, estimate, estimateRequest, parsePerSecond, buildRequest, normalizeRequest, classify, MODELS, API };
