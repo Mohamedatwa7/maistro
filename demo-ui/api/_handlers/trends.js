@@ -425,7 +425,34 @@ module.exports = async (req, res) => {
             }
           } catch (e) { evalRun = { error: String(e.message || e).slice(0, 200) }; }
         }
-        return res.status(200).json({ ok: true, refreshed: true, source: board.source, boardTotal: board.total, curated: curated.length, curatedBy, snapshots: snap, scoring, eval: evalRun, at: new Date().toISOString() });
+        // 6.9 / 6.10: a daily price card — Higgsfield /estimate (free) for the reference bodies the Studio submits,
+        // so cost estimates and the golden-set budget use the provider's own numbers
+        let prices = null;
+        if (cacheConfigured() && process.env.HF_CREDENTIALS && Date.now() - startedAt < (Number(process.env.MAISTRO_FUNCTION_MAX_S || 300) - 40) * 1000) {
+          try {
+            const { queryRows, insertRows } = require('../_supabase.js');
+            const day = new Date().toISOString().slice(0, 10);
+            const done = await queryRows('audit_log', `select=id&action=eq.higgsfield.prices&after->>day=eq.${day}&limit=1`);
+            if (!done.length) {
+              const hf = require('../_adapters/higgsfield.js');
+              const K = 'https://estimate.invalid/keyframe.png';
+              const cards = [
+                ['soul_v2_4x_1080p', { kind: 'image', prompt: 'price card', aspect_ratio: '4:3', resolution: '1080p', batch: 4 }],
+                ['soul_v2_1x_1080p', { kind: 'image', prompt: 'price card', aspect_ratio: '9:16', resolution: '1080p' }],
+                ['i2v_4s_720p', { kind: 'video', prompt: 'price card', imageUrl: K, duration: 4, resolution: '720p' }],
+                ['i2v_5s_720p', { kind: 'video', prompt: 'price card', imageUrl: K, duration: 5, resolution: '720p' }],
+                ['i2v_8s_720p', { kind: 'video', prompt: 'price card', imageUrl: K, duration: 8, resolution: '720p' }],
+                ['i2v_5s_1080p', { kind: 'video', prompt: 'price card', imageUrl: K, duration: 5, resolution: '1080p' }],
+                ['t2v_5s_720p', { kind: 'video', prompt: 'price card', aspect_ratio: '9:16', duration: 5, resolution: '720p' }],
+              ];
+              const card = {};
+              await Promise.all(cards.map(async ([k, body]) => { try { card[k] = await hf.estimateRequest(body); } catch (e) { card[k] = { error: String(e.message || e).slice(0, 120) }; } }));
+              await insertRows('audit_log', [{ actor: null, action: 'higgsfield.prices', entity: 'provider', entity_id: null, after: { day, card, at: new Date().toISOString() } }]);
+              prices = card;
+            }
+          } catch (e) { prices = { error: String(e.message || e).slice(0, 200) }; }
+        }
+        return res.status(200).json({ ok: true, refreshed: true, source: board.source, boardTotal: board.total, curated: curated.length, curatedBy, snapshots: snap, scoring, eval: evalRun, prices, at: new Date().toISOString() });
       } catch (e) {
         await markCacheError(e.message || e);
         return res.status(502).json({ ok: false, refreshed: false, error: String(e.message || e) });

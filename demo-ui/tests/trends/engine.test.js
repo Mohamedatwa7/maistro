@@ -108,10 +108,11 @@ test('hourly refresh runs the scoring after the snapshots (MAISTRO_TREND_SCORING
   const feed = fixture('agent-trends.json');
   const f = mockFetch([
     ['/api/agent/trends', () => json(feed)],
+    [/api\.higgsfield\.ai\/estimate\//, (u, init) => { const b = JSON.parse(init.body); return json({ usd: b.duration ? 0.1 * b.duration : 0.05 * (b.batch_size || 1), credits: 1 }); }],
     ['api.anthropic.com', (u, init) => { const body = JSON.parse(init.body); if (/Select and rank/.test(JSON.stringify(body))) return json({ content: [{ type: 'text', text: JSON.stringify({ selected: [] }) }], stop_reason: 'end_turn' }); return json({ content: [{ type: 'text', text: JSON.stringify(good()) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } }); }],
     pg.route,
   ]);
-  const h = api('trends.js', { ANTHROPIC_API_KEY: 'k', TRENDRADAR_AGENT_KEY: 'agent-key', TRENDRADAR_BASE_URL: 'https://tr.test', CRON_SECRET: 'cron', SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k' });
+  const h = api('trends.js', { ANTHROPIC_API_KEY: 'k', HF_CREDENTIALS: 'id:secret', TRENDRADAR_AGENT_KEY: 'agent-key', TRENDRADAR_BASE_URL: 'https://tr.test', CRON_SECRET: 'cron', SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k' });
   try {
     let r = res(); await h.handler(req({ headers: { authorization: 'Bearer cron' } }), r);
     assert.equal(r.statusCode, 200); assert.equal(r.body.refreshed, true);
@@ -119,9 +120,11 @@ test('hourly refresh runs the scoring after the snapshots (MAISTRO_TREND_SCORING
     assert.equal(r.body.scoring.trends, 12); assert.equal(r.body.scoring.judged, 9, 'three fixture trends are hard-vetoed by the deterministic rules and never sent to the judge'); assert.equal(r.body.scoring.skippedVetoed, 3); assert.equal(r.body.scoring.deferred, 0); assert.equal(pg.tables.trend_scores.length, 12);
     // the guard-rail eval ran once for this prompt version and is recorded with real audit_log columns
     assert.ok(r.body.eval && r.body.eval.total === 8, JSON.stringify(r.body.eval));
+    // the daily price card: provider estimates for the reference bodies, once per day
+    assert.equal(r.body.prices.i2v_5s_720p.usd, 0.5); assert.equal(r.body.prices.soul_v2_4x_1080p.usd, 0.2); assert.equal((pg.tables.audit_log || []).filter((a) => a.action === 'higgsfield.prices').length, 1);
     const evalRows = (pg.tables.audit_log || []).filter((a) => a.action === 'trends.eval'); assert.equal(evalRows.length, 1); assert.equal(evalRows[0].after.promptVersion, require('../../api/_trends/prompts/profile-v1.js').VERSION); assert.equal(evalRows[0].after.results.length, 8);
     r = res(); await h.handler(req({ headers: { authorization: 'Bearer cron' } }), r);
-    assert.equal(r.body.eval, null, 'not re-run for the same prompt version'); assert.equal((pg.tables.audit_log || []).filter((a) => a.action === 'trends.eval').length, 1);
+    assert.equal(r.body.eval, null, 'not re-run for the same prompt version'); assert.equal(r.body.prices, null, 'the price card is daily'); assert.equal((pg.tables.audit_log || []).filter((a) => a.action === 'trends.eval').length, 1);
     r = res(); await h.handler(req({ query: { view: 'scored' }, session: false }), r); assert.equal(r.statusCode, 401);
     r = res(); await h.handler(req({ query: { view: 'scored' } }), r);
     assert.equal(r.statusCode, 200); assert.equal(r.body.ranked.length + r.body.rejected.length + r.body.needsReview.length, 12); assert.equal(r.headers['cache-control'], 'no-store');
