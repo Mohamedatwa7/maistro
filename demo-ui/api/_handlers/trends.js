@@ -415,6 +415,30 @@ module.exports = async (req, res) => {
       }
     }
     // 5.5: the scored view (ranked / rejected / needs review) for session holders
+    // 5.9: the judge's guard-rail eval (synthetic must-flag / must-pass trends) with the live prompt;
+    // session-gated, at most once per 10 minutes, never written to trend_scores
+    if (String(q.view || '') === 'eval') {
+      const { requireSession } = require('../_auth.js');
+      if (!requireSession(req, res)) return;
+      res.setHeader('Cache-Control', 'no-store');
+      if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: 'ANTHROPIC_API_KEY is not configured' });
+      try {
+        const { queryRows } = require('../_supabase.js');
+        const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const recent = cacheConfigured() ? await queryRows('generation_records', `select=id&kind=eq.trend_judge&params->>trendId=eq.eval-explicit-sound&at=gte.${encodeURIComponent(since)}&limit=1`) : [];
+        if (recent.length) return res.status(429).json({ error: 'the eval ran in the last 10 minutes' });
+        const { CASES, grade } = require('../_trends/eval-set.js');
+        const { judgeTrend } = require('../_trends/judge.js');
+        const { PRODUCT_CATALOG } = require('../_brand.js');
+        const P = require('../_trends/prompts/profile-v1.js');
+        const computed = { lifecycle: { stage: 'rising' }, timing: { postBy: null, remainingDays: 7 }, calendarEvents: [], snapshotsSeen: 2 };
+        const results = await Promise.all(CASES.map(async (c) => {
+          try { const r = await judgeTrend({ trend: c.trend, computed, catalog: PRODUCT_CATALOG, calendarNote: '' }); if (!r || !r.judgement) return { id: c.id, ok: false, detail: r ? r.error : 'no answer' }; const g = grade(c, r.judgement); return { id: c.id, expect: c.expect, ...g, rationale: Object.fromEntries(['safety', 'culture', 'origin', 'audioExplicit'].map((k) => [k, r.judgement[k].rationale.slice(0, 200)])) }; }
+          catch (e) { return { id: c.id, ok: false, detail: String(e.message || e).slice(0, 200) }; }
+        }));
+        return res.status(200).json({ promptVersion: P.VERSION, passed: results.filter((r) => r.ok).length, total: results.length, results });
+      } catch (e) { return res.status(502).json({ error: String(e.message || e) }); }
+    }
     if (String(q.view || '') === 'scored') {
       const { requireSession } = require('../_auth.js');
       if (!requireSession(req, res)) return;

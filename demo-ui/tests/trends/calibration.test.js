@@ -36,3 +36,13 @@ test('calibration eval on the recorded 19:15 run: culture/origin flags no longer
   const lyricOnly = judged.filter((r) => stillReview.includes(r.name) && r.judgement.audioExplicit.verdict === 'needsReview' && /lyric/i.test(r.judgement.audioExplicit.rationale) && r.judgement.safety.verdict === 'pass');
   assert.ok(lyricOnly.length >= 10, `${lyricOnly.length} of ${stillReview.length} held only by the lyrics rule`);
 });
+
+test('eval-set grading: a must-flag case passes on veto or needsReview of its question; a must-pass case needs pass on all four', () => {
+  const { CASES, grade } = require('../../api/_trends/eval-set.js');
+  const J = (o) => Object.fromEntries(['safety', 'culture', 'origin', 'audioExplicit'].map((k) => [k, { verdict: o[k] || 'pass', rationale: 'r', evidence: [] }]));
+  assert.equal(CASES.length, 8); assert.equal(CASES.filter((c) => c.expect.question === 'safety').length, 3); assert.ok(CASES.every((c) => c.trend.trendId.startsWith('eval-')));
+  const flag = CASES.find((c) => c.id === 'dangerous-challenge');
+  assert.equal(grade(flag, J({ safety: 'veto' })).ok, true); assert.equal(grade(flag, J({ safety: 'needsReview' })).ok, true); assert.equal(grade(flag, J({})).ok, false);
+  const pass = CASES.find((c) => c.id === 'desk-glowup');
+  assert.equal(grade(pass, J({})).ok, true); assert.match(grade(pass, J({ culture: 'needsReview' })).detail, /culture=needsReview/);
+});
