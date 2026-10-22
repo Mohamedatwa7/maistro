@@ -219,7 +219,7 @@ panel and in `GET /api/track?attribution=1` (`learnings`). The gates are tested 
 
 | Decision | What the page shows now | Before the rebuild |
 |---|---|---|
-| **Respond**: which comments need a reply | 4 complaint themes and 5 product-issue themes, each located by product (named in the comment, else the post), with examples and a **handled** mark that survives duplicates. 60 days at 11:00 UTC: brand complaints 82, repair / warranty 58, customer service 58, screen / display 57 | a comment count; 64 % of the sentiment labels were keyword guesses (43 % accurate) |
+| **Respond**: which comments need a reply | 3 complaint themes and 5 product-issue themes, each located by product (named in the comment, else the post), with examples and a **handled** mark that survives duplicates. 60 days at 11:00 UTC: brand complaints 82, repair / warranty 58, customer service 58, screen / display 57 | a comment count; 64 % of the sentiment labels were keyword guesses (43 % accurate) |
 | **What to make more of** (format and platform mix) | mature organic benchmarks per platform and format at 11:38 UTC (90 days): TikTok median ER 6.91 % (n = 114), Instagram video 4.19 % (n = 83), X video 1.08 % (n = 53), Instagram image median 98 engagements (n = 37), Facebook 66 (n = 177); giveaways counted apart | one mean "engagement" over every post, with giveaways (11,161 of 12,258 Instagram comments in 60 days) mixed in |
 | **Trust the numbers** | per-platform data-as-of pills: Facebook and X stale since 2026-10-16 (tracker collection). **The 60-day sentiment rests on 33 % of comments** (measured 2026-10-22 10:45 UTC: 1,975 tracker-labelled of 6,067), and the page says so beside the rates | no staleness warning; the keyword fallback silently filled the gap |
 
