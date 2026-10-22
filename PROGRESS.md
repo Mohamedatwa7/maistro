@@ -570,6 +570,13 @@ Hardening notes for the gate:
 2. **The checks hit `maistro-demo.vercel.app`, not the domain people use.** Check `https://www.ma1stro.com` (or both), and compare the health `revision` to the SHA once health reports it, so the gate proves the new build is the one answering.
 3. `git branch -f main` is safe only because the following push is a plain push that refuses a non-fast-forward; keep it a plain push (never `--force`), or use `git push origin rebuild/phase-0-recon:main` directly.
 
+## Release gate hardened; daily Higgsfield price card (commits 10844b6, 73ae564; released through the gate)
+
+Status: **PASSED** by checker. CI green; local 166/166. Both `www.ma1stro.com` and `maistro-demo.vercel.app` report `revision: 73ae564` in `/api/health`, so a release is now provably the build that answers.
+
+- Gate: stops before the deploy if `git status --porcelain` in `demo-ui` (ignoring `.vercel`) is non-empty; main moves with `git push origin rebuild/phase-0-recon:main`, which refuses a non-fast-forward; the deploy passes `MAISTRO_REVISION=<sha>` and the gate requires ok, the released short SHA as `revision`, and a byte-identical page on both hosts. All three checker notes closed.
+- Price card: Higgsfield publishes no prices, so the hourly cron records a daily card in `audit_log` (`higgsfield.prices`) from the free `/estimate` endpoint for the bodies the Studio actually sends (Soul V2 at 1 and 4 images at 1080p, image-to-video at 4, 5 and 8 s at 720p and 5 s at 1080p, text-to-video 5 s). The 6.10 cost estimate will be built from it.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
