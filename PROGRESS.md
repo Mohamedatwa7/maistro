@@ -624,6 +624,20 @@ Row 3's off-by-one was a future-timestamped comment: the last count window stopp
 
 Status: **PASSED** by checker. CI green; local 169/169; production `revision: cdf597a`. The Performance header shows one "data as of" pill per platform from the newest post or comment actually loaded (`perfNewestByPlatform`), red past 48 h; with today's data X and Facebook show stale (newest 10-16 and 10-17) and TikTok and Instagram fresh. Deriving it from the loaded data rather than the daily report is the better source because the report can be a day old; the two agree today. The page test computes each platform's expected state from the fixture.
 
+## Judge v1.4 live: calibrated baseline; Seedance cannot be priced by /estimate (commit c5ec98d)
+
+- **07:15 UTC, profile v1.4 (builder's reading):** scored 13, vetoed 22, needs_review 3; all three held trends are V-SAFETY with descriptive cues (POV twist, reaction clip with a suggestive handle, "Sey Mami"); the other safety flags sit on trends already vetoed as unproducible. **Eval 10/10**, recorded as `tests/fixtures/judge-eval-v1.4.json`.
+
+| Profile | Scored | Vetoed | Needs review |
+|---|---|---|---|
+| v1.1 | 1 | 22 | 15 |
+| v1.2 | 16 | 22 | 0 |
+| v1.3 | 11 | 22 | 5 |
+| v1.4 | 13 | 22 | 3 |
+
+  Checker's view: v1.4 is the calibrated baseline. Agreed to freeze prompt changes until the owner reviews the ranked board; any later change must pass the recorded eval and add the production case that motivated it.
+- **Price card:** Soul V2 priced again ($0.006 per image, $0.023 per set of four). Every Seedance estimate answers with a pricing type and description but no USD figure, so `/estimate` cannot price video; c5ec98d keeps the provider's pricing text on the card. Until the rule is read, video renders are budgeted at the fail-closed fallback. **Risk:** the fallback is $1.00 per render for every kind, which is likely far below a Seedance clip's real cost, so the per-piece cap under-protects video. Use a kind-specific fallback for video (a conservative per-second figure, written down as an assumption) until the provider's rule is parsed.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
