@@ -31,6 +31,10 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Syntax check every function
         run: npm run check
+      - name: Lint (correctness rules, eslint.config.js)
+        run: npm run lint
+      - name: Dependency audit (fails on high or critical)
+        run: npm audit --audit-level=high --omit=dev
       - name: Type check
         run: npm run typecheck
       - name: Tests (characterization, golden, contract on fixtures)
@@ -49,3 +53,15 @@ jobs:
           TRACK_SUPABASE_URL: ""
           TRACK_SUPABASE_KEY: ""
           MAISTRO_INGEST_KEY: ""
+
+  secrets:
+    # Phase 12: secret scan of the whole history (SECURITY.md section 1). .gitleaks.toml allowlists exactly one known
+    # localhost finding. It runs as a job of this workflow so the single CI run that release.sh watches covers it.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks (history)
+        run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.24.0 git /repo --config /repo/.gitleaks.toml --redact --no-banner --exit-code 1

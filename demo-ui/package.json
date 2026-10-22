@@ -17,7 +17,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "evals": "node scripts/evals.js"
+    "evals": "node scripts/evals.js",
+    "lint": "eslint ."
   },
   "engines": {
     "node": ">=22"
@@ -26,6 +27,8 @@
     "@types/node": "24.7.0",
     "@types/react": "19.1.17",
     "@types/react-dom": "19.1.11",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
     "pg": "8.16.3",
     "typescript": "5.9.3"
   },

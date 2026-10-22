@@ -134,7 +134,7 @@ function loadPage({ fetchImpl, hash = '#/', now = FROZEN_NOW } = {}) {
   const exportsList = 'CAL,rHome,rCalendar,rTrends,rStudio,rPerformance,rCopilot,STATE,TRENDS,PROJECTS,DELIVS,STAGES,SENTI,loadSentiment,sentiCompose,sentiMergeWindows,BENCH,rBenchPanel,benchChip,HANDLED,handledKey,handledBit,rDecisions,rCommentRow,loadHandled,sentiBadge,sentiCoverageWarn,rThemes,THEMES_UI,rPostLinks,POSTLINKS,rAttribution,ATTR,rLearnings,sentiDedupe,sentiFoldAcross,allComments,docLabel,pfPosts,pfStats,pfState,attachTo,delivTitle,syncStage,applyServerPieces,storeProducer,storeMeta,storeArtifact,SYNC,recordDecision,useJobs,jobPoll,qcJobPoll,POLL_MS,SCORED,rScoredBoard,scoredList,loadScored,KB,rejectOptions,loadKb,rMoodSet,CHECKS,rThumbCover,thumbAspectFor,rBrief,BRIEF_EDIT,saveBriefEdit,document,rBoard,shotDecide,BOARD_POLL,rDraft,shotsPoll,drawOverlay,assembleDraft,rQcPlan,QC_EDIT,saveQcEdit,qcReportPoll,rFinal,FINAL_DIFF,budgetLine,BUDGET,perfNewestByPlatform,viewsNotCollected,mediaAttrs,qcAssets,hydrateAssets,ASSET_URLS,QCRUN,QCHEAT,AUTH,authFromHash,requestMagicLink,exchangeToken,qcFixes,genCtx,radarToTrend,cpTrendPayload,cpPayloadFromText,esc,fmt,pct,stageArtifact,BOT_STAGE_IDX,GEN,QCRUN';
   let X;
   try {
-    X = eval(m[1] + `\n;({${exportsList}})`); // eslint-disable-line no-eval
+    X = eval(m[1] + `\n;({${exportsList}})`); 
   } finally {
     // keep globals in place for the returned functions, but allow restore()
   }
