@@ -187,3 +187,30 @@ test('reconcile R-8: a counted post outside the owned accounts fails the report 
     assert.equal(r.body.population.foreign, 1); assert.deepEqual(r.body.population.sample[0], { postId: 'p1', platform: 'instagram', account: 'samsunggulf', url: 'https://www.instagram.com/p/ABC/' });
   } finally { f.restore(); h.restore(); }
 });
+
+test('twinAudit (7.0): counts merged groups and kept-apart near-duplicates; sample is platform-stratified and seeded', () => {
+  const { twinAudit } = api('track.js', ENV).handler;
+  const t = (s) => new Date(Date.parse('2026-10-20T10:00:00Z') + s * 1000).toISOString();
+  const lists = [
+    { postId: 'p1', platform: 'instagram', rows: [
+      { external_id: '18012345678901234', author_username: 'amal', text: 'Love it', likes_count: 1, published_at: t(0), sentiment: 'positive' },
+      { external_id: 'DAbc_amal_1760954460', author_username: 'amal', text: 'Love  it', likes_count: 0, published_at: t(60) }, // merged twin
+      { external_id: '3', author_username: 'Amal', text: 'love it!', likes_count: 0, published_at: t(120) }, // same author, text differs only in case and punctuation → kept apart, a loose near-duplicate
+      { external_id: '4', author_username: 'sara', text: 'When is it available in Dubai?', published_at: t(0) },
+      { external_id: '5', author_username: 'sara', text: 'When is it available in Dubai? Also price', published_at: t(30) }, // truncated
+      { external_id: '6', author_username: 'omar', text: 'Totally worth the upgrade', published_at: t(5) },
+      { external_id: '7', author_username: 'omar.k', text: 'Totally worth the upgrade', published_at: t(65) }, // other author, same text
+    ] },
+    { postId: 'p2', platform: 'tiktok', rows: [
+      { external_id: '8', author_username: 'x', text: 'wow', published_at: t(0) },
+      { external_id: '9', author_username: 'x', text: 'wow', published_at: t(9) },
+    ] },
+  ];
+  const a = twinAudit(lists, { seed: 's' });
+  assert.equal(a.counts.groupsMerged, 2); assert.equal(a.counts.rowsRemoved, 2);
+  assert.deepEqual(a.counts.nearPairs, { loose: 1, truncated: 1, otherAuthor: 1 });
+  assert.deepEqual(a.counts.mergedByPlatform, { instagram: 1, tiktok: 1 });
+  assert.deepEqual(a.sample.merged.find((g) => g.postId === 'p1').members.map((m) => m.idForm), ['numeric', 'synthetic']);
+  assert.deepEqual(twinAudit(lists, { seed: 's' }), a, 'same seed, same sample');
+  assert.equal(twinAudit(lists, { seed: 's', perPlatform: 1 }).sample.near.length, 1);
+});

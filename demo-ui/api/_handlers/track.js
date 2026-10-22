@@ -102,7 +102,7 @@ const PLATFORM_FILTERS = {
 const PROJECT_EXCL = ['unpacked', 'roster', 'ifold'].map((x) => `&external_id=not.like.${x}${encodeURIComponent('\\_')}*`).join('');
 
 const COMMENT_COLUMNS = [
-  'id,external_post_id,platform,author_username,text,sentiment,likes_count,published_at',
+  'id,external_id,external_post_id,platform,author_username,text,sentiment,likes_count,published_at',
   'raw_post_ref:raw_data->>postId',
   'raw_post_url:raw_data->>postUrl',
   'raw_post_url2:raw_data->>post_url',
@@ -220,6 +220,56 @@ function dedupeTwins(rows) {
   return [...best.values()];
 }
 
+// 7.0 twin-collapse audit: the reconciliation keeps a random, platform-stratified sample of both collapse
+// outcomes — groups dedupeTwins merged, and near-duplicates it kept apart — so the rule's false-merge and
+// missed-duplicate rates can be measured on hand-labelled rows (tests/fixtures/twin-audit-*.json). Counts are
+// over the whole window; the sample is seeded by the window start, so a re-run of the same window draws the
+// same rows.
+const zw = /[\u200b-\u200d\u2060\ufeff\ufe0e\ufe0f]/g;
+const looseText = (t) => normText(t).normalize('NFKC').replace(zw, '').toLowerCase().replace(/[\s\p{P}]+/gu, ' ').trim();
+const looseAuthor = (a) => String(a || '').trim().toLowerCase().replace(/^@/, '');
+const idForm = (id) => (id == null ? 'none' : /^\d+$/.test(String(id)) ? 'numeric' : /_\d{9,}$/.test(String(id)) ? 'synthetic' : 'other');
+function seeded(seed) {
+  let h = 2166136261;
+  for (const ch of String(seed)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return () => { h += 0x6d2b79f5; let t = h; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function twinAudit(lists, { seed = '', perPlatform = 12 } = {}) {
+  const rnd = seeded(seed);
+  const row = (c) => ({ commentId: c.external_id ?? null, idForm: idForm(c.external_id), author: c.author_username || null, text: String(c.text || '').slice(0, 200), at: c.published_at || null, likes: c.likes_count ?? null, sentiment: c.sentiment || null });
+  const merged = [], near = [], counts = { groupsMerged: 0, rowsRemoved: 0, nearPairs: { loose: 0, truncated: 0, otherAuthor: 0 } };
+  for (const { postId, platform, rows } of lists) {
+    const groups = new Map();
+    for (const c of rows) { const k = `${String(c.author_username || '').trim().toLowerCase()}|${normText(c.text)}`; (groups.get(k) || groups.set(k, []).get(k)).push(c); }
+    for (const g of groups.values()) if (g.length > 1) { counts.groupsMerged++; counts.rowsRemoved += g.length - 1; merged.push({ postId, platform, members: g.map(row) }); }
+    const kept = dedupeTwins(rows);
+    for (let i = 0; i < kept.length; i++) for (let j = i + 1; j < kept.length; j++) {
+      const a = kept[i], b = kept[j], ta = looseText(a.text), tb = looseText(b.text);
+      if (!ta || !tb) continue;
+      const sameA = looseAuthor(a.author_username) === looseAuthor(b.author_username);
+      const dt = Math.abs(Date.parse(a.published_at) - Date.parse(b.published_at));
+      let kind = null;
+      if (sameA && ta === tb) kind = 'loose';
+      else if (sameA && Math.min(ta.length, tb.length) >= 20 && (ta.startsWith(tb) || tb.startsWith(ta))) kind = 'truncated';
+      else if (!sameA && ta === tb && ta.length >= 15 && dt <= 10 * 60e3) kind = 'otherAuthor';
+      if (kind) { counts.nearPairs[kind]++; near.push({ postId, platform, kind, dtSec: Number.isFinite(dt) ? Math.round(dt / 1000) : null, members: [row(a), row(b)] }); }
+    }
+  }
+  const pick = (xs) => {
+    const by = new Map();
+    for (const x of xs) (by.get(x.platform) || by.set(x.platform, []).get(x.platform)).push(x);
+    const outp = [];
+    for (const [plat, arr] of [...by].sort()) {
+      for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+      outp.push(...arr.slice(0, perPlatform).map((x) => ({ ...x, platformTotal: arr.length })));
+      void plat;
+    }
+    return outp;
+  };
+  const byPlat = (xs) => xs.reduce((m, x) => ((m[x.platform] = (m[x.platform] || 0) + 1), m), {});
+  return { counts: { ...counts, mergedByPlatform: byPlat(merged), nearByPlatform: byPlat(near) }, sample: { merged: pick(merged), near: pick(near) } };
+}
+
 // Exact row count of a PostgREST filter without transferring rows
 // (HEAD + Prefer: count=exact → Content-Range: 0-0/N).
 async function countRows(base, H, path) {
@@ -296,6 +346,8 @@ async function reconcile(days, R, get, H, base) {
     if (p.postedAt && (!f.newestPost || p.postedAt > f.newestPost)) f.newestPost = p.postedAt;
     for (const c of p.comments) if (c.at && (!f.newestComment || c.at > f.newestComment)) f.newestComment = c.at;
   }
+  // twin-collapse audit sample (labelled offline; see the function)
+  if (R.raw) { try { report.twins = twinAudit(R.raw, { seed: since }); } catch (e) { report.twins = { error: e.message }; } }
   report.checks.R6_postsUniqueById = new Set(ids).size === ids.length;
   // R-8 population: every counted post belongs to an owned account (the two-sided counts agree even on a
   // wrong population — the ifold_ rows passed R-1 until 2026-10-22). MAISTRO_OWNED_ACCOUNTS overrides,
@@ -442,7 +494,7 @@ module.exports = async (req, res) => {
         comments: cmts,
       };
     });
-    return { out, commentsSeen, commentsMatched, commentsPartial, since, floor };
+    return { out, commentsSeen, commentsMatched, commentsPartial, since, floor, raw: ours.map((p) => ({ postId: String(p.external_id), platform: p.platform === 'twitter' ? 'x' : p.platform, rows: byId.get(String(p.external_id)) || [] })) };
   };
 
   try {
@@ -534,3 +586,4 @@ module.exports = async (req, res) => {
 };
 
 module.exports.dedupeTwins = dedupeTwins; // exposed for tests
+module.exports.twinAudit = twinAudit;
