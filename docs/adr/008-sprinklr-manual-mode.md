@@ -28,9 +28,18 @@ The calendar becomes real in manual mode (approved pieces, chosen slots, posted 
     **posted**. Cancel keeps the row.
   - The simulated July 2026 events, the invented account list and the "SPRINKLR API · CONNECTED" claims are
     removed.
-- **Deviation: the Sprinklr adapter is a gated stub, not a client.** Sprinklr's developer documentation is not
-  publicly reachable; a web search on 2026-10-22 found only help-centre pages and a third-party listing. Writing
-  calls against guessed endpoints would be the kind of faked integration this ADR forbids.
+- **Deviation: the Sprinklr adapter is a gated stub, not a client — for now.** The reason first recorded here
+  ("the documentation is not publicly reachable") was **wrong**: one shallow web search missed the portal.
+  - **Correction (2026-10-22, later the same day):** the v3 docs are public at developer.sprinklr.com, and the
+    OpenAPI 3.0.3 spec downloads from `https://developer.sprinklr.com/_spec/apis/sprinklr-v3.json`.
+  - **Server and auth:** `https://api3.sprinklr.com/{env}/api/v3`, a Bearer token plus a `Key` header; `GET /me`
+    verifies the credentials.
+  - **Publishing endpoints:** `POST /media/upload`, `POST /publishing/draft`, `POST /publishing/draft/schedule`,
+    `POST /publishing/post`.
+  - **Access:** the owner reports having API access.
+  - **Why it is still a stub:** the stub stands only until the credentials are in the Vercel env and the owner's
+    read-only first probe is done. The real adapter will then be built from a **vendored copy of the spec**
+    (pinned version), not from guesses.
   - `SprinklrAdapter` reads `SPRINKLR_API_KEY`, `SPRINKLR_API_SECRET` and `SPRINKLR_ENV` only to report
     "configured". `publish()` throws 501 `sprinklr_not_implemented`.
   - The app always uses `ManualExportAdapter`.
