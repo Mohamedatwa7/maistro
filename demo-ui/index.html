@@ -4507,6 +4507,14 @@ async function loadAttr(){
  finally{ATTR.busy=false;trRefresh()}
 }
 const ATTR_LAB={path:'Creation path',product:'Product',format:'Platform · format',trendConfidence:'Trend confidence',revisionRounds:'Revision rounds',angle:'Angle'};
+/* 7.6: what the loop proposes to trend calibration (5.7), content (6.10) and boost (8a) — for review, never applied automatically */
+const LEARN_TARGET={trend_calibration:'Trend calibration (5.7)',content:'Content generation (6.10)',boost:'Boost (8a)'};
+function rLearnings(l){
+ if(!l)return '';
+ if(l.withheld)return `<div class="dim" style="font-size:11px;margin-top:6px">Learnings: withheld — ${l.attributed} of ${l.needed} attributed posts. No calibration, content or boost change is proposed from fewer.</div>`;
+ if(!l.proposals.length)return `<div class="dim" style="font-size:11px;margin-top:6px">Learnings: no group differs from the rest by ${l.gap} or more percentile points with ${l.minN}+ ranked posts.</div>`;
+ return `<div style="margin-top:8px"><span class="kick" style="font-size:10px">Learnings — for review, not applied automatically</span>${l.proposals.map(p=>`<div style="font-size:11.5px;margin-top:3px">${badge('muted',esc(LEARN_TARGET[p.target]||p.target))} ${esc(p.statement)}</div>`).join('')}</div>`;
+}
 function rAttribution(){
  if(!ATTR.data){loadAttr();return ''}
  const d=ATTR.data;
@@ -4519,6 +4527,7 @@ function rAttribution(){
   <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="kick accent">Attribution · posts made in Maistro</span><span class="mono dim" style="font-size:10px">${a.attributed} of ${a.minAttributed} posts needed before any attribute is weighted</span></div>
   ${recs.length?`<div style="overflow-x:auto;margin-top:8px"><table class="mono" style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr class="dim"><th align="left">Piece</th><th align="left">Post</th><th align="left">Trend · score</th><th align="left">Path</th><th>F1X8 QC → final</th><th>Rounds</th><th align="left">Standing</th></tr></thead><tbody>${rows}</tbody></table></div>
    <div style="margin-top:8px">${groups}</div>
+   ${rLearnings(d.learnings)}
    <div class="dim" style="font-size:10.5px;margin-top:6px">Standings are 7.2 benchmarks among mature organic posts; a median per group needs ${a.minN} ranked posts. ${a.weightsWithheld?'Attribute weights are withheld until '+a.minAttributed+' posts are attributed.':''}</div>`
    :`<div class="dim" style="font-size:12px;margin-top:6px">0 linked posts — attribution starts when approved finals are linked to their published posts ("Published as" on the final).</div>`}
  </div>`;

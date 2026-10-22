@@ -251,3 +251,13 @@ test('7.5 attribution panel: progress to 30, a row per linked post, groups with 
     assert.match(X.rAttribution(), /migration 018\) has not been applied/);
   } finally { X.restore(); }
 });
+
+test('7.6 learnings on the attribution panel: withheld below 30; proposals labelled by loop and "for review"', async () => {
+  const X = pageWith();
+  try {
+    await new Promise((r) => setTimeout(r, 30));
+    assert.match(X.rLearnings({ withheld: true, attributed: 0, needed: 30, proposals: [] }), /withheld — 0 of 30 attributed posts/);
+    const html = X.rLearnings({ withheld: false, attributed: 40, needed: 30, minN: 20, gap: 15, proposals: [{ target: 'content', statement: 'path = Studio: median P79 over 20 posts vs P39 for the other 20 (+40 points) — for review, not an automatic change' }] });
+    assert.match(html, /Content generation \(6.10\)/); assert.match(html, /not applied automatically/);
+  } finally { X.restore(); }
+});

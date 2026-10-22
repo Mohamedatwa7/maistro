@@ -1,8 +1,13 @@
 # PERFORMANCE_INSIGHTS — Phase 7 (benchmarks and the decisions the Performance page supports)
 
-Status 2026-10-22: §1 (decisions, 7.1), §2 (benchmarks, 7.2), §3 (sentiment quality, 7.3) and §4 (comment insight, 7.4) are done; §2 is `GET /api/track?benchmarks=1` (`api/_perf/benchmarks.js`,
-tests in `tests/perf/benchmarks.test.js`) with its page panel. §5 (7.5 attribution) is in progress; §6 (7.6 closing the loop) follows.
+Status 2026-10-22: every section's code is built and tested.
+- §1 decisions (7.1), §2 benchmarks (7.2), §3 sentiment quality (7.3) and §4 comment insight (7.4) run on
+  live data.
+- §5 attribution (7.5) and §6 closing the loop (7.6) wait on migration 018 and on posts being linked: 0 of 30
+  attributed today.
+
 Every number here is computed in code from the tracker's rows and Maistro's daily snapshots, never by a model.
+Each live figure carries the date it was measured.
 
 ## 1. The decisions the page supports (7.1) — builder default, owner to amend
 
@@ -193,3 +198,52 @@ rounds (0 / 1–2 / 3+) and angle:
 
 Today 0 posts are linked. Built and tested against the test fake: `tests/perf/attribution.test.js`, and the
 route test in `tests/api/track-sentiment.test.js`.
+
+## 6. Closing the loop (7.6) and the Phase 7 report
+
+**The loop (built, gated).** `api/_perf/learnings.js` turns the 7.5 analysis into proposals for trend
+calibration (5.7), content generation (6.10) and the boost recommendation (8a). They appear on the Attribution
+panel and in `GET /api/track?attribution=1` (`learnings`). The gates are tested in `tests/perf/learnings.test.js`:
+- **Withheld below 30 attributed posts.** Today the panel reads "withheld — 0 of 30".
+- **A proposal needs:** a group with ≥ 20 ranked mature organic posts and ≥ 20 in the rest; a median gap of
+  ≥ 15 percentile points (a fixed threshold, not a significance claim); and the same direction and size in
+  **both halves of the window**, split at the median post date.
+- **Every proposal is labelled a hypothesis**, with its n and the number of groups compared (with six
+  attributes, some group clears a gap by chance).
+- **Nothing is applied automatically.** The 5.7 judge prompt stays frozen behind its eval; a calibration change
+  is a person's decision, made with this evidence beside it. 6.10 and 8a consume the same field.
+- **No learning, calibration change or boost recommendation has been made from real data.** There are no
+  attributed posts yet.
+
+**Three decisions the page supports now that it could not before** (live figures, measured 2026-10-22):
+
+| Decision | What the page shows now | Before the rebuild |
+|---|---|---|
+| **Respond**: which comments need a reply | 4 complaint themes and 5 product-issue themes, each located by product (named in the comment, else the post), with examples and a **handled** mark that survives duplicates. 60 days at 11:00 UTC: brand complaints 82, repair / warranty 58, customer service 58, screen / display 57 | a comment count; 64 % of the sentiment labels were keyword guesses (43 % accurate) |
+| **What to make more of** (format and platform mix) | mature organic benchmarks per platform and format at 11:38 UTC (90 days): TikTok median ER 6.91 % (n = 114), Instagram video 4.19 % (n = 83), X video 1.08 % (n = 53), Instagram image median 98 engagements (n = 37), Facebook 66 (n = 177); giveaways counted apart | one mean "engagement" over every post, with giveaways (11,161 of 12,258 Instagram comments in 60 days) mixed in |
+| **Trust the numbers** | per-platform data-as-of pills: Facebook and X stale since 2026-10-16 (tracker collection). **The 60-day sentiment rests on 33 % of comments** (measured 2026-10-22 10:45 UTC: 1,975 tracker-labelled of 6,067), and the page says so beside the rates | no staleness warning; the keyword fallback silently filled the gap |
+
+**Waiting on attribution:** what to boost (young-post benchmarks also need n ≥ 20 per band; the page gives the
+dates), what to stop by product and market, which trends and formats work for which products and markets, and
+every learning above.
+
+**Data reconciliation (7.0).** The 2026-10-22 runs reconcile the reader against the tracker DB itself:
+- Posts per platform match (R-1), raw comments in the window match (R-3, 12,375 = 12,375 at 09:24 UTC), the
+  canonical-id matches bound the alias matches (R-4), posts are unique (R-6), and every counted post is from an
+  owned account (R-8; 0 foreign after the population fix that had overstated TikTok reach about 6×).
+- The twin-collapse audit: 0 false merges and 23 of 36 missed duplicates under the old rule, 0 and 0 under the
+  message key (on the labelled sample).
+- Widening from 14 to 60 days merges and never replaces: 0 metric differences and 0 lost comments live.
+
+**Sentiment accuracy (7.3).**
+- Tracker labels: 84 / 100 (76–90 %), 90 % weighted by the population. Arabic is weakest at 65 %. The main error
+  is neutral giveaway entries labelled positive.
+- Maistro's keyword fallback: 43 / 100, so it was dropped. Unanalysed comments now show "not analysed".
+- The Arabic, Gulf, Arabizi and sarcasm labels are a model's and need a native-speaker check.
+
+**Owner decisions this phase leaves open:**
+- apply migration 018, then link finals to their posts;
+- the tracker's sentiment backfill (paid; estimate the cost first) and pushing SamsungSentiment `39d2568`;
+- a native-speaker check of the 7.3 and 7.4 labels;
+- the "responder" role (reviewers handle comments today);
+- confirm or amend the decision list in §1.

@@ -586,7 +586,9 @@ module.exports = async (req, res) => {
       const bench = rows.links.length ? await computeBench() : null;
       const posts = Object.fromEntries(out.map((p) => [`${p.platform}|${p.postId}`, p]));
       const recs = A.records({ ...rows, posts, bench });
-      return res.status(200).json({ days, fetchedAt: new Date().toISOString(), records: recs, analysis: A.analysis(recs), unmatched: recs.filter((r) => !r.performance).length });
+      // 7.6: proposals for 5.7 / 6.10 / 8a, withheld below 30 attributed posts (api/_perf/learnings.js)
+      const learnings = require('../_perf/learnings.js').learnings(recs);
+      return res.status(200).json({ days, fetchedAt: new Date().toISOString(), records: recs, analysis: A.analysis(recs), learnings, unmatched: recs.filter((r) => !r.performance).length });
     }
 
     if (String(q.reconcile || '') === '1' && (isCron || authorized)) {
