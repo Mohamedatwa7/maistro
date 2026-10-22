@@ -620,6 +620,10 @@ Status: **PASSED on live evidence** (builder's reading of `reconciliation_report
 
 Row 3's off-by-one was a future-timestamped comment: the last count window stopped at now + 60 s while the reader has no upper bound. bfb79a0 makes the last window open-ended with the same predicate as the reader. Row 4: posts equal on all four platforms (tiktok 121, twitter 86, facebook 111, instagram 79), comments seen 12,477 on both sides, database canonical matches 6,549 at most the reader's 8,348 (1,799 alias-only), unique ids hold; twins removed 1,982, match rate 0.669. The seen count drifts down between runs (12,489 to 12,477) as comments leave the 63-day floor, which is why both sides are read in the same run. Next for 7.x: per-platform "data as of" on the Performance page from `report.freshness`.
 
+## Performance: "data as of" per platform (commit cdf597a; released through the gate)
+
+Status: **PASSED** by checker. CI green; local 169/169; production `revision: cdf597a`. The Performance header shows one "data as of" pill per platform from the newest post or comment actually loaded (`perfNewestByPlatform`), red past 48 h; with today's data X and Facebook show stale (newest 10-16 and 10-17) and TikTok and Instagram fresh. Deriving it from the loaded data rather than the daily report is the better source because the report can be a day old; the two agree today. The page test computes each platform's expected state from the fixture.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
