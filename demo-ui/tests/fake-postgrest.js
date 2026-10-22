@@ -136,6 +136,12 @@ function fakePostgrest(base = 'https://sb.test') {
       for (const r of rows) if (matches(r, p.filters)) { Object.assign(r, patch, p.table === 'stages' ? { updated_at: now() } : {}); out.push(r); }
       return new Response(JSON.stringify(out), { status: 200, headers: { 'content-type': 'application/json' } });
     }
+    if (method === 'DELETE') {
+      const keep = rows.filter((r) => !matches(r, p.filters));
+      const gone = rows.length - keep.length;
+      rows.length = 0; rows.push(...keep);
+      return new Response('', { status: 204, headers: { 'content-range': `*/${gone}` } });
+    }
     throw new Error('fake-postgrest: unsupported method ' + method);
   }
   return { base, tables, calls, handler, route: [(u) => String(u).startsWith(base + '/rest/v1/'), handler] };

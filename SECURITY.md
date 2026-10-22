@@ -26,8 +26,8 @@ endpoints) are in AUDIT.md and REBUILD_LOG.md; this document covers what Phase 1
 | F-D | Reads with `limit=2000`/`5000` silently stopped at the database's 1,000-row cap; e.g. older "handled" marks would have reverted | Medium (integrity) | `queryAll` pages every such read; tested past 1,000 (db929fe; handled d5eaf57) | `api/_supabase.js` |
 | F-E | `Access-Control-Allow-Origin: *` on cookie-gated routes (director, higgsfield, qc-f1x8, translate, upload) | Low (cookies are not sent cross-site with `*`) | Removed; only the public trends feed keeps it (tested) | handlers |
 | F-F | Tracker status routes (`/api/apify/status`, `/api/apify/sync` GET) are public: sync logs, actor and run ids, miscounted totals | Low | **Other repo** — TRACKER_INGESTION.md P6, needs approval | SamsungSentiment |
-| F-G | **No login throttling:** the shared password can be guessed without limit | Medium | **Open.** Mitigation: a long random password, and member links (F-A) for every privileged action. A DB-backed per-IP attempt counter is proposed for Phase 12 | `/api/login` |
-| F-H | Paid generation abuse ("burn the budget"): a session holder can create many pieces, each with its own cap | Medium | Every render is priced before submission and refused past its piece's cap; raising a cap is member-only (F-A); no test renders (the adapter refuses under `MAISTRO_NO_RENDER`). **Open:** a daily account-wide spend cap is proposed for Phase 12 | `api/_jobs.js` |
+| F-G | **No login throttling:** the shared password could be guessed without limit | Medium | **Fixed (Phase 12, migration 022):** 10 failed attempts from one address in 15 min → 429 + Retry-After, counted since that address's last success; the address is a salted sha256 of Vercel's `x-real-ip` (else the first `x-forwarded-for` hop) — never stored raw, and a forged header cannot reset another address. The global count (> 50 failures / h) only raises an `ops_alerts` row: a global lockout would let an attacker lock the owner out. Fails open if the store is down (the password remains the control). Tested | `api/_throttle.js`, `/api/login` |
+| F-H | Paid generation abuse ("burn the budget"): many pieces, each with its own cap | Medium | **Fixed (Phase 12):** an account-wide daily ceiling `MAISTRO_DAILY_SPEND_USD` (default **$100**, the builder's proposal — owner to set; 0 turns it off), per Gulf calendar day, over every render succeeded or reserved today across all pieces, checked before the piece cap; refused before submission with the reset time. Tested | `api/_jobs.js` `dailySpend` |
 
 ## 3. Realistic attack scenarios
 
@@ -70,7 +70,5 @@ endpoints) are in AUDIT.md and REBUILD_LOG.md; this document covers what Phase 1
 | Scope the tracker key used by Maistro to **read-only** in the tracker's Supabase | least privilege | at the next tracker change |
 
 ## 5. Not done in Phase 11 (owner or Phase 12)
-- **Login throttling (F-G) and an account-wide daily spend ceiling (F-H):** need a small store table each; proposed
-  for Phase 12 with monitoring.
 - The history hit in `5cd057a` is not rewritten (localhost only; rewriting public history costs more than it
   protects).

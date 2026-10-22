@@ -184,3 +184,31 @@ test('budget: a 720p piece at $19 spent cannot reach the $50 cap by asking for a
     assert.equal(submits.length, 0, 'nothing submitted');
   } finally { f.restore(); jobs.restore(); pieces.restore(); }
 });
+
+test('account daily ceiling (SECURITY.md F-H): renders across all pieces today count; past MAISTRO_DAILY_SPEND_USD a render is refused before submission; yesterday (GST) does not count; 0 turns it off', async () => {
+  const pg = fakePostgrest(); const submits = [];
+  const f = mockFetch([
+    [/api\.higgsfield\.ai\/estimate\//, () => json({ usd: 0.8, credits: 80 })],
+    [/\/higgsfield-ai\/soul\/v2\/standard$/, (u, init) => { submits.push(JSON.parse(init.body)); return json({ status: 'queued', request_id: `ceil000${submits.length}x`, status_url: 'x', cancel_url: 'y' }); }],
+    pg.route,
+  ]);
+  const env = { ...ENV, MAISTRO_PIECE_BUDGET_USD: '100', MAISTRO_DAILY_SPEND_USD: '2' };
+  let jobs = api('jobs.js', env); const pieces = api('pieces.js', env);
+  try {
+    let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-ceil', stage: 'plan', artifact: { title: 'B', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] } } }), r);
+    // another piece already spent $1.00 today, and $50 yesterday (Gulf time) which must not count
+    const gulfMidnightUtc = (() => { const g = new Date(Date.now() + 4 * 36e5); return Date.UTC(g.getUTCFullYear(), g.getUTCMonth(), g.getUTCDate()) - 4 * 36e5; })();
+    (pg.tables.jobs = pg.tables.jobs || []).push(
+      { id: 'other-today', piece_id: 'other', kind: 'higgsfield_video', state: 'succeeded', estimate_usd: 1, created_at: new Date(gulfMidnightUtc + 60e3).toISOString(), payload: {} },
+      { id: 'other-yday', piece_id: 'other', kind: 'higgsfield_video', state: 'succeeded', estimate_usd: 50, created_at: new Date(gulfMidnightUtc - 60e3).toISOString(), payload: {} });
+    const submit = async (n) => { const rr = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-ceil', stage: 'thumb', kind: 'higgsfield_image', payload: { prompt: `c${n}`, aspect_ratio: '9:16', resolution: '1080p', seed: n } } }), rr); return rr; };
+    r = await submit(1); assert.equal(r.body.job.state, 'running', '$1.00 + $0.80 = $1.80 ≤ $2.00');
+    pg.tables.stages.find((s) => s.kind === 'thumb').state = 'generated';
+    r = await submit(2);
+    assert.equal(r.body.job.state, 'failed'); assert.match(r.body.job.error, /account daily ceiling: .*\$2\.60 of the \$2\.00 daily ceiling .*resets at 00:00 GST/);
+    assert.equal(submits.length, 1, 'nothing submitted past the ceiling');
+    jobs.restore(); jobs = api('jobs.js', { ...env, MAISTRO_DAILY_SPEND_USD: '0' });
+    pg.tables.stages.find((s) => s.kind === 'thumb').state = 'generated';
+    r = await submit(3); assert.equal(r.body.job.state, 'running', '0 turns the ceiling off');
+  } finally { f.restore(); jobs.restore(); pieces.restore(); }
+});

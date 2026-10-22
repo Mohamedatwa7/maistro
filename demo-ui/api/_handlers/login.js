@@ -69,10 +69,19 @@ module.exports = async (req, res) => {
   }
 
   if (!password) return res.status(401).json({ error: 'password login is retired — use your sign-in link' });
+  // Phase 12 (SECURITY.md F-G): per-address lockout after repeated failures
+  const throttle = require('../_throttle.js');
+  const locked = await throttle.check(req);
+  if (locked) {
+    res.setHeader('Retry-After', String(locked.retryAfterS));
+    return res.status(429).json({ error: `too many failed attempts from this address — try again in ${Math.ceil(locked.retryAfterS / 60)} min, or use your sign-in link`, code: 'throttled', retryAfterS: locked.retryAfterS });
+  }
   const given = String(b.password || '');
   if (!given || !bearerMatches(`Bearer ${given}`, password)) {
+    await throttle.record(req, false);
     return res.status(401).json({ error: 'wrong password' });
   }
+  await throttle.record(req, true);
   res.setHeader('Set-Cookie', sessionCookieHeader(makeSessionCookieValue(secret)));
   return res.status(204).end();
 };

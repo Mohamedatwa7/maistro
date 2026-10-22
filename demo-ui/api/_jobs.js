@@ -308,6 +308,19 @@ async function pieceBudget(pieceId) {
   return { capUsd, capBasis, resolution, warnPct, spentUsd: sum((r) => r.state === 'succeeded'), committedUsd: sum((r) => r.state === 'queued' || r.state === 'running'), jobs: rows.length };
 }
 
+/** Today's render spend across all pieces (Gulf calendar day, UTC+4): estimates of succeeded renders plus queued /
+ *  running ones already priced (they are reserved). The ceiling is MAISTRO_DAILY_SPEND_USD, default $100 (builder
+ *  proposal, owner to set); 0 turns it off. */
+async function dailySpend(now = Date.now()) {
+  const gulf = new Date(now + 4 * 36e5);
+  const start = new Date(Date.UTC(gulf.getUTCFullYear(), gulf.getUTCMonth(), gulf.getUTCDate()) - 4 * 36e5).toISOString();
+  const { queryAll } = require('./_supabase.js');
+  const rows = await queryAll('jobs', `select=estimate_usd,state&created_at=gte.${start}&estimate_usd=not.is.null&state=in.(queued,running,succeeded)&order=id.asc`);
+  const usedUsd = Math.round(rows.reduce((a, r) => a + Number(r.estimate_usd || 0), 0) * 10000) / 10000;
+  const env = process.env.MAISTRO_DAILY_SPEND_USD;
+  return { since: start, usedUsd, ceilingUsd: env != null && env !== '' ? Number(env) : 100 };
+}
+
 async function budgetGate(job) {
   // price: the provider estimate for the exact body; when the path has none (v1 reference) or the call
   // fails, the last observed estimate for the same kind, else MAISTRO_UNPRICED_USD (default $1.00) —
@@ -329,6 +342,9 @@ async function budgetGate(job) {
   }
   // reserve first, then compare: jobs gated at the same time in other invocations see each other
   await patchRows('jobs', `id=eq.${q(job.id)}`, { estimate_usd: estimateUsd });
+  // Phase 12 (SECURITY.md F-H): an account-wide daily ceiling across every piece, checked before the piece cap
+  const day = await dailySpend();
+  if (day.ceilingUsd > 0 && day.usedUsd > day.ceilingUsd) return { refuse: `account daily ceiling: this render (~$${estimateUsd.toFixed(2)}) would take today's renders to $${day.usedUsd.toFixed(2)} of the $${day.ceilingUsd.toFixed(2)} daily ceiling (MAISTRO_DAILY_SPEND_USD) — it resets at 00:00 GST`, estimateUsd, basis };
   const b = await pieceBudget(job.piece_id);
   const after = Math.round((b.spentUsd + b.committedUsd) * 10000) / 10000; // includes this job (queued, reserved)
   if (b.capUsd > 0 && after > b.capUsd) return { refuse: `budget cap: this render (~$${estimateUsd.toFixed(2)}, ${basis}) would take the piece to $${after.toFixed(2)} of its $${b.capUsd.toFixed(2)} cap (${b.capBasis}) — a line manager or admin can raise this piece's budget ("Set cap" on the piece's budget line, or POST /api/studio action "budget" with budgetUsd)`, estimateUsd, basis };
@@ -605,4 +621,4 @@ async function jobsForPiece(legacyId, limit = 50) {
   return out;
 }
 
-module.exports = { KINDS, createJob, getJob, advance, tick, jobsForPiece, publicJob, settleBoardStage, updateShots, pieceBudget, POLL_S, TIMEOUT_S };
+module.exports = { KINDS, createJob, getJob, advance, tick, jobsForPiece, publicJob, settleBoardStage, updateShots, pieceBudget, dailySpend, POLL_S, TIMEOUT_S };

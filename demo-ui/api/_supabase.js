@@ -108,4 +108,13 @@ async function queryAll(table, params, max = 50000) {
   return out;
 }
 
-module.exports = { insertEvent, listEvents, insertRow, listRows, queryRows, queryAll, insertRows, upsertRows, patchRows };
+// Delete the rows a filter matches (pruning only — e.g. login attempts older than 7 days). `params` must filter.
+async function deleteRows(table, params) {
+  const c = config();
+  if (!c) throw new Error('SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are not configured on the server');
+  if (!params || !/=/.test(params)) throw new Error('deleteRows needs a filter');
+  const r = await fetchT(`${c.url}/rest/v1/${table}?${params}`, { method: 'DELETE', headers: { apikey: c.key, Authorization: `Bearer ${c.key}`, Prefer: 'return=minimal' } }, { timeoutMs: 15000 });
+  if (!r.ok) throw new Error(`supabase delete from ${table} failed (${r.status}): ${(await r.text()).slice(0, 300)}`);
+}
+
+module.exports = { insertEvent, listEvents, insertRow, listRows, queryRows, queryAll, insertRows, upsertRows, patchRows, deleteRows };
