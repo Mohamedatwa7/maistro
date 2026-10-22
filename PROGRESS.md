@@ -584,6 +584,14 @@ Status: **PASSED** by checker. CI green; local 167/167; production reports `revi
 - `tests/schema-constraints.js` reads every enum CHECK from the migrations in order (a later `alter table … add constraint` replaces the earlier one) and the fake database rejects violating writes with 23514, unknown audit columns with 42703. It found a second silent production failure: `generation_records.kind 'assemble'` was outside the constraint since b7d1234, so every assembly's generation record was refused and only logged. Migration 017 replaces the constraint with `assemble` added; the builder confirmed through `pg_constraint` that it was replaced, not duplicated. Scope limit of the parser: it covers single-line `text … check (col in (…))` enums only; numeric, multi-column and multi-line checks are not enforced by the fake.
 - Lineage view: GET `/api/studio?lineage=<piece>` returns the final (else draft) cut and per shot the clip and keyframe with asset, override flag and generation (kind, model, prompt name and version, seed, status, cost), the storyboard line and review, plus the brief, storyboard and moodboard versions with their inputs, every stage's version and inputs, and the piece angle and trend.
 
+## Upstream-reopened state, numeric CHECKs enforced, GOLDEN_SET draft (commit 491e66a; released through the gate)
+
+Status: **PASSED** by checker. CI green; local 168/168; production reports `revision: 491e66a`.
+
+- `stages[k].upstreamReopened` is set when an input stage still holds the version this one was built from but is back in ready, generating or rejected; the Studio shows an "Upstream reopened" note; stale takes precedence once a new version lands; the invalidation test asserts the window. Closes the checker's reopen-window note.
+- The checker's independent scan of the migrations finds exactly two non-enum CHECKs (`adlcp_documents.size_bytes > 0`, `content_pieces.budget_warn_pct between 1 and 100`); both are now enforced by the fake, and `tests/api/constraints.test.js` fails when any CHECK in the migrations is neither enforced nor listed as unenforced (the list is empty). Closes the scope note.
+- `GOLDEN_SET.md` (draft): 16 trends from history plus 4 owner-supplied Gulf-Arabic slots (history holds no Arabic trends), a rating rubric to agree with the owner, metrics computed in code, and a budget section waiting for the first price card. The checker reviews it once the budget is filled in.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
