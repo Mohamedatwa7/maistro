@@ -825,8 +825,13 @@ Status: **PASSED** by checker, verified independently: CI green on both; both ho
 - SECURITY.md lists findings A to H with severity, six attack scenarios, the fixes by commit, and the owner's manual actions. Open for Phase 12: no login throttling (medium) and no account-wide spend ceiling (medium).
 - Process note (builder's own report): a first SECURITY.md draft quoted the pasted database password; it was removed before staging, never committed or pushed, and `git log -S` finds nothing. Checker's scan of the tree finds no password-bearing connection string.
 
+## Phase 12 plan approved by the checker with amendments (no production change yet)
+
+Plan: O1 login throttling and an account-wide daily spend ceiling; O2 CI/CD (lint, security scan with gitleaks, type check, tests, build, previews, a production release job behind a required reviewer); O3 a separate preview Supabase project; O4 an hourly monitor with alerts; O5 backups and a restore drill; O6 rollback script; O7 RUNBOOK; O8 cutover checklist. Checker's amendments: the global login limit raises an alert only (per-IP lockout stays), the client IP comes from Vercel's own header and a spoofed header is tested; the daily ceiling is env-configurable with $100 as the default until the owner sets it; backups exclude customer comment text (tracker-derived copies are re-derivable) and storage objects get an owner-chosen backup; the known historical localhost URL is allowlisted by finding, not by path.
+
 ## [GATE] Owner items (only the user can do these)
 
+01. **Phase 12 decisions:** the account-wide daily spend ceiling (proposed $100 a day, about five 720p pieces); create a second free Supabase project for previews; an alert destination (a Slack webhook or e-mail relay); your Supabase plan's backup tier and how approval documents and assets should be backed up; GitHub production-environment secrets and you as the required release reviewer.
 00. **Final approvals now need a member sign-in** (since acca74f). Before approving any final: set Supabase Authentication, URL Configuration, Site URL `https://www.ma1stro.com`, then sign in once at www.ma1stro.com with your e-mail link. The shared password can no longer approve a final.
 0. **Standing owner rule (2026-10-22): no money is spent on Higgsfield for testing.** The golden-set content run and any test or eval render are not authorised; real renders happen only when a person generates a piece in the Studio. Free price estimates are allowed.
 
