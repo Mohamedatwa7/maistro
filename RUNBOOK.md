@@ -118,25 +118,33 @@ of the current production), then update any outside holder:
 ## Backup and restore
 
 **What is backed up** (Maistro-owned data):
-- `content_pieces`, `stages`, `artifact_versions`, `approvals`, `adlcp_documents`, `jobs`;
+- `campaign_events` (Hermes pushes), `content_pieces`, `stages`, `artifact_versions`, `approvals`, `adlcp_documents`,
+  `qc_results`, `stage_checks`, `jobs`;
 - `kb_documents`, `creative_specs`, `prompt_registry`, `generation_records`;
 - `trend_snapshots`, `trend_scores`, `trend_decisions`;
 - `piece_posts`, `publishing_slots`, `audit_log`, `members`, `schema_migrations`.
 
+The list is `TABLES` in `.github/workflows/backup.yml`; keep the two in step.
+
 **Deliberately not backed up** (tracker-derived copies of customer comment text; owner data-handling constraint):
-- `sentiment_posts`, `perf_payloads`, and the comment samples inside `reconciliation_reports.report`;
+- `sentiment_posts`, `perf_payloads`, and `reconciliation_reports` (whole table: its reports carry comment samples);
 - all three are re-derivable from the tracker by the next cron run.
 
-`login_attempts` and `ops_alerts` are operational and short-lived, and are not backed up either.
+`trends_cache` (derived), `login_attempts` and `ops_alerts` (operational, short-lived) are not backed up either.
 
 **Storage objects** (the ADLCP approval documents, piece assets) are not in the table dump. **Owner to choose:**
 Supabase's own storage backups (plan-dependent), or a separate encrypted copy.
 
-**How** (Phase 12 O5, once the owner adds the secrets): a nightly GitHub Action dumps the listed tables with
-`pg_dump --data-only -t …` plus the schema, encrypts the dump with the owner's `age` public key, and keeps it 14
-days as a workflow artifact. A monthly **restore drill** restores the newest dump into a throwaway Postgres
-service container, runs `node db/migrate.mjs` (it must find 0 migrations to apply), and compares row counts per
-table with the dump's manifest. The workflow run is the proof.
+**How** (`.github/workflows/backup.yml`; it stays inert until the owner adds the secrets
+`MAISTRO_DATABASE_URL` and `BACKUP_AGE_RECIPIENT`, the owner's age **public** key):
+- **Nightly backup** (01:15 UTC): `pg_dump --format=custom` of the listed tables (schema and data), encrypted
+  with `age` to the owner's key, kept 14 days as a workflow artifact. The private key never enters CI.
+- **To restore:** download the artifact, `age -d -i <owner key>`, then `pg_restore --no-owner --no-privileges`
+  into the target.
+- **Restore drill** (monthly, or `workflow_dispatch` with `job=drill`): takes a fresh dump of the same tables,
+  restores it into a throwaway Postgres 17 service container, and compares row counts table by table. Nothing is
+  kept. Supabase-only objects (policies that reference `auth.*`) are listed as warnings; the drill proves the
+  **data** comes back. The workflow run is the proof.
 
 ## Production deployment checklist
 - [ ] Migrations for this change applied (`node db/migrate.mjs` with the production URL) — **before** the

@@ -1,0 +1,99 @@
+# Backups and the restore drill (Phase 12 O5, RUNBOOK.md "Backup and restore").
+# Needs two repository secrets, added by the owner:
+#   MAISTRO_DATABASE_URL   the production pooler URL (after the password rotation)
+#   BACKUP_AGE_RECIPIENT   the owner's age PUBLIC key (the private key never enters CI)
+# Without them both jobs say so and stop green. Only Maistro-owned tables are dumped; the tracker-derived copies of
+# customer comment text (sentiment_posts, perf_payloads, reconciliation_reports), the trends_cache, and the ephemeral login_attempts /
+# ops_alerts are excluded on purpose.
+name: backup
+
+on:
+  schedule:
+    - cron: "15 1 * * *"   # nightly backup, 05:15 GST
+    - cron: "45 1 1 * *"   # restore drill, monthly
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "backup or drill"
+        required: true
+        default: drill
+
+env:
+  TABLES: "campaign_events members content_pieces stages artifact_versions approvals adlcp_documents qc_results jobs kb_documents creative_specs prompt_registry generation_records trend_snapshots trend_scores trend_decisions stage_checks piece_posts publishing_slots audit_log schema_migrations"
+
+jobs:
+  backup:
+    if: github.event_name == 'workflow_dispatch' && inputs.job == 'backup' || github.event.schedule == '15 1 * * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Secrets present?
+        id: s
+        env: { DB: "${{ secrets.MAISTRO_DATABASE_URL }}", KEY: "${{ secrets.BACKUP_AGE_RECIPIENT }}" }
+        run: if [ -n "$DB" ] && [ -n "$KEY" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"; else echo "::notice::backup skipped — add MAISTRO_DATABASE_URL and BACKUP_AGE_RECIPIENT"; fi
+      - name: Postgres 17 client and age
+        if: steps.s.outputs.ok == '1'
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -q && sudo apt-get install -y -q postgresql-client-17 age
+      - name: Dump the Maistro-owned tables, encrypted
+        if: steps.s.outputs.ok == '1'
+        env: { DB: "${{ secrets.MAISTRO_DATABASE_URL }}", KEY: "${{ secrets.BACKUP_AGE_RECIPIENT }}" }
+        run: |
+          ARGS=""; for t in $TABLES; do ARGS="$ARGS -t public.$t"; done
+          /usr/lib/postgresql/17/bin/pg_dump "$DB" --format=custom --no-owner --no-privileges $ARGS | age -r "$KEY" > maistro-$(date -u +%F).dump.age
+          /usr/lib/postgresql/17/bin/psql "$DB" -At -c "select 'rows', count(*) from schema_migrations" > /dev/null
+          ls -l maistro-*.dump.age
+      - if: steps.s.outputs.ok == '1'
+        uses: actions/upload-artifact@v4
+        with:
+          name: maistro-backup
+          path: maistro-*.dump.age
+          retention-days: 14
+
+  drill:
+    if: github.event_name == 'workflow_dispatch' && inputs.job == 'drill' || github.event.schedule == '45 1 1 * *'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      scratch:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: drill, POSTGRES_DB: drill }
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Secrets present?
+        id: s
+        env: { DB: "${{ secrets.MAISTRO_DATABASE_URL }}" }
+        run: if [ -n "$DB" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"; else echo "::notice::restore drill skipped — add MAISTRO_DATABASE_URL"; fi
+      - name: Postgres 17 client
+        if: steps.s.outputs.ok == '1'
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsS -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -q && sudo apt-get install -y -q postgresql-client-17
+      - name: Dump, restore into a throwaway database, compare row counts (nothing is kept)
+        if: steps.s.outputs.ok == '1'
+        env: { DB: "${{ secrets.MAISTRO_DATABASE_URL }}", SCRATCH: "postgresql://postgres:drill@localhost:5432/drill" }
+        run: |
+          BIN=/usr/lib/postgresql/17/bin
+          ARGS=""; for t in $TABLES; do ARGS="$ARGS -t public.$t"; done
+          $BIN/pg_dump "$DB" --format=custom --no-owner --no-privileges $ARGS -f drill.dump
+          # Supabase-specific objects (auth.* references in policies, triggers) may not restore on plain Postgres;
+          # they are listed, not fatal — the drill proves the DATA comes back
+          $BIN/pg_restore --no-owner --no-privileges -d "$SCRATCH" drill.dump 2> restore-errors.txt || true
+          echo "restore warnings: $(grep -c ERROR restore-errors.txt || true)"; grep ERROR restore-errors.txt | head -20 || true
+          FAIL=0
+          for t in $TABLES; do
+            A=$($BIN/psql "$DB" -At -c "select count(*) from public.$t")
+            B=$($BIN/psql "$SCRATCH" -At -c "select count(*) from public.$t" 2>/dev/null || echo missing)
+            printf '%-22s source %-8s restored %s\n' "$t" "$A" "$B"
+            [ "$A" = "$B" ] || FAIL=1
+          done
+          rm -f drill.dump
+          [ "$FAIL" = 0 ] || { echo "::error::restored row counts differ"; exit 1; }
+          echo "RESTORE DRILL OK: every table restored with the same row count"
