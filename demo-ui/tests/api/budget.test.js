@@ -146,17 +146,36 @@ test('budget defaults (owner 2026-10-22): $20 for a 720p piece, $50 once any of 
       const pid = pg.tables.content_pieces[0].id;
       let b = await budget(studio);
       assert.deepEqual([b.capUsd, b.resolution, b.capBasis, b.warnPct], [20, '720p', 'default for 720p pieces', 80]);
-      pg.tables.jobs.push({ id: 'j1', piece_id: pid, kind: 'higgsfield_video', state: 'succeeded', estimate_usd: 2.311, payload: { resolution: '720p' } });
-      assert.equal((await budget(studio)).capUsd, 20, 'a 720p clip keeps the 720p default');
-      pg.tables.jobs.push({ id: 'j2', piece_id: pid, kind: 'higgsfield_video', state: 'queued', estimate_usd: 5.686, payload: { resolution: '1080p' } });
+      pg.tables.jobs.push({ id: 'j1', piece_id: pid, kind: 'higgsfield_video', state: 'succeeded', estimate_usd: 5.686, payload: { resolution: '1080p' }, created_at: '2026-10-22T09:00:00Z' });
       b = await budget(studio);
-      assert.deepEqual([b.capUsd, b.resolution, b.capBasis], [50, '1080p', 'default for 1080p pieces']);
+      assert.deepEqual([b.capUsd, b.resolution, b.capBasis], [50, '1080p', 'default for 1080p pieces'], 'a piece whose first video is 1080p is a 1080p piece');
+      pg.tables.jobs.unshift({ id: 'j0', piece_id: pid, kind: 'higgsfield_video', state: 'succeeded', estimate_usd: 2.311, payload: { resolution: '720p' }, created_at: '2026-10-22T08:00:00Z' });
+      assert.equal((await budget(studio)).capUsd, 20, 'the first video decides: a later 1080p render does not lift a 720p piece');
     });
-    await run({ ...base, MAISTRO_PIECE_BUDGET_USD_1080P: '60' }, async (pieces, studio) => assert.equal((await budget(studio)).capUsd, 60));
+    await run({ ...base, MAISTRO_PIECE_BUDGET_USD_720P: '25' }, async (pieces, studio) => assert.equal((await budget(studio)).capUsd, 25, 'env overrides the 720p default'));
     await run(base, async (pieces, studio) => {
       pg.tables.content_pieces[0].budget_usd = 120;
       const b = await budget(studio);
       assert.deepEqual([b.capUsd, b.capBasis], [120, 'set for this piece']);
     });
   } finally { f.restore(); }
+});
+
+test('budget: a 720p piece at $19 spent cannot reach the $50 cap by asking for a 1080p render — refused at its $20 cap', async () => {
+  const pg = fakePostgrest(); const submits = [];
+  const RULE = 'For 16:9 video without video input, your request costs roughly $0.2056 per second of generated video at 480p, $0.4622 at 720p, and $1.1372 at 1080p.';
+  const f = mockFetch([[/api\.higgsfield\.ai\/estimate\//, () => json({ type: 'description', pricing_description: RULE })], [/\/bytedance\/seedance-2\.5\/text-to-video$/, (u, init) => { submits.push(JSON.parse(init.body)); return json({ status: 'queued', request_id: 'vidhd0001x', status_url: 'x', cancel_url: 'y' }); }], pg.route]);
+  const env = { ...ENV, MAISTRO_PIECE_BUDGET_USD: undefined, MAISTRO_PIECE_BUDGET_USD_720P: undefined, MAISTRO_PIECE_BUDGET_USD_1080P: undefined };
+  const jobs = api('jobs.js', env); const pieces = api('pieces.js', env);
+  try {
+    let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-bud9', stage: 'plan', artifact: { title: 'B', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] } } }), r);
+    for (const [stage, artifact] of [['brief', { objective: 'o', msg: 'k', markets: ['UAE'], platforms: ['tiktok'], mandatories: ['a'], deadline: '30 Oct 2026' }], ['board', [{ tc: '0:00', d: 'x', g: ['#000000', '#111111'] }]]]) { r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-bud9', stage, artifact } }), r); }
+    const pid = pg.tables.content_pieces[0].id;
+    (pg.tables.jobs = pg.tables.jobs || []).push({ id: 'spent720', piece_id: pid, kind: 'higgsfield_video', state: 'succeeded', estimate_usd: 19, payload: { resolution: '720p' }, created_at: '2026-10-22T08:00:00Z' });
+    r = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-bud9', stage: 'draft', kind: 'higgsfield_video', payload: { prompt: 'p', aspect_ratio: '9:16', duration: 5, resolution: '1080p' } } }), r);
+    assert.ok(r.body.job, JSON.stringify(r.body));
+    assert.equal(r.body.job.state, 'failed');
+    assert.match(r.body.job.error, /\$24\.69 of its \$20\.00 cap \(default for 720p pieces\)/);
+    assert.equal(submits.length, 0, 'nothing submitted');
+  } finally { f.restore(); jobs.restore(); pieces.restore(); }
 });

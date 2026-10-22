@@ -3065,12 +3065,12 @@ function sentiCompose(){
   for(const p of snap.posts){
    const t=byId.get(sentiId(p));
    if(t){
-    if((!t.comments||!t.comments.length)&&p.comments&&p.comments.length)t.comments=p.comments;
+    if((!t.comments||!t.comments.length)&&p.comments&&p.comments.length){t.comments=p.comments;t.commentsCollected=p.commentsCollected}
     if(t.metrics&&!t.metrics.thumb&&p.metrics&&p.metrics.thumb)t.metrics.thumb=p.metrics.thumb;
    }else posts.push(p);
   }
  }else posts=((track||snap)||{posts:[]}).posts.slice();
- for(const p of posts)p.comments=sentiDedupe(p.comments);
+ for(const p of posts){if(p.commentsCollected==null)p.commentsCollected=(p.comments||[]).length;p.comments=sentiDedupe(p.comments)}
  const sig=posts.length+':'+posts.map(p=>p.postId).join(',');
  const changed=sig!==SENTI.sig;
  SENTI.sig=sig;SENTI.posts=posts;SENTI.src=((track||snap)||{}).source||'sentiment tracker';
@@ -3314,7 +3314,7 @@ function allComments(list){
 }
 function cfMore(){STATE.cfN=(STATE.cfN||15)+25;$('#view').innerHTML=rPerformance();reveal()}
 function rReviewsDash(list,s){
- const cmts=allComments(list);
+ const cmts=allComments(list),collected=list.reduce((s,p)=>s+(+p.commentsCollected||(p.comments||[]).length),0);
  if(!cmts.length&&!list.length)return '';
  const pf=pfState();
  /* comment-level filters for comment sections */
@@ -3374,7 +3374,7 @@ function rReviewsDash(list,s){
 
  return `
  <div class="section-head" style="margin-top:6px;margin-bottom:14px"><div><span class="kick accent">samsungtrack · same daily schedule, zero duplicate pulls</span><h2 style="font-size:clamp(20px,2.4vw,28px)">Social Reviews Dashboard</h2></div>
-  <span class="pill">${fmt(cmts.length)} COMMENTS ANALYZED</span></div>
+  <span class="pill" title="One voice, one comment: the same author repeating the same message on a post counts once. Collected = every comment row the tracker stored.">${fmt(cmts.length)} COMMENTS ANALYZED${collected>cmts.length?' · '+fmt(collected)+' COLLECTED':''}</span></div>
 
  <div class="grid2e" style="margin-bottom:16px">
   <div class="card p5"><span class="kick accent">Comment health</span>

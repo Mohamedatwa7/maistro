@@ -283,8 +283,9 @@ async function pollRender(job) {
 }
 
 /** 6.9: the piece's budget. The cap is the piece's own (set by a line manager or admin), else the default for
- *  the piece's resolution, owner decision 2026-10-22: $20 for a 720p piece, $50 once any of its video renders
- *  is 1080p (MAISTRO_PIECE_BUDGET_USD_720P / _1080P override; MAISTRO_PIECE_BUDGET_USD, if set, overrides both
+ *  the piece's resolution, owner decision 2026-10-22: $20 for a 720p piece, $50 for a 1080p piece. The piece's
+ *  resolution is its FIRST video render's: a later 1080p request does not lift a 720p piece to the $50 cap (a
+ *  line manager or admin raises the cap instead) (MAISTRO_PIECE_BUDGET_USD_720P / _1080P override; MAISTRO_PIECE_BUDGET_USD, if set, overrides both
  *  as before). Sized for a 10–15 s piece: 3 shots × 5 s plus 2 draft and 2 final re-renders of 5 s = 35 s of
  *  video, $16.18 at 720p and $39.80 at 1080p at Higgsfield's per-second rule, with ~20 % headroom. Warning at
  *  budget_warn_pct (80). Spent = estimates of succeeded renders; committed = queued/running renders already
@@ -296,8 +297,8 @@ function defaultCap(resolution) {
 }
 async function pieceBudget(pieceId) {
   const [p] = await queryRows('content_pieces', `select=id,budget_usd,budget_warn_pct&id=eq.${q(pieceId)}&limit=1`);
-  const hd = await queryRows('jobs', `select=id&piece_id=eq.${q(pieceId)}&kind=eq.higgsfield_video&payload->>resolution=eq.1080p&limit=1`);
-  const resolution = hd.length ? '1080p' : '720p';
+  const [first] = await queryRows('jobs', `select=id,payload&piece_id=eq.${q(pieceId)}&kind=eq.higgsfield_video&order=created_at.asc&limit=1`);
+  const resolution = first && first.payload && first.payload.resolution === '1080p' ? '1080p' : '720p';
   const own = p && p.budget_usd != null;
   const capUsd = own ? Number(p.budget_usd) : defaultCap(resolution);
   const capBasis = own ? 'set for this piece' : `default for ${resolution} pieces`;

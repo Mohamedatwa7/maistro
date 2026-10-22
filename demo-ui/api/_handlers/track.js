@@ -483,7 +483,8 @@ module.exports = async (req, res) => {
     }
 
     const out = ours.map((p) => {
-      const cmts = dedupeTwins(byId.get(String(p.external_id)) || []).map((c) => ({
+      const rawCmts = byId.get(String(p.external_id)) || [];
+      const cmts = dedupeTwins(rawCmts).map((c) => ({
         author: c.author_username || 'anonymous',
         text: c.text || '',
         likes: c.likes_count ?? null,
@@ -505,6 +506,9 @@ module.exports = async (req, res) => {
           er: views ? (likes + cn + shares) / views : null,
           thumb: thumbOf(p),
         },
+        // one voice, one comment: `comments` is collapsed; the rows collected for the post are counted beside it
+        // so comment volume (re-posted giveaway entries included) stays visible
+        commentsCollected: rawCmts.length,
         comments: cmts,
       };
     });
