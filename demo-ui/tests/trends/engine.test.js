@@ -57,8 +57,12 @@ test('scoreOne: vetoes come before scores; a judged trend gets a weighted final;
   assert.equal(r.timing.leadAssumed, true); assert.equal(r.lifecycle.stage, 'emerging');
   r = scoreOne({ trend, snaps, judgement: good({ safety: { verdict: 'veto', evidence: ['why'], rationale: 'tragedy-linked' } }), leadDays: null, stayDays: {}, now: NOW, latestBoardAt: '2026-10-21T08:25:00Z' });
   assert.equal(r.status, 'vetoed'); assert.deepEqual(r.vetoes.map((v) => v.code), ['V-SAFETY']); assert.ok(r.final.score != null, 'inputs kept for the rejected view');
+  // culture/origin unsure is advisory: scored, confidence low, review before use (calibration 2026-10-22)
   r = scoreOne({ trend, snaps, judgement: good({ culture: { verdict: 'needsReview', evidence: ['mechanic'], rationale: 'ambiguous in Ramadan' } }), leadDays: null, stayDays: {}, now: NOW, latestBoardAt: '2026-10-21T08:25:00Z' });
-  assert.equal(r.status, 'needs_review');
+  assert.equal(r.status, 'scored'); assert.equal(r.confidence, 'low'); assert.deepEqual(r.reviewBeforeUse, ['V-CULTURE']);
+  // safety unsure still holds the trend back
+  r = scoreOne({ trend, snaps, judgement: good({ safety: { verdict: 'needsReview', evidence: ['name'], rationale: 'possible dare' } }), leadDays: null, stayDays: {}, now: NOW, latestBoardAt: '2026-10-21T08:25:00Z' });
+  assert.equal(r.status, 'needs_review'); assert.deepEqual(r.reviewBeforeUse, []);
   r = scoreOne({ trend, snaps, judgement: null, leadDays: null, stayDays: {}, now: NOW, latestBoardAt: '2026-10-21T08:25:00Z' });
   assert.equal(r.status, 'unjudged'); assert.equal(r.criteria.gulf, null);
 });

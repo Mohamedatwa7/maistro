@@ -12,7 +12,7 @@ Phase 5.1 deliverable, 2026-10-21. **Status: builder's initial framework under t
 
 ## 1. Layer 1 — hard filters (any failure = vetoed)
 
-Each veto has a **code**, the **evidence it may use**, who decides, and the confidence rule. "LLM" vetoes use a strict rubric with a mandatory quote of the evidence; "ambiguous" is never "safe" — it is **"needs review"**, which keeps the trend out of the ranked view until a human decides.
+Each veto has a **code**, the **evidence it may use**, who decides, and the confidence rule. "LLM" vetoes use a strict rubric with a mandatory quote of the evidence; "ambiguous" is never "safe" — it is **"needs review"**, which keeps the trend out of the ranked view until a human decides. **Calibration 2026-10-22 (from the first complete run, 19:15 UTC 2026-10-21: 1 ranked of 38, culture needsReview on 16 of 25 judged and origin on 13):** V-CULTURE and V-ORIGIN "needs review" are **advisory** — the trend is scored and ranked with confidence forced to low and a "review before use" badge; "needs review" keeps a trend out of the ranking only for V-SAFETY and V-AUDIO. A hard veto of any code still rejects. Prompt `profile-v1.2`: missing information is not a cue (lower confidence instead); audioExplicit needs a concrete cue in title, name, brief or captions, since the feed never carries lyrics.
 
 | Code | Veto | Evidence available today | Decided by |
 |---|---|---|---|

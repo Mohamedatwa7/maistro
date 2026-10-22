@@ -97,18 +97,27 @@ function scoreOne({ trend, snaps, judgement, leadDays, stayDays, staySamples, no
     platform: judgement ? judgement.criteria.platform.score : null,
     saturation: judgement ? judgement.criteria.saturation.score : null,
   };
+  // Calibration (2026-10-22, from the 19:15 run): culture and origin "unsure" is usually the honest
+  // answer for a feed with no Gulf or origin signal. Those flags are ADVISORY: the trend is scored and
+  // ranked with confidence forced to low and a visible "review before use"; needs_review is reserved
+  // for safety and audio, and any hard veto still rejects.
+  for (const v of vetoes) if (v.needsReview && ADVISORY_CODES.includes(v.code)) v.advisory = true;
   const hardVeto = vetoes.some((v) => !v.needsReview);
-  const needsReview = !hardVeto && vetoes.some((v) => v.needsReview);
+  const needsReview = !hardVeto && vetoes.some((v) => v.needsReview && !v.advisory);
+  const reviewBeforeUse = vetoes.filter((v) => v.advisory).map((v) => v.code);
   const fin = S.finalScore(criteria, { historicalActive });
   return {
     status: hardVeto ? 'vetoed' : needsReview ? 'needs_review' : judgement ? 'scored' : 'unjudged',
     lifecycle: life, timing: t, calendar: cal, vetoes, criteria, final: fin,
     productMapping: judgement ? { product: judgement.criteria.product.product, feature: judgement.criteria.product.feature, catalogMatch: judgement.criteria.product.catalogMatch !== false } : null,
-    confidence: judgement ? judgement.profile.confidence : 'low',
+    confidence: judgement ? (reviewBeforeUse.length ? 'low' : judgement.profile.confidence) : 'low',
+    reviewBeforeUse,
   };
 }
 
 /** Score a whole board. `judge` can be injected (tests); `maxJudgements` bounds spend per run. */
+const ADVISORY_CODES = ['V-CULTURE', 'V-ORIGIN'];
+
 async function scoreBoard(board, opts = {}) {
   const now = opts.now ? new Date(opts.now) : new Date();
   const trends = (board.raw || []).filter((t) => t && t.name && (t.trendId || t.id));
@@ -177,8 +186,8 @@ async function latestScores() {
   if (!last.length) return { at: null, ranked: [], rejected: [], needsReview: [] };
   const at = last[0].at;
   const rows = await queryRows('trend_scores', `select=*&at=eq.${q(at)}&order=final_score.desc.nullslast&limit=300`);
-  const view = (r) => ({ scoreId: r.id, trendId: r.trend_id, name: r.name, status: r.status, score: r.final_score, lifecycle: r.lifecycle, postBy: r.post_by, product: r.product, confidence: r.confidence, vetoes: r.vetoes, criteria: r.criteria, timing: r.inputs && r.inputs.timing, profile: r.judgement && r.judgement.profile, productMapping: r.judgement && r.judgement.criteria && r.judgement.criteria.product, promptVersion: r.prompt_version, model: r.model, weightsVersion: r.weights_version });
+  const view = (r) => ({ reviewBeforeUse: (r.vetoes || []).filter((v) => v.advisory).map((v) => v.code), scoreId: r.id, trendId: r.trend_id, name: r.name, status: r.status, score: r.final_score, lifecycle: r.lifecycle, postBy: r.post_by, product: r.product, confidence: r.confidence, vetoes: r.vetoes, criteria: r.criteria, timing: r.inputs && r.inputs.timing, profile: r.judgement && r.judgement.profile, productMapping: r.judgement && r.judgement.criteria && r.judgement.criteria.product, promptVersion: r.prompt_version, model: r.model, weightsVersion: r.weights_version });
   return { at, boardGeneratedAt: last[0].board_generated_at, ranked: rows.filter((r) => r.status === 'scored').map(view), rejected: rows.filter((r) => r.status === 'vetoed').map(view), needsReview: rows.filter((r) => r.status === 'needs_review' || r.status === 'unjudged').map(view) };
 }
 
-module.exports = { scoreBoard, scoreOne, latestScores, measuredLeadDays, measuredStayDays };
+module.exports = { scoreBoard, scoreOne, latestScores, measuredLeadDays, measuredStayDays, ADVISORY_CODES };

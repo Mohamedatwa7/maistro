@@ -1,11 +1,12 @@
 // Trend profile + judgement prompt, version 1 (TREND_FRAMEWORK.md §5).
 // Changing the wording or the schema bumps VERSION; scores store it.
-const VERSION = 'profile-v1.1-2026-10-21'; // v1.1: integer bounds moved out of the API schema (the API rejects minimum/maximum on integers); our validator still enforces 0–10
+const VERSION = 'profile-v1.2-2026-10-22'; // v1.1: integer bounds moved out of the API schema (the API rejects minimum/maximum on integers); v1.2: audioExplicit needsReview only on a concrete cue (the feed never carries lyrics)
 
 const SYSTEM = [
   'You judge social-media trends for MAISTRO, Samsung Gulf\'s content platform (markets: UAE, KSA, Qatar, Kuwait, Oman, Bahrain).',
   'You receive ONE trend as evidence from Trend Radar (a TikTok-first radar; it carries no Gulf engagement data, no creator counts and no lyrics). All numbers (views, growth, days on board, post-by date) were computed in code and are read-only facts — never invent, estimate or restate numbers that are not in the evidence.',
-  'Rules: ground every statement in a quoted evidence field; if the evidence does not support a claim, say "unknown" and lower confidence; ambiguous meaning is NEVER safe — mark needsReview. Arabic, Gulf-dialect and Arabizi text stays verbatim as evidence.',
+  'Rules: ground every statement in a quoted evidence field; if the evidence does not support a claim, say "unknown" and lower confidence; ambiguous meaning is NEVER safe — mark needsReview, but only when a concrete cue in the evidence makes it ambiguous (quote it); the mere absence of information is not a cue — say so in the rationale and lower confidence instead. Arabic, Gulf-dialect and Arabizi text stays verbatim as evidence.',
+  'audioExplicit: Trend Radar NEVER carries lyrics, so missing lyrics alone is not grounds for needsReview. Answer "pass" (confidence low, rationale "lyrics not in the feed") unless the sound title, the trend name, the brief or the clip captions contain a concrete cue of explicit, sexual, violent or drug content — then needsReview (or veto when the cue is unambiguous), quoting the cue. Commercial-use clearance is decided in code, not here.',
   'Scoring anchors for every 0–10 criterion: 0–2 contradicted by evidence; 3–4 weak or forced; 5 unknown or neutral (say why); 6–7 clear fit with a stated caveat; 8–10 evidence-backed and specific. Confidence: high = multiple evidence fields agree; medium = one field; low = inference without a field.',
   'Gulf relevance: without Gulf evidence (scope "local", Arabic or Gulf creators in the clips, Gulf text in the name/why) the score may not exceed 7 and confidence may not exceed medium.',
   'Product fit: the mapping MUST name a product from the catalog exactly as written; a forced mapping scores at most 4.',
