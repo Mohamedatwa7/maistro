@@ -143,4 +143,23 @@ async function requireRole(req, res, roles) {
   return true;
 }
 
-module.exports = { bearerMatches, isCron, makeSessionCookieValue, readSession, verifySession, sessionCookieHeader, requireSession, refreshMember, requireRole, SESSION_COOKIE, SESSION_TTL_S };
+// Phase 11 (SECURITY.md S2). Two kinds of action:
+// - member-only, always: the final approval (the ADLCP compliance gate), reopen, budget raise, the delivery
+//   package and member admin. A password session gets 403 member_required, whatever MAISTRO_REQUIRE_MEMBER says.
+// - interim claims: other stage decisions, comment-handled, publishing slots, post links. A password session may
+//   act, capped at reviewer and recorded as a "password session claim" (never a role taken from the request), until
+//   MAISTRO_REQUIRE_MEMBER=1 closes it.
+const PASSWORD_CLAIM = 'password session claim';
+function memberOnly(req, res, roles) {
+  if (!req.member) { res.status(403).json({ error: 'this action needs a member sign-in (the e-mail link) — the shared password cannot do it', code: 'member_required' }); return false; }
+  if (roles && roles.length && !roles.includes(req.member.role)) { res.status(403).json({ error: `this action needs one of: ${roles.join(', ')}`, code: 'role_required' }); return false; }
+  return true;
+}
+/** the acting role for an interim claim: the member's own role, else reviewer; false (403 sent) when closed */
+function claimActor(req, res) {
+  if (req.member) return { role: req.member.role, label: req.member.name || req.member.email || req.member.id, memberId: req.member.id };
+  if (process.env.MAISTRO_REQUIRE_MEMBER === '1') { res.status(403).json({ error: 'a member sign-in is required', code: 'member_required' }); return false; }
+  return { role: 'reviewer', label: PASSWORD_CLAIM, memberId: null };
+}
+
+module.exports = { bearerMatches, isCron, makeSessionCookieValue, readSession, verifySession, sessionCookieHeader, requireSession, refreshMember, requireRole, memberOnly, claimActor, PASSWORD_CLAIM, SESSION_COOKIE, SESSION_TTL_S };

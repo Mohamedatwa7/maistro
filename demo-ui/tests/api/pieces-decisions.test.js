@@ -2,7 +2,9 @@
 // /api/decisions, driven end to end against an in-memory PostgREST.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
+const path = require('node:path');
 const { api, req, res, mockFetch } = require('../helpers');
+const { makeSessionCookieValue, SESSION_COOKIE } = require(path.join(__dirname, '..', '..', 'api', '_auth.js'));
 const { fakePostgrest } = require('../fake-postgrest');
 
 const SB = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k' };
@@ -17,7 +19,9 @@ function setup() {
   const pieces = api('pieces.js', SB);
   const decisions = api('decisions.js', SB);
   const call = async (h, body, extra = {}) => { const r = res(); await h.handler(req({ method: 'POST', body, ...extra }), r); return r; };
-  return { pg, f, pieces, decisions, call, restore: () => { f.restore(); pieces.restore(); decisions.restore(); } };
+  // a signed-in member (the e-mail link), for the member-only actions (Phase 11 S2)
+  const as = (role, name = `M. ${role}`) => { const m = { id: `u-${role}`, email: `${role}@samsung.com`, role, name, active: true }; if (!(pg.tables.members || []).some((x) => x.id === m.id)) (pg.tables.members = pg.tables.members || []).push(m); return { headers: { cookie: `${SESSION_COOKIE}=${makeSessionCookieValue('test-session', Date.now(), undefined, m)}` }, session: false }; };
+  return { pg, f, pieces, decisions, call, as, restore: () => { f.restore(); pieces.restore(); decisions.restore(); } };
 }
 
 test('pieces: a legacy Studio campaign syncs into content_pieces with eight stages; each push appends a version and the list reads it back', async () => {
@@ -57,25 +61,28 @@ test('decisions: approval goes through the domain rules — reviewer approves a 
     await S.call(S.pieces, { pieceId: 'gen-abc123', stage: 'thumb', artifact: THUMB });
     await S.call(S.pieces, { pieceId: 'gen-abc123', stage: 'final', artifact: FINAL, producedBy: 'higgsfield_seedance' });
     // viewer cannot approve
-    let r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'thumb', decision: 'approved', name: 'N. Haddad', role: 'viewer' });
+    let r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'thumb', decision: 'approved', name: 'N. Haddad' }, S.as('viewer'));
     assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'role_required');
     // reviewer approves the thumbnail; the row is immutable and a second approval of the same version is refused
     r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'thumb', decision: 'approved', name: 'N. Haddad', role: 'reviewer', info: 'Content lead · KSA' });
     assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(r.body.state, 'approved'); assert.ok(r.body.approvalId);
-    assert.equal(S.pg.tables.approvals[0].role_as_signed, 'reviewer · Content lead · KSA');
+    assert.equal(S.pg.tables.approvals[0].role_as_signed, 'password session claim · Content lead · KSA', 'a password session is recorded as a claim, not as the role in the body');
     r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'thumb', decision: 'approved', name: 'N. Haddad', role: 'reviewer' });
     assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'not_reviewable');
     // a new version on an approved stage is refused (A-04/A-05)
     r = await S.call(S.pieces, { pieceId: 'gen-abc123', stage: 'thumb', artifact: THUMB });
     assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'approved_immutable');
     // final: documents and role are enforced server-side
-    r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'final', decision: 'approved', name: 'M. Line', role: 'line_manager', documents: { line_manager: DOC('lm') } });
+    // the ADLCP final approval is member-only: the shared password cannot record it, whatever role it claims
+    r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'final', decision: 'approved', name: 'M. Line', role: 'admin', documents: { line_manager: DOC('lm'), adlcp: DOC('ad') } });
+    assert.equal(r.statusCode, 403); assert.equal(r.body.code, 'member_required');
+    r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'final', decision: 'approved', name: 'M. Line', documents: { line_manager: DOC('lm') } }, S.as('line_manager', 'M. Line'));
     assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'documents_required');
-    r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'final', decision: 'approved', name: 'R. View', role: 'reviewer', documents: { line_manager: DOC('lm'), adlcp: DOC('ad') } });
+    r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'final', decision: 'approved', name: 'R. View', role: 'admin', documents: { line_manager: DOC('lm'), adlcp: DOC('ad') } }, S.as('reviewer', 'R. View'));
     assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'role_required');
-    r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'final', decision: 'approved', name: 'M. Line', role: 'line_manager', documents: { line_manager: { ...DOC('lm'), sha256: 'nope' }, adlcp: DOC('ad') } });
+    r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'final', decision: 'approved', name: 'M. Line', documents: { line_manager: { ...DOC('lm'), sha256: 'nope' }, adlcp: DOC('ad') } }, S.as('line_manager', 'M. Line'));
     assert.equal(r.statusCode, 409, 'a document without a real checksum does not count'); assert.equal(r.body.code, 'documents_required');
-    r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'final', decision: 'approved', name: 'M. Line', role: 'line_manager', documents: { line_manager: DOC('lm'), adlcp: DOC('ad') } });
+    r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'final', decision: 'approved', name: 'M. Line', documents: { line_manager: DOC('lm'), adlcp: DOC('ad') } }, S.as('line_manager', 'M. Line'));
     assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(r.body.state, 'approved');
     assert.equal(S.pg.tables.adlcp_documents.length, 2);
     assert.deepEqual(S.pg.tables.adlcp_documents.map((d) => d.kind).sort(), ['adlcp', 'line_manager']);
@@ -85,9 +92,11 @@ test('decisions: approval goes through the domain rules — reviewer approves a 
     r = await S.call(S.decisions, { pieceId: 'gen-abc123', stage: 'plan', decision: 'rejected', name: 'N. Haddad', role: 'reviewer', reason: 'wrong product' });
     assert.equal(r.statusCode, 200); assert.equal(r.body.state, 'rejected');
     // reopen is admin-only; afterwards a new version may land
-    r = await S.call(S.decisions, { action: 'reopen', pieceId: 'gen-abc123', stage: 'thumb', role: 'reviewer' });
-    assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'role_required');
     r = await S.call(S.decisions, { action: 'reopen', pieceId: 'gen-abc123', stage: 'thumb', role: 'admin' });
+    assert.equal(r.statusCode, 403, 'a password session cannot reopen, even claiming admin'); assert.equal(r.body.code, 'member_required');
+    r = await S.call(S.decisions, { action: 'reopen', pieceId: 'gen-abc123', stage: 'thumb', role: 'admin' }, S.as('reviewer'));
+    assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'role_required');
+    r = await S.call(S.decisions, { action: 'reopen', pieceId: 'gen-abc123', stage: 'thumb' }, S.as('admin'));
     assert.equal(r.statusCode, 200); assert.equal(r.body.state, 'ready');
     r = await S.call(S.pieces, { pieceId: 'gen-abc123', stage: 'thumb', artifact: THUMB });
     assert.equal(r.statusCode, 200); assert.equal(r.body.version, 2, 'reopened stage takes the next version');

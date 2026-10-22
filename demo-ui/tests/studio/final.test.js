@@ -21,6 +21,9 @@ const REPORT = (draftVersionId, draftSha256) => ({ score: 5.8, summary: 's', dra
     { id: 'fx4', ref: 'risk:2', shot: 3, element: 'visual', fixType: 'shot_regen', instruction: 'dropped by the reviewer', newText: null, include: false },
   ] });
 
+// a signed-in member (Phase 11 S2: final approval, budget raise and the package are member-only)
+const asMember = (pg, role, name = `M. ${role}`) => { const path = require('node:path'); const { makeSessionCookieValue, SESSION_COOKIE } = require(path.join(__dirname, '..', '..', 'api', '_auth.js')); const m = { id: `u-${role}`, email: `${role}@samsung.com`, role, name, active: true }; if (!(pg.tables.members || []).some((x) => x.id === m.id)) (pg.tables.members = pg.tables.members || []).push(m); return { headers: { cookie: `${SESSION_COOKIE}=${makeSessionCookieValue('test-session', Date.now(), undefined, m)}` }, session: false }; };
+
 test('applyPlan and diffShots: text edits change the shot and mark its overlay stale; one re-render per named shot; audio swaps and shot-list changes are reported, not applied; excluded fixes are ignored; untouched shots keep their exact clip and overlay', () => {
   const draft = { shots: [shot(1), shot(2), shot(3)] };
   const ap = FM.applyPlan(draft, REPORT('v', 'x'));
@@ -92,13 +95,14 @@ test('POST /api/studio final → re-render only shot 2 → overlays for shot 1 �
     assert.deepEqual(ver.risks.map((x) => [x.ref, x.resolved]), [['risk:1', 'yes'], ['risk:2', 'yes'], ['risk:3', 'no']], 'a risk the verifier skipped is reported unresolved');
     assert.deepEqual(ver.unresolved, ['risk:3']); assert.equal(ver.notApplied[0].fixType, 'audio_swap');
     // package: refused before the approval; the approval needs both documents on this version
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'final-package', pieceId: 'gen-fn1' } }), r); assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'prerequisites');
-    r = res(); await decisions.handler(req({ method: 'POST', body: { pieceId: 'gen-fn1', stage: 'final', decision: 'approved', name: 'LM', role: 'line_manager' } }), r); assert.equal(r.statusCode, 409, 'documents required');
+    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'final-package', pieceId: 'gen-fn1' } }), r); assert.equal(r.statusCode, 403, 'the package is member-only'); assert.equal(r.body.code, 'member_required');
+    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'final-package', pieceId: 'gen-fn1' }, ...asMember(pg, 'line_manager', 'LM') }), r); assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'prerequisites');
+    r = res(); await decisions.handler(req({ method: 'POST', body: { pieceId: 'gen-fn1', stage: 'final', decision: 'approved', name: 'LM' }, ...asMember(pg, 'line_manager', 'LM') }), r); assert.equal(r.statusCode, 409, 'documents required');
     const doc = (k) => ({ path: `documents/2026/${k === 'adlcp' ? 'adlcp' : 'lmanager'}-abc123.pdf`, sha256: (k === 'adlcp' ? 'a' : 'b').repeat(64), size: 10, contentType: 'application/pdf' });
-    r = res(); await decisions.handler(req({ method: 'POST', body: { pieceId: 'gen-fn1', stage: 'final', decision: 'approved', name: 'LM', role: 'line_manager', documents: { line_manager: doc('lm'), adlcp: doc('adlcp') } } }), r);
+    r = res(); await decisions.handler(req({ method: 'POST', ...asMember(pg, 'line_manager', 'LM'), body: { pieceId: 'gen-fn1', stage: 'final', decision: 'approved', name: 'LM', documents: { line_manager: doc('lm'), adlcp: doc('adlcp') } } }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     assert.equal(pg.tables.adlcp_documents.filter((d) => d.artifact_version_id === fvId).length, 2, 'both documents linked to this exact version');
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'final-package', pieceId: 'gen-fn1' } }), r);
+    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'final-package', pieceId: 'gen-fn1' }, ...asMember(pg, 'line_manager', 'LM') }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     const m = r.body.manifest; assert.equal(m.final.versionId, fvId); assert.equal(m.final.video.sha256, FSHA); assert.equal(m.scores.f1x8Draft, 5.8); assert.equal(m.scores.f1x8Final, 7.4); assert.equal(m.scores.risksResolved, '2/3'); assert.equal(m.adlcp.length, 2);
     assert.match(r.body.assetPath, /^pieces\/gen-fn1\/final\/package-v1-/); assert.match(r.body.urls.manifest, /token=/);

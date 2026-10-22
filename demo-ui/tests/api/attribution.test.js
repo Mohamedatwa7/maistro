@@ -29,7 +29,7 @@ test('link: a messy URL (query, trailing slash, m.) resolves to the owned post; 
     r = await post(studio, { action: 'post-link', url: OWNED.post_url });
     assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'already_linked');
     r = await get(studio);
-    assert.equal(r.body.links.length, 1); assert.equal(r.body.links[0].active, true); assert.equal(r.body.links[0].linkedBy, 'password session (no member sign-in)');
+    assert.equal(r.body.links.length, 1); assert.equal(r.body.links[0].active, true); assert.equal(r.body.links[0].linkedBy, 'password session claim');
     r = await post(studio, { action: 'post-unlink', id: r.body.links[0].id, reason: 'wrong post' });
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     r = await post(studio, { action: 'post-link', url: OWNED.post_url });

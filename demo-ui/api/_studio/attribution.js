@@ -12,7 +12,7 @@ function storageMissing(e) {
 }
 const MISSING = { status: 503, body: { error: 'attribution storage not migrated (db/migrations/018_piece_posts.sql)', code: 'not_migrated' } };
 const LINKERS = ['admin', 'line_manager'];
-const who = (member) => (member ? member.name || member.email || member.id : 'password session (no member sign-in)');
+const who = (member) => (member ? member.name || member.email || member.id : require('../_auth.js').PASSWORD_CLAIM);
 
 async function list(pieceId) {
   try {

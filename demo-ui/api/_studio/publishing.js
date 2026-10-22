@@ -6,7 +6,7 @@ const { queryRows, queryAll, insertRows, patchRows } = require('../_supabase.js'
 
 const PLANNERS = ['admin', 'line_manager'];
 const PLATFORMS = ['tiktok', 'instagram', 'facebook', 'x'];
-const who = (m) => (m ? m.name || m.email || m.id : 'password session (no member sign-in)');
+const who = (m) => (m ? m.name || m.email || m.id : require('../_auth.js').PASSWORD_CLAIM);
 function storageMissing(e) {
   const m = String((e && e.message) || e);
   return /publishing_slots/.test(m) && /PGRST205|42P01|schema cache|does not exist|\(404\)/.test(m);

@@ -20,7 +20,7 @@ test('handled: marked once, every copy of the comment shares it; unhandled appen
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     const key = r.body.key;
     assert.equal(key, 'p1|amal|whereismyorderfold8');
-    assert.equal(r.body.by, 'password session (no member sign-in)');
+    assert.equal(r.body.by, 'password session claim');
     // a twin (other whitespace, punctuation, a mention) and a re-collected copy under the unprefixed id map to the key
     const { commentKey } = h.handler;
     assert.equal(commentKey({ postId: 'p1', author: ' amal ', text: 'Where is my order ? #Fold8 @samsunggulf', at: '2026-10-21T08:01:00Z' }), key);

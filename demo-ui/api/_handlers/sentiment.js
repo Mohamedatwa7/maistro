@@ -17,7 +17,7 @@
 // GET (public): latest snapshot per post, newest posts first.
 
 const { insertRow, listRows, queryRows, insertRows } = require('../_supabase.js');
-const { bearerMatches, requireSession, refreshMember } = require('../_auth.js');
+const { bearerMatches, requireSession, refreshMember, claimActor, PASSWORD_CLAIM } = require('../_auth.js');
 
 // 7.1 D-a "Respond": a comment marked handled (or unhandled again). One key for every copy of the comment —
 // the post, the author and the message key the twin collapse uses — so a re-collected duplicate or a twin
@@ -48,13 +48,14 @@ async function handled(req, res) {
 }
 async function markHandled(req, res, b) {
   if (!requireSession(req, res)) return;
+  if (!claimActor(req, res)) return; // interim claim; closed by MAISTRO_REQUIRE_MEMBER=1
   if (req.member) {
     if (!(await refreshMember(req, res))) return;
     if (!HANDLERS.includes(req.member.role)) { res.status(403).json({ error: `marking a comment handled needs one of: ${HANDLERS.join(', ')}`, code: 'role_required' }); return; }
   }
   if (!b.postId || typeof b.handled !== 'boolean') { res.status(400).json({ error: 'postId and handled (true/false) are required' }); return; }
   const key = commentKey(b);
-  const by = req.member ? (req.member.name || req.member.email || req.member.id) : 'password session (no member sign-in)';
+  const by = req.member ? (req.member.name || req.member.email || req.member.id) : PASSWORD_CLAIM;
   await insertRows('audit_log', [{ actor: req.member ? req.member.id : null, action: b.handled ? 'comment.handled' : 'comment.unhandled', entity: 'comment', entity_id: null, after: { key, postId: postKey(b.postId), author: b.author || null, platform: b.platform || null, note: b.note ? String(b.note).slice(0, 280) : null, by } }]);
   res.status(200).json({ ok: true, key, handled: b.handled, by });
 }

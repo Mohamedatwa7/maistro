@@ -11,7 +11,7 @@
 //                         role_required, self_approval, not_reviewable, …)
 //
 // { action: "reopen", pieceId, stage, role } reopens an approved stage (admin).
-const { requireSession, refreshMember } = require('../_auth.js');
+const { requireSession, refreshMember, memberOnly, claimActor, PASSWORD_CLAIM } = require('../_auth.js');
 const { decide, reopen, StoreError } = require('../_store.js');
 
 module.exports = async (req, res) => {
@@ -26,17 +26,22 @@ module.exports = async (req, res) => {
   // Under the interim password session the role is the signer's own claim.
   // A member session always supplies the role itself; MAISTRO_REQUIRE_MEMBER=1
   // closes the claim path entirely once the team has signed in (ADR-003).
-  if (!req.member && process.env.MAISTRO_REQUIRE_MEMBER === '1') return res.status(403).json({ error: 'a member sign-in is required to record decisions', code: 'member_required' });
   if (!(await refreshMember(req, res))) return;
+  // Phase 11 (S2): the final approval (the ADLCP gate) and reopen are member-only, always; other decisions are an
+  // interim password-session claim at reviewer level, recorded as such — a role in the request body is ignored
+  if ((b.action === 'reopen' || (String(b.stage) === 'final' && b.decision === 'approved')) && !memberOnly(req, res)) return;
+  const actor = claimActor(req, res);
+  if (!actor) return;
   try {
-    const actorId = req.member ? req.member.id : null;
-    const role = req.member && req.member.role ? req.member.role : b.role;
+    const actorId = actor.memberId;
+    const role = actor.role;
     const name = req.member && req.member.name && !b.name ? req.member.name : b.name;
     if (b.action === 'reopen') {
       const out = await reopen(String(b.pieceId || ''), String(b.stage || ''), role);
       return res.status(200).json({ ok: true, ...out });
     }
-    const out = await decide(String(b.pieceId || ''), String(b.stage || ''), { ...b, name, role, actorId });
+    // signedAs is set here, never from the body: a password session is recorded as a claim, not as a role
+    const out = await decide(String(b.pieceId || ''), String(b.stage || ''), { ...b, name, role, actorId, signedAs: req.member ? null : PASSWORD_CLAIM });
     try { const { syncSpec } = require('../_spec.js'); out.spec = await syncSpec(out.legacyId, { memberId: actorId, note: `${b.stage} ${b.decision}` }); } catch (e) { console.warn('[decisions] spec sync failed:', e.message); }
     return res.status(200).json({ ok: true, ...out });
   } catch (e) {

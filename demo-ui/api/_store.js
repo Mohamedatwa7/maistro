@@ -148,7 +148,7 @@ async function decide(legacyId, stage, d = {}) {
   }
   const [approval] = await insertRows('approvals', [{
     artifact_version_id: version.id, decision, reason: decision === 'rejected' ? String(d.reason).trim().slice(0, 2000) : (d.reason ? String(d.reason).slice(0, 2000) : null),
-    decided_by: d.actorId || null, name_as_signed: name, role_as_signed: role + (d.info ? ` · ${String(d.info).slice(0, 200)}` : ''),
+    decided_by: d.actorId || null, name_as_signed: name, role_as_signed: (d.signedAs || role) + (d.info ? ` · ${String(d.info).slice(0, 200)}` : ''),
     reason_code: decision === 'rejected' && d.reasonCode ? String(d.reasonCode).slice(0, 60) : null,
     details: d.details && typeof d.details === 'object' && !Array.isArray(d.details) ? d.details : null,
   }], { returning: true });

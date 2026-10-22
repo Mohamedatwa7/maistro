@@ -5,6 +5,9 @@ const assert = require('node:assert/strict');
 const { api, req, res, mockFetch, json } = require('../helpers');
 const { fakePostgrest } = require('../fake-postgrest');
 
+// a signed-in member (Phase 11 S2: final approval, budget raise and the package are member-only)
+const asMember = (pg, role, name = `M. ${role}`) => { const path = require('node:path'); const { makeSessionCookieValue, SESSION_COOKIE } = require(path.join(__dirname, '..', '..', 'api', '_auth.js')); const m = { id: `u-${role}`, email: `${role}@samsung.com`, role, name, active: true }; if (!(pg.tables.members || []).some((x) => x.id === m.id)) (pg.tables.members = pg.tables.members || []).push(m); return { headers: { cookie: `${SESSION_COOKIE}=${makeSessionCookieValue('test-session', Date.now(), undefined, m)}` }, session: false }; };
+
 const ENV = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', HF_CREDENTIALS: 'id:secret', MAISTRO_PIECE_BUDGET_USD: '2' };
 
 test('budget: estimate = the submitted body; warning at 80 %; refusal past the cap before anything is submitted; failed renders are not counted; the budget is editable and audit-logged', async () => {
@@ -37,11 +40,13 @@ test('budget: estimate = the submitted body; warning at 80 %; refusal past the c
     assert.match(r.body.job.error, /\(default for 720p pieces\) — a line manager or admin can raise this piece's budget \("Set cap"/, 'the refusal names the cap and how to raise it');
     r = res(); await studio.handler(req({ method: 'GET', query: { budget: 'gen-bud1' } }), r);
     assert.equal(r.body.capUsd, 2); assert.equal(r.body.spentUsd, 0.8); assert.equal(r.body.committedUsd, 0.8);
-    // raise the budget (password session = no member), audit-logged with real columns
+    // raising a budget is member-only (Phase 11): the shared password is refused; a line manager raises it, audit-logged
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'budget', pieceId: 'gen-bud1', budgetUsd: 10, warnPct: 90 } }), r);
+    assert.equal(r.statusCode, 403); assert.equal(r.body.code, 'member_required');
+    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'budget', pieceId: 'gen-bud1', budgetUsd: 10, warnPct: 90 }, ...asMember(pg, 'line_manager') }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(r.body.capUsd, 10); assert.equal(r.body.warnPct, 90);
     assert.ok(pg.tables.audit_log.some((a) => a.action === 'piece.budget' && a.after.budgetUsd === 10));
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'budget', pieceId: 'gen-bud1', budgetUsd: -1 } }), r); assert.equal(r.statusCode, 400);
+    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'budget', pieceId: 'gen-bud1', budgetUsd: -1 }, ...asMember(pg, 'line_manager') }), r); assert.equal(r.statusCode, 400);
     // the refused render keeps its estimate for audit but its generation record is $0 (nothing was generated or charged)
     const refused = pg.tables.jobs[3]; assert.equal(Number(refused.estimate_usd), 0.8);
     const rec = pg.tables.generation_records.find((g) => g.job_id === refused.id); assert.ok(rec, 'a generation record for the refusal'); assert.equal(Number(rec.cost_usd), 0); assert.equal(rec.status, 'failed');

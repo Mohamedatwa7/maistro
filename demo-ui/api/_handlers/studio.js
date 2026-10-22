@@ -39,7 +39,7 @@
 //   POST { action: 'draft-assemble', pieceId } → an `assemble` job over the approved clips (ffmpeg on the tick)
 //   GET  ?checks=<pieceId>&stage=<kind>  (session) → the stored checks for the
 //       stage's current version
-const { requireSession, refreshMember } = require('../_auth.js');
+const { requireSession, refreshMember, memberOnly, claimActor, PASSWORD_CLAIM } = require('../_auth.js');
 const { createJob, StoreError } = (() => { const j = require('../_jobs.js'); const s = require('../_store.js'); return { createJob: j.createJob, StoreError: s.StoreError }; })();
 const { ensurePiece } = require('../_store.js');
 const { visualDirection, setPrompt, TILES } = require('../_studio/mood.js');
@@ -181,6 +181,7 @@ module.exports = async (req, res) => {
     const b = req.body || {};
     if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package', 'budget', 'override-sign', 'override', 'post-link', 'post-unlink', 'slot-plan', 'slot-export', 'slot-cancel'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
     const legacyId = String(b.pieceId || '');
+    if (['slot-plan', 'slot-export', 'slot-cancel', 'post-link', 'post-unlink'].includes(b.action) && !claimActor(req, res)) return; // interim claim; closed by MAISTRO_REQUIRE_MEMBER=1
     if (b.action === 'slot-plan' || b.action === 'slot-export' || b.action === 'slot-cancel') {
       // 8b: plan / export / cancel a post (manual mode: the operator posts and then links the post)
       const [piece] = await queryRows('content_pieces', `select=id,legacy_id,title&legacy_id=eq.${encodeURIComponent(legacyId)}&limit=1`);
@@ -309,7 +310,8 @@ module.exports = async (req, res) => {
     }
     if (b.action === 'budget') {
       // 6.9: the per-piece cap and warning threshold, set by a line manager or admin (or the interim password session)
-      if (req.member && !['admin', 'line_manager'].includes(req.member.role)) return res.status(403).json({ error: 'only a line manager or admin can change the budget' });
+      // Phase 11 (S2): raising a budget spends money — member-only, line manager or admin
+      if (!memberOnly(req, res, ['admin', 'line_manager'])) return;
       const cap = Number(b.budgetUsd), warn = b.warnPct == null ? null : Number(b.warnPct);
       if (!(cap >= 0 && cap <= 10000)) return res.status(400).json({ error: 'budgetUsd must be 0–10000' });
       if (warn != null && !(Number.isInteger(warn) && warn >= 1 && warn <= 100)) return res.status(400).json({ error: 'warnPct must be an integer 1–100' });
@@ -319,6 +321,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true, ...(await jobsSvc.pieceBudget(piece.id)) });
     }
     if (b.action === 'final' || b.action === 'final-verify' || b.action === 'final-package') {
+      // Phase 11 (S2): the delivery package is what gets posted — member-only
+      if (b.action === 'final-package' && !memberOnly(req, res)) return;
       const finalMod = require('../_studio/final.js');
       const { patchRows } = require('../_supabase.js');
       const st = await queryRows('stages', `select=id,kind,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=in.(qc,draft,final,thumb,brief)`);
@@ -411,7 +415,9 @@ module.exports = async (req, res) => {
       const toStage = ['brief', 'board', 'draft'].includes(b.toStage) ? b.toStage : null;
       if (!toStage) return res.status(400).json({ error: 'toStage must be brief, board or draft' });
       const reason = String(b.reason || '').trim(); if (!reason) return res.status(400).json({ error: 'a written reason is required' });
-      const role = req.member ? req.member.role : (['reviewer', 'line_manager', 'adlcp_approver', 'admin'].includes(b.role) ? b.role : 'reviewer');
+      // Phase 11 (S2): the acting role is the member's own, else a password-session claim at reviewer — never b.role
+      const sbActor = claimActor(req, res); if (!sbActor) return;
+      const role = sbActor.role;
       const { decide, reopen } = require('../_store.js');
       const d = await decide(legacyId, 'qc', { decision: 'rejected', reason: `sent back to ${toStage}: ${reason}`, reasonCode: 'other', role, name: (req.member && req.member.name) || b.name || 'unknown', details: { sendBack: toStage }, actorId: req.member ? req.member.id : null });
       const [ts] = await queryRows('stages', `select=state&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.${toStage}&limit=1`);
