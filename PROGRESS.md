@@ -702,6 +702,16 @@ Status: **PASSED** by checker. CI green; local 179/179; production `revision: 09
 
 Status: **PASSED** by checker. CI green; production `revision: 7a26881`. The page used to replace its 14-day read with the 60-day read whenever the latter had at least as many posts, so a partial 60-day comment page could drop comments. `sentiMergeWindows()` now keeps every post from either read; a post in both takes the later read's metrics and the union of comments. The golden test covers the checker's two edge cases, single-read posts and both fetch orders; the builder's live comparison found 88 of 88 posts present, no metric differences and no comments lost.
 
+## Phase 7.2 benchmarks (commits 042aa39, b1ec22d; released through the gate); docs commit af4ada7 outside the gate
+
+Status: **PASSED** by checker.
+
+- CI green for 042aa39 and b1ec22d on both branches; local 186/186; both hosts report `revision: b1ec22d`.
+- `GET /api/track?benchmarks=1` (computed by `api/_perf/benchmarks.js`): per platform and format, age-banded nearest-rank P25, median, P75 and P90, no means; percentiles only at n of 20 or more, counts below; ER only where views are collected and at least 500; Instagram engagements are likes plus comments (shares never collected), labelled; raw share zeros kept as `sharesRaw`. Checker's independent nearest-rank on 1..10 gives 3, 5, 8, 9 and on 1..20 gives 5, 10, 15, 18, matching the module. The live route answers 200 and shows "no recent data" for the stale platforms.
+- Giveaway pattern (b1ec22d): requires prize-entry wording; the builder's hand-read of 732 live captions found 3 false positives and 2 misses in the first pattern, corrected; the false-positive lists in both languages are tested; a suspected giveaway stays in the organic cell until a person confirms it.
+- Live benchmarks (10:09, builder's reading): TikTok ER median 6.91 % (n 114), Instagram video 4.19 % (83), X video 1.08 % (53), Instagram image engagements median 98 (37), Facebook engagements median 66 (177). No young age band has reached n 20 yet, so mature rankings are labelled "not boost advice".
+- **Process note:** af4ada7 (PERFORMANCE_INSIGHTS.md only) reached main by a plain push instead of the gate. Checker's verification: the CI workflow is path-filtered to `demo-ui`, so a root docs commit triggers no run by design; no deploy happened (both hosts still answer b1ec22d). Harmless, recorded so the rule stays: everything goes through the gate.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
