@@ -55,9 +55,15 @@ function fakePostgrest(base = 'https://sb.test') {
   // columns of tables whose shape the code must respect exactly (a wrong column is a 400 in PostgREST)
   const COLUMNS = { audit_log: ['id', 'actor', 'action', 'entity', 'entity_id', 'before', 'after', 'at'] };
   const ENUMS = require('./schema-constraints.js').load();
+  const NUMERIC = require('./schema-constraints.js').loadNumeric();
   function checkColumns(table, row) {
     const cols = COLUMNS[table];
     if (cols) { const bad = Object.keys(row).filter((k) => !cols.includes(k)); if (bad.length) throw Object.assign(new Error(`fake-postgrest: column ${bad.join(', ')} of ${table} does not exist`), { pgCode: '42703' }); }
+    for (const [col, r] of Object.entries(NUMERIC[table] || {})) {
+      const v = row[col]; if (v === undefined || v === null) continue;
+      const n = Number(v);
+      if (!Number.isFinite(n) || (r.exclusiveMin ? n <= r.min : r.min != null && n < r.min) || (r.max != null && n > r.max)) throw Object.assign(new Error(`fake-postgrest: ${table}.${col} = ${v} violates its check constraint`), { pgCode: '23514' });
+    }
     for (const [col, allowed] of Object.entries(ENUMS[table] || {})) {
       if (row[col] !== undefined && row[col] !== null && !allowed.includes(row[col])) throw Object.assign(new Error(`fake-postgrest: ${table}.${col} = '${row[col]}' violates its check constraint (${allowed.join(', ')})`), { pgCode: '23514' });
     }

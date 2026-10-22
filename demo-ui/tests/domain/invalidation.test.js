@@ -32,8 +32,10 @@ test('store: versions record their inputs; an admin reopen + new moodboard makes
     const v = (id) => pg.tables.artifact_versions.find((x) => x.id === id);
     assert.deepEqual(v(t1.versionId).inputs, { mood: m1.versionId }); assert.deepEqual(v(b1.versionId).inputs, { mood: m1.versionId, thumb: t1.versionId });
     assert.equal((await approve('mood')).statusCode, 200); assert.equal((await approve('thumb')).statusCode, 200);
-    // the owner changes the approved moodboard: admin reopen, new version
+    // the owner changes the approved moodboard: admin reopen — before the new version lands the thumbnail says "upstream reopened"
     await store.reopen('gen-inv', 'mood', 'admin');
+    const pc0 = (await store.listPieces()).find((x) => x.id === 'gen-inv');
+    assert.deepEqual(pc0.stages.thumb.upstreamReopened, ['mood']); assert.equal(pc0.stages.thumb.stale, undefined, 'not stale yet: the version is unchanged');
     const m2 = await store.recordVersion('gen-inv', 'mood', { imageUrl: 'https://cdn/m2.png' }, {});
     const list = await store.listPieces();
     const pc = list.find((x) => x.id === 'gen-inv');

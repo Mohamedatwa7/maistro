@@ -215,6 +215,14 @@ async function listPieces(limit = 100) {
       const { staleStages } = require('../src/domain/stages.js');
       const st = staleStages(mine.map((s) => ({ kind: s.kind, current_version_id: s.current_version_id })), new Map(mine.filter((s) => s.current_version_id).map((s) => [s.current_version_id, (vById.get(s.current_version_id) || {}).inputs || null])));
       for (const x of st) if (out[x.kind]) out[x.kind].stale = x.because.map((b) => b.kind);
+      // the window before staleness: an input stage that was reopened (ready / generating / rejected) but still holds
+      // the version this stage was built from — a new version is coming, so say so now
+      for (const s of mine) {
+        const ins = s.current_version_id ? (vById.get(s.current_version_id) || {}).inputs : null;
+        if (!ins || !out[s.kind]) continue;
+        const reopened = Object.entries(ins).filter(([k, vid]) => { const u = mine.find((x) => x.kind === k); return u && u.current_version_id === vid && ['ready', 'generating', 'rejected'].includes(u.state); }).map(([k]) => k);
+        if (reopened.length) out[s.kind].upstreamReopened = reopened;
+      }
     }
     return {
       id: p.legacy_id || p.id, pieceId: p.id, title: p.title, product: p.product, msg: p.key_message, angle: p.angle,
