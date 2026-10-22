@@ -121,6 +121,12 @@ module.exports = async (req, res) => {
           stages: Object.fromEntries(['plan', 'mood', 'thumb', 'brief', 'board', 'draft', 'qc', 'final'].map((k) => [k, stageView(k)])),
         });
       }
+      if (q.ops) {
+        // Phase 10: generation latency and success per kind, F1X8 latency, stage turnaround, cost per approved piece
+        const O = require('../_perf/ops.js');
+        const days = Math.min(90, Math.max(1, parseInt(q.days, 10) || 30));
+        return res.status(200).json(O.ops({ ...(await O.load(queryRows, days)), days }));
+      }
       if (q.calendar) {
         // 8b: planned posts and approved finals waiting for a slot (manual/export mode until Sprinklr)
         const out = await require('../_studio/publishing.js').calendar({ from: q.from ? String(q.from) : null, to: q.to ? String(q.to) : null });

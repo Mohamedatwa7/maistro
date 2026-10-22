@@ -60,3 +60,13 @@ These are not yet instrumented; M3 adds per-job `started_at`/`finished_at` so Ph
 The session-only reads (`?days=14|60`, `?themes=1`, `?attribution=1`, `/api/studio?…`) need a signed-in timing,
 which is an owner or browser measurement. The page's own `timings` field in each `/api/track` response records
 the server-side read times.
+
+**Generation side (Phase 10):** `GET /api/studio?ops=1&days=N` (signed-in) reports, from stored rows only (no
+renders, no provider calls):
+- latency (p50 / p90) and success rate per generation kind;
+- F1X8 latency;
+- turnaround per stage, from the first version to the first approval;
+- cost per approved piece, from the provider estimates recorded on succeeded renders.
+
+Percentiles appear only at n ≥ 5. Today's numbers come from that route once pieces have been generated in the
+Studio. None have been produced for testing (the owner's no-spend rule).
