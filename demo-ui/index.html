@@ -1806,6 +1806,11 @@ function genBox(p,sid){
    <div style="font-size:12.5px;line-height:1.6"><b style="color:#bae6fd">${GEN.busy[key]}</b>
     <div class="dim" style="font-size:11px;margin-top:2px">${GEN_VIDEO(sid)?'Video renders take 1–3 minutes':sid==='brief'||sid==='qc'?'Usually under a minute':'Images usually land within a minute'} — you can open other stages meanwhile.</div></div></div>`;
  /* Final Content is the QC-revision pass: it needs the first draft + its F1X8 report */
+ if(sid==='final'&&p.qc&&p.qc.report&&useJobs())return `
+  <div class="genbox"><span class="kick accent">Apply the approved QC fix plan</span>
+   <p class="hint">${p.qc.report.fixes.filter(f=>f.include).length} fix(es) at their smallest unit; untouched shots stay byte-identical. The QC must be approved first.</p>
+   <div class="row"><button class="btn btn-gold btn-sm" onclick="stageGen('${p.id}','final')">Apply fixes →</button></div>
+   ${GEN.err[key]?`<div class="pc-note" style="margin-top:10px">${esc(GEN.err[key])}</div>`:''}</div>`;
  if(sid==='final'){
   const fx=qcFixes(p);
   if(!p.draft||!p.draft.videoUrl||!fx)return `
@@ -1871,6 +1876,19 @@ async function stageGen(pid,sid,changes){
   markets:p.markets,platforms:p.platforms,trend:p.trend,
   ...(p.refImage&&sid==='thumb'?{referenceImageAttached:true}:{})};
  try{
+  /* 6.8: the final applies ONLY the approved QC plan, at each fix's unit */
+  if(sid==='final'&&useJobs()&&p.qc&&p.qc.report&&!changes){
+   GEN.busy[key]='Applying the approved fix plan (only the shots it names)…';studioRefresh();
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'final',pieceId:p.id,piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));
+   if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
+   attachTo(p,'final',sd.artifact,'Forge',{recorded:{version:sd.version}});FINAL_DIFF[p.id]=undefined;
+   if(sd.regenShots.length){p.jobs=p.jobs||{};p.jobs['b:final']={board:true};saveGenerated();GEN.busy[key]='Seedance 2.5 is re-rendering shot '+sd.regenShots.join(', ')+'…';shotsPoll(p.id,'final',0)}
+   else delete GEN.busy[key];
+   studioRefresh();
+   toast(`<span style="font-size:12.5px"><b style="color:#6ee7b9">Final v${sd.version}</b>: ${sd.applied.length} fix(es) applied${sd.notApplied.length?`, ${sd.notApplied.length} not applied (shown on the stage)`:''}${sd.reusedDraftCut?' — nothing to rebuild, the draft cut is the final':sd.overlaysToRedraw.length||sd.regenShots.length?' — approve any re-rendered clip, then compose and assemble':''}.</span>`);
+   return;
+  }
   /* 6.7: QC = F1X8 on the stored assembled cut + the automated checklist + a located, priced fix plan */
   if(sid==='qc'&&useJobs()&&p.draft&&p.draft.assembled&&!changes){
    GEN.busy[key]='F1X8 is analysing the assembled cut; the fix plan follows…';studioRefresh();
@@ -2506,46 +2524,85 @@ function drawOverlay(sh,aspect,resolution){
  for(const [dir,txt] of lines.reverse()){const ls=wrap(txt,`600 ${small}px system-ui`,dir);g.textAlign='center';g.direction=dir;for(const ln of ls.reverse()){yb-=small*1.25;g.fillText(ln,W/2,yb)}drew=true;yb-=small*.4}
  return drew?cv:null;
 }
-async function assembleDraft(pid){
- const p=PROJECTS.find(x=>x.id===pid);if(!p||!p.draft||!p.draft.shots)return;
- const key=pid+':draft';
+async function assembleDraft(pid,stg){
+ stg=stg||'draft';
+ const p=PROJECTS.find(x=>x.id===pid);if(!p||!p[stg]||!p[stg].shots)return;
+ const key=pid+':'+stg;
  try{
   GEN.busy[key]='Drawing the text overlays in your browser…';studioRefresh();
   const overlays=[];
-  for(const sh of p.draft.shots){
-   const cv=drawOverlay(sh,p.draft.aspect||'9:16',p.draft.resolution||'720p');if(!cv)continue;
+  for(const sh of p[stg].shots){
+   if(stg==='final'&&!sh.overlayStale&&sh.overlay)continue; /* untouched shots keep their overlay bytes */
+   const cv=drawOverlay(sh,p[stg].aspect||'9:16',p[stg].resolution||'720p');if(!cv)continue;
    const blob=await new Promise(ok=>cv.toBlob(ok,'image/png'));
    const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.onerror=()=>no(new Error('overlay read failed'));fr.readAsDataURL(blob)});
    overlays.push({shot:sh.n,data:b64,text:{en:[(sh.onScreenText||{}).en,(sh.line||{}).en].filter(Boolean).join(' / '),ar:[(sh.onScreenText||{}).ar,(sh.line||{}).ar].filter(Boolean).join(' / ')}});
   }
   if(overlays.length){
-   const orr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft-overlays',pieceId:pid,overlays,piece:storeMeta(p)})});
+   const orr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft-overlays',stage:stg,pieceId:pid,overlays,piece:storeMeta(p)})});
    const od=await orr.json().catch(()=>({}));if(!orr.ok)throw new Error(od.error||('overlays: studio responded '+orr.status));
   }
   GEN.busy[key]='Assembling the cut (trim, transitions, overlays, loudness, export)…';studioRefresh();
-  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft-assemble',pieceId:pid,piece:storeMeta(p)})});
+  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft-assemble',stage:stg,pieceId:pid,piece:storeMeta(p)})});
   const sd=await sr.json().catch(()=>({}));if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
-  p.jobs=p.jobs||{};p.jobs['g:draft']={jobId:sd.job.id,meta:{}};saveGenerated();
-  jobPoll(pid,'draft',sd.job.id,0);
+  p.jobs=p.jobs||{};p.jobs['g:'+stg]={jobId:sd.job.id,meta:{}};saveGenerated();
+  jobPoll(pid,stg,sd.job.id,0);
  }catch(e){delete GEN.busy[key];GEN.err[key]=e.message;studioRefresh()}
 }
+/* 6.8 — the final: QC fixes applied at their units, per-shot diff, verification of every risk, the package */
+const FINAL_DIFF={};
+async function loadFinalDiff(pid){try{const r=await authFetch('/api/studio?shots='+encodeURIComponent(pid)+'&stage=final');const d=await r.json().catch(()=>({}));if(r.ok){FINAL_DIFF[pid]=d.diff||[];const p=PROJECTS.find(x=>x.id===pid);if(p&&d.payload){p.final={...p.final,...d.payload,version:'v'+d.version}}studioRefresh()}}catch(e){}}
+function rFinal(p,locked){
+ const f=p.final;
+ if(FINAL_DIFF[p.id]===undefined){FINAL_DIFF[p.id]=null;loadFinalDiff(p.id)}
+ const diff=FINAL_DIFF[p.id]||[],v=f.verification;
+ const lab={unchanged:['muted','UNCHANGED · SAME BYTES'],clip_regenerated:['gold','CLIP RE-RENDERED'],text_changed:['c','TEXT CHANGED']};
+ return `
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+   ${badge('muted','FROM DRAFT v'+esc(String(f.fromDraftVersion||''))+' · '+(f.applied||[]).length+' FIX(ES) APPLIED')}${(f.notApplied||[]).length?badge('alert',(f.notApplied||[]).length+' NOT APPLIED'):''}
+   ${v?badge(v.unresolved.length?'alert':'go','F1X8 '+(v.scoreBefore!=null?v.scoreBefore.toFixed(1):'—')+' → '+(v.score!=null?v.score.toFixed(1):'—')+' · '+(v.risks.length-v.unresolved.length)+'/'+v.risks.length+' RISKS RESOLVED'):f.assembled?badge('gold','NOT YET VERIFIED'):''}
+  </div>
+  ${(f.notApplied||[]).length?`<div class="pc-note" style="margin-bottom:8px">${f.notApplied.map(x=>`<b>${esc(x.ref)}</b> ${esc(x.fixType.replace('_',' '))} not applied — ${esc(x.reason)}`).join('<br>')}</div>`:''}
+  ${diff.length?`<span class="kick">Draft → final, per shot</span><table style="width:100%;font-size:12px;border-collapse:collapse;margin:6px 0 12px">${diff.map(d=>`<tr style="border-top:1px dashed var(--hairline)"><td style="padding:5px 6px 5px 0">Shot ${d.n}</td><td>${badge(lab[d.status][0],lab[d.status][1])}</td><td class="dim">${d.textChanges.map(k=>`${k==='line'?'caption':'text'}: “${esc((d.before[k]||{}).en||'')}” → “<b style="color:#fff">${esc((d.after[k]||{}).en||'')}</b>” <span dir="rtl">${esc((d.after[k]||{}).ar||'')}</span>`).join('<br>')}${d.status==='clip_regenerated'&&d.finalClip&&d.finalClip.sha256?' new clip '+esc(d.finalClip.sha256.slice(0,10)):''}</td></tr>`).join('')}</table>`:''}
+  ${v?`<span class="kick">Each QC risk after the fixes</span><div style="margin:6px 0 12px">${v.risks.map(r=>`<div style="font-size:12px;margin-top:4px">${badge(r.resolved==='yes'?'go':r.resolved==='partial'?'gold':'alert',esc(r.ref)+' · '+r.resolved.toUpperCase())} <span class="dim">${esc(r.evidence)}</span></div>`).join('')}</div>`:''}
+  ${p.studio&&!locked&&f.assembled&&!v?`<div style="margin-bottom:10px"><button class="btn btn-ai btn-sm" onclick="finalVerify('${p.id}')">Re-run F1X8 and verify every risk</button></div>`:''}
+  ${f.assembled&&locked?`<div style="margin-bottom:10px"><button class="btn btn-go btn-sm" onclick="finalPackage('${p.id}')">Export the delivery package</button> <span class="dim" style="font-size:11px">Video, thumbnail, captions per language, hashtags, disclaimers and metadata, for Sprinklr or manual posting.</span></div>`:''}
+  ${rDraft(p,locked,'final')}`;
+}
+async function finalVerify(pid){
+ const p=PROJECTS.find(x=>x.id===pid);if(!p)return;const key=pid+':final';
+ try{GEN.busy[key]='F1X8 is analysing the final cut; each original risk is verified afterwards…';studioRefresh();
+  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'final-verify',pieceId:pid,piece:storeMeta(p)})});
+  const sd=await sr.json().catch(()=>({}));if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
+  const poll=async(t)=>{if(t>160){delete GEN.busy[key];studioRefresh();return}const r=await authFetch('/api/studio?shots='+encodeURIComponent(pid)+'&stage=final').catch(()=>null);const d=r?await r.json().catch(()=>({})):{};if(d.payload&&d.payload.verification){delete GEN.busy[key];p.final={...p.final,...d.payload};FINAL_DIFF[pid]=d.diff||FINAL_DIFF[pid];saveGenerated();studioRefresh();return}setTimeout(()=>poll(t+1),7500)};
+  poll(0);
+ }catch(e){delete GEN.busy[key];GEN.err[key]=e.message;studioRefresh()}
+}
+async function finalPackage(pid){
+ const p=PROJECTS.find(x=>x.id===pid);if(!p)return;
+ try{const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'final-package',pieceId:pid,piece:storeMeta(p)})});
+  const sd=await sr.json().catch(()=>({}));if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
+  p.finalPackage={assetPath:sd.assetPath,sha256:sd.sha256,urls:sd.urls};saveGenerated();
+  toast(`<span style="font-size:12.5px"><b style="color:#6ee7b9">Package ready.</b> ${sd.urls.manifest?`<a href="${esc(sd.urls.manifest)}" target="_blank" rel="noopener" style="color:#7dd3fc">manifest</a>`:''}${sd.urls.video?` · <a href="${esc(sd.urls.video)}" target="_blank" rel="noopener" style="color:#7dd3fc">video</a>`:''}${sd.urls.thumbnail?` · <a href="${esc(sd.urls.thumbnail)}" target="_blank" rel="noopener" style="color:#7dd3fc">thumbnail</a>`:''} (links valid 7 days)</span>`);
+ }catch(e){toast(`<b style="color:#fb7185">Package:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
+}
 /* 6.6 — the first draft: one clip per approved shot, reviewed shot by shot; the cut is assembled afterwards */
-function rDraft(p,locked){
- const b=p.draft,key=p.id+':draft';
+function rDraft(p,locked,stg){
+ stg=stg||'draft';const b=p[stg],key=p.id+':'+stg;
  const pending=(b.shots||[]).some(s=>!s.clip||s.clip.state==='pending');
- if(pending&&!BOARD_POLL[p.id+':draft']&&!GEN.busy[key])shotsPoll(p.id,'draft',0);
+ if(pending&&!BOARD_POLL[p.id+':'+stg]&&!GEN.busy[key])shotsPoll(p.id,stg,0);
  const rendered=(b.shots||[]).filter(s=>s.clip&&s.clip.state==='rendered').length,approved=(b.shots||[]).filter(s=>s.review&&s.review.decision==='approved').length;
  const allApproved=(b.shots||[]).length&&approved===(b.shots||[]).length;
  return `
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
-   ${badge('muted','FIRST DRAFT '+esc(b.version||'v1')+' · '+(b.shots||[]).length+' CLIPS · '+esc(String(b.totalS||''))+' s · '+esc(b.resolution||''))}${b.boardApproved===false?badge('gold','STORYBOARD NOT YET APPROVED'):''}
+   ${badge('muted',(stg==='final'?'FINAL ':'FIRST DRAFT ')+esc(b.version||'v1')+' · '+(b.shots||[]).length+' CLIPS · '+esc(String(b.totalS||''))+' s · '+esc(b.resolution||''))}${b.boardApproved===false?badge('gold','STORYBOARD NOT YET APPROVED'):''}
    ${badge(rendered===(b.shots||[]).length?'go':'muted',rendered+'/'+(b.shots||[]).length+' CLIPS RENDERED')}
    ${allApproved?badge('go','ALL CLIPS APPROVED — READY TO ASSEMBLE'):badge('muted',approved+'/'+(b.shots||[]).length+' CLIPS APPROVED')}
    ${b.assembled?badge('go','ASSEMBLED CUT '+esc(b.assembled.version||'')+' · '+esc(String(b.assembled.durationS||''))+' s · '+b.assembled.width+'×'+b.assembled.height):''}
    ${b.assembledChecks?(b.assembledChecks.every(c=>c.passed)?badge('go','CUT CHECKS PASSED'):badge('alert','CUT CHECKS NEED A LOOK')):''}
   </div>
   ${b.assembledChecks?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${b.assembledChecks.map(c=>`<span title="${esc(c.detail)}">${badge(c.passed?'go':'alert',(c.passed?'✓ ':'✗ ')+c.code.replace(/_/g,' ').toUpperCase())}</span>`).join('')}</div>`:''}
-  ${p.studio&&!locked&&allApproved&&!GEN.busy[key]?`<div style="margin:4px 0 12px"><button class="btn btn-ai btn-sm" onclick="assembleDraft('${p.id}')">${b.assembled?'↻ Re-compose overlays & assemble again':'Compose overlays & assemble the cut'}</button> <span class="dim" style="font-size:11px">Text and captions are drawn here in your browser (Arabic shaped correctly) and burnt in by the assembly; the cut lands as this version's video.</span></div>`:''}
+  ${p.studio&&!locked&&allApproved&&!GEN.busy[key]?`<div style="margin:4px 0 12px"><button class="btn btn-ai btn-sm" onclick="assembleDraft('${p.id}','${stg}')">${b.assembled?'↻ Re-compose overlays & assemble again':'Compose overlays & assemble the cut'}</button> <span class="dim" style="font-size:11px">Text and captions are drawn here in your browser (Arabic shaped correctly) and burnt in by the assembly; the cut lands as this version's video.</span></div>`:''}
   ${b.assembled&&b.assembled.assetPath?`<video controls playsinline ${mediaAttrs(b.assembled,'url')} style="width:100%;max-width:${(b.aspect||'9:16')==='9:16'?'320px':'640px'};border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}
   <div class="frames" style="grid-template-columns:repeat(auto-fill,minmax(240px,1fr))">${(b.shots||[]).map(sh=>{
    const c=sh.clip,rv=sh.review;
@@ -2558,13 +2615,13 @@ function rDraft(p,locked){
      ${sh.onScreenText&&(sh.onScreenText.en||sh.onScreenText.ar)?`<div class="dim" style="margin-top:3px">Overlay at assembly: <b style="color:#fff">${esc(sh.onScreenText.en)}</b>${sh.onScreenText.ar?` <span dir="rtl">${esc(sh.onScreenText.ar)}</span>`:''}</div>`:''}
      ${rv&&rv.decision==='rejected'?`<div style="margin-top:4px;color:#fda4af">Rejected${rv.reasonCode?' · '+esc(rv.reasonCode.replace(/_/g,' ')):''}: ${esc(rv.reason||'')}</div>`:''}
      ${p.studio&&!locked?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-      ${c&&c.state==='rendered'&&!(rv&&rv.decision==='approved')?`<button class="btn btn-go btn-sm" onclick="shotDecide('${p.id}',${sh.n},'approved','draft')">Approve clip</button>`:''}
-      ${c&&c.state==='rendered'&&!(rv&&rv.decision==='rejected')?`<button class="btn btn-ghost btn-sm" onclick="shotRejectForm('${p.id}',${sh.n},'draft')">Reject</button>`:''}
-      ${c&&c.state!=='pending'?`<button class="btn btn-gold btn-sm" onclick="shotRegenForm('${p.id}',${sh.n},'draft')">↻ Re-render</button>`:''}
-     </div><div id="shot-form-draft-${sh.n}"></div>`:''}
+      ${c&&c.state==='rendered'&&!(rv&&rv.decision==='approved')?`<button class="btn btn-go btn-sm" onclick="shotDecide('${p.id}',${sh.n},'approved','${stg}')">Approve clip</button>`:''}
+      ${c&&c.state==='rendered'&&!(rv&&rv.decision==='rejected')?`<button class="btn btn-ghost btn-sm" onclick="shotRejectForm('${p.id}',${sh.n},'${stg}')">Reject</button>`:''}
+      ${c&&c.state!=='pending'?`<button class="btn btn-gold btn-sm" onclick="shotRegenForm('${p.id}',${sh.n},'${stg}')">↻ Re-render</button>`:''}
+     </div><div id="shot-form-${stg}-${sh.n}"></div>`:''}
     </div></div>`}).join('')}</div>
   ${GEN.err[key]?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[key])}</div>`:''}
-  ${p.studio?regenBox(p,'draft'):''}`;
+  ${p.studio&&stg==='draft'?regenBox(p,'draft'):''}`;
 }
 async function shotDecide(pid,n,decision,stage){
  stage=stage||'board';
@@ -3709,7 +3766,7 @@ function stageArtifact(p,n){
      <div class="dim" style="font-size:11.5px;margin-top:3px">${p.draft.audio}</div></div></div>
    <div style="display:flex;gap:8px;flex-wrap:wrap">${p.draft.variants.map(v=>badge(v.st==='ready'?'go':'gold',`${v.a} · ${v.l} · ${v.k.toUpperCase()}`)).join('')}${badge('gold','AWAITING F1X8 CHECK')}</div>
    ${dirNote(p.draft)}${p.studio?regenBox(p,'draft'):''}`:'');
-  case 'final':return head(done)+(p.final?`
+  case 'final':return head(done)+(p.final?p.final.shots?rFinal(p,n<p.stage):`
    ${p.final.videoUrl||p.final.assetPath?`<video controls playsinline ${mediaAttrs(p.final,'videoUrl')} style="width:100%;max-width:640px;border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}
    <div class="pipe-item" style="margin-bottom:14px"><span class="thumb" style="background:linear-gradient(120deg,${p.th[0]},${p.th[1]})"></span>
     <div><b style="color:#fff">${esc(p.title)} · ${esc(p.final.version)}</b> <span class="dim mono" style="font-size:10.5px">· ${p.final.dur}</span>

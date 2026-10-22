@@ -108,6 +108,21 @@ Open: Higgsfield consistency features (Soul ID / custom references, HIGGSFIELD.m
 
 Open: applying the plan is 6.8 (final); audio swaps need a licensed library (owner); the plan model is Sonnet with effort low — to be compared in 6.10.
 
+## 6.8 Final — what ships
+
+| Decision | What | Why |
+|---|---|---|
+| Input | `action: 'final'` needs the QC stage **approved**; it reads that QC version's plan and the draft version the report analysed — nothing else | Only approved fixes are applied |
+| Apply (`applyPlan()`) | `overlay_edit` / `caption_edit` → the shot's text changes and its overlay is marked stale (the browser redraws it; assembly refuses with 409 `overlays_stale` until it is); `shot_regen` → ONE Seedance image-to-video job per named shot from its approved keyframe, the fix instructions appended, attached to the final version through `updateShots()`; excluded fixes ignored; `audio_swap` and `shotlist_change` are **not applied and reported** (no licensed audio library; a shot-list change is a send-back to the storyboard) | Each fix at its unit; nothing hidden |
+| Untouched shots | Their clip and overlay objects are copied verbatim (same asset path and sha256) and keep their approval; re-rendered shots need a fresh per-shot approval (`shot-decide` stage final); when nothing needs rebuilding the draft's cut is reused as the final (same bytes) | "Untouched shots stay byte-identical" |
+| Re-assembly | The 6.6 (b) overlay and assembly steps with `stage: 'final'` (overlays stored under `final/`, the `assemble` job over approved clips only, the cut in the private bucket with its sha256 on the final version) | Same composition engine, same checks |
+| Verification | `final-verify` runs F1X8 on the stored final cut (sha256 checked before upload) and then `final-verify-v1` (Sonnet) answers resolved yes / partial / no per ORIGINAL risk with quoted evidence from the new analysis; a risk it skips is recorded as unresolved; stored as `verification {score, scoreBefore, risks, unresolved, notApplied, cutSha256}` on the final version | "A fix that did not resolve its risk is reported, not hidden" |
+| Diff | `diffShots()` in code, served by `GET ?shots=&stage=final`: per shot `unchanged` (same clip and overlay bytes) · `clip_regenerated` · `text_changed` with before → after text | The manager sees exactly what changed |
+| ADLCP gate | Unchanged from M2: the final approval needs the line-manager and ADLCP documents (private, sha256) linked to that exact version and a line-manager / ADLCP role; an approved version is immutable — any change requires an admin reopen, after which a new version needs a new approval | Enforced server-side |
+| Package | `final-package` (only after that approval, and only if both documents are linked to the version): a JSON manifest (piece, trend, angle, products, markets, platforms; final video path + sha256 + format; thumbnail; captions EN/AR, hashtags, CTA, claims and disclaimers from the brief; F1X8 draft → final and risks resolved; ADLCP document hashes) stored in the private bucket with its sha256, audit-logged, and returned with 7-day signed links | Ready for the Sprinklr adapter or manual posting |
+
+Open: one export aspect per piece (a second platform aspect is a re-assembly at that frame — later); captions per language come from the brief (shot lines are burnt into the video); audio swaps wait on a licensed library.
+
 ## Open owner inputs (collected from the seed's `gaps`)
 
 1. Disclaimers by claim type and market; logo and end-card rules; overlay typeface.

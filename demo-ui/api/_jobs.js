@@ -474,6 +474,19 @@ async function pollQc(job) {
     // row can never be re-claimed by an overlapping tick
     await finish(job, { state: 'succeeded', error: null, result: { analysis: R, heatmapPath, score: typeof R.score === 'number' ? R.score : null } });
     await jobRecord(job, { status: 'succeeded', outputAssets: [{ score: typeof R.score === 'number' ? R.score : null, heatmapPath }] });
+    if (job.payload.verifyFinal) {
+      try {
+        const finalMod = require('./_studio/final.js');
+        const [fvr] = await queryRows('artifact_versions', `select=id,payload&id=eq.${q(job.payload.versionId)}&limit=1`);
+        const [qvr] = job.payload.qcVersionId ? await queryRows('artifact_versions', `select=payload&id=eq.${q(job.payload.qcVersionId)}&limit=1`) : [];
+        const report = qvr && qvr.payload && qvr.payload.report;
+        if (fvr && report) {
+          const vr = await finalMod.verifyRisks({ report, applied: fvr.payload.applied || [], notApplied: fvr.payload.notApplied || [], analysis: R, legacyId: job.payload.pieceId, memberId: job.payload.generatedBy || null });
+          const verification = { score: typeof R.score === 'number' ? R.score : null, scoreBefore: report.score, risks: vr.risks || [], unresolved: (vr.risks || []).filter((r) => r.resolved !== 'yes').map((r) => r.ref), notApplied: fvr.payload.notApplied || [], error: vr.error || null, model: vr.model || null, version: finalMod.VERIFY_VERSION, cutSha256: job.payload.expectSha256, at: nowIso() };
+          await updateShots(fvr.id, (payload) => ({ ...payload, verification }));
+        }
+      } catch (e) { await patchRows('jobs', `id=eq.${q(job.id)}`, { error: `verification: ${String(e.message || e).slice(0, 240)}` }); }
+    }
     if (job.payload.qcReport) {
       try {
         const qc = require('./_studio/qc.js');

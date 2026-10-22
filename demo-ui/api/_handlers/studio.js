@@ -98,15 +98,17 @@ module.exports = async (req, res) => {
       }
       if (q.board || q.shots) {
         // ?board=<id> (storyboard) or ?shots=<id>&stage=board|draft — the version whose shots are filling in
-        const sk = q.shots && String(q.stage) === 'draft' ? 'draft' : 'board';
+        const sk = q.shots && ['draft', 'final'].includes(String(q.stage)) ? String(q.stage) : 'board';
         const [piece] = await queryRows('content_pieces', `select=id&legacy_id=eq.${encodeURIComponent(String(q.shots || q.board))}&limit=1`);
         if (!piece) return res.status(404).json({ error: 'piece not found' });
         const [stage] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.${sk}&limit=1`);
-        if (!stage || !stage.current_version_id) return res.status(404).json({ error: sk === 'draft' ? 'no first draft yet' : 'no storyboard yet' });
+        if (!stage || !stage.current_version_id) return res.status(404).json({ error: sk === 'draft' ? 'no first draft yet' : sk === 'final' ? 'no final yet' : 'no storyboard yet' });
         const [v] = await queryRows('artifact_versions', `select=id,version,payload,produced_by&id=eq.${encodeURIComponent(stage.current_version_id)}&limit=1`);
         const live = await queryRows('jobs', `select=id,kind,state&stage_id=eq.${encodeURIComponent(stage.id)}&state=in.(queued,running)&limit=20`);
         const hook = await queryRows('qc_results', `select=score,result,heatmap_path,at&artifact_version_id=eq.${encodeURIComponent(stage.current_version_id)}&order=at.desc&limit=1`).catch(() => []);
-        return res.status(200).json({ stage: sk, version: v ? v.version : null, versionId: stage.current_version_id, state: stage.state, payload: v ? v.payload : null, live: live.filter((j) => j.kind !== 'vision_check').length, checksPending: live.filter((j) => j.kind === 'vision_check').length, hook: hook[0] ? { score: hook[0].score, summary: hook[0].result && hook[0].result.verdict ? hook[0].result.verdict.summary : null, risks: hook[0].result && hook[0].result.verdict ? (hook[0].result.verdict.risks || []).slice(0, 3) : [], heatmapPath: hook[0].heatmap_path || null, at: hook[0].at } : null });
+        let diff = null;
+        if (sk === 'final' && v && v.payload && v.payload.fromDraftVersionId) { const [dv0] = await queryRows('artifact_versions', `select=payload&id=eq.${encodeURIComponent(v.payload.fromDraftVersionId)}&limit=1`); diff = require('../_studio/final.js').diffShots(dv0 ? dv0.payload.shots : [], v.payload.shots); }
+        return res.status(200).json({ stage: sk, diff, version: v ? v.version : null, versionId: stage.current_version_id, state: stage.state, payload: v ? v.payload : null, live: live.filter((j) => j.kind !== 'vision_check').length, checksPending: live.filter((j) => j.kind === 'vision_check').length, hook: hook[0] ? { score: hook[0].score, summary: hook[0].result && hook[0].result.verdict ? hook[0].result.verdict.summary : null, risks: hook[0].result && hook[0].result.verdict ? (hook[0].result.verdict.risks || []).slice(0, 3) : [], heatmapPath: hook[0].heatmap_path || null, at: hook[0].at } : null });
       }
       if (!q.checks) return res.status(400).json({ error: 'checks=<pieceId> or board=<pieceId> is required' });
       const [piece] = await queryRows('content_pieces', `select=id&legacy_id=eq.${encodeURIComponent(String(q.checks))}&limit=1`);
@@ -118,7 +120,7 @@ module.exports = async (req, res) => {
     }
     if (!(await refreshMember(req, res))) return;
     const b = req.body || {};
-    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
+    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
     const legacyId = String(b.pieceId || '');
     if (b.action === 'thumb-composite') {
       const data = String(b.data || '');
@@ -141,15 +143,15 @@ module.exports = async (req, res) => {
     const meta = { id: legacyId, title: piece.title, product: piece.product, msg: piece.key_message, angle: piece.angle, markets: piece.markets, platforms: piece.platforms };
     const bits = await kbBits(piece.product);
     if (b.action === 'board-shot-decide' || b.action === 'shot-decide') {
-      const sk = b.action === 'shot-decide' && b.stage === 'draft' ? 'draft' : 'board';
-      const slot = sk === 'draft' ? 'clip' : 'keyframe';
+      const sk = b.action === 'shot-decide' && ['draft', 'final'].includes(b.stage) ? b.stage : 'board';
+      const slot = sk === 'board' ? 'keyframe' : 'clip';
       const n = Number(b.shot);
       const decision = b.decision === 'approved' || b.decision === 'rejected' ? b.decision : null;
       if (!decision || !Number.isInteger(n)) return res.status(400).json({ error: 'shot and decision (approved|rejected) are required' });
       if (decision === 'rejected' && !String(b.reason || '').trim()) return res.status(400).json({ error: 'a written reason is required to reject a shot' });
       const [stage] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.${sk}&limit=1`);
-      if (!stage || !stage.current_version_id) return res.status(409).json({ error: `no ${sk === 'draft' ? 'first draft' : 'storyboard'} version`, code: 'no_version' });
-      if (stage.state === 'approved') return res.status(409).json({ error: `the ${sk === 'draft' ? 'draft' : 'storyboard'} is approved; reopen it first`, code: 'approved_immutable' });
+      if (!stage || !stage.current_version_id) return res.status(409).json({ error: `no ${sk === 'draft' ? 'first draft' : sk === 'final' ? 'final' : 'storyboard'} version`, code: 'no_version' });
+      if (stage.state === 'approved') return res.status(409).json({ error: `the ${sk === 'board' ? 'storyboard' : sk} is approved; reopen it first`, code: 'approved_immutable' });
       const [v] = await queryRows('artifact_versions', `select=id,payload&id=eq.${encodeURIComponent(stage.current_version_id)}&limit=1`);
       if (!v || !Array.isArray(v.payload.shots) || !v.payload.shots[n - 1]) return res.status(404).json({ error: `shot ${n} not found` });
       if (decision === 'approved' && !(v.payload.shots[n - 1][slot] && v.payload.shots[n - 1][slot].state === 'rendered')) return res.status(409).json({ error: `shot ${n} has no rendered ${slot} to approve`, code: 'no_keyframe' });
@@ -183,6 +185,67 @@ module.exports = async (req, res) => {
       await jobsSvc.advance(job).catch(() => null);
       const fresh = await jobsSvc.getJob(job.id);
       return res.status(200).json({ ok: true, shot: n, job: jobsSvc.publicJob(fresh || job, legacyId) });
+    }
+    if (b.action === 'final' || b.action === 'final-verify' || b.action === 'final-package') {
+      const finalMod = require('../_studio/final.js');
+      const { patchRows } = require('../_supabase.js');
+      const st = await queryRows('stages', `select=id,kind,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=in.(qc,draft,final,thumb,brief)`);
+      const S = (k) => st.find((x) => x.kind === k) || null;
+      const ver = async (k) => { const s0 = S(k); if (!s0 || !s0.current_version_id) return null; const [v] = await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(s0.current_version_id)}&limit=1`); return v || null; };
+      if (b.action === 'final') {
+        // apply ONLY the approved QC plan
+        if (!S('qc') || S('qc').state !== 'approved') return res.status(409).json({ error: 'approve the QC fix plan first', code: 'prerequisites' });
+        const qv = await ver('qc');
+        const report = qv && qv.payload && qv.payload.report;
+        if (!report) return res.status(409).json({ error: 'the approved QC has no fix plan', code: 'prerequisites' });
+        const [dv] = await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(report.draftVersionId)}&limit=1`);
+        if (!dv || !dv.payload || !Array.isArray(dv.payload.shots)) return res.status(409).json({ error: 'the analysed draft is missing', code: 'prerequisites' });
+        if (S('final') && S('final').state === 'approved') return res.status(409).json({ error: 'the final is approved; reopen it first', code: 'approved_immutable' });
+        const ap = finalMod.applyPlan(dv.payload, report);
+        const nothingToRebuild = !ap.regenShots.length && !ap.applied.length;
+        const artifact = { ...dv.payload, shots: ap.shots, fromDraftVersionId: dv.id, fromDraftVersion: dv.version, fromDraftSha256: report.draftSha256, fromQcVersionId: qv.id, applied: ap.applied, notApplied: ap.notApplied, verification: null, finalVersion: finalMod.VERSION, rev: 0,
+          // nothing changed → the draft's cut IS the final (same bytes); otherwise it is re-assembled
+          assembled: nothingToRebuild ? dv.payload.assembled : null, assetPath: nothingToRebuild ? dv.payload.assetPath : null, sha256: nothingToRebuild ? dv.payload.sha256 : null, assembledChecks: nothingToRebuild ? dv.payload.assembledChecks : null,
+          version: undefined, qcRevised: true, variants: (dv.payload.variants || []).map((x) => ({ ...x, st: nothingToRebuild ? 'ready' : 'rendering' })) };
+        delete artifact.version;
+        const out = await recordVersion(legacyId, 'final', artifact, { piece: b.piece || {}, producedBy: ap.regenShots.length ? 'higgsfield_seedance' : 'manual', kind: 'video', generatedBy: req.member ? req.member.id : null });
+        const fs0 = (await queryRows('stages', `select=id,state&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.final&limit=1`))[0];
+        const jobs = [];
+        if (ap.regenShots.length) {
+          const motion = (x) => `${x.camera}. ${x.action} ${x.product && x.product.visible ? 'The device stays exactly as in the first frame — no morphing, no extra buttons, no logos.' : ''} Fix requested by QC (apply only this, keep everything else): ${x.regenInstruction}. Present tense, one continuous motion, no cuts, no on-screen text, no captions.`.replace(/\s+/g, ' ').trim();
+          const rows = ap.regenShots.map((n) => { const x = ap.shots.find((y) => y.n === n); return { piece_id: piece.id, stage_id: fs0.id, kind: 'higgsfield_video', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'final', prompt: motion(x), ...(x.keyframe && x.keyframe.assetPath ? { imageAssetPath: x.keyframe.assetPath } : { imageUrl: x.keyframe ? x.keyframe.url : null }), duration: Math.min(30, Math.max(4, Math.ceil(Number(x.durationS) || 4))), resolution: dv.payload.resolution || '720p', aspect_ratio: dv.payload.aspect || '9:16', generateAudio: true, autoCheck: true, attachTo: { versionId: out.versionId, shot: n }, generatedBy: req.member ? req.member.id : null, meta: { shot: n, prompt: motion(x), title: piece.title, expectProduct: Boolean(x.product && x.product.visible), product: piece.product, fix: true } } }; });
+          const inserted = await insertRows('jobs', rows, { returning: true });
+          await patchRows('stages', `id=eq.${encodeURIComponent(fs0.id)}`, { state: 'generating' });
+          for (const j0 of inserted) { await jobsSvc.advance(j0).catch(() => null); const fresh = await jobsSvc.getJob(j0.id); jobs.push(jobsSvc.publicJob(fresh || j0, legacyId)); }
+        }
+        try { const { syncSpec } = require('../_spec.js'); await syncSpec(legacyId, { memberId: req.member ? req.member.id : null, note: 'final: QC fixes applied' }); } catch (e) { /* best effort */ }
+        return res.status(200).json({ ok: true, version: out.version, versionId: out.versionId, applied: ap.applied, notApplied: ap.notApplied, regenShots: ap.regenShots, reusedDraftCut: nothingToRebuild, overlaysToRedraw: ap.shots.filter((x) => x.overlayStale).map((x) => x.n), jobs, artifact: { ...artifact, version: `v${out.version}` } });
+      }
+      const fv = await ver('final');
+      if (!fv || !fv.payload) return res.status(409).json({ error: 'no final version', code: 'no_version' });
+      if (b.action === 'final-verify') {
+        // F1X8 again on the STORED final cut; each original risk verified afterwards
+        const asm = fv.payload.assembled;
+        if (!asm || !asm.assetPath || !asm.sha256) return res.status(409).json({ error: 'assemble the final first', code: 'prerequisites' });
+        if (S('final').state === 'approved') return res.status(409).json({ error: 'the final is approved', code: 'approved_immutable' });
+        const job = await createJob({ legacyId, stage: 'final', kind: 'f1x8_video', payload: { assetPath: asm.assetPath, expectSha256: asm.sha256, versionId: fv.id, title: piece.title, description: `Final cut of "${piece.title}" for ${piece.product} after the QC fixes.`, verifyFinal: true, qcVersionId: fv.payload.fromQcVersionId }, piece: b.piece || {}, member: req.member });
+        return res.status(200).json({ ok: true, job });
+      }
+      // final-package: only from an approved final (line-manager + ADLCP documents on that exact version)
+      if (S('final').state !== 'approved') return res.status(409).json({ error: 'the final must be approved with the line-manager and ADLCP documents first', code: 'prerequisites' });
+      const docs = await queryRows('adlcp_documents', `select=kind,sha256&artifact_version_id=eq.${encodeURIComponent(fv.id)}`);
+      if (!['line_manager', 'adlcp'].every((k) => docs.some((d) => d.kind === k))) return res.status(409).json({ error: 'the ADLCP documents are not linked to this final version', code: 'documents_required' });
+      const bv = await ver('brief'), tv = await ver('thumb');
+      const qcv = fv.payload.fromQcVersionId ? (await queryRows('artifact_versions', `select=payload&id=eq.${encodeURIComponent(fv.payload.fromQcVersionId)}&limit=1`))[0] : null;
+      const ver2 = fv.payload.verification || null;
+      const pkg = finalMod.packageManifest({ piece: { ...piece, legacy_id: legacyId }, finalVersion: fv, final: fv.payload, brief: bv ? bv.payload : null, thumb: tv ? tv.payload : null, scores: { draft: qcv && qcv.payload.report ? qcv.payload.report.score : null, final: ver2 ? ver2.score : null, resolved: ver2 ? ver2.risks.filter((r) => r.resolved === 'yes').length + '/' + ver2.risks.length : null } });
+      pkg.manifest.adlcp = docs.map((d) => ({ kind: d.kind, sha256: d.sha256 }));
+      const body = JSON.stringify(pkg.manifest, null, 1);
+      const put = await storage.putBlob(`pieces/${legacyId}/final/package-v${fv.version}-${Date.now().toString(36)}.json`, Buffer.from(body), 'application/json');
+      try { await insertRows('audit_log', [{ actor: req.member ? req.member.id : null, action: 'final.package', target: fv.id, details: { pieceId: legacyId, assetPath: put.path, sha256: put.sha256 } }]); } catch (e) { /* best effort */ }
+      const urls = {};
+      for (const [k, pth] of [['video', pkg.manifest.final.video && pkg.manifest.final.video.assetPath], ['thumbnail', pkg.manifest.thumbnail && pkg.manifest.thumbnail.assetPath], ['manifest', put.path]]) if (pth) { try { urls[k] = await storage.signedUrl(pth, 7 * 24 * 3600); } catch (e) { /* unsigned */ } }
+      return res.status(200).json({ ok: true, manifest: pkg.manifest, assetPath: put.path, sha256: put.sha256, urls });
     }
     if (b.action === 'qc' || b.action === 'qc-plan-edit' || b.action === 'qc-sendback') {
       const qcMod = require('../_studio/qc.js');
@@ -227,9 +290,10 @@ module.exports = async (req, res) => {
       // 6.6 (b): the browser draws each shot's text + caption as a PNG (correct Arabic shaping);
       // the PNGs are validated like the thumbnail composite and stored on the shot; assembly
       // then runs as a job over the APPROVED clips only
-      const [ds] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.draft&limit=1`);
-      if (!ds || !ds.current_version_id) return res.status(409).json({ error: 'no first draft version', code: 'no_version' });
-      if (ds.state === 'approved') return res.status(409).json({ error: 'the draft is approved; reopen it first', code: 'approved_immutable' });
+      const sk = b.stage === 'final' ? 'final' : 'draft'; // 6.8: the final re-uses the overlay and assembly steps
+      const [ds] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.${sk}&limit=1`);
+      if (!ds || !ds.current_version_id) return res.status(409).json({ error: `no ${sk === 'final' ? 'final' : 'first draft'} version`, code: 'no_version' });
+      if (ds.state === 'approved') return res.status(409).json({ error: `the ${sk} is approved; reopen it first`, code: 'approved_immutable' });
       const [dv] = await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(ds.current_version_id)}&limit=1`);
       if (!dv || !Array.isArray(dv.payload.shots)) return res.status(409).json({ error: 'the draft has no shot list', code: 'no_version' });
       if (b.action === 'draft-overlays') {
@@ -242,19 +306,21 @@ module.exports = async (req, res) => {
           const bytes = Buffer.from(String(o.data || ''), 'base64');
           if (!bytes.length || bytes.length > 2 * 1024 * 1024) return res.status(413).json({ error: `overlay for shot ${n} must be a PNG under 2 MB` });
           if (bytes.length < 8 || !PNG_SIG.every((x, i) => bytes[i] === x)) return res.status(422).json({ error: `overlay for shot ${n} must be a PNG` });
-          const put = await storage.putBlob(`pieces/${legacyId}/draft/overlay-${n}-${Date.now().toString(36)}.png`, bytes, 'image/png');
+          const put = await storage.putBlob(`pieces/${legacyId}/${sk}/overlay-${n}-${Date.now().toString(36)}.png`, bytes, 'image/png');
           stored.push({ n, overlay: { assetPath: put.path, sha256: put.sha256, size: put.size, text: o.text && typeof o.text === 'object' ? { en: String(o.text.en || '').slice(0, 200), ar: String(o.text.ar || '').slice(0, 200) } : null, at: new Date().toISOString() } });
         }
-        await jobsSvc.updateShots(dv.id, (payload) => { const shots = payload.shots.map((s) => ({ ...s })); for (const x of stored) shots[x.n - 1] = { ...shots[x.n - 1], overlay: x.overlay }; return { ...payload, shots }; });
+        await jobsSvc.updateShots(dv.id, (payload) => { const shots = payload.shots.map((s) => ({ ...s })); for (const x of stored) shots[x.n - 1] = { ...shots[x.n - 1], overlay: x.overlay, overlayStale: false }; return { ...payload, shots }; });
         return res.status(200).json({ ok: true, stored: stored.map((x) => ({ shot: x.n, assetPath: x.overlay.assetPath })) });
       }
+      const stale = dv.payload.shots.filter((s) => s.overlayStale).map((s) => s.n);
+      if (stale.length) return res.status(409).json({ error: `redraw the text overlays first — shot${stale.length > 1 ? 's' : ''} ${stale.join(', ')} changed`, code: 'overlays_stale', pending: stale });
       const notReady = dv.payload.shots.filter((s) => !(s.clip && s.clip.state === 'rendered') || !(s.review && s.review.decision === 'approved')).map((s) => s.n);
       if (notReady.length) return res.status(409).json({ error: `approve every clip first — shot${notReady.length > 1 ? 's' : ''} ${notReady.join(', ')} pending`, code: 'prerequisites', pending: notReady });
       const liveRows = await queryRows('jobs', `select=id,kind&stage_id=eq.${encodeURIComponent(ds.id)}&state=in.(queued,running)&limit=50`);
       if (liveRows.some((j) => j.kind === 'assemble')) return res.status(409).json({ error: 'the cut is already being assembled', code: 'busy' });
       const brief = await boardMod.briefFor(piece.id);
       const targetS = brief && brief.payload && brief.payload.spec && brief.payload.spec.format ? brief.payload.spec.format.targetDurationS : null;
-      const [job] = await insertRows('jobs', [{ piece_id: piece.id, stage_id: ds.id, kind: 'assemble', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'draft', versionId: dv.id, targetS, generatedBy: req.member ? req.member.id : null } }], { returning: true });
+      const [job] = await insertRows('jobs', [{ piece_id: piece.id, stage_id: ds.id, kind: 'assemble', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: sk, versionId: dv.id, targetS, generatedBy: req.member ? req.member.id : null } }], { returning: true });
       // the job runs on the next tick (ffmpeg inside the job service, not inside this request)
       return res.status(200).json({ ok: true, job: jobsSvc.publicJob(job, legacyId) });
     }
