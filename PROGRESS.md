@@ -741,6 +741,16 @@ Status: **PASSED** by checker, verified independently: CI green on both commits 
 
 Status: **PASSED** by checker, verified independently: CI green; both hosts report `revision: 22fd0b0` with the page byte-identical. Below 70 % analysed, the positive-rate and ratio figures and a banner above the sentiment sections say "based on N of M comments (P %), mostly recent — the tracker has not analysed the rest"; tested at 60 % (warns) and 70 % (does not).
 
+## Phase 7.4 comment insight (commit 74c1e6d; released through the gate)
+
+Status: **PASSED** by checker, verified independently: CI green; both hosts report `revision: 74c1e6d` with the page byte-identical; `?themes=1` answers 401 without a session.
+
+- Themes are counted only from tested EN, AR and Arabizi patterns in code; questions are a flag on each theme plus an "other question" residual; purchase intent needs a price or availability object (tested negatives "how much I love it", "كم حلو"); every issue and complaint carries a product, taken from a device named in the comment first, else the post caption (labelled), else "product unknown" (deviation accepted: mapping to the post alone filed other devices' complaints under the post's product); product shares only at n of 20 or more; recall reported per theme, issue themes under 0.7 recall marked "may be undercounted" (none today); brand replies excluded.
+- Accuracy (builder's labels, anonymised fixtures, recomputed by a test and equal to the audit table on the page): issues and complaints were labelled exhaustively over all 244 distinct candidate texts; v3 complaints 0.95 precision and recall, product issues 1.00 precision and 0.97 recall, customer service 0.79 precision. These are optimistic because v3's fixes came from the same audit (v2 measured 0.86/0.86 and 1.00/0.87). Other themes on a blind sample of 221: price 0.64 and design/colour 0.69 precision (shown as low confidence), wants-to-buy 1.00, free-device requests 1.00 precision with 0.57 recall, multitask 0.96, ecosystem 0.89. Not covered yet: network and app problems, camera fog, appliances, feature requests, Portuguese and Spanish.
+- Live 60 days: 6,038 customer comments, 75 % giveaway entries, 21 % with no theme; brand complaints 82, repair or warranty 58, customer service 58, screen 57.
+
+**Security finding (for Phase 11, raised by the builder, confirmed by the checker):** the public `/api/track` read returns customer comment text with author usernames to anyone, with `Access-Control-Allow-Origin: *` (probe: 152 comments in 7 days, all with authors). The page already requires a session, so gating this read (and `/api/sentiment`) behind the session, or stripping authors from the public shape, is cheap. Recommended before any wider sharing of the site address.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
