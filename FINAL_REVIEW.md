@@ -2,7 +2,7 @@
 
 Status 2026-10-22, production revision `aab4439` (www.ma1stro.com, maistro-demo.vercel.app).
 - **Sources:** AUDIT.md (Phase 1: 57 findings in 7 dimensions), REBUILD_LOG.md, the code at `aab4439`, the test suite
-  (`npm test`, 236 tests) and `npm run evals`.
+  (`npm test`, 237 tests) and `npm run evals`.
 - **Checker:** the checker session (maistro-86) verified every release listed in PROGRESS.md.
 - **Statuses:**
   - **fixed**;
@@ -22,8 +22,8 @@ Status 2026-10-22, production revision `aab4439` (www.ma1stro.com, maistro-demo.
 | D — Security | 7 | 5 | 1 (D-04) | — | 1 (D-05) | — |
 | E — Reliability | 4 | 2 | 2 (E-02, E-03) | — | — | — |
 | F — Performance | 3 | — | 1 (F-02) | 1 (F-01) | — | 1 (F-03 no defect) |
-| G — Engineering | 6 | 3 | 2 (G-01, G-05) | 1 (G-04) | — | — |
-| **Total** | **57** | **33** | **14** | **6** | **1** | **3** |
+| G — Engineering | 6 | 4 | 1 (G-01) | 1 (G-04) | — | — |
+| **Total** | **57** | **34** | **13** | **6** | **1** | **3** |
 
 By severity:
 - **Critical (6):** all fixed (A-01, A-02, A-05, C-14, D-01, D-03).
@@ -85,10 +85,10 @@ By severity:
 | F-02 | Medium | partly | 465b390 | The 60-day payload is served stored and cached privately. Still open: the size is unchanged |
 | F-03 | Low | no defect | — | — |
 | G-01 | High | partly | f91ca52, 27ee9f9 | `generation_records` (correlation ids, latency, cost), `audit_log`, `ops_alerts` and the monitor. Still open: no external error tracker |
-| G-02 | High | **fixed** | 7b6c0c4 | 236 tests plus the accuracy suite in CI (`.github/workflows/demo-ui.yml`) |
+| G-02 | High | **fixed** | 7b6c0c4 | 237 tests plus the accuracy suite in CI (`.github/workflows/demo-ui.yml`) |
 | G-03 | High | **fixed** | 5d36d6c, 27ee9f9 | `release.sh` (CI green for the SHA, fast-forward, both hosts), `rollback.sh` and `release.yml` with approval |
 | G-04 | Medium | open | — | The single-file page remains; the Next.js shell is strangling it (ADR-001) |
-| G-05 | Medium | partly | many | README, RUNBOOK, SECURITY, EVALS, API.md and per-phase docs. Still open: a full env-var table in the README |
+| G-05 | Medium | **fixed** | many | README (setup, local run, every env var, deploy, operations), RUNBOOK, SECURITY, EVALS, API.md and per-phase docs |
 | G-06 | Low | **fixed** | 38577ea | The legacy engine is archived under `legacy/`; no LangGraph or Lenceus |
 
 ## 2b. Defects the audit missed, found later
@@ -118,15 +118,15 @@ By severity:
 
 | Criterion | Status |
 |---|---|
-| Runs from a clean clone with one documented command | **Partly.** `cd demo-ui && npm ci && npm test` runs the suite from a clone; running the app needs Vercel env (`vercel env pull`, then `vercel dev`). A one-command local dev with seeded fakes is roadmap item 1 |
-| All tests and evals pass; Must Not Break covered | Tests 236/236. Evals: frozen ones pass; tracker-sentiment bars are inconclusive at n = 20 (the tracker's, not Maistro's) |
+| Runs from a clean clone with one documented command | **Yes:** `cd demo-ui && npm ci && npm run local` serves the product on seeded fakes. It needs no keys and makes no network calls (`tests/api/local.test.js`). Generation, QC and member sign-in need the real services (`vercel dev`) |
+| All tests and evals pass; Must Not Break covered | Tests 237/237. Evals: frozen ones pass; tracker-sentiment bars are inconclusive at n = 20 (the tracker's, not Maistro's) |
 | All Critical and High findings resolved | Critical: **all fixed**. High still open: A-06, B-02 (Q-003), C-23 (partly), D-04 (mitigated), E-02 (partly), G-01 (partly) |
 | No behaviour regressions vs ARCHITECTURE_CURRENT.md except approved changes | Changes are logged and checker-verified; the deliberate ones are listed in REBUILD_LOG (e.g. password sessions can no longer approve finals; keyword sentiment dropped; the simulated calendar retired) |
 | Trend, content and performance quality measurably above baseline | Trends and performance: measured, above baseline (§3). Content: **not measurable** without renders |
 | Every approval rule server-side with a full audit trail | **Yes:** stage machine + `approvals` + `audit_log`; final approval member-only |
 | Full lineage from posted performance back to the trend | **Built** (`?lineage=`, attribution); real data waits on migration 018 and linked posts |
 | No integration faked | **Yes:** Sprinklr is shown "not connected — manual mode"; simulated QC labelled; the simulated calendar removed |
-| README covers setup, architecture, env vars, deployment, operations | Partly (env-var table to complete) |
+| README covers setup, architecture, env vars, deployment, operations | **Yes** (README: run, local run, env-var table, deploy and operate, what is where; RUNBOOK for operations) |
 | A new engineer productive in a day | Plausible with RUNBOOK, ARCHITECTURE_TARGET and the tests; the single-file page is the main obstacle |
 
 ## 5. Remaining technical debt
@@ -144,7 +144,7 @@ By severity:
 | When | Item |
 |---|---|
 | Month 1 | Owner gate: migrations 018–022, rotations, member sign-in and `MAISTRO_REQUIRE_MEMBER=1`, the release environment, backup secrets + first restore drill, the preview DB. Sprinklr: read-only probe, then the real adapter from the vendored v3 spec (media → draft → schedule), recorded-response tests. Tracker P1 (X / Facebook scrapers) and P2 (freshness alarm) |
-| Month 2 | One-command local dev with seeded fakes (DoD); README env-var table; an error tracker (e.g. Sentry free tier) wired to `ops_alerts`. A held-out themes sample, then freeze the theme thresholds. A native-speaker re-label of the 7.3 / 7.4 Arabic buckets |
+| Month 2 | Seed the local run with a sample piece and stored trend scores; an error tracker (e.g. Sentry free tier) wired to `ops_alerts`. A held-out themes sample, then freeze the theme thresholds. A native-speaker re-label of the 7.3 / 7.4 Arabic buckets |
 | Month 3 | Boost (8a) once young bands reach n ≥ 20: backtest precision / recall, then ship behind the owner's sign-off. First attributed posts → attribution analysis |
 | Months 4–5 | Strangle the legacy page: move Performance, then Calendar, then Studio, into the Next.js shell, one route at a time, with the characterization tests as the guard. Decide Q-003 (Hermes path) and retire or rebuild it |
 | Month 6 | Learnings (7.6) from ≥ 30 attributed posts into trend calibration as eval-gated prompt changes; a golden-set run if the owner authorises renders |
