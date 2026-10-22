@@ -607,6 +607,19 @@ Status: **PASSED** by checker. CI green; local 168/168; production reports `revi
 - **Judge v1.4 (e0afa14):** safety needsReview requires a descriptive cue; unseen clips alone are not one. The eval gains two production cases as the judge saw them: the deadpan caption swap as must-pass (a v1.3 false positive), and the POV twist as must-flag on safety. The checker had proposed the POV twist as must-pass; the builder's evidence overrides that: its brief asks for a payoff "as unhinged as the best examples" and quotes a "deadnamed-by-a-friend" caption, which are real cues. Accepted.
 - CI green; production `revision: 2a497e2`.
 
+## Phase 7.0 live: reconciliation ok:true (commit bfb79a0)
+
+Status: **PASSED on live evidence** (builder's reading of `reconciliation_reports`, all 60-day windows):
+
+| Row | Time (UTC) | Code | ok | Failing check |
+|---|---|---|---|---|
+| 1 | 06:33:25 | 06:30 cron, pre-fix | false | R-3, R-4: database count timed out |
+| 2 | 06:44:06 | triggered, pre-fix | false | same |
+| 3 | 06:49:35 | 2a497e2 | false | R-3 off by one (reader 12,482 vs database 12,481) |
+| 4 | 06:56:40 | bfb79a0 | **true** | none |
+
+Row 3's off-by-one was a future-timestamped comment: the last count window stopped at now + 60 s while the reader has no upper bound. bfb79a0 makes the last window open-ended with the same predicate as the reader. Row 4: posts equal on all four platforms (tiktok 121, twitter 86, facebook 111, instagram 79), comments seen 12,477 on both sides, database canonical matches 6,549 at most the reader's 8,348 (1,799 alias-only), unique ids hold; twins removed 1,982, match rate 0.669. The seen count drifts down between runs (12,489 to 12,477) as comments leave the 63-day floor, which is why both sides are read in the same run. Next for 7.x: per-platform "data as of" on the Performance page from `report.freshness`.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
