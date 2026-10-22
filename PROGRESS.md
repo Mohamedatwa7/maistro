@@ -809,6 +809,8 @@ Status: **PASSED with one defect.** CI green including the new accuracy step; bo
 
 ## [GATE] Owner items (only the user can do these)
 
+0. **Standing owner rule (2026-10-22): no money is spent on Higgsfield for testing.** The golden-set content run and any test or eval render are not authorised; real renders happen only when a person generates a piece in the Studio. Free price estimates are allowed.
+
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
 2. **Click-through for the database half of M2:** while signed in, create one Studio campaign; the builder confirms it in the database.
 2b. ~~Per-piece budget~~ **decided by the owner on 2026-10-22: $20 per piece at 720p, $50 at 1080p** (warning at 80 %), sized for an average video of 10 to 15 s (replaces the owner's first answer of $10 and $20). Basis: a 15 s piece generates about 35 s of video including four re-rendered clips, about $16.18 at 720p and $39.80 at 1080p, plus about 20 % headroom. Implementation handed to the builder. **Live in 8b4b06d.**
