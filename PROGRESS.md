@@ -816,8 +816,18 @@ Status: **PASSED** by checker, verified independently: CI green on all eight run
 - ADR-008 amended to record that the Sprinklr v3 documentation and OpenAPI spec are public; the stub stays only until the owner's credentials and read-only probe.
 - Ops metrics from stored rows only (latency, success rate, turnaround per stage, cost per approved piece), percentiles at n of 5 or more; real figures need generated pieces, which the no-spend rule leaves to real Studio use.
 
+## Phase 11 security (commits db929fe, acca74f; released through the gate; SECURITY.md)
+
+Status: **PASSED** by checker, verified independently: CI green on both; both hosts report `revision: acca74f` with the page byte-identical; local 229/229; `npm audit --omit=dev` reports 0 vulnerabilities; `/api/projects` answers 401 without a session; cross-origin preflights to projects, upload, director and translate return no `Access-Control-Allow-Origin`; no connection string with a password in the tracked tree.
+
+- db929fe: `/api/projects` needs the session or the ingest key; open CORS removed from every cookie-gated route (a test asserts only the public trends route sends it); `queryAll()` pages past the 1,000-row cap for ops, attribution, calendar and knowledge base (tested to 2,500); npm overrides pin patched postcss and sharp under Next 15 (the major Next 16 upgrade deferred, build-time only).
+- acca74f, the behaviour change: **final approval, reopen, budget changes, the delivery package and member admin are always member-only (403 `member_required`), whatever role the request body claims.** Non-final decisions, comment-handled, publishing slots and post links remain possible under the shared password as an interim claim capped at reviewer and recorded as "password session claim" (the server sets the signed-as text; the body cannot); `MAISTRO_REQUIRE_MEMBER=1` closes those too. QC send-back no longer trusts a body role. Tests cover each member-only action with a body role of admin.
+- SECURITY.md lists findings A to H with severity, six attack scenarios, the fixes by commit, and the owner's manual actions. Open for Phase 12: no login throttling (medium) and no account-wide spend ceiling (medium).
+- Process note (builder's own report): a first SECURITY.md draft quoted the pasted database password; it was removed before staging, never committed or pushed, and `git log -S` finds nothing. Checker's scan of the tree finds no password-bearing connection string.
+
 ## [GATE] Owner items (only the user can do these)
 
+00. **Final approvals now need a member sign-in** (since acca74f). Before approving any final: set Supabase Authentication, URL Configuration, Site URL `https://www.ma1stro.com`, then sign in once at www.ma1stro.com with your e-mail link. The shared password can no longer approve a final.
 0. **Standing owner rule (2026-10-22): no money is spent on Higgsfield for testing.** The golden-set content run and any test or eval render are not authorised; real renders happen only when a person generates a piece in the Studio. Free price estimates are allowed.
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
