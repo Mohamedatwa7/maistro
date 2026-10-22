@@ -765,6 +765,14 @@ Status: **PASSED** by checker, verified independently: CI green; both hosts repo
 - Migration 018 creates `piece_posts` (piece, platform, post id, URL, account, source manual or sprinklr, who and when linked, who, when and why unlinked), a partial unique index allowing one active link per piece and post, and RLS on; an unlink sets the unlink fields and never deletes. Until it is applied, the attribution routes answer 503 `not_migrated` and the page says so.
 - Linking is limited to line managers and admins and to approved finals (409 otherwise); the URL is normalised and resolved to the tracker post through the reader's own alias logic, inside the other-projects exclusion; a non-owned account is refused (422, using R-8's shared owned-accounts helper), an unknown post is 404, a duplicate active link 409; unlink then relink keeps history. The page has a "Published as" box on approved finals.
 
+## Phase 7.5 attribution, step 2: per-post record and analysis (commit 24c4db2; released through the gate)
+
+Status: **PASSED** by checker, verified independently: CI green; local 209/209; both hosts report `revision: 24c4db2` with the page byte-identical; `?attribution=1` answers 401 without a session.
+
+- `api/_perf/attribution.js` (pure): per active link, the trend score and confidence at decision time (the pick decision's score row, else the newest score at or before the piece's creation, labelled; tested that a later re-score is not used), F1X8 for QC and final, revision rounds per stage, the stage history in time order, path, angle, product and markets, the post's live metrics and its 7.2 standing from the same benchmark code the public route uses. A post outside the 90-day read stays attributed with performance unknown.
+- Analysis groups by path, product, platform and format, trend confidence, revision rounds and angle; only mature organic standings rank; a median percentile needs 20 ranked posts in a group; criterion weights are withheld until 30 posts are attributed. The page has an Attribution panel with the "N of 30" count and the zero and not-migrated states.
+- The 7.5 code is complete; real data waits on the owner applying migration 018 and linking published finals.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
