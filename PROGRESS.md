@@ -671,6 +671,20 @@ Status: **PASSED** by checker.
 
 Status: **PASSED** for this step; the audit itself is open. CI green; local 175/175; production `revision: 0b82631`. The collapse rule is unchanged. The report now stores `twins`: window-wide counts of merged groups and of near-duplicates kept apart (same author with case, punctuation or zero-width differences; a truncated copy; the same text under another author within 10 minutes) and a seeded sample stratified by platform (up to 12 per outcome per platform). Reading the sample needs the service-role connection, which neither session should pull from old transcripts; the builder asked the owner to run the reader. Labelling, the anonymised fixture with labeller attribution, and the false-merge and missed-duplicate rates follow.
 
+## Twin-collapse audit: labelled sample, new message key (commit 35604bd; released through the gate)
+
+Status: **PASSED** by checker. CI green; local 177/177; production `revision: 35604bd`. The owner's saved file is deleted.
+
+- Population (09:24 report, 60 days, 8,332 matched comments): the old exact-text rule merged 301 groups (1,979 rows removed) and kept apart 947 near-duplicate pairs (320 punctuation or case, 419 one text extending the other, 208 same text under another author); TikTok had none.
+- Labelled sample of 72 (36 merged, 36 kept apart, stratified over Facebook, Instagram and X), labelled by the builder session on a written rule, committed as `tests/fixtures/twin-audit-2026-10-22.json`. Checker's check of the fixture: every handle is tokenised (`@u…`) except `@SamsungGulf`, no comment ids remain, one employee's name is redacted.
+- Old rule: 0 false merges of 35 verifiable groups; **23 of 36 duplicate pairs missed** (all 14 punctuation-only, 9 of 14 extensions such as emoji, mentions or a repeated paste). The premise that twins are storage duplicates did not hold: none of the merged groups had mixed id forms; they are mostly re-posted giveaway entries.
+- New `messageKey` (server) and `sentiKey` (page), kept in step by a parity test: the author plus the message with punctuation, symbols, emoji, marks, mentions, whitespace and case removed and a repeated paste folded; emoji-only text keeps its exact form; blank text never merges. On the sample: 0 false merges, 0 missed. The 402-row golden moves from 374 to 373 with the reason in the test.
+
+Caveats for the owner:
+
+1. **The labels are the builder's (a model), not a person's.** The fixture says the owner may re-label any disputed case; a human spot-check of the 72 is advisable before the rates are quoted.
+2. **Definitional choice:** most merged groups are the same person re-posting a giveaway entry. Collapsing them counts people, not entries, which lowers comment totals on giveaway posts. That is the right reading for sentiment, but if comment volume is reported as engagement, the uncollapsed count should be shown alongside.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
