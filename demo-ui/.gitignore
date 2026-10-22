@@ -4,3 +4,4 @@ public/legacy/
 public/assets/
 next-env.d.ts
 *.tsbuildinfo
+evals-report.json

@@ -35,6 +35,8 @@ jobs:
         run: npm run typecheck
       - name: Tests (characterization, golden, contract on fixtures)
         run: npm test
+      - name: Accuracy suite (EVALS.md; fails only on frozen, blocking evals)
+        run: npm run evals -- --ci --no-write
       - name: Build the Next.js shell (legacy page copied in by prebuild)
         run: npm run build
         env:

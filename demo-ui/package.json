@@ -16,7 +16,8 @@
     "prebuild": "node scripts/sync-legacy.mjs",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "evals": "node scripts/evals.js"
   },
   "engines": {
     "node": ">=22"
