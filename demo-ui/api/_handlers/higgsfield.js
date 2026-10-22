@@ -5,7 +5,7 @@ const hf = require('../_adapters/higgsfield.js');
 // POST {kind:'video'|'image', prompt, ...} → {request_id, status, v?}
 // GET ?id=<request_id>[&v=1] → {status, video, images, raw_status}
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Phase 11 (F-E): no open CORS on a cookie-gated route — the page is same-origin
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (!requireSession(req, res)) return;

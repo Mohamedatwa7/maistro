@@ -14,7 +14,7 @@ async function activeDocuments({ force = false } = {}) {
   let docs = null;
   if (configured()) {
     try {
-      const rows = await queryRows('kb_documents', 'select=id,kind,key,version,content,source,note,created_at&active=eq.true&order=kind.asc,key.asc&limit=1000');
+      const rows = await require('../_supabase.js').queryAll('kb_documents', 'select=id,kind,key,version,content,source,note,created_at&active=eq.true&order=kind.asc,key.asc,id.asc');
       if (rows.length) docs = rows;
     } catch (e) { console.warn('[kb] read failed, using the seed:', e.message); }
   }
@@ -52,7 +52,7 @@ async function putDocument({ kind, key, content, note, source, memberId }) {
 /** Insert every seed document that has no version yet (idempotent). */
 async function seedMissing() {
   if (!configured()) throw Object.assign(new Error('storage is not configured'), { status: 503 });
-  const existing = await queryRows('kb_documents', 'select=kind,key&limit=2000');
+  const existing = await require('../_supabase.js').queryAll('kb_documents', 'select=kind,key&order=id.asc');
   const have = new Set(existing.map((d) => `${d.kind}|${d.key}`));
   const rows = seedDocuments().filter((d) => !have.has(`${d.kind}|${d.key}`));
   if (rows.length) await insertRows('kb_documents', rows.map((d) => ({ ...d, active: true })));

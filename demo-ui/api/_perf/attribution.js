@@ -70,19 +70,21 @@ function analysis(recs) {
 /** IO: read every table the records need. queryRows is the Maistro store reader. */
 async function load(queryRows) {
   const inList = (xs) => xs.map((x) => encodeURIComponent(String(x))).join(',');
-  const links = await queryRows('piece_posts', 'select=*&unlinked_at=is.null&order=linked_at.desc&limit=1000');
+  // every row, paged: the database returns at most 1000 per request (Phase 11 F-D)
+  const all = async (t, p) => { const out = []; for (let off = 0; off < 50000; off += 1000) { const page = await queryRows(t, `${p}&limit=1000&offset=${off}`); out.push(...page); if (page.length < 1000) break; } return out; };
+  const links = await all('piece_posts', 'select=*&unlinked_at=is.null&order=linked_at.desc,id.desc');
   if (!links.length) return { links, pieces: [], stages: [], versions: [], approvals: [], qc: [], decisions: [], scores: [] };
   const pids = [...new Set(links.map((l) => l.piece_id))];
-  const pieces = await queryRows('content_pieces', `select=id,legacy_id,title,product,markets,platforms,angle,trend_id,trend_name,origin,created_at&id=in.(${inList(pids)})&limit=1000`);
-  const stages = await queryRows('stages', `select=id,piece_id,kind,state,current_version_id&piece_id=in.(${inList(pids)})&limit=5000`);
+  const pieces = await all('content_pieces', `select=id,legacy_id,title,product,markets,platforms,angle,trend_id,trend_name,origin,created_at&id=in.(${inList(pids)})&order=id.asc`);
+  const stages = await all('stages', `select=id,piece_id,kind,state,current_version_id&piece_id=in.(${inList(pids)})&order=id.asc`);
   const sids = stages.map((s) => s.id);
-  const versions = sids.length ? await queryRows('artifact_versions', `select=id,stage_id,version,payload,created_at&stage_id=in.(${inList(sids)})&limit=5000`) : [];
+  const versions = sids.length ? await all('artifact_versions', `select=id,stage_id,version,payload,created_at&stage_id=in.(${inList(sids)})&order=id.asc`) : [];
   const vids = versions.map((v) => v.id);
-  const approvals = vids.length ? await queryRows('approvals', `select=artifact_version_id,decision,reason_code,name_as_signed,role_as_signed,decided_at&artifact_version_id=in.(${inList(vids)})&limit=5000`) : [];
-  const qc = vids.length ? await queryRows('qc_results', `select=artifact_version_id,score,created_at&artifact_version_id=in.(${inList(vids)})&limit=5000`) : [];
+  const approvals = vids.length ? await all('approvals', `select=artifact_version_id,decision,reason_code,name_as_signed,role_as_signed,decided_at&artifact_version_id=in.(${inList(vids)})&order=id.asc`) : [];
+  const qc = vids.length ? await all('qc_results', `select=artifact_version_id,score,created_at&artifact_version_id=in.(${inList(vids)})&order=id.asc`) : [];
   const tids = [...new Set(pieces.map((p) => p.trend_id).filter(Boolean))];
-  const decisions = tids.length ? await queryRows('trend_decisions', `select=trend_id,score_id,decision,at&trend_id=in.(${inList(tids)})&limit=5000`) : [];
-  const scores = tids.length ? await queryRows('trend_scores', `select=id,trend_id,at,status,final_score,confidence&trend_id=in.(${inList(tids)})&order=at.desc&limit=5000`) : [];
+  const decisions = tids.length ? await all('trend_decisions', `select=trend_id,score_id,decision,at&trend_id=in.(${inList(tids)})&order=id.asc`) : [];
+  const scores = tids.length ? await all('trend_scores', `select=id,trend_id,at,status,final_score,confidence&trend_id=in.(${inList(tids)})&order=at.desc`) : [];
   return { links, pieces, stages, versions, approvals, qc, decisions, scores };
 }
 

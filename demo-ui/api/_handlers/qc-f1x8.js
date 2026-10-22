@@ -5,7 +5,7 @@ const f1x8 = require('../_adapters/f1x8.js');
 // POST {kind:'image'|'video', assetUrl, title, description} → {job_id}
 // GET ?job=<job_id> → {status: fetching|analyzing|done|error|not_found, result?}
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Phase 11 (F-E): no open CORS on a cookie-gated route — the page is same-origin
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (!requireSession(req, res)) return;

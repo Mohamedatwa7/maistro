@@ -51,8 +51,9 @@ async function load(queryRows, days) {
     const page = await queryRows('generation_records', `select=kind,status,latency_ms,cost_usd,piece_id,stage,at&at=gte.${since}&order=id.asc&limit=1000&offset=${off}`);
     records.push(...page); if (page.length < 1000) break;
   }
-  const stages = await queryRows('stages', 'select=id,piece_id,kind,state&limit=5000');
-  const versions = await queryRows('artifact_versions', `select=id,stage_id,created_at&created_at=gte.${since}&limit=5000`);
+  const { queryAll } = require('../_supabase.js');
+  const stages = await queryAll('stages', 'select=id,piece_id,kind,state&order=id.asc');
+  const versions = await queryAll('artifact_versions', `select=id,stage_id,created_at&created_at=gte.${since}&order=id.asc`);
   const vids = versions.map((v) => v.id);
   const approvals = [];
   for (let i = 0; i < vids.length; i += 200) approvals.push(...(await queryRows('approvals', `select=artifact_version_id,decision,decided_at&artifact_version_id=in.(${vids.slice(i, i + 200).map(encodeURIComponent).join(',')})&limit=1000`)));

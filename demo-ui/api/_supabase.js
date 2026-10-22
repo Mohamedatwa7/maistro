@@ -96,4 +96,16 @@ async function patchRows(table, params, patch) {
 const insertEvent = (row) => insertRow('campaign_events', row);
 const listEvents = (limit) => listRows('campaign_events', 'project_id,stage,agent,trend,artifact,at', limit);
 
-module.exports = { insertEvent, listEvents, insertRow, listRows, queryRows, insertRows, upsertRows, patchRows };
+// Phase 11 (F-D): every row of a query, paged — the database returns at most 1000 rows per request whatever
+// `limit` says, so a single read with limit=5000 silently stopped at 1000. `params` must carry its own order.
+async function queryAll(table, params, max = 50000) {
+  const out = [];
+  for (let off = 0; off < max; off += 1000) {
+    const page = await queryRows(table, `${params}&limit=1000&offset=${off}`);
+    out.push(...page);
+    if (page.length < 1000) break;
+  }
+  return out;
+}
+
+module.exports = { insertEvent, listEvents, insertRow, listRows, queryRows, queryAll, insertRows, upsertRows, patchRows };

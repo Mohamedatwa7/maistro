@@ -2,7 +2,7 @@
 // gated by SPRINKLR_* credentials. Sprinklr's developer documentation is not public (no access yet), so the
 // Sprinklr adapter makes no calls: it answers "not configured" until the contract is confirmed against the real
 // API — no guessed endpoints. Slots live in publishing_slots (migration 019); without it every call is a 503.
-const { queryRows, insertRows, patchRows } = require('../_supabase.js');
+const { queryRows, queryAll, insertRows, patchRows } = require('../_supabase.js');
 
 const PLANNERS = ['admin', 'line_manager'];
 const PLATFORMS = ['tiktok', 'instagram', 'facebook', 'x'];
@@ -43,16 +43,16 @@ function slotView(s, piece) {
 /** GET ?calendar=1: slots in [from, to) plus approved finals with no open slot, each with its trend's post-by date */
 async function calendar({ from, to }) {
   try {
-    const q = [`select=*`, `order=slot_at.asc`, `limit=1000`];
+    const q = [`select=*`, `order=slot_at.asc,id.asc`];
     if (from) q.push(`slot_at=gte.${encodeURIComponent(from)}`);
-    const slots = (await queryRows('publishing_slots', q.join('&'))).filter((s) => !to || String(s.slot_at) < String(to));
-    const finals = await queryRows('stages', 'select=piece_id,state&kind=eq.final&state=eq.approved&limit=1000');
+    const slots = (await queryAll('publishing_slots', q.join('&'))).filter((s) => !to || String(s.slot_at) < String(to));
+    const finals = await queryAll('stages', 'select=piece_id,state&kind=eq.final&state=eq.approved&order=id.asc');
     const pids = [...new Set([...slots.map((s) => s.piece_id), ...finals.map((f) => f.piece_id)])];
-    const pieces = pids.length ? await queryRows('content_pieces', `select=id,legacy_id,title,product,platforms,markets,trend_id,trend_name&id=in.(${pids.map(encodeURIComponent).join(',')})&limit=1000`) : [];
+    const pieces = pids.length ? await queryAll('content_pieces', `select=id,legacy_id,title,product,platforms,markets,trend_id,trend_name&id=in.(${pids.map(encodeURIComponent).join(',')})&order=id.asc`) : [];
     const byId = new Map(pieces.map((p) => [p.id, p]));
     const open = new Set(slots.filter((s) => s.status !== 'canceled').map((s) => s.piece_id));
     const tids = [...new Set(pieces.map((p) => p.trend_id).filter(Boolean))];
-    const scores = tids.length ? await queryRows('trend_scores', `select=trend_id,post_by,at&trend_id=in.(${tids.map(encodeURIComponent).join(',')})&order=at.desc&limit=2000`) : [];
+    const scores = tids.length ? await queryAll('trend_scores', `select=trend_id,post_by,at&trend_id=in.(${tids.map(encodeURIComponent).join(',')})&order=at.desc,id.desc`) : [];
     const postBy = {}; for (const s of scores) if (s.post_by && !postBy[s.trend_id]) postBy[s.trend_id] = s.post_by;
     const unscheduled = finals.filter((f) => !open.has(f.piece_id)).map((f) => { const p = byId.get(f.piece_id) || {}; return { pieceId: p.legacy_id, title: p.title, product: p.product, platforms: p.platforms || [], markets: p.markets || [], trend: p.trend_name, postBy: postBy[p.trend_id] || null }; })
       .sort((a, b) => String(a.postBy || '9').localeCompare(String(b.postBy || '9')));

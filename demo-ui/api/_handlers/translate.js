@@ -4,7 +4,7 @@ const { requireSession } = require('../_auth.js');
 // the free Google Translate gtx endpoint, auto-detect → English.
 // Body: { text, targetLang? } → { translatedText, detectedLanguage }
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // Phase 11 (F-E): no open CORS on a cookie-gated route — the page is same-origin
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') {

@@ -3,12 +3,15 @@
 // each campaign's stages as they arrive.
 
 const { listEvents } = require('../_supabase.js');
+const { requireSession, bearerMatches } = require('../_auth.js');
 
 const STAGE_ORDER = ['mood', 'thumb', 'brief', 'board', 'final', 'qc'];
 
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 'no-store');
+  // Phase 11 (F-B): campaign content is for signed-in users only; it was open to anyone with CORS *
+  // an outside reader (none today) uses the ingest key, like /api/sentiment
+  if (!bearerMatches((req.headers || {}).authorization, process.env.MAISTRO_INGEST_KEY) && !requireSession(req, res)) return;
   try {
     // newest first — "latest event per stage wins" is a simple first-write
     const events = await listEvents(1000);
