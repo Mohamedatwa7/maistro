@@ -517,7 +517,8 @@ module.exports = async (req, res) => {
     // 7.4 themes carry real customer text as examples: signed-in users only, never cached publicly
     const wantThemes = !isCron && String(q.themes || '') === '1';
     if (wantThemes && !requireSession(req, res)) return;
-    let days = Math.min(DAYS_MAX, Math.max(1, parseInt(isCron ? 60 : wantBench ? DAYS_MAX : q.days, 10) || 60));
+    const wantAttr = !isCron && String(q.attribution || '') === '1';
+    let days = Math.min(DAYS_MAX, Math.max(1, parseInt(isCron ? 60 : wantBench || wantAttr ? DAYS_MAX : q.days, 10) || 60));
     let R;
     try {
       R = await readWindow(days);
@@ -549,7 +550,8 @@ module.exports = async (req, res) => {
       return res.status(200).json({ days, fetchedAt: new Date().toISOString(), commentsPartial, ...themes(out, { seed: R.since || '' }) });
     }
 
-    if (wantBench) {
+    // the 7.2 benchmarks over this read (shared by ?benchmarks=1 and ?attribution=1)
+    const computeBench = async () => {
       const { benchmarks, SNAPSHOTS_SINCE } = require('../_perf/benchmarks.js');
       const owned = ownedAccounts(), snapshots = [];
       try {
@@ -561,8 +563,30 @@ module.exports = async (req, res) => {
       } catch (e) { console.error('[track] benchmark snapshots read failed:', e.message); }
       const newestByPlatform = {};
       for (const p of out) if (p.postedAt && (!newestByPlatform[p.platform] || p.postedAt > newestByPlatform[p.platform])) newestByPlatform[p.platform] = p.postedAt;
+      return { ...benchmarks({ posts: out, snapshots, windowDays: days, newestByPlatform }), snapshotRows: snapshots.length };
+    };
+
+    if (wantBench) {
+      const b = await computeBench();
       res.setHeader('Cache-Control', commentsPartial ? 'no-store' : 's-maxage=3600, stale-while-revalidate=86400');
-      return res.status(200).json({ ...benchmarks({ posts: out, snapshots, windowDays: days, newestByPlatform }), commentsPartial, snapshotRows: snapshots.length });
+      return res.status(200).json({ ...b, commentsPartial });
+    }
+
+    // 7.5 attribution: every active piece_posts link with what the piece was made from and how, joined with the
+    // post's metrics and 7.2 standing; signed-in only (it names approvers)
+    if (wantAttr) {
+      const A = require('../_perf/attribution.js');
+      const { storageMissing } = require('../_studio/attribution.js');
+      res.setHeader('Cache-Control', 'private, no-store');
+      let rows;
+      try { rows = await A.load(queryRows); } catch (e) {
+        if (storageMissing(e)) return res.status(503).json({ error: 'attribution storage not migrated (db/migrations/018_piece_posts.sql)', code: 'not_migrated' });
+        throw e;
+      }
+      const bench = rows.links.length ? await computeBench() : null;
+      const posts = Object.fromEntries(out.map((p) => [`${p.platform}|${p.postId}`, p]));
+      const recs = A.records({ ...rows, posts, bench });
+      return res.status(200).json({ days, fetchedAt: new Date().toISOString(), records: recs, analysis: A.analysis(recs), unmatched: recs.filter((r) => !r.performance).length });
     }
 
     if (String(q.reconcile || '') === '1' && (isCron || authorized)) {

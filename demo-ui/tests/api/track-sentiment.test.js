@@ -309,3 +309,27 @@ test('security (2026-10-22): customer comments need the session or the ingest ke
     assert.equal(r.statusCode, 200, 'a signed-in session reads');
   } finally { f.restore(); t.restore(); s.restore(); }
 });
+
+test('attribution route (7.5): signed-in only; 503 before migration 018; records joined with the post read', async () => {
+  const M = 'https://maistro.test/rest/v1/';
+  const link = { id: 1, piece_id: 'pc', platform: 'instagram', post_id: 'p1', url: 'https://www.instagram.com/p/ABC/', account: 'samsunggulf', linked_by_label: 'Lina', linked_at: '2026-10-22T09:00:00Z', source: 'manual', unlinked_at: null };
+  const piece = { id: 'pc', legacy_id: 'gen-1', title: 'T', product: 'Galaxy Z Flip8', markets: [], platforms: ['instagram'], angle: 'a', trend_id: null, trend_name: null, origin: 'studio', created_at: '2026-10-20T00:00:00Z' };
+  const empty = (t) => [M + t, () => json([])];
+  const base = [[M + 'content_pieces', () => json([piece])], ...['stages', 'artifact_versions', 'approvals', 'qc_results', 'trend_decisions', 'trend_scores', 'sentiment_posts'].map(empty), ...trackerRoutes().slice(1)];
+  let f = mockFetch([[M + 'piece_posts', () => json([link])], ...base]);
+  const h = api('track.js', ENV);
+  try {
+    let r = res(); await h.handler(req({ query: { attribution: '1' }, session: false }), r);
+    assert.equal(r.statusCode, 401);
+    r = res(); await h.handler(req({ query: { attribution: '1' } }), r);
+    assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+    assert.equal(r.headers['cache-control'], 'private, no-store');
+    assert.equal(r.body.records.length, 1); assert.equal(r.body.unmatched, 0);
+    assert.equal(r.body.records[0].piece.path, 'Studio'); assert.equal(r.body.records[0].performance.metrics.likes, 1);
+    assert.equal(r.body.analysis.weightsWithheld, true); assert.equal(r.body.analysis.minAttributed, 30);
+    f.restore();
+    f = mockFetch([[M + 'piece_posts', () => json({ code: 'PGRST205', message: "Could not find the table 'public.piece_posts' in the schema cache" }, 404)], ...base]);
+    r = res(); await h.handler(req({ query: { attribution: '1' } }), r);
+    assert.equal(r.statusCode, 503); assert.equal(r.body.code, 'not_migrated');
+  } finally { f.restore(); h.restore(); }
+});

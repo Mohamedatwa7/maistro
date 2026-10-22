@@ -235,3 +235,19 @@ test('7.5 "Published as" on an approved final: active links with who/when, remov
     assert.match(X.rPostLinks({ id: 'gen-2' }), /migration 018\) has not been applied/);
   } finally { X.restore(); }
 });
+
+test('7.5 attribution panel: progress to 30, a row per linked post, groups with medians only where ranked n ≥ 20, the zero and not-migrated states', async () => {
+  const X = pageWith();
+  try {
+    await new Promise((r) => setTimeout(r, 30));
+    X.ATTR.data = { records: [{ link: { platform: 'tiktok', url: 'https://www.tiktok.com/@samsunggulf/video/1' }, piece: { title: 'Deadpan', path: 'Studio' }, trend: { name: 'Deadpan reveal', score: 71.5, confidence: 'high' }, f1x8: { qc: 7.1, final: 8.4 }, totalRounds: 1, standing: { band: 'mature', percentile: 74, of: 114 }, performance: {} }],
+      analysis: { attributed: 1, ranked: 1, minAttributed: 30, minN: 20, weightsWithheld: true, byAttribute: { path: [{ value: 'Studio', attributed: 1, ranked: 1 }] } } };
+    let html = X.rAttribution();
+    assert.match(html, /1 of 30 posts needed/); assert.match(html, /Deadpan reveal · 71.5 \(high\)/); assert.match(html, /7.1 → 8.4/); assert.match(html, /P74 of 114/);
+    assert.match(html, /Studio 1 \(1 ranked\)/); assert.match(html, /weights are withheld until 30/);
+    X.ATTR.data = { records: [], analysis: { attributed: 0, ranked: 0, minAttributed: 30, minN: 20, weightsWithheld: true, byAttribute: {} } };
+    assert.match(X.rAttribution(), /0 linked posts — attribution starts/);
+    X.ATTR.data = { error: 'x', code: 'not_migrated' };
+    assert.match(X.rAttribution(), /migration 018\) has not been applied/);
+  } finally { X.restore(); }
+});

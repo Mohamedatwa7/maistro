@@ -173,9 +173,23 @@ and the link is set up as follows:
 - **Storage:** `piece_posts` (`db/migrations/018_piece_posts.sql`). **Until the migration is applied, every
   attribution call answers 503 "attribution storage not migrated"** and the page says so.
 
-**Next:**
-- **Each linked post carries** trend, trend score and confidence at decision time, angle, piece, creation path
-  (Studio / Hermes), F1X8 at QC and final, revision rounds per stage, stage history, product, markets, format,
-  and its 7.2 standing.
-- **The analysis** compares standings within each 7.2 cell, by attribute, with n shown and n ≥ 20 per cell. It
-  gives no attribute weight until 30 posts are attributed, shown as a progress count. Today 0 posts are linked.
+**Step 2 (done, waits on the migration for real data): the attribution record and analysis.**
+`GET /api/track?attribution=1` (signed-in only, never cached) and the **Attribution** panel. Each active link
+carries:
+- **the trend**, with its score and confidence at decision time — the pick decision's score row, else the newest
+  score made before the piece, labelled with which;
+- **the piece:** angle, product, markets, creation path (Studio / Hermes);
+- **quality checks:** F1X8 at QC (the newest result) and at final (with the score before the fixes);
+- **process:** revision rounds per stage (versions − 1) and the stage history (each approval or rejection, with
+  who, role, reason code and when);
+- **performance:** the post's metrics and its 7.2 standing (band, format, percentile in its own cell, or "too
+  young" / "not ranked" / "not in the 90-day read").
+
+The analysis groups attributed posts by creation path, product, platform and format, trend confidence, revision
+rounds (0 / 1–2 / 3+) and angle:
+- Only mature organic standings are ranked.
+- A group shows a median percentile only at **n ≥ 20 ranked**; counts otherwise.
+- **No attribute is weighted until 30 posts are attributed**, shown as "N of 30" on the panel.
+
+Today 0 posts are linked. Built and tested against the test fake: `tests/perf/attribution.test.js`, and the
+route test in `tests/api/track-sentiment.test.js`.

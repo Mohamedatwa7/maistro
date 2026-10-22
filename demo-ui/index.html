@@ -4497,6 +4497,32 @@ function rThemes(){
   ${groups}
  </div>`;
 }
+/* 7.5 — attribution: each published post linked to its piece (GET /api/track?attribution=1, computed in
+   api/_perf/attribution.js). The page formats what the server computed. */
+const ATTR={data:null,busy:false};
+async function loadAttr(){
+ if(ATTR.busy||ATTR.data)return;ATTR.busy=true;
+ try{const r=await authFetch('/api/track?attribution=1');const d=await r.json().catch(()=>({}));ATTR.data=r.ok&&d.analysis?d:{error:d.error||('attribution unavailable ('+r.status+')'),code:d.code}}
+ catch(e){ATTR.data={error:'attribution unavailable'}}
+ finally{ATTR.busy=false;trRefresh()}
+}
+const ATTR_LAB={path:'Creation path',product:'Product',format:'Platform · format',trendConfidence:'Trend confidence',revisionRounds:'Revision rounds',angle:'Angle'};
+function rAttribution(){
+ if(!ATTR.data){loadAttr();return ''}
+ const d=ATTR.data;
+ if(d.code==='not_migrated')return `<div class="card p4" style="margin-bottom:16px"><span class="kick">Attribution</span><div class="dim" style="font-size:12px;margin-top:6px">Not available yet: the attribution table (migration 018) has not been applied.</div></div>`;
+ if(d.error)return `<div class="card p4" style="margin-bottom:16px"><span class="kick">Attribution</span><div class="dim" style="font-size:12px;margin-top:6px">${esc(d.error)}</div></div>`;
+ const a=d.analysis,recs=d.records||[];
+ const rows=recs.map(r=>`<tr style="border-top:1px solid var(--hairline)"><td>${esc(r.piece.title||r.piece.legacyId||'')}</td><td><a href="${esc(r.link.url)}" target="_blank" rel="noopener">${esc(r.link.platform)}</a></td><td>${esc(r.trend.name||'—')}${r.trend.score!=null?` · ${r.trend.score} (${esc(r.trend.confidence||'')})`:''}</td><td>${esc(r.piece.path||'—')}</td><td class="num">${r.f1x8.qc!=null?r.f1x8.qc:'—'} → ${r.f1x8.final!=null?r.f1x8.final:'—'}</td><td class="num">${r.totalRounds}</td><td>${r.standing&&r.standing.percentile!=null?`P${r.standing.percentile} of ${r.standing.of}`:r.standing&&r.standing.young?'too young':r.performance?'not ranked':'not in the 90-day read'}</td></tr>`).join('');
+ const groups=Object.entries(a.byAttribute).filter(([,g])=>g.length).map(([k,g])=>`<div style="margin-top:6px"><span class="dim" style="font-size:10.5px">${esc(ATTR_LAB[k]||k)}:</span> ${g.map(x=>`${esc(x.value)} ${x.attributed}${x.medianPercentile!=null?` (median P${x.medianPercentile} of ${x.ranked})`:` (${x.ranked} ranked)`}`).join(' · ')}</div>`).join('');
+ return `<div class="card p5" style="margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="kick accent">Attribution · posts made in Maistro</span><span class="mono dim" style="font-size:10px">${a.attributed} of ${a.minAttributed} posts needed before any attribute is weighted</span></div>
+  ${recs.length?`<div style="overflow-x:auto;margin-top:8px"><table class="mono" style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr class="dim"><th align="left">Piece</th><th align="left">Post</th><th align="left">Trend · score</th><th align="left">Path</th><th>F1X8 QC → final</th><th>Rounds</th><th align="left">Standing</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <div style="margin-top:8px">${groups}</div>
+   <div class="dim" style="font-size:10.5px;margin-top:6px">Standings are 7.2 benchmarks among mature organic posts; a median per group needs ${a.minN} ranked posts. ${a.weightsWithheld?'Attribute weights are withheld until '+a.minAttributed+' posts are attributed.':''}</div>`
+   :`<div class="dim" style="font-size:12px;margin-top:6px">0 linked posts — attribution starts when approved finals are linked to their published posts ("Published as" on the final).</div>`}
+ </div>`;
+}
 function rPerformance(){
  PF_NOVIEWS=viewsNotCollected(SENTI.posts||[]);
  if(SENTI.posts.length){
@@ -4528,6 +4554,7 @@ function rPerformance(){
   ${rBenchPanel()}
   ${s.coverageLow?`<div class="card p4" style="margin-bottom:14px;border-color:rgba(230,194,107,.45)">${sentiCoverageWarn(s)}<div class="dim" style="font-size:10.5px;margin-top:3px">Sentiment rates, product sentiment and the weekly trend below describe the analysed comments only.</div></div>`:''}
   ${rThemes()}
+  ${rAttribution()}
   ${rReviewsDash(list,s)}
   ${rSentimentSection(list)}
  </section>`;
