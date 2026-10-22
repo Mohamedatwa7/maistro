@@ -1732,6 +1732,7 @@ function applyServerPieces(pieces){
   }
   for(const k of kinds){
    const st=sp.stages[k];
+   p.stale=p.stale||{};if(st.stale&&st.stale.length)p.stale[k]=st.stale;else delete p.stale[k];
    if(k!=='plan'){p[k]=st.version.payload;p.stage=Math.max(p.stage||1,Math.min((BOT_STAGE_IDX[k]||0)+1,7))}
    if(k==='plan')continue;
    const id='d-'+p.id+'-'+k;
@@ -3746,6 +3747,14 @@ function stageArtifact(p,n){
  const head=(extra='')=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
    <div style="display:flex;align-items:center;gap:10px">${agentChip(s.agent,n===p.stage)}<div><h3 style="font-size:15.5px">0${n} · ${s.l}</h3><span class="dim" style="font-size:11px">${s.d}</span></div></div>${extra}</div>`;
  /* Studio-built campaigns: every piece is creatable in place, in any order */
+ const staleNote=p.stale&&p.stale[s.id]?`<div class="pc-note" style="margin-bottom:10px;border-color:rgba(251,113,133,.45)"><b style="color:#fda4af">Out of date.</b> This ${esc(s.l.toLowerCase())} was built from an older ${p.stale[s.id].map(k=>esc((STAGES[BOT_STAGE_IDX[k]-1]||{l:k}).l||k).toLowerCase()).join(' and ')} — regenerate it from the current version before approving (approval is refused while it is stale).</div>`:'';
+ if(staleNote)return staleNote+stageArtifactInner(p,n);
+ return stageArtifactInner(p,n);
+}
+function stageArtifactInner(p,n){
+ const s=STAGES[n-1];
+ const head=(extra='')=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+   <div style="display:flex;align-items:center;gap:10px">${agentChip(s.agent,n===p.stage)}<div><h3 style="font-size:15.5px">0${n} · ${s.l}</h3><span class="dim" style="font-size:11px">${s.d}</span></div></div>${extra}</div>`;
  if(p.studio&&s.id==='qc'&&p.qc&&p.qc.report)return head(badge('go','QC REPORT · '+esc(p.qc.version||'')))+rQcPlan(p,n<p.stage);
  if(p.studio&&s.id==='qc')return head(p.qc&&p.qc.real&&p.qc.avg!=null?badge('go','F1X8 · ANALYZED'):badge('ai','F1X8 · LIVE'))+rQcConsole(p);
  if(p.studio&&!p[s.id])return head(badge('gold','READY TO CREATE'))+genBox(p,s.id);

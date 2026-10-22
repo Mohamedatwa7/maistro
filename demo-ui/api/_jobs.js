@@ -134,7 +134,7 @@ async function advance(job) {
         if (job.kind.startsWith('higgsfield') && job.estimate_usd == null && !job.payload.budgetChecked) {
           const gate = await budgetGate(job);
           if (gate.refuse) { if (gate.estimateUsd != null) { await patchRows('jobs', `id=eq.${q(job.id)}`, { estimate_usd: gate.estimateUsd }); job = { ...job, estimate_usd: gate.estimateUsd }; } await fail(job, 'failed', gate.refuse); return 'failed'; }
-          job = { ...job, estimate_usd: gate.estimateUsd, payload: { ...job.payload, budgetChecked: true, ...(gate.warning ? { budgetWarning: gate.warning } : {}) } };
+          job = { ...job, estimate_usd: gate.estimateUsd, payload: { ...job.payload, budgetChecked: true, estimateBasis: gate.basis, ...(gate.warning ? { budgetWarning: gate.warning } : {}) } };
           await patchRows('jobs', `id=eq.${q(job.id)}`, { estimate_usd: gate.estimateUsd, payload: job.payload });
         }
         // 6.6: a clip job names its keyframe by private path; the signed URL is minted once
@@ -288,14 +288,24 @@ async function pieceBudget(pieceId) {
 }
 
 async function budgetGate(job) {
-  let estimateUsd = null;
-  try { const e = await higgsfield.estimateRequest({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }); estimateUsd = e ? Math.round(e.usd * 10000) / 10000 : null; }
-  catch (e) { console.warn('[jobs] estimate failed:', e.message); }
+  // price: the provider estimate for the exact body; when the path has none (v1 reference) or the call
+  // fails, the last observed estimate for the same kind, else MAISTRO_UNPRICED_USD (default $1.00) —
+  // an unpriced render never escapes the cap
+  let estimateUsd = null, basis = 'provider estimate';
+  try { const e = await higgsfield.estimateRequest({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }); estimateUsd = e ? Math.round(e.usd * 10000) / 10000 : null; if (!e) basis = 'no estimate endpoint (v1 reference path)'; }
+  catch (e) { basis = `estimate failed: ${String(e.message || e).slice(0, 80)}`; console.warn('[jobs] estimate failed:', e.message); }
+  if (estimateUsd == null) {
+    const last = await queryRows('jobs', `select=estimate_usd&kind=eq.${q(job.kind)}&estimate_usd=not.is.null&order=created_at.desc&limit=1`).catch(() => []);
+    estimateUsd = last[0] ? Number(last[0].estimate_usd) : Number(process.env.MAISTRO_UNPRICED_USD || 1);
+    basis += last[0] ? ' → last observed price for this kind' : ' → conservative fallback';
+  }
+  // reserve first, then compare: jobs gated at the same time in other invocations see each other
+  await patchRows('jobs', `id=eq.${q(job.id)}`, { estimate_usd: estimateUsd });
   const b = await pieceBudget(job.piece_id);
-  const after = b.spentUsd + b.committedUsd + (estimateUsd || 0);
-  if (estimateUsd != null && b.capUsd > 0 && after > b.capUsd) return { refuse: `budget cap: this render (~$${estimateUsd.toFixed(2)}) would take the piece to $${after.toFixed(2)} of its $${b.capUsd.toFixed(2)} cap — raise the budget to continue`, estimateUsd };
+  const after = Math.round((b.spentUsd + b.committedUsd) * 10000) / 10000; // includes this job (queued, reserved)
+  if (b.capUsd > 0 && after > b.capUsd) return { refuse: `budget cap: this render (~$${estimateUsd.toFixed(2)}, ${basis}) would take the piece to $${after.toFixed(2)} of its $${b.capUsd.toFixed(2)} cap — raise the budget to continue`, estimateUsd, basis };
   const warning = b.capUsd > 0 && after >= b.capUsd * b.warnPct / 100 ? `piece at $${after.toFixed(2)} of $${b.capUsd.toFixed(2)} (${Math.round(after / b.capUsd * 100)} %)` : null;
-  return { estimateUsd, warning };
+  return { estimateUsd, basis, warning };
 }
 
 /** 6.5: change a version's `payload.shots` under an optimistic revision. Readers that run

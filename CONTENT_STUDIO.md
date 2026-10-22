@@ -131,7 +131,17 @@ Open: one export aspect per piece (a second platform aspect is a re-assembly at 
 | Actual cost recorded | `generation_records.cost_usd` = the estimate for a render that produced output, $0 for failed / moderated / refused renders (Higgsfield does not charge those) | `jobRecord` |
 | Per-piece budget, warning, hard cap | `content_pieces.budget_usd` (default `MAISTRO_PIECE_BUDGET_USD`, builder default $25) and `budget_warn_pct` (80); spent = succeeded renders, committed = queued/running; a render that would cross the cap is **refused before submission** with the numbers; crossing the threshold puts a warning on the job; `POST /api/studio {action:'budget'}` (line manager / admin) changes it, audit-logged; `GET ?budget=` reads it; the create box shows it | `api/_handlers/studio.js`, `index.html budgetLine()` |
 
-The owner sets the real default budget (owner gate).
+Hardening (checker findings): an unpriced render (v1 reference path, or a failed estimate call) is charged at the last observed estimate for its kind, else `MAISTRO_UNPRICED_USD` ($1.00), so it never escapes the cap; the estimate is **reserved on the job before** the comparison, so renders gated at the same time in different invocations count each other (the safe failure is that both are refused). The owner sets the real default budget (owner gate).
+
+### Lineage and stage invalidation
+
+| Rule | What |
+|---|---|
+| What a stage is built from | `CONSUMES` (domain): mood ← plan, thumb ← mood, brief ← mood + thumb, board ← brief + mood, draft ← board, qc ← draft, final ← qc + draft |
+| Lineage | Every version records `inputs` = the current version id of each consumed stage at the moment it was recorded (migration 016) — with the shot-level references (keyframe → clip, draft → final, QC version → final) this traces a final back to its trend |
+| Stale | `staleStages()` (pure, unit-tested): a stage whose recorded input is no longer that stage's current version, **or** whose input is itself stale (propagates in pipeline order); versions from before 016 carry no inputs and are never claimed stale |
+| Enforcement | Approving a stale version → 409 `stale_inputs` naming the out-of-date inputs; the delivery package refuses while any stage is stale; approved stages stay immutable (an admin reopen is the only way to change one, and everything built on it then shows stale) |
+| UI | `listPieces` exposes `stale` per stage; the Studio shows an "Out of date" note on the stage naming what changed |
 
 ## Open owner inputs (collected from the seed's `gaps`)
 

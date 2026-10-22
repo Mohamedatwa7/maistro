@@ -101,6 +101,35 @@ function transition(kind, from, t) {
   }
 }
 
+/** What each rebuilt Studio stage is BUILT FROM (6.9 lineage + invalidation). Distinct from
+ *  prerequisites(): the legacy page may generate in any order, but a version always records the
+ *  upstream versions that existed when it was made. */
+const CONSUMES = { plan: [], mood: ["plan"], thumb: ["mood"], brief: ["mood", "thumb"], board: ["brief", "mood"], draft: ["board"], qc: ["draft"], final: ["qc", "draft"] };
+
+/** Stale stages: a stage whose current version recorded an input version that is no longer that
+ *  input stage's current version. Pure. `stages` = [{kind, current_version_id}], `inputsById` =
+ *  Map(versionId → inputs object | null). Returns [{kind, because: [{kind, built, current}]}]. */
+function staleStages(stages, inputsById) {
+  const cur = new Map(stages.map((s) => [s.kind, s.current_version_id || null]));
+  const byKind = new Map(stages.map((s) => [s.kind, s]));
+  const stale = new Map();
+  // in pipeline order, so staleness propagates: a stage built from a stale (out-of-date) upstream is stale too
+  for (const kind of STAGE_KINDS) {
+    const s = byKind.get(kind);
+    if (!s || !s.current_version_id) continue;
+    const inputs = inputsById.get(s.current_version_id);
+    if (!inputs) continue; // versions from before 016 carry no inputs: never claimed stale
+    const because = [];
+    for (const [k, vid] of Object.entries(inputs)) {
+      if (!vid) continue;
+      if (cur.get(k) !== vid) because.push({ kind: k, built: vid, current: cur.get(k) || null });
+      else if (stale.has(k)) because.push({ kind: k, built: vid, current: vid, via: stale.get(k).map((b) => b.kind) });
+    }
+    if (because.length) stale.set(kind, because);
+  }
+  return [...stale.entries()].map(([kind, because]) => ({ kind, because }));
+}
+
 /** Piece status derived from its stages (never stored independently). */
 function pieceStatus(stages) {
   const state = new Map(stages.map((s) => [s.kind, s.state]));
@@ -110,4 +139,4 @@ function pieceStatus(stages) {
   return "in_production";
 }
 
-module.exports = { STAGE_KINDS, STAGE_STATES, ORIGINS, ROLES, FINAL_APPROVER_ROLES, STAGE_APPROVER_ROLES, stagePosition, prerequisites, prerequisitesMet, readyStages, transition, pieceStatus };
+module.exports = { STAGE_KINDS, STAGE_STATES, ORIGINS, ROLES, FINAL_APPROVER_ROLES, STAGE_APPROVER_ROLES, CONSUMES, stagePosition, prerequisites, prerequisitesMet, readyStages, transition, pieceStatus, staleStages };

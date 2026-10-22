@@ -47,7 +47,7 @@ test('budget: estimate = the submitted body; warning at 80 %; refusal past the c
   } finally { f.restore(); jobs.restore(); pieces.restore(); studio.restore(); }
 });
 
-test('budget: the v1 reference path has no estimate endpoint — the job is submitted unpriced, never blocked by a missing price', async () => {
+test('budget: the v1 reference path has no estimate endpoint — it is charged at the last observed price or a conservative fallback, so it never escapes the cap', async () => {
   const pg = fakePostgrest();
   const f = mockFetch([
     [/api\.higgsfield\.ai\/estimate\//, () => { throw new Error('must not price the v1 path'); }],
@@ -58,7 +58,8 @@ test('budget: the v1 reference path has no estimate endpoint — the job is subm
   try {
     let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-bud2', stage: 'plan', artifact: { title: 'B', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] } } }), r);
     r = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-bud2', stage: 'thumb', kind: 'higgsfield_image', payload: { prompt: 'p', aspect_ratio: '9:16', ref: 'https://sb.test/storage/v1/object/public/refs/x.jpg' } } }), r);
-    assert.equal(r.body.job.state, 'running', JSON.stringify(r.body.job)); assert.equal(r.body.job.estimateUsd, null);
+    assert.equal(r.body.job.state, 'running', JSON.stringify(r.body.job)); assert.equal(r.body.job.estimateUsd, 1, 'no estimate endpoint → the conservative fallback, so it still counts');
+    assert.match(pg.tables.jobs[0].payload.estimateBasis, /v1 reference path\) → conservative fallback/);
   } finally { f.restore(); jobs.restore(); pieces.restore(); }
 });
 
@@ -70,4 +71,20 @@ test('page: budgetLine shows spent + in progress against the cap, coloured at th
     const html = X.budgetLine({ id: 'gen-b' });
     assert.match(html, /b-gold">BUDGET \$8\.50 \/ \$10\.00 · 85 %/); assert.match(html, /\$6\.00 spent · \$2\.50 rendering · warns at 80 %/);
   } finally { X.restore(); }
+});
+
+test('budget: the estimate is reserved before the comparison — two renders gated together cannot both slip under the cap', async () => {
+  const pg = fakePostgrest();
+  const f = mockFetch([[/api\.higgsfield\.ai\/estimate\//, () => json({ usd: 1.2, credits: 1 })], [/\/higgsfield-ai\/soul\/v2\/standard$/, () => json({ status: 'queued', request_id: 'res00001x', status_url: 'x', cancel_url: 'y' })], pg.route]);
+  const jobs = api('jobs.js', ENV); const pieces = api('pieces.js', ENV);
+  try {
+    let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-bud3', stage: 'plan', artifact: { title: 'B', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] } } }), r);
+    const piece = pg.tables.content_pieces[0]; const stage = pg.tables.stages.find((s) => s.kind === 'board');
+    const mk = (n) => ({ id: `0000000${n}-aaaa-bbbb-cccc-dddddddddddd`, piece_id: piece.id, stage_id: stage.id, kind: 'higgsfield_image', state: 'queued', attempts: 0, created_at: new Date().toISOString(), next_poll_at: new Date(Date.now() - 1000).toISOString(), provider_ref: null, estimate_usd: null, payload: { pieceId: 'gen-bud3', stage: 'board', prompt: `p${n}`, aspect_ratio: '9:16', resolution: '1080p' } });
+    pg.tables.jobs = [mk(1), mk(2)];
+    const { advance } = require('../../api/_jobs.js');
+    const states = await Promise.all(pg.tables.jobs.map((j) => advance({ ...j })));
+    assert.ok(states.includes('failed'), `$2.40 > $2.00: at least one of the two parallel renders is refused (${states})`);
+    const ok = pg.tables.jobs.filter((j) => j.state !== 'failed'); assert.ok(ok.length <= 1);
+  } finally { f.restore(); jobs.restore(); pieces.restore(); }
 });

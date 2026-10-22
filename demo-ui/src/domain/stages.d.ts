@@ -35,3 +35,5 @@ export type TransitionResult = { ok: true; next: StageState } | { ok: false; cod
 
 export declare function transition(kind: StageKind, from: StageState, t: Transition): TransitionResult;
 export declare function pieceStatus(stages: StageSnapshot[]): "planning" | "in_production" | "in_review" | "approved";
+export declare const CONSUMES: Record<StageKind, StageKind[]>;
+export declare function staleStages(stages: { kind: StageKind; current_version_id: string | null }[], inputsById: Map<string, Record<string, string> | null>): { kind: StageKind; because: { kind: StageKind; built: string; current: string | null }[] }[];

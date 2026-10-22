@@ -78,9 +78,21 @@ async function recordVersion(legacyId, stage, payload, opts = {}) {
   const kind = VERSION_KINDS.includes(opts.kind) ? opts.kind : artifactKind(stage, payload);
   const last = await queryRows('artifact_versions', `select=version&stage_id=eq.${q(s.id)}&order=version.desc&limit=1`);
   const version = (last[0] ? last[0].version : 0) + 1;
-  const [v] = await insertRows('artifact_versions', [{ stage_id: s.id, version, kind, payload, produced_by: producedBy, job_id: opts.jobId || null, generated_by: opts.generatedBy || null }], { returning: true });
+  // 6.9 lineage: the upstream versions this one is built from (current at the time of recording)
+  const { CONSUMES } = require('../src/domain/stages.js');
+  const inputs = {};
+  for (const k of CONSUMES[stage] || []) { const u = stages.find((x) => x.kind === k); if (u && u.current_version_id) inputs[k] = u.current_version_id; }
+  const [v] = await insertRows('artifact_versions', [{ stage_id: s.id, version, kind, payload, produced_by: producedBy, job_id: opts.jobId || null, generated_by: opts.generatedBy || null, inputs }], { returning: true });
   await patchRows('stages', `id=eq.${q(s.id)}`, { current_version_id: v.id, state: 'generated' });
   return { pieceId: piece.id, legacyId, stage, versionId: v.id, version, state: 'generated' };
+}
+
+/** Stale stages of a piece (6.9): reads the current versions' recorded inputs. */
+async function staleFor(stages) {
+  const { staleStages } = require('../src/domain/stages.js');
+  const vids = stages.map((s) => s.current_version_id).filter(Boolean);
+  const rows = vids.length ? await queryIn('artifact_versions', 'id,inputs', 'id', vids) : [];
+  return staleStages(stages, new Map(rows.map((r) => [r.id, r.inputs || null])));
 }
 
 /** Record an approval or rejection on the stage's current version, under the
@@ -119,6 +131,12 @@ async function decide(legacyId, stage, d = {}) {
   const t = decision === 'approved'
     ? { type: 'approve', role, approverId: d.actorId || null, generatedBy: version.generated_by || null, documents: { line_manager: docOk(docs.line_manager), adlcp: docOk(docs.adlcp) } }
     : { type: 'reject', reason: String(d.reason || '') };
+  // 6.9 invalidation: a version built from an upstream version that has since been replaced cannot be approved
+  if (decision === 'approved') {
+    const st = await staleFor(stages);
+    const mine = st.find((x) => x.kind === stage);
+    if (mine) throw new StoreError(409, 'stale_inputs', `${stage} was built from an older ${mine.because.map((b) => b.kind).join(' and ')} — regenerate it from the current version first`);
+  }
   const r = transition(stage, s.state, t);
   if (!r.ok) throw new StoreError(409, r.code, r.message);
 
@@ -170,7 +188,7 @@ async function listPieces(limit = 100) {
   const ids = pieces.map((p) => p.id);
   const stages = await queryIn('stages', 'id,piece_id,kind,state,position,current_version_id,updated_at', 'piece_id', ids);
   const vids = stages.map((s) => s.current_version_id).filter(Boolean);
-  const versions = await queryIn('artifact_versions', 'id,version,kind,payload,produced_by,generated_by,created_at', 'id', vids);
+  const versions = await queryIn('artifact_versions', 'id,version,kind,payload,produced_by,generated_by,created_at,inputs', 'id', vids);
   const approvals = await queryIn('approvals', 'artifact_version_id,decision,reason,reason_code,details,name_as_signed,role_as_signed,decided_at', 'artifact_version_id', vids, '&order=decided_at.desc');
   const docs = await queryIn('adlcp_documents', 'artifact_version_id,kind,storage_path,sha256,size_bytes,content_type,uploaded_at', 'artifact_version_id', vids);
   const vById = new Map(versions.map((v) => [v.id, v]));
@@ -189,7 +207,14 @@ async function listPieces(limit = 100) {
         version: v ? { id: v.id, n: v.version, kind: v.kind, payload: v.payload, producedBy: v.produced_by, at: v.created_at } : null,
         decision: a ? { decision: a.decision, reason: a.reason, reasonCode: a.reason_code || null, details: a.details || null, name: a.name_as_signed, role: a.role_as_signed, at: a.decided_at } : null,
         documents: v ? docsByVersion.get(v.id) || null : null,
+        inputs: v ? v.inputs || null : null,
       };
+    }
+    // 6.9: which stages were built from a replaced upstream version
+    {
+      const { staleStages } = require('../src/domain/stages.js');
+      const st = staleStages(mine.map((s) => ({ kind: s.kind, current_version_id: s.current_version_id })), new Map(mine.filter((s) => s.current_version_id).map((s) => [s.current_version_id, (vById.get(s.current_version_id) || {}).inputs || null])));
+      for (const x of st) if (out[x.kind]) out[x.kind].stale = x.because.map((b) => b.kind);
     }
     return {
       id: p.legacy_id || p.id, pieceId: p.id, title: p.title, product: p.product, msg: p.key_message, angle: p.angle,
@@ -199,4 +224,4 @@ async function listPieces(limit = 100) {
   });
 }
 
-module.exports = { StoreError, ensurePiece, recordVersion, decide, reopen, listPieces, getPiece, artifactKind };
+module.exports = { staleFor, StoreError, ensurePiece, recordVersion, decide, reopen, listPieces, getPiece, artifactKind };

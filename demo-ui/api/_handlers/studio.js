@@ -249,6 +249,7 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok: true, job });
       }
       // final-package: only from an approved final (line-manager + ADLCP documents on that exact version)
+      { const { staleFor } = require('../_store.js'); const stale = await staleFor(st.length ? await queryRows('stages', `select=kind,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}`) : []); if (stale.length) return res.status(409).json({ error: `stale stages: ${stale.map((x) => `${x.kind} (built from an older ${x.because.map((b) => b.kind).join('/')})`).join(', ')}`, code: 'stale_inputs', stale }); }
       if (S('final').state !== 'approved') return res.status(409).json({ error: 'the final must be approved with the line-manager and ADLCP documents first', code: 'prerequisites' });
       const docs = await queryRows('adlcp_documents', `select=kind,sha256&artifact_version_id=eq.${encodeURIComponent(fv.id)}`);
       if (!['line_manager', 'adlcp'].every((k) => docs.some((d) => d.kind === k))) return res.status(409).json({ error: 'the ADLCP documents are not linked to this final version', code: 'documents_required' });
