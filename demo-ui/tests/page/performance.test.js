@@ -6,10 +6,10 @@ const { fixture, loadPage, json } = require('../helpers');
 const track = fixture('track-14d.json');
 const snap = fixture('sentiment-snapshot.json');
 
-function pageWith({ track14 = track, track7 = null, track60 = null, snapshot = snap, bench = null } = {}) {
+function pageWith({ track14 = track, track7 = null, track60 = null, snapshot = snap, bench = null, handled = null } = {}) {
   const fetchImpl = async (url) => {
     const u = String(url);
-    const pick = u.includes('benchmarks=1') ? bench : u.includes('/api/sentiment') ? snapshot : u.includes('days=14') ? track14 : u.includes('days=7') ? track7 : u.includes('days=60') ? track60 : null;
+    const pick = u.includes('handled=1') ? handled : u.includes('benchmarks=1') ? bench : u.includes('/api/sentiment') ? snapshot : u.includes('days=14') ? track14 : u.includes('days=7') ? track7 : u.includes('days=60') ? track60 : null;
     if (!pick) throw new Error('down');
     return json(pick);
   };
@@ -149,5 +149,28 @@ test('7.2 benchmark panel: the server\'s cells as computed (no statistic derived
     // the headline ER is a nearest-rank median over posts with ≥ 500 views, never a mean
     const s = X.pfStats([{ platform: 'tiktok', metrics: { views: 1000, er: 0.01 } }, { platform: 'tiktok', metrics: { views: 1000, er: 0.02 } }, { platform: 'tiktok', metrics: { views: 1000, er: 0.9 } }, { platform: 'tiktok', metrics: { views: 100, er: 0.5 } }]);
     assert.equal(s.medEr, 0.02); assert.equal(s.ers.length, 3);
+  } finally { X.restore(); }
+});
+
+test('7.1 decisions strip and "handled": the page key equals the server key for every copy of a comment; flagged rows offer the mark; the strip counts flagged vs handled and says boost is not yet supportable', async () => {
+  const path = require('node:path');
+  const { commentKey } = require(path.join(__dirname, '..', '..', 'api', '_handlers', 'sentiment.js'));
+  const c = { postId: 'instagram-p1', author: 'Amal', text: 'I want a refund, the screen broke!!', at: '2026-10-21T08:00:00Z', platform: 'instagram' };
+  const key = commentKey(c);
+  const X = pageWith({ handled: { handled: { [key]: { handled: true, by: 'Rev', at: '2026-10-21T09:00:00Z' } }, rows: 1 } });
+  try {
+    await new Promise((r) => setTimeout(r, 80));
+    for (const v of [c, { ...c, postId: 'p1', text: 'I want a refund the screen broke', author: ' amal ' }, { ...c, text: 'I want a refund, the screen broke!! @samsunggulf' }]) assert.equal(X.handledKey(v), commentKey(v), JSON.stringify(v));
+    assert.equal(X.handledKey({ ...c, text: '' }), commentKey({ ...c, text: '' }), 'blank text keyed by time on both sides');
+    X.loadHandled && (await X.loadHandled());
+    const row = X.rCommentRow(c);
+    assert.match(row, /✓ HANDLED/); assert.match(row, /by Rev/);
+    const other = X.rCommentRow({ ...c, author: 'sara' });
+    assert.match(other, /Mark handled/, 'a flagged comment nobody handled offers the mark');
+    assert.doesNotMatch(X.rCommentRow({ ...c, author: 'zed', text: 'nice phone' }), /Mark handled/, 'unflagged comments carry no control');
+    const strip = X.rDecisions([{ postId: 'instagram-p1', platform: 'instagram', comments: [c, { ...c, author: 'sara' }, { ...c, author: 'zed', text: 'nice phone' }] }], {});
+    assert.match(strip, /2 flagged comments · 1 handled/);
+    assert.match(strip, /Boost<\/span><div[^>]*>Not yet supportable/);
+    assert.match(strip, /Mapped from caption text/);
   } finally { X.restore(); }
 });

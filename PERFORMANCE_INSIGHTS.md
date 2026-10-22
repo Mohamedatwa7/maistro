@@ -4,6 +4,18 @@ Status 2026-10-22: §2 (benchmarks, 7.2) is implemented as `GET /api/track?bench
 tests in `tests/perf/benchmarks.test.js`). The page panel, §1 (decisions, 7.1) and §3–§6 (7.3–7.6) follow.
 Every number here is computed in code from the tracker's rows and Maistro's daily snapshots, never by a model.
 
+## 1. The decisions the page supports (7.1) — builder default, owner to amend
+
+A strip at the top of Performance names each decision, its state and its evidence.
+
+| Decision | Supported by | Missing / caveat |
+|---|---|---|
+| D-a **Respond** — which comments need a reply now | flagged comments (critical alerts) with a **handled** mark: append-only rows in `audit_log` (`comment.handled` / `comment.unhandled`, who, when, note). The key is post + author + message (the twin-collapse message key), so twins and re-collected duplicates share it. | **ASSUMPTION — owner to confirm:** there is no "responder" role, so **reviewers** (plus line managers and admins) mark comments handled; a dedicated role needs a migration and an ADR-003 amendment. Under the interim password session the mark records "password session (no member sign-in)", not a person. |
+| D-b **Boost** — which young post to put money behind | — | **Not yet supportable.** Benchmarks for posts under 7 days need n ≥ 20 per band; the strip and panel give the expected dates. |
+| D-c **Format & platform mix** | mature benchmark cells (§2) | A benchmark for the next plan, not a boost signal; the call is the owner's. |
+| D-d **Product sentiment** | comments by device | **Mapped from caption text**: a comment counts for the device its post's caption names. The share of comments on posts naming no device is shown, and each device shows its analysed n, so a device with few mapped comments is not read as low praise. |
+| D-e **Trust the numbers** | per-platform data-as-of pills; "no recent data" | Facebook and X stale since 2026-10-16 (tracker collection). |
+
 ## 2. Benchmarks (7.2) — definitions, settled with the checker on 2026-10-22
 
 | # | Rule | Why |

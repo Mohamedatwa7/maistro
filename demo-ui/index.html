@@ -3272,6 +3272,38 @@ function trBits(text){
  return `<div style="margin-top:4px;padding:6px 10px;border-left:2px solid rgba(125,211,252,.4);background:rgba(125,211,252,.04);border-radius:0 8px 8px 0;font-size:12px;line-height:1.55;color:var(--text)"><span class="mono" style="font-size:8.5px;color:#7dd3fc;letter-spacing:.08em">${esc((t.lang||'').toUpperCase())} → EN</span><br>${esc(t.text)}</div>`;
 }
 /* shared comment row — dashboard sections, feeds, and KPI drill-downs */
+/* 7.1 D-a — "handled": a reviewer, line manager or admin marks a comment answered. The key is the post, the
+   author and the message (sentiKey without its blank counter), the same as the server's commentKey, so every
+   copy of the comment — twins, re-collected duplicates — shares the mark. History is append-only on the server. */
+const HANDLED={data:null,busy:false,denied:false};
+function handledKey(c){
+ const pid=sentiId({postId:c.postId}),k=sentiKey(c);
+ return k.startsWith('\u0000blank')?`${pid}|${String(c.author||'').trim().toLowerCase()}|blank|${c.at||''}`:`${pid}|${k}`;
+}
+async function loadHandled(){
+ if(HANDLED.busy||HANDLED.data||HANDLED.denied)return;HANDLED.busy=true;
+ try{const r=await authFetch('/api/sentiment?handled=1');const d=await r.json().catch(()=>({}));if(r.ok&&d.handled)HANDLED.data=d.handled;else HANDLED.denied=true}
+ catch(e){HANDLED.denied=true}
+ finally{HANDLED.busy=false;if(HANDLED.data)trRefresh()}
+}
+async function markHandled(btn){
+ const c=JSON.parse(btn.dataset.c||'{}');const on=btn.dataset.on==='1';btn.disabled=true;
+ try{
+  const r=await authFetch('/api/sentiment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'comment-handled',postId:c.postId,author:c.author,text:c.text,at:c.at,platform:c.platform,handled:on})});
+  const d=await r.json().catch(()=>({}));
+  if(r.ok){HANDLED.data=HANDLED.data||{};HANDLED.data[d.key]={handled:on,by:d.by,at:new Date().toISOString()};trRefresh()}
+  else{btn.disabled=false;btn.title=d.error||('not saved ('+r.status+')');btn.textContent='Not saved'}
+ }catch(e){btn.disabled=false}
+}
+function handledBit(c){
+ if(!c.postId)return '';
+ if(!HANDLED.data){loadHandled();return ''}
+ const h=HANDLED.data[handledKey(c)];
+ const payload=esc(JSON.stringify({postId:c.postId,author:c.author||'',text:c.text||'',at:c.at||null,platform:c.platform||null}));
+ return h&&h.handled
+  ?`<span class="mono" style="font-size:9px;color:var(--go);border:1px solid currentColor;border-radius:99px;padding:1px 7px;margin-left:5px" title="${esc('by '+(h.by||'?')+' · '+String(h.at||'').slice(0,16).replace('T',' ')+' UTC')}">✓ HANDLED</span><button class="btn ghost" style="font-size:9px;padding:0 6px;margin-left:4px" data-c="${payload}" data-on="0" onclick="event.stopPropagation();markHandled(this)">undo</button>`
+  :`<button class="btn ghost" style="font-size:9px;padding:0 6px;margin-left:5px" data-c="${payload}" data-on="1" onclick="event.stopPropagation();markHandled(this)">Mark handled</button>`;
+}
 function rCommentRow(c){
  const fl=stFlags(c.text);
  return `
@@ -3281,6 +3313,7 @@ function rCommentRow(c){
     <span dir="auto" style="color:var(--text);unicode-bidi:plaintext"> ${esc(c.text||'')}</span>
     ${c.likes!=null?`<span class="mono dim" style="font-size:10px"> · ${fmt(c.likes)} ♥</span>`:''}${c.across>1?`<span class="mono dim" style="font-size:9px;margin-left:5px">× ${c.across} POSTS</span>`:''}
     ${fl.map(f=>`<span class="mono" style="font-size:9px;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-left:5px">⚑ ${f.l.toUpperCase()}</span>`).join('')}
+    ${fl.length||(HANDLED.data&&HANDLED.data[handledKey(c)])?handledBit(c):''}
     ${trBits(c.text)}
    </div>${sentiBadge(c.sentiment)}</div>`;
 }
@@ -3368,9 +3401,10 @@ function rReviewsDash(list,s){
  const hasTrend=weeks.some(w=>w.tot);
 
  /* 4 — product performance by model */
- const models={};
+ const models={};let unmappedC=0,allC=0;
  for(const p of list){
-  const m=stDept(postText(p)).model;if(!m)continue;
+  allC+=(p.comments||[]).length;
+  const m=stDept(postText(p)).model;if(!m){unmappedC+=(p.comments||[]).length;continue}
   const e=models[m]=models[m]||{posts:0,cmts:0,pos:0,tot:0};
   e.posts++;
   for(const c of (p.comments||[])){e.cmts++;if(c.sentiment==='pos')e.pos++;if(c.sentiment)e.tot++}
@@ -3422,10 +3456,11 @@ function rReviewsDash(list,s){
 
  <div class="grid2e" style="margin-bottom:16px">
   <div class="card p5"><span class="kick accent">Product performance — comments by model</span>
+   <div class="dim" style="font-size:10.5px;margin-top:4px">Mapped from caption text: a comment counts for the device its post's caption names. ${allC?Math.round(unmappedC/allC*100):0} % of comments in view (${fmt(unmappedC)} of ${fmt(allC)}) are on posts naming no device and are not counted here; a device with few analysed comments is not low praise.</div>
    ${prodRows.length?prodRows.map(([m,e])=>`<div class="bar-row" style="margin-top:11px" title="${e.posts} posts · ${e.cmts} comments">
     <span class="lab dim mono" style="width:150px;text-align:left;font-size:10px">${esc(m.toUpperCase())}</span>
     <span class="track"><span class="fill" data-w="${e.tot?Math.round(e.pos/e.tot*100):0}%"></span></span>
-    <span class="lab mono" style="color:#fff;width:74px">${e.tot?Math.round(e.pos/e.tot*100)+'% pos':'—'}</span>
+    <span class="lab mono" style="color:#fff;width:74px">${e.tot?Math.round(e.pos/e.tot*100)+'% pos':'—'}</span><span class="lab mono dim" style="width:52px" title="comments with a sentiment">n ${fmt(e.tot)}</span>
     <span class="lab mono dim" style="width:52px">${fmt(e.cmts)}💬</span></div>`).join(''):`<p class="dim" style="font-size:12.5px;margin-top:12px">No classified products in this view.</p>`}
   </div>
   <div class="card p5"><span class="kick accent">Foldables launch pulse — Fold8 vs Flip8</span>
@@ -4356,6 +4391,26 @@ function rBenchPanel(){
   Giveaways, counted apart and never ranked: ${esc(gw||'none')}.</div>
  </div>`;
 }
+/* 7.1 — the decisions this page supports (PERFORMANCE_INSIGHTS.md §1), each with its evidence and what is missing.
+   Builder default, owner to amend. Counts come from the same functions the sections below use. */
+function rDecisions(list,s){
+ const name={x:'X',twitter:'X',tiktok:'TikTok',instagram:'Instagram',facebook:'Facebook'};
+ if(!HANDLED.data)loadHandled();
+ const flagged=allComments(list).filter(c=>stFlags(c.text).length);
+ const done=HANDLED.data?flagged.filter(c=>(HANDLED.data[handledKey(c)]||{}).handled).length:null;
+ const by=perfNewestByPlatform(),stale=Object.keys(by).filter(k=>(Date.now()-by[k])/36e5>PERF_STALE_H).map(k=>name[k]||k);
+ const b=BENCH.data;
+ const dates=b?[...new Set(Object.values(b.posts).map(e=>e.young&&e.young.expected).filter(Boolean))].sort():[];
+ const card=(t,state,tone,ev,act)=>`<div class="card p4${act?' click':''}" ${act?`onclick="${act}"`:''} style="flex:1;min-width:190px">
+   <span class="kick">${t}</span><div style="font-size:12.5px;margin-top:5px;color:${tone}">${state}</div><div class="dim" style="font-size:10.5px;margin-top:4px;line-height:1.45">${ev}</div></div>`;
+ return `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px" data-decisions>
+  ${card('Respond',flagged.length?`${fmt(flagged.length)} flagged comment${flagged.length===1?'':'s'}${done!=null?` · ${fmt(done)} handled`:''}`:'Nothing flagged in this view',flagged.length&&done!==flagged.length?'var(--alert)':'var(--go)','Critical alerts below; mark each handled (reviewer, line manager or admin). ⌕','kpiDrill(\'alerts\')')}
+  ${card('Boost','Not yet supportable','var(--gold,#e6c26b)',`Boosting pays in the first 24–72 h; benchmarks for posts under 7 days need n ≥ 20 per band${dates.length?` — expected from ${esc(dates[0])}`:''}.`,'')}
+  ${card('Format & platform mix',b?'Benchmarks among mature posts':'Benchmarks loading…','var(--text)','Which formats and platforms earn engagement — a benchmark for the next plan, not a boost signal.','')}
+  ${card('Product sentiment','Mapped from caption text','var(--text)','Which device draws praise or complaints; posts naming no device are not counted (share shown below).','')}
+  ${card('Trust the numbers',stale.length?`Stale: ${esc(stale.join(', '))}`:'All platforms fresh',stale.length?'var(--alert)':'var(--go)',`Data older than ${PERF_STALE_H} h is marked stale; act on fresh platforms only.`,'')}
+ </div>`;
+}
 function rPerformance(){
  PF_NOVIEWS=viewsNotCollected(SENTI.posts||[]);
  if(SENTI.posts.length){
@@ -4371,6 +4426,7 @@ function rPerformance(){
  <section>
   <div class="section-head"><div><span class="kick accent">04 · The loop closes here · samsungtrack</span><h2>Performance</h2></div>
    ${perfAgePill()}<span class="pill"><span class="dot"></span>CONSUMER SENTIMENT TRACKER · ${SENTI.track?'LIVE':'SNAPSHOT'}</span></div>
+  ${rDecisions(list,s)}
   <div class="kpis c4" style="margin-bottom:12px">
    <div class="card kpi p4 click" onclick="kpiDrill('posts')" title="Click to see the posts behind this number"><span class="kick">Posts</span><div class="v num">${s.posts}</div><div class="hint">${dayLab} · our accounts${pf.plat!=='all'?' · '+(PLAT[pf.plat]?PLAT[pf.plat].n:pf.plat):''} · ⌕</div></div>
    <div class="card kpi p4 click" onclick="kpiDrill('views')" title="Click to see the top posts by views"><span class="kick">Total views</span><div class="v num">${fmt(s.views)}</div><div class="hint">${dayLab}${s.viewsNotCollected.length?' · excludes '+s.viewsNotCollected.map(k=>({x:'X',twitter:'X',facebook:'Facebook',tiktok:'TikTok',instagram:'Instagram'}[k]||k)).join(', ')+' (views not collected)':''} · ⌕</div></div>

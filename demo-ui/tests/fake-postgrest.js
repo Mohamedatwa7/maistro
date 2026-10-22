@@ -70,7 +70,7 @@ function fakePostgrest(base = 'https://sb.test') {
   }
   function defaults(table, row) {
     const r = { ...row };
-    if (!r.id) r.id = crypto.randomUUID();
+    if (!r.id) r.id = table === 'audit_log' ? (tables.audit_log || []).length + 1 : crypto.randomUUID(); // audit_log: bigint identity, as in 005
     if (table === 'content_pieces') { r.created_at = r.created_at || now(); r.updated_at = now(); }
     if (table === 'stages') { r.state = r.state || 'locked'; r.current_version_id = r.current_version_id || null; r.updated_at = now(); }
     if (table === 'artifact_versions') r.created_at = now();
