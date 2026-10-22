@@ -860,6 +860,16 @@ Status: **PASSED** by checker. CI green; both hosts report `revision: d78a0f8` w
 - The backup list now has an explicit EXCLUDED list, and a test fails if any `create table` in the migrations is in neither list or in both.
 - Definition of Done gaps stated honestly: no one-command local run, content quality not measurable without renders (owner's no-spend rule), lineage on real data waits on migration 018, an incomplete environment-variable table in the README. The builder takes the last and the local run next.
 
+## One-command local run and the README environment table (commit 0b98ae9; released through the gate) — rebuild programme complete
+
+Status: **PASSED** by checker. CI green; both hosts report `revision: 0b98ae9` with the page byte-identical; local 237/237; the checker ran the local-run test on its own (pass).
+
+- `npm run local` serves the page and all 20 routes against fakes (the test database fake, the recorded tracker data with dates shifted to yesterday, the recorded Trend Radar feed); Anthropic, Higgsfield, F1X8, storage, Sprinklr and member sign-in answer 503 locally, renders are forced off, and real keys in the shell are dropped. A test starts it on a random port and checks the page, the session gate, password login, the dropped keys, fresh fixture dates and the refused render.
+- README: the local run, a table of every environment variable (29 rows) with defaults, release, rollback and migrate, and the route map; stale lines removed.
+- FINAL_REVIEW totals updated: 34 fixed, 13 partly, 6 open, 1 owner-blocked, 3 won't fix or no defect.
+
+**The rebuild programme is complete on the builder's side.** Everything remaining is an owner action in the gate below; the Sprinklr adapter waits on the owner's credentials and go-ahead.
+
 ## [GATE] Owner items (only the user can do these)
 
 01. **Phase 12 decisions:** the account-wide daily spend ceiling (proposed $100 a day, about five 720p pieces); create a second free Supabase project for previews; an alert destination (a Slack webhook or e-mail relay); your Supabase plan's backup tier and how approval documents and assets should be backed up; GitHub production-environment secrets and you as the required release reviewer.
