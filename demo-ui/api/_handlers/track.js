@@ -494,6 +494,8 @@ module.exports = async (req, res) => {
         likes: c.likes_count ?? null,
         at: c.published_at || null,
         sentiment: SENT_MAP[c.sentiment] || lexSentiment(c.text),
+        // 7.3: whose label this is — the tracker's model, or Maistro's keyword fallback when the tracker has none
+        sentimentSource: SENT_MAP[c.sentiment] ? 'tracker' : 'lexicon',
       })).sort((a, b) => (b.likes || 0) - (a.likes || 0));
       const views = +p.views_count || 0, likes = +p.likes_count || 0,
         cn = +p.comments_count || 0, shares = +p.shares_count || 0;

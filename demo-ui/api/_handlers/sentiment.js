@@ -31,7 +31,14 @@ function commentKey({ postId, author, text, at }) {
 }
 async function handled(req, res) {
   if (!requireSession(req, res)) return;
-  const rows = await queryRows('audit_log', 'select=actor,action,after,at&action=in.(comment.handled,comment.unhandled)&order=id.desc&limit=5000');
+  // every row, paged (the database returns at most 1000 per request): a mark older than any window must not
+  // silently fall back to unhandled
+  const rows = [];
+  for (let off = 0; ; off += 1000) {
+    const page = await queryRows('audit_log', `select=actor,action,after,at&action=in.(comment.handled,comment.unhandled)&order=id.desc&limit=1000&offset=${off}`);
+    rows.push(...page);
+    if (page.length < 1000) break;
+  }
   const state = {};
   for (const r of rows) {
     const k = r.after && r.after.key;

@@ -4400,13 +4400,16 @@ function rDecisions(list,s){
  const done=HANDLED.data?flagged.filter(c=>(HANDLED.data[handledKey(c)]||{}).handled).length:null;
  const by=perfNewestByPlatform(),stale=Object.keys(by).filter(k=>(Date.now()-by[k])/36e5>PERF_STALE_H).map(k=>name[k]||k);
  const b=BENCH.data;
+ const low=b?Object.values(b.posts).filter(e=>e.standing&&e.band==='mature'&&e.standing.percentile<=25).length:null;
  const dates=b?[...new Set(Object.values(b.posts).map(e=>e.young&&e.young.expected).filter(Boolean))].sort():[];
  const card=(t,state,tone,ev,act)=>`<div class="card p4${act?' click':''}" ${act?`onclick="${act}"`:''} style="flex:1;min-width:190px">
    <span class="kick">${t}</span><div style="font-size:12.5px;margin-top:5px;color:${tone}">${state}</div><div class="dim" style="font-size:10.5px;margin-top:4px;line-height:1.45">${ev}</div></div>`;
  return `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px" data-decisions>
   ${card('Respond',flagged.length?`${fmt(flagged.length)} flagged comment${flagged.length===1?'':'s'}${done!=null?` · ${fmt(done)} handled`:''}`:'Nothing flagged in this view',flagged.length&&done!==flagged.length?'var(--alert)':'var(--go)','Critical alerts below; mark each handled (reviewer, line manager or admin). ⌕','kpiDrill(\'alerts\')')}
   ${card('Boost','Not yet supportable','var(--gold,#e6c26b)',`Boosting pays in the first 24–72 h; benchmarks for posts under 7 days need n ≥ 20 per band${dates.length?` — expected from ${esc(dates[0])}`:''}.`,'')}
+  ${card('Stop',low==null?'Benchmarks loading…':`${fmt(low)} mature post${low===1?'':'s'} at or below P25 of their cell`,'var(--text)','What to make less of — read with the format and platform cells; a benchmark among mature posts, not a verdict on one post.','')}
   ${card('Format & platform mix',b?'Benchmarks among mature posts':'Benchmarks loading…','var(--text)','Which formats and platforms earn engagement — a benchmark for the next plan, not a boost signal.','')}
+  ${card('What works for which product and market','Not yet supportable','var(--gold,#e6c26b)','Needs each post linked to its trend, angle, product and market (attribution, 7.5).','')}
   ${card('Product sentiment','Mapped from caption text','var(--text)','Which device draws praise or complaints; posts naming no device are not counted (share shown below).','')}
   ${card('Trust the numbers',stale.length?`Stale: ${esc(stale.join(', '))}`:'All platforms fresh',stale.length?'var(--alert)':'var(--go)',`Data older than ${PERF_STALE_H} h is marked stale; act on fresh platforms only.`,'')}
  </div>`;

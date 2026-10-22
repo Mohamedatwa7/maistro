@@ -50,6 +50,7 @@ test('browser read: shape, twin collapse (author+text, a minute apart), cache he
   assert.equal(p.comments.length, 1, 'the twin collapsed');
   assert.equal(p.commentsCollected, 2, 'the twin is counted as collected beside the collapsed list');
   assert.equal(p.comments[0].sentiment, 'pos', 'the analyzed copy wins; sentiment mapped to pos/neu/neg');
+  assert.equal(p.comments[0].sentimentSource, 'tracker', 'the label is the tracker model’s, not the keyword fallback');
   assert.equal(p.comments[0].likes, 3);
   assert.equal(r.headers['cache-control'], 's-maxage=600, stale-while-revalidate=86400');
   assert.equal(stores.length, 0);

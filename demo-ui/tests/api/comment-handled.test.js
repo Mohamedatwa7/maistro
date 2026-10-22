@@ -38,6 +38,19 @@ test('handled: marked once, every copy of the comment shares it; unhandled appen
   } finally { f.restore(); h.restore(); }
 });
 
+test('handled: a mark older than 2,500 later events is still handled (the read pages past the 1000-row cap)', async () => {
+  const pg = fakePostgrest();
+  const f = mockFetch([pg.route]);
+  const h = api('sentiment.js', ENV);
+  try {
+    let r = res(); await h.handler(req({ method: 'POST', body: { action: 'comment-handled', postId: 'old', author: 'a', text: 'refund please', handled: true } }), r);
+    const key = r.body.key;
+    for (let i = 0; i < 2500; i++) pg.tables.audit_log.push({ id: pg.tables.audit_log.length + 1, actor: null, action: 'comment.handled', entity: 'comment', entity_id: null, after: { key: `p${i}|x|m${i}` }, at: new Date().toISOString() });
+    r = res(); await h.handler(req({ query: { handled: '1' } }), r);
+    assert.equal(r.body.rows, 2501); assert.equal(r.body.handled[key].handled, true);
+  } finally { f.restore(); h.restore(); }
+});
+
 test('handled: reviewer, line manager or admin; a viewer is refused; no session → 401; bad body → 400', async () => {
   const pg = fakePostgrest();
   (pg.tables.members = pg.tables.members || []).push({ id: 'u-rev', email: 'rev@samsung.com', role: 'reviewer', active: true, name: 'Rev' }, { id: 'u-view', email: 'view@samsung.com', role: 'viewer', active: true });

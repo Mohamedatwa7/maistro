@@ -172,5 +172,7 @@ test('7.1 decisions strip and "handled": the page key equals the server key for 
     assert.match(strip, /2 flagged comments · 1 handled/);
     assert.match(strip, /Boost<\/span><div[^>]*>Not yet supportable/);
     assert.match(strip, /Mapped from caption text/);
+    assert.match(strip, /What works for which product and market<\/span><div[^>]*>Not yet supportable/);
+    assert.match(strip, /Stop<\/span>/);
   } finally { X.restore(); }
 });

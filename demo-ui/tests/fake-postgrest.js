@@ -16,17 +16,19 @@ const UNIQUE = {
 
 function fakePostgrest(base = 'https://sb.test') {
   const tables = {};
+  const MAX_ROWS = 1000;
   const t = (name) => (tables[name] = tables[name] || []);
   const now = () => new Date().toISOString();
 
   function parse(url) {
     const u = new URL(url);
     const table = u.pathname.replace(/^\/rest\/v1\//, '');
-    const filters = []; let order = null; let limit = Infinity; let select = '*'; let onConflict = null;
+    const filters = []; let order = null; let limit = Infinity; let offset = 0; let select = '*'; let onConflict = null;
     for (const [k, v] of u.searchParams) {
       if (k === 'select') select = v;
       else if (k === 'order') order = v;
       else if (k === 'limit') limit = Number(v);
+      else if (k === 'offset') offset = Number(v);
       else if (k === 'on_conflict') onConflict = v.split(',');
       else {
         if (v === 'not.is.null') { filters.push({ col: k, op: 'notnull' }); continue; }
@@ -36,7 +38,7 @@ function fakePostgrest(base = 'https://sb.test') {
         filters.push({ col: k, op: m[1], val: m[1] === 'in' ? m[2].replace(/^\(|\)$/g, '').split(',').map(decodeURIComponent) : m[2] });
       }
     }
-    return { table, filters, order, limit, select, onConflict };
+    return { table, filters, order, limit, offset, select, onConflict };
   }
   // `payload->>rev` reads a JSON field as text, like PostgREST
   const cell = (row, col) => { if (!col.includes('->>')) return row[col]; const [base, key] = col.split('->>'); const v = row[base] && typeof row[base] === 'object' ? row[base][key] : undefined; return v == null ? null : String(v); };
@@ -97,7 +99,8 @@ function fakePostgrest(base = 'https://sb.test') {
     if (method === 'GET') {
       let out = rows.filter((r) => matches(r, p.filters));
       if (p.order) { const [col, dir] = p.order.split(',')[0].split('.'); out.sort((a, b) => { const x = a[col], y = b[col]; if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (x < y ? -1 : x > y ? 1 : 0) * (dir === 'desc' ? -1 : 1); }); }
-      out = out.slice(0, p.limit).map((r) => project(r, p.select));
+      // like Supabase: at most MAX_ROWS (1000) rows per request, whatever the limit — a reader must page
+      out = out.slice(p.offset, p.offset + Math.min(p.limit, MAX_ROWS)).map((r) => project(r, p.select));
       return new Response(JSON.stringify(out), { status: 200, headers: { 'content-type': 'application/json' } });
     }
     if (method === 'POST') {
