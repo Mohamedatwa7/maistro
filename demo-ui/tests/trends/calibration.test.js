@@ -40,7 +40,7 @@ test('calibration eval on the recorded 19:15 run: culture/origin flags no longer
 test('eval-set grading: a must-flag case passes on veto or needsReview of its question; a must-pass case needs pass on all four', () => {
   const { CASES, grade } = require('../../api/_trends/eval-set.js');
   const J = (o) => Object.fromEntries(['safety', 'culture', 'origin', 'audioExplicit'].map((k) => [k, { verdict: o[k] || 'pass', rationale: 'r', evidence: [] }]));
-  assert.equal(CASES.length, 8); assert.equal(CASES.filter((c) => c.expect.question === 'safety').length, 3); assert.ok(CASES.every((c) => c.trend.trendId.startsWith('eval-')));
+  assert.equal(CASES.length, 10); assert.equal(CASES.filter((c) => c.expect.question === 'safety').length, 4); assert.equal(CASES.find((c) => c.id === 'deadpan-caption-prod').trend.name, 'Setup line then deadpan punchline caption reveal'); assert.ok(CASES.filter((c) => !c.id.endsWith('-prod')).every((c) => c.trend.trendId.startsWith('eval-'))); assert.ok(CASES.every((c) => c.trend && c.trend.name));
   const flag = CASES.find((c) => c.id === 'dangerous-challenge');
   assert.equal(grade(flag, J({ safety: 'veto' })).ok, true); assert.equal(grade(flag, J({ safety: 'needsReview' })).ok, true); assert.equal(grade(flag, J({})).ok, false);
   const pass = CASES.find((c) => c.id === 'desk-glowup');

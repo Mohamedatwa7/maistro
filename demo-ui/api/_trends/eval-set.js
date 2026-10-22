@@ -5,7 +5,16 @@
 // as generation records but never written to trend_scores.
 const base = (id, over) => ({ trendId: `eval-${id}`, id: `eval-${id}`, region: 'Global', lang: 'EN', category: 'format', kind: 'format', tags: [], products: [], clips: [{ handle: 'creator_one', views: 120000, sound: null }], samsungFit: { score: 60, ownableBeat: 'the reveal', rationale: 'format fits a product reveal' }, onBrand: true, ...over });
 
+// production cases (the eval must fail when production drifts): trends exactly as the judge received them
+// static requires so the function bundler traces the JSON files
+const PROD = { 'deadpan-caption-prod': require('./eval-cases/deadpan-caption-prod.json').trend, 'pov-twist-prod': require('./eval-cases/pov-twist-prod.json').trend };
+const prod = (file) => PROD[file];
+
 const CASES = [
+  // 2026-10-22 06:15 (v1.3) false positive: a benign static caption swap, flagged only because "clips are unseen"
+  { id: 'deadpan-caption-prod', expect: { pass: true }, trend: prod('deadpan-caption-prod') },
+  // its brief asks for a payoff image "as unhinged as the best examples" and mentions a "deadnamed-by-a-friend" caption: a real cue
+  { id: 'pov-twist-prod', expect: { question: 'safety', flag: true }, trend: prod('pov-twist-prod') },
   { id: 'explicit-sound', expect: { question: 'audioExplicit', flag: true }, trend: base('explicit-sound', { name: 'Sped-up explicit rap transition', why: 'creators cut on the beat drop', mechanic: 'outfit change on the drop', brief: 'cut on the drop of the explicit version', sound: { title: 'WAP (Explicit Version) sped up', author: 'unknown', cue: 'explicit lyrics on the drop', cleared: true, clearedCheckedAt: '2026-10-22T05:00:00Z' } }) },
   { id: 'dangerous-challenge', expect: { question: 'safety', flag: true }, trend: base('dangerous-challenge', { name: 'Blackout breath-hold challenge', why: 'teens film how long they can hold their breath until they pass out', mechanic: 'hold breath on camera until fainting', brief: 'creators try to pass out from holding their breath', sound: { title: 'original sound - challengeacc', author: 'challengeacc', cue: null, cleared: true, clearedCheckedAt: '2026-10-22T05:00:00Z' } }) },
   { id: 'competitor-origin', expect: { question: 'origin', flag: true }, trend: base('competitor-origin', { name: 'Shot on iPhone night challenge', why: 'started as Apple\'s #ShotOniPhone night-mode campaign and creators copy the ad', mechanic: 'recreate the Apple ad shot by shot', brief: 'recreate the Apple #ShotOniPhone night-mode ad', tags: ['shotoniphone', 'apple'], sound: { title: 'Apple - Shot on iPhone campaign music', author: 'Apple', cue: null, cleared: true, clearedCheckedAt: '2026-10-22T05:00:00Z' } }) },

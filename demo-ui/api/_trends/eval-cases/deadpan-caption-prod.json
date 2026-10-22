@@ -1,0 +1,153 @@
+{
+ "source": "trend_snapshots raw, board 2026-10-21T08:25:58Z, normalised with normalizeAgent()",
+ "trend": {
+  "trendId": "setup-line-then-deadpan-punchline-caption-reveal",
+  "id": "setup-line-then-deadpan-punchline-caption-reveal",
+  "name": "Setup line then deadpan punchline caption reveal",
+  "category": "entertainment",
+  "kind": null,
+  "region": null,
+  "lang": "EN",
+  "why": "Measured: 93 creators / 95 sampled videos, 71% posted this week, adoption accelerating. Carried 2d past its last fresh sighting — population counter +0.56%/day.",
+  "mechanic": "One locked static shot of a subject or object holds the frame the entire time. A setup line appears as on-screen text, then without any cut the caption swaps to a short deadpan punchline that reframes the opening line as a joke or flex. The whole payoff is the text swap timed to the audio beat, not the camera.",
+  "tags": [],
+  "brief": {
+   "onBrand": [
+    "Format is accelerating fast (+340%, 71% of sample posted this week) so early native participation reads as culture, not an ad",
+    "The locked-static, no-edit mechanic rewards products that can hold a shot or supply a real data point, which plays directly to Foldable stands, Watch metrics, and smart-home screens",
+    "Deadpan text-only humour is low-production and highly duettable, matching how Gulf and global youth audiences already remix comedic formats"
+   ],
+   "mechanic": "One locked static shot of a subject or object holds the frame the entire time. A setup line appears as on-screen text, then without any cut the caption swaps to a short deadpan punchline that reframes the opening line as a joke or flex. The whole payoff is the text swap timed to the audio beat, not the camera.",
+   "microTrend": "Setup line then deadpan punchline caption reveal",
+   "adaptations": [
+    {
+     "cta": "Caption asks 'what's your phone secretly doing right now' and invites stitches showing other hands-free Flip setups.",
+     "dos": [
+      "Keep the shot genuinely static for the full setup line, any micro-movement breaks trust in the format",
+      "Let the punchline be about the prop, not a camera spec",
+      "Use a real mundane subject, overly polished scenes read as an ad"
+     ],
+     "hook": "Setup text reads 'POV: my phone can't multitask' over a static shot of a propped phone doing three things at once on its cover screen.",
+     "idea": "Prop the half-folded Flip on a table so both hands are free, record a single locked shot of a mundane moment (a coffee, a messy desk, a dead-looking plant), setup caption appears, then the punchline caption reveals the Flip itself was the twist, e.g. the phone was secretly the one filming its own flex the whole time.",
+     "line": "Foldable",
+     "donts": [
+      "Never zoom or rack focus mid-shot, the format is locked-static by definition",
+      "Don't make the punchline about picture quality",
+      "Don't cut between setup and punchline, the swap must happen live over one continuous shot"
+     ],
+     "insight": "The format's humour depends on total camera stillness so the viewer trusts the text swap, not the edit, did the work. A phone that can prop itself into a perfectly static shot with zero rig is the one piece of hardware audiences never question is 'staged.'",
+     "product": "Galaxy Z Flip8",
+     "soundUse": "Use the trend's own deadpan comedic timing sound or a trending stitch-friendly silence-then-beat audio; the punchline caption should land exactly on the beat drop or the audio's comedic pause, not before or after.",
+     "execution": [
+      "Lock the Flip half-folded on a flat surface, cover screen or inner screen facing the subject",
+      "Frame a single static shot: cluttered desk, multitasking cover screen, or a plant that's clearly dead",
+      "Setup caption appears: an innocent, earnest claim about the subject",
+      "Hold the shot, no movement, for 2 to 3 seconds of silence or ambient audio",
+      "Caption swaps to the deadpan punchline that flips the setup into a joke or a flex",
+      "Hold 1 more second on the punchline before cut to black or loop point"
+     ],
+     "samsungify": "The half-folded stand is the only way to get a hands-free locked static shot without a tripod, mount, or a second person; the joke setup requires total stillness and nobody is holding anything.",
+     "onScreenText": "setup: 'this is just a phone on a table' / punchline: 'this is a tripod now'",
+     "featureMoment": "The viewer notices the shot never wobbles or cuts despite clearly being propped on a desk with no visible stand, the half-fold doing the holding is the quiet reveal in the comments."
+    },
+    {
+     "cta": "Ask viewers to screen-record their own Watch number next to a confident setup line and tag it back.",
+     "dos": [
+      "Use a real logged metric, not a made-up number",
+      "Keep the Watch face legible in frame so the punchline reads as proof",
+      "Let the joke be self-deprecating more often than flexing, it reads more native"
+     ],
+     "hook": "Setup text: 'I worked SO hard today' over a static shot of a Watch face face-up on a desk.",
+     "idea": "Static shot of a wrist mid-workout or mid-nap, setup caption makes an earnest claim about effort or rest, punchline caption reveals the actual Watch data (steps, sleep score, recovery) that deflates or flexes the claim.",
+     "line": "Watch",
+     "donts": [
+      "Don't animate the Watch face or add effects, stillness is the format",
+      "Don't make the punchline a product feature list",
+      "Never fake the data point, the format's whole joke depends on it reading as true"
+     ],
+     "insight": "Deadpan punchline formats land hardest when the punchline is verifiable, not just funny. A wearable that quietly logged the truth while you weren't performing for camera is the built-in fact-checker the joke needs.",
+     "product": "Galaxy Watch9",
+     "soundUse": "Sync the caption swap to the same comedic pause used across the trend's sound; keep the room audio minimal so the silence sells the deadpan.",
+     "execution": [
+      "Static shot of wrist or Watch face resting on a surface, no hand movement",
+      "Setup caption: an earnest or boastful claim about the day",
+      "Hold the frame in silence for the setup beat",
+      "Caption swaps to the actual Watch metric that contradicts or confirms the claim as a flex",
+      "Hold on the number for the punchline beat",
+      "Let it loop back to the setup line"
+     ],
+     "samsungify": "The Watch is the only object in frame that can supply a real, checkable number as the punchline; the joke's credibility rests on data a phone camera can't generate.",
+     "onScreenText": "setup: 'slept like a baby' / punchline: 'sleep score: 41'",
+     "featureMoment": "The viewer reads the punchline caption land directly over the visible Watch face, the real sleep score or step count is the twist, not a performance."
+    },
+    {
+     "cta": "Caption invites 'screenshot your fridge's actual suggestion right now' and stitch it against your own setup line.",
+     "dos": [
+      "Use the screen's real live content as the punchline, not an invented line",
+      "Keep the shot tight on the screen so it reads legible",
+      "Pick mundane, relatable setups about food, not brand claims"
+     ],
+     "hook": "Setup text: 'we're eating healthy tonight' over a static shot of the Family Hub screen.",
+     "idea": "Static shot of the fridge's Family Hub screen, setup caption makes a claim about what's for dinner or who's cooking, punchline caption reveals the screen's actual suggestion or inventory read as the deadpan twist.",
+     "line": "Home",
+     "donts": [
+      "Don't narrate over it, text-only punchline is the format",
+      "Don't dress up the screen content to look more dramatic than it is",
+      "Avoid making the fridge the butt of a joke about itself, it should supply the honest twist, not be mocked"
+     ],
+     "insight": "The format rewards objects that can plausibly 'answer' the setup line without a person speaking. A fridge screen that displays its own suggestion is a built-in punchline generator the joke can point the camera at honestly.",
+     "product": "Bespoke AI Fridge",
+     "soundUse": "Keep the kitchen ambient sound as the bed, swap caption on the trend's standard comedic pause point in the audio.",
+     "execution": [
+      "Static shot locked on the Family Hub screen, nothing else in frame",
+      "Setup caption: an earnest claim about tonight's dinner plans",
+      "Hold the frame as the screen sits passively",
+      "Caption swaps to whatever the screen is actually showing, inventory, expiry alert, or a recipe suggestion, read as the punchline",
+      "Hold the beat on the screen before cutting"
+     ],
+     "samsungify": "Only this screen can supply a real, visible on-screen suggestion or inventory list as the punchline prop; it's the one kitchen object that can talk back.",
+     "onScreenText": "setup: 'cooking a fresh meal tonight' / punchline: 'fridge: use the milk, it expires today'",
+     "featureMoment": "The viewer sees the exact on-screen text or suggestion the Family Hub is already displaying double as the punchline, no graphic added after the fact."
+    }
+   ]
+  },
+  "products": [],
+  "sound": {
+   "title": "original sound - djprincelex",
+   "author": null,
+   "cue": "beat drop or spoken line timed to the caption switching from setup to punchline",
+   "cleared": false,
+   "clearedCheckedAt": null
+  },
+  "clips": [
+   {
+    "handle": "@taniajvvwaters",
+    "views": 784000,
+    "sound": "original sound - djprincelex"
+   },
+   {
+    "handle": "@maygrace_official",
+    "views": 86000,
+    "sound": "original sound - djprincelex"
+   },
+   {
+    "handle": "@_dianaabennett",
+    "views": 60000,
+    "sound": "original sound - djprincelex"
+   },
+   {
+    "handle": "@sayehsoltani",
+    "views": 35000,
+    "sound": "original sound - djprincelex"
+   }
+  ],
+  "samsungFit": {
+   "strength": "fit",
+   "score": null,
+   "ownableBeat": null,
+   "rationale": null,
+   "raw": null
+  },
+  "onBrand": true
+ }
+}

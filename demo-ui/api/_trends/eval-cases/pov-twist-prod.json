@@ -1,0 +1,133 @@
+{
+ "source": "trend_snapshots raw, board 2026-10-21T08:25:58Z, normalised with normalizeAgent()",
+ "trend": {
+  "trendId": "pov-sudden-betrayal-or-twist-reveal",
+  "id": "pov-sudden-betrayal-or-twist-reveal",
+  "name": "POV Sudden Betrayal or Twist Reveal",
+  "category": "entertainment",
+  "kind": null,
+  "region": null,
+  "lang": "MIXED",
+  "why": "Measured: 87 creators / 91 sampled videos, 46% posted this week. Carried 2d past its last fresh sighting — population counter +4.26%/day.",
+  "mechanic": "A relatable POV caption sets up a scenario, then the footage cuts to an unrelated reaction clip or static image that visually punchlines the setup; the joke lands entirely on the gap between the caption's premise and the absurd payoff image, usually on one static or looping shot.",
+  "tags": [],
+  "brief": {
+   "onBrand": [
+    "The format's entire joke is a hard visual mismatch cut, which Samsung can perform physically (the fold) or generatively (on-device AI) rather than just filming it",
+    "Stage-peaking growth at +64% with near half of sampled videos posted this week means timing favors a fast, low-production response over a polished campaign",
+    "The format rewards personalization and freshness of the payoff image, which plays directly to on-device generative tools no competitor offers without a visible watermark"
+   ],
+   "mechanic": "A relatable POV caption sets up a scenario, then the footage cuts to an unrelated reaction clip or static image that visually punchlines the setup; the joke lands entirely on the gap between the caption's premise and the absurd payoff image, usually on one static or looping shot.",
+   "microTrend": "POV caption-mismatch reveal",
+   "adaptations": [
+    {
+     "cta": "Caption asks 'what's on your cover screen rn' and invites duets where people reveal their own payoff image on snap.",
+     "dos": [
+      "Keep the setup caption boring and relatable, the flatter the better",
+      "Make the snap audible and sharp, it has to read as the cut",
+      "Pick a payoff image as unhinged as the best examples in the trend"
+     ],
+     "hook": "Caption reads 'POV: your best friend texts the group chat about you' over a normal cover-screen selfie, then a hard snap-shut cut reveals a feral payoff image filling the cover screen.",
+     "idea": "Use the fold itself as the punchline hinge: the caption sets up the betrayal while the phone is open showing a normal scene on the cover screen, then you snap it shut and the cover screen becomes the absurd payoff image.",
+     "line": "Foldable",
+     "donts": [
+      "Don't show the phone brand or UI chrome, keep focus on the cover screen content only",
+      "Don't add extra cuts after the snap, one hinge motion is the whole edit",
+      "Don't explain the joke in a voiceover, the caption and image carry it"
+     ],
+     "insight": "The format's whole joke engine is a hard mismatch cut between setup and payoff. Creators currently fake that cut with editing software; a device that performs the cut as a physical gesture turns the edit itself into the bit, which is catnip for a format built on the edit being the punchline.",
+     "product": "Galaxy Z Flip8",
+     "soundUse": "Use the trend's own sting or meme audio, timed so the snap-shut sound effect lands exactly on the audio's punch beat; no voiceover needed.",
+     "execution": [
+      "Caption appears over the open Flip8 held normally, cover screen showing a mundane scene (texting, scrolling)",
+      "Setup line delivered deadpan to camera, phone upright",
+      "Hard snap: fold the phone shut in one motion, audio sting hits on the snap",
+      "Cover screen now displays the absurd payoff image full-screen, held static",
+      "Caption's punchline text appears over the payoff image",
+      "Hold for a beat, no further movement, let the mismatch read",
+      "Optional: flip back open to reset for a loop"
+     ],
+     "samsungify": "The cover screen is a second, physically switchable canvas; the snap of the hinge IS the edit, no cut needed in post because the fold does the reveal in-camera.",
+     "onScreenText": "POV: she said 'we need to talk' and this is what she sent. لما قالت لازم نتكلم وبعتت هالصورة",
+     "featureMoment": "The viewer watches the phone physically snap shut and the cover screen instantly become the punchline image, the fold itself performing the scene-cut the format usually needs an edit for."
+    },
+    {
+     "cta": "Caption invites 'send me your most unhinged caption idea and I'll generate the payoff', turning the comment section into a request queue.",
+     "dos": [
+      "Make the edit genuinely strange, not just a filter, matching the format's absurdist tone",
+      "Keep the original photo mundane so the transformation reads as the twist",
+      "Credit it as AI-made only lightly, let the joke carry the post"
+     ],
+     "hook": "Caption sets up 'POV: you ask who ate the last slice' over a normal fridge photo, then the same photo reappears with you generatively edited into a cartoon raccoon mid-bite.",
+     "idea": "Build the payoff image itself on-device: use Generative Edit to warp a normal photo into the absurd punchline (deadnamed-by-a-friend caption pays off with an AI-restyled group photo where you've been edited into a cartoon villain), posted with the edit visible as part of the joke.",
+     "line": "AI",
+     "donts": [
+      "Don't use a real person's likeness in the edited payoff without consent",
+      "Don't over-polish the edit into something that looks like a stock render, keep it scrappy like the trend's native images",
+      "Don't turn the caption into a product pitch, the generation is a tool not the subject"
+     ],
+     "insight": "The weakest point of this format is that everyone draws payoff images from the same shrinking pool of viral reaction pics, so a custom-generated payoff is instantly fresher and funnier than the same five recurring images, and on-device generation removes the watermark tell that would otherwise flag it as AI-made.",
+     "product": "Galaxy AI (Generative Edit)",
+     "soundUse": "Keep the same trend audio under both halves uninterrupted, the sound doesn't pause for the edit, reinforcing that the payoff is instant.",
+     "execution": [
+      "Setup caption appears over an ordinary static photo of the real scene",
+      "Beat of silence, static hold, exactly as the format expects",
+      "Hard cut to the same photo, now generatively edited with an absurd element added",
+      "Punchline caption text lands over the edited image",
+      "Hold static, no further motion, let the edit be studied",
+      "Optional text overlay: 'made this in 4 seconds' as a soft feature nod"
+     ],
+     "samsungify": "On-device generative edit with no third-party app and no watermark means the absurd payoff image can be custom-made for the specific caption instead of recycled from the same meme-image pool everyone else uses.",
+     "onScreenText": "POV: you ask who ate the last slice and get this as a response. مين اكل القطعة الاخيرة وردوا عليا كذا",
+     "featureMoment": "The viewer sees the exact same original photo reappear transformed, an absurd generative element inserted seamlessly with no visible watermark or seams, in the same beat a recycled meme image would normally appear."
+    }
+   ]
+  },
+  "products": [
+   {
+    "line": "Foldable",
+    "score": 74,
+    "reason": "Flex Mode half-fold lets a creator plant the phone hands-free, flip the FlexWindow toward themselves, then snap it open as the physical reveal beat of the twist",
+    "product": "Galaxy Z Flip8"
+   },
+   {
+    "line": "AI",
+    "score": 68,
+    "reason": "Generative Edit/Photo Assist lets creators restyle and recolour a scene mid-clip to sell the sudden twist without third-party apps or watermarks",
+    "product": "Galaxy AI"
+   }
+  ],
+  "sound": {
+   "title": "original sound - eldanieloko",
+   "author": null,
+   "cue": null,
+   "cleared": false,
+   "clearedCheckedAt": null
+  },
+  "clips": [
+   {
+    "handle": "@alexndrxd_",
+    "views": 72000,
+    "sound": "original sound - eldanieloko"
+   },
+   {
+    "handle": "@matiscrap",
+    "views": 46000,
+    "sound": "original sound - eldanieloko"
+   },
+   {
+    "handle": "@esalaskaa",
+    "views": 66000,
+    "sound": "original sound - eldanieloko"
+   }
+  ],
+  "samsungFit": {
+   "strength": "fit",
+   "score": null,
+   "ownableBeat": null,
+   "rationale": null,
+   "raw": null
+  },
+  "onBrand": true
+ }
+}

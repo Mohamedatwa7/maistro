@@ -119,10 +119,10 @@ test('hourly refresh runs the scoring after the snapshots (MAISTRO_TREND_SCORING
     assert.equal(r.body.scoring.error, undefined, JSON.stringify(r.body.scoring));
     assert.equal(r.body.scoring.trends, 12); assert.equal(r.body.scoring.judged, 9, 'three fixture trends are hard-vetoed by the deterministic rules and never sent to the judge'); assert.equal(r.body.scoring.skippedVetoed, 3); assert.equal(r.body.scoring.deferred, 0); assert.equal(pg.tables.trend_scores.length, 12);
     // the guard-rail eval ran once for this prompt version and is recorded with real audit_log columns
-    assert.ok(r.body.eval && r.body.eval.total === 8, JSON.stringify(r.body.eval));
+    assert.ok(r.body.eval && r.body.eval.total === 10, JSON.stringify(r.body.eval));
     // the daily price card: provider estimates for the reference bodies, once per day
     assert.equal(r.body.prices.i2v_5s_720p.usd, 0.5); assert.equal(r.body.prices.soul_v2_4x_1080p.usd, 0.2); assert.equal((pg.tables.audit_log || []).filter((a) => a.action === 'higgsfield.prices').length, 1);
-    const evalRows = (pg.tables.audit_log || []).filter((a) => a.action === 'trends.eval'); assert.equal(evalRows.length, 1); assert.equal(evalRows[0].after.promptVersion, require('../../api/_trends/prompts/profile-v1.js').VERSION); assert.equal(evalRows[0].after.results.length, 8);
+    const evalRows = (pg.tables.audit_log || []).filter((a) => a.action === 'trends.eval'); assert.equal(evalRows.length, 1); assert.equal(evalRows[0].after.promptVersion, require('../../api/_trends/prompts/profile-v1.js').VERSION); assert.equal(evalRows[0].after.results.length, 10);
     r = res(); await h.handler(req({ headers: { authorization: 'Bearer cron' } }), r);
     assert.equal(r.body.eval, null, 'not re-run for the same prompt version'); assert.equal(r.body.prices, null, 'the price card is daily once complete'); assert.equal((pg.tables.audit_log || []).filter((a) => a.action === 'trends.eval').length, 1);
     r = res(); await h.handler(req({ query: { view: 'scored' }, session: false }), r); assert.equal(r.statusCode, 401);
