@@ -493,6 +493,15 @@ Verified otherwise: `vercel.json` bundles `node_modules/ffmpeg-static/ffmpeg` wi
 
 Status: **PASSED** by checker. CI run 39725365872 is green. On Linux ffmpeg 6.x `setpts` itself resets the output rate to unknown, so `fps` must be the last filter of every shot chain and of each `xfade`/`concat` output (`settb,setpts,fps`). The checker's own attempt (aade19f) put `fps` before `setpts` and stayed red in CI; it was superseded by aa4b3e8. Process note: the checker made a source edit in the shared tree while the builder was offline, which collided with the builder's fix; from here on source fixes go to the builder as findings, the checker commits PROGRESS.md only.
 
+## Trend judge calibration (commit 0e8f494; released)
+
+Status: **PASSED** by checker; the live measurement is the 05:15 UTC run on profile v1.2, which the builder reads.
+
+- CI green; local 148/148; production `/` byte-identical (sha256 65241bfe…), health ok.
+- Engine: V-CULTURE and V-ORIGIN needs-review flags are marked advisory; `needs_review` now requires a non-advisory flag, so only safety and audio hold a trend out of the ranking; any hard veto still rejects; confidence is forced to low when `reviewBeforeUse` is non-empty, and `latestScores` exposes it from the stored vetoes; the page shows a "review before use" badge.
+- Prompt v1.2: "ambiguous is never safe" needs a quoted concrete cue; absent information lowers confidence instead; `audioExplicit` passes with low confidence unless the name, brief or captions carry an explicit cue; clearance stays in code. The version bump invalidates the per-board cache, so the next run re-judges.
+- First eval on the recorded 19:15 run (engine change alone, judgements unchanged): needs_review 15 to 14, ranked 1 to 2, hard vetoes unchanged; at least 10 of the remaining 14 are held only by the v1.1 "no lyrics" audio flag, which v1.2 addresses at the prompt level. The live run will show the combined effect.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
