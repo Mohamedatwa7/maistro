@@ -165,9 +165,17 @@ async function estimate(endpoint, body) {
   const r = await fetchT(`${API}/estimate/${endpoint}`, { method: 'POST', headers: { Authorization: `Key ${creds}`, 'Content-Type': 'application/json', 'User-Agent': 'MaistroDemo/1.0' }, body: JSON.stringify(body || {}) }, { timeoutMs: 15000, retries: 1 });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) throw providerError(r, d);
-  const usd = Number(d.usd), credits = Number(d.credits);
-  if (!Number.isFinite(usd)) throw Object.assign(new Error('estimate returned no usd'), { status: 502 });
-  return { usd, credits: Number.isFinite(credits) ? credits : null };
+  // the documented shape is { credits, usd }; video endpoints answered without a top-level usd on
+  // 2026-10-22, so look one level down before giving up, and name the keys (never values) when it fails
+  const pick = (o, k) => (o && typeof o === 'object' ? o[k] : undefined);
+  const cands = [d, pick(d, 'estimate'), pick(d, 'cost'), pick(d, 'price'), pick(d, 'data'), pick(d, 'result')];
+  const num = (k) => { for (const o of cands) { const v = pick(o, k); if (v !== undefined && v !== null && v !== '' && Number.isFinite(Number(v))) return Number(v); } return null; };
+  const usd = num('usd'), credits = num('credits');
+  if (usd == null) {
+    const shape = Object.entries(d || {}).map(([k, v]) => (v && typeof v === 'object' && !Array.isArray(v) ? `${k}{${Object.keys(v).join(',')}}` : k)).join(',');
+    throw Object.assign(new Error(`estimate returned no usd (keys: ${shape || 'none'})`), { status: 502, credits });
+  }
+  return { usd, credits };
 }
 
 module.exports = { submit, status, estimate, estimateRequest, buildRequest, normalizeRequest, classify, MODELS, API };

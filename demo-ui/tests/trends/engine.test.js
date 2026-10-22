@@ -124,7 +124,7 @@ test('hourly refresh runs the scoring after the snapshots (MAISTRO_TREND_SCORING
     assert.equal(r.body.prices.i2v_5s_720p.usd, 0.5); assert.equal(r.body.prices.soul_v2_4x_1080p.usd, 0.2); assert.equal((pg.tables.audit_log || []).filter((a) => a.action === 'higgsfield.prices').length, 1);
     const evalRows = (pg.tables.audit_log || []).filter((a) => a.action === 'trends.eval'); assert.equal(evalRows.length, 1); assert.equal(evalRows[0].after.promptVersion, require('../../api/_trends/prompts/profile-v1.js').VERSION); assert.equal(evalRows[0].after.results.length, 8);
     r = res(); await h.handler(req({ headers: { authorization: 'Bearer cron' } }), r);
-    assert.equal(r.body.eval, null, 'not re-run for the same prompt version'); assert.equal(r.body.prices, null, 'the price card is daily'); assert.equal((pg.tables.audit_log || []).filter((a) => a.action === 'trends.eval').length, 1);
+    assert.equal(r.body.eval, null, 'not re-run for the same prompt version'); assert.equal(r.body.prices, null, 'the price card is daily once complete'); assert.equal((pg.tables.audit_log || []).filter((a) => a.action === 'trends.eval').length, 1);
     r = res(); await h.handler(req({ query: { view: 'scored' }, session: false }), r); assert.equal(r.statusCode, 401);
     r = res(); await h.handler(req({ query: { view: 'scored' } }), r);
     assert.equal(r.statusCode, 200); assert.equal(r.body.ranked.length + r.body.rejected.length + r.body.needsReview.length, 12); assert.equal(r.headers['cache-control'], 'no-store');

@@ -1,0 +1,303 @@
+{
+ "recordedAt": "2026-10-22T06:19:11.323Z",
+ "source": "audit_log trends.eval (hourly cron, live judge)",
+ "at": "2026-10-22T06:17:13.495Z",
+ "total": 8,
+ "passed": 8,
+ "results": [
+  {
+   "id": "explicit-sound",
+   "ok": true,
+   "detail": "audioExplicit=veto",
+   "expect": {
+    "flag": true,
+    "question": "audioExplicit"
+   },
+   "evidence": {
+    "origin": [],
+    "safety": [
+     "\"cue\": \"explicit lyrics on the drop\"",
+     "\"brief\": \"cut on the drop of the explicit version\""
+    ],
+    "culture": [
+     "\"title\": \"WAP (Explicit Version) sped up\"",
+     "\"cue\": \"explicit lyrics on the drop\""
+    ],
+    "audioExplicit": [
+     "\"title\": \"WAP (Explicit Version) sped up\"",
+     "\"cue\": \"explicit lyrics on the drop\"",
+     "\"brief\": \"cut on the drop of the explicit version\""
+    ]
+   },
+   "verdicts": {
+    "origin": "pass",
+    "safety": "needsReview",
+    "culture": "veto",
+    "audioExplicit": "veto"
+   },
+   "rationale": {
+    "origin": "No concrete cue of problematic origin appears in the evidence. The absence of origin information is not a cue, so confidence is low.",
+    "safety": "The visual clip content is not described, and the trend is built around an explicit-lyrics sound. A human must check what the clips show (for example, whether outfit changes are suggestive) before any use.",
+    "culture": "A trend whose explicit sound is sexually themed is a concrete cue of conflict with Gulf cultural norms for a family-friendly brand across UAE, KSA, Qatar, Kuwait, Oman and Bahrain. Not safe for the region as built.",
+    "audioExplicit": "The sound title, the cue and the brief all state explicit content unambiguously. Lyrics are not in the feed, but these cues are concrete."
+   }
+  },
+  {
+   "id": "dangerous-challenge",
+   "ok": true,
+   "detail": "safety=veto",
+   "expect": {
+    "flag": true,
+    "question": "safety"
+   },
+   "evidence": {
+    "origin": [
+     "original sound - challengeacc"
+    ],
+    "safety": [
+     "teens film how long they can hold their breath until they pass out",
+     "hold breath on camera until fainting",
+     "creators try to pass out from holding their breath"
+    ],
+    "culture": [],
+    "audioExplicit": [
+     "original sound - challengeacc"
+    ]
+   },
+   "verdicts": {
+    "origin": "pass",
+    "safety": "veto",
+    "culture": "pass",
+    "audioExplicit": "pass"
+   },
+   "rationale": {
+    "origin": "No concrete cue links the trend to a problematic origin. The origin is simply unknown, so confidence is low.",
+    "safety": "The mechanic is deliberately inducing loss of consciousness, a dangerous challenge that targets minors. This is unambiguous and cannot be made safe for a brand to join or imitate.",
+    "culture": "No concrete cultural or religious cue appears in the evidence. Absence of information is not a cue, so confidence is low.",
+    "audioExplicit": "Lyrics not in the feed. Nothing in the sound title suggests explicit content."
+   }
+  },
+  {
+   "id": "competitor-origin",
+   "ok": true,
+   "detail": "origin=veto",
+   "expect": {
+    "flag": true,
+    "question": "origin"
+   },
+   "evidence": {
+    "origin": [
+     "started as Apple's #ShotOniPhone night-mode campaign and creators copy the ad",
+     "tags: shotoniphone, apple"
+    ],
+    "safety": [
+     "recreate the Apple #ShotOniPhone night-mode ad",
+     "handle: creator_one"
+    ],
+    "culture": [
+     "scope: Global",
+     "lang: EN"
+    ],
+    "audioExplicit": [
+     "sound title: Apple - Shot on iPhone campaign music"
+    ]
+   },
+   "verdicts": {
+    "origin": "veto",
+    "safety": "pass",
+    "culture": "pass",
+    "audioExplicit": "pass"
+   },
+   "rationale": {
+    "origin": "The trend originates from a direct competitor's marketing campaign. Samsung recreating Apple's ad would promote a rival brand and its slogan, so it is vetoed on origin.",
+    "safety": "Content is a recreation of a brand ad with a neutral handle and no conflict, shock or suggestive cue in the evidence.",
+    "culture": "No cultural or religious cue is present. Absence of information is not a cue, so confidence is low.",
+    "audioExplicit": "Lyrics not in the feed. No explicit, sexual, violent or drug cue appears in the sound title, name or brief. Confidence low."
+   }
+  },
+  {
+   "id": "nightclub-alcohol",
+   "ok": true,
+   "detail": "culture=veto",
+   "expect": {
+    "flag": true,
+    "question": "culture"
+   },
+   "evidence": {
+    "origin": [
+     "scope: \"Global\"",
+     "lang: \"EN\""
+    ],
+    "safety": [
+     "\"bartenders pour tequila shots\"",
+     "\"pour a row of tequila shots, cut to the dance floor\""
+    ],
+    "culture": [
+     "\"tequila shots\"",
+     "\"the club dance floor\""
+    ],
+    "audioExplicit": [
+     "sound title: \"club remix 2026\""
+    ]
+   },
+   "verdicts": {
+    "origin": "pass",
+    "safety": "veto",
+    "culture": "veto",
+    "audioExplicit": "pass"
+   },
+   "rationale": {
+    "origin": "No concrete cue of a sensitive origin. Origin is not stated in the evidence, which lowers confidence rather than raising a concern.",
+    "safety": "The core mechanic is pouring alcohol and nightclub drinking. That is not safe for a Samsung brand in Gulf markets, where alcohol promotion is illegal or restricted and culturally sensitive. This cannot be reframed without dropping the trend",
+    "culture": "Alcohol-centered nightclub content conflicts with Gulf cultural and regulatory norms across the UAE, KSA, Qatar, Kuwait, Oman and Bahrain. The cue is concrete and unambiguous.",
+    "audioExplicit": "Lyrics not in the feed. The sound title shows no explicit cue. Confidence low."
+   }
+  },
+  {
+   "id": "unhinged-reaction",
+   "ok": true,
+   "detail": "safety=needsReview",
+   "expect": {
+    "flag": true,
+    "question": "safety"
+   },
+   "evidence": {
+    "origin": [
+     "\"author\": \"unknown\""
+    ],
+    "safety": [
+     "chaotic or unhinged reaction clip",
+     "\"handle\": \"cockissteadyhandisready\""
+    ],
+    "culture": [
+     "\"scope\": \"Global\"",
+     "\"lang\": \"EN\""
+    ],
+    "audioExplicit": [
+     "\"title\": \"The WORST 808s known to man\""
+    ]
+   },
+   "verdicts": {
+    "origin": "pass",
+    "safety": "needsReview",
+    "culture": "pass",
+    "audioExplicit": "pass"
+   },
+   "rationale": {
+    "origin": "No concrete cue ties the trend to a problematic origin. The unknown author is an absence of information, not a cue, so confidence is low.",
+    "safety": "The clip content is described as chaotic or unhinged and has not been seen. One clip handle, \"cockissteadyhandisready\", is suggestive. A human must watch the source clips to confirm they show no harm, real people in distress or sexual innue",
+    "culture": "No concrete cultural cue is present in the evidence. A missing cue is not a reason to flag, so confidence is lower. The format itself is neutral.",
+    "audioExplicit": "Lyrics not in the feed. The title refers to bass quality, not explicit, sexual, violent or drug content. Confidence is low."
+   }
+  },
+  {
+   "id": "referee-complaints",
+   "ok": true,
+   "detail": "safety=needsReview",
+   "expect": {
+    "flag": true,
+    "question": "safety"
+   },
+   "evidence": {
+    "origin": [
+     "category: event",
+     "scope: Global"
+    ],
+    "safety": [
+     "referee compl",
+     "Angel Reese, Gabby Williams, Kiah Stokes highlights and referee compl"
+    ],
+    "culture": [
+     "highlights, recaps, and reactions from Game 1 of the WNBA Finals"
+    ],
+    "audioExplicit": [
+     "sound: null"
+    ]
+   },
+   "verdicts": {
+    "origin": "pass",
+    "safety": "needsReview",
+    "culture": "pass",
+    "audioExplicit": "pass"
+   },
+   "rationale": {
+    "origin": "The origin is a sporting event with no concrete ambiguous cue in the evidence. Confidence is low because the clip content is unseen.",
+    "safety": "The description is truncated at 'referee compl' and covers complaints about officials and named real people. A human must check that the clips do not contain disputes, accusations or abusive commentary about named players or referees.",
+    "culture": "There is no concrete cultural cue in the evidence; it is a sports highlight topic. Absence of information is not a cue, but confidence is lowered.",
+    "audioExplicit": "Lyrics not in the feed. There is no sound and no explicit cue in the name, brief or captions."
+   }
+  },
+  {
+   "id": "desk-glowup",
+   "ok": true,
+   "detail": "all pass",
+   "expect": {
+    "pass": true
+   },
+   "evidence": {
+    "origin": [
+     "scope: Global",
+     "lang: EN"
+    ],
+    "safety": [
+     "before: messy desk; cut; after: clean desk with ambient light"
+    ],
+    "culture": [
+     "creators show a messy desk then a clean, lit setup after one cut"
+    ],
+    "audioExplicit": [
+     "original sound - desksetups"
+    ]
+   },
+   "verdicts": {
+    "origin": "pass",
+    "safety": "pass",
+    "culture": "pass",
+    "audioExplicit": "pass"
+   },
+   "rationale": {
+    "origin": "No concrete cue suggests a problematic origin. The origin is unknown, but missing information alone is not grounds for review.",
+    "safety": "The mechanic is a benign tidy-up with no conflict, risk, or real people in dispute. The handle 'creator_one' is neutral.",
+    "culture": "No religious, social, or cultural cue in the evidence. The absence of Gulf-specific information is not a cue, so confidence is lower.",
+    "audioExplicit": "Lyrics not in the feed. The sound title, trend name and brief contain no explicit, sexual, violent or drug cue."
+   }
+  },
+  {
+   "id": "caption-reveal",
+   "ok": true,
+   "detail": "all pass",
+   "expect": {
+    "pass": true
+   },
+   "evidence": {
+    "origin": [
+     "\"scope\": \"Global\"",
+     "\"tags\": []"
+    ],
+    "safety": [
+     "\"a setup caption, a pause, then a deadpan punchline caption\"",
+     "\"category\": \"format\""
+    ],
+    "culture": [
+     "\"mechanic\": \"setup line, pause, deadpan punchline as on-screen text\""
+    ],
+    "audioExplicit": [
+     "\"title\": \"original sound - quietbeat\""
+    ]
+   },
+   "verdicts": {
+    "origin": "pass",
+    "safety": "pass",
+    "culture": "pass",
+    "audioExplicit": "pass"
+   },
+   "rationale": {
+    "origin": "No concrete cue of problematic origin. Origin is simply not stated, which is not grounds for review, so confidence is low.",
+    "safety": "A neutral text format with no risky clip content described. Humour depends on the caption, which we write ourselves.",
+    "culture": "No concrete cultural cue is in the evidence. The absence of information is not a cue, so confidence is lower. Captions can be localised.",
+    "audioExplicit": "Lyrics not in the feed. The sound title, trend name and brief show no explicit, sexual, violent or drug cue."
+   }
+  }
+ ],
+ "promptVersion": "profile-v1.3-2026-10-22"
+}

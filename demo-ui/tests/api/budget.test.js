@@ -88,3 +88,16 @@ test('budget: the estimate is reserved before the comparison — two renders gat
     const ok = pg.tables.jobs.filter((j) => j.state !== 'failed'); assert.ok(ok.length <= 1);
   } finally { f.restore(); jobs.restore(); pieces.restore(); }
 });
+
+test('estimate parser: the documented { credits, usd }, a nested usd one level down, and a body without usd fails naming its keys (not values)', async () => {
+  const bodies = [{ usd: 0.5, credits: 8 }, { estimate: { usd: '0.75', credits: 12 } }, { credits: 30, model: 'x' }];
+  let i = 0;
+  const f = mockFetch([[/api\.higgsfield\.ai\/estimate\//, () => json(bodies[i++])]]);
+  const saved = process.env.HF_CREDENTIALS; process.env.HF_CREDENTIALS = 'id:secret';
+  try {
+    const hg = require('../../api/_adapters/higgsfield.js');
+    assert.deepEqual(await hg.estimate('bytedance/seedance-2.5/image-to-video', {}), { usd: 0.5, credits: 8 });
+    assert.deepEqual(await hg.estimate('bytedance/seedance-2.5/image-to-video', {}), { usd: 0.75, credits: 12 });
+    await assert.rejects(hg.estimate('bytedance/seedance-2.5/image-to-video', {}), (e) => /no usd \(keys: credits,model\)/.test(e.message) && e.credits === 30);
+  } finally { f.restore(); if (saved === undefined) delete process.env.HF_CREDENTIALS; else process.env.HF_CREDENTIALS = saved; }
+});

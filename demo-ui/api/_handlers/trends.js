@@ -432,7 +432,8 @@ module.exports = async (req, res) => {
           try {
             const { queryRows, insertRows } = require('../_supabase.js');
             const day = new Date().toISOString().slice(0, 10);
-            const done = await queryRows('audit_log', `select=id&action=eq.higgsfield.prices&after->>day=eq.${day}&limit=1`);
+            // once a day — but retried every hour until every reference body is priced
+            const done = await queryRows('audit_log', `select=id&action=eq.higgsfield.prices&after->>day=eq.${day}&after->>complete=eq.true&limit=1`);
             if (!done.length) {
               const hf = require('../_adapters/higgsfield.js');
               const K = 'https://estimate.invalid/keyframe.png';
@@ -447,7 +448,8 @@ module.exports = async (req, res) => {
               ];
               const card = {};
               await Promise.all(cards.map(async ([k, body]) => { try { card[k] = await hf.estimateRequest(body); } catch (e) { card[k] = { error: String(e.message || e).slice(0, 120) }; } }));
-              await insertRows('audit_log', [{ actor: null, action: 'higgsfield.prices', entity: 'provider', entity_id: null, after: { day, card, at: new Date().toISOString() } }]);
+              const complete = Object.values(card).every((x) => x && Number.isFinite(x.usd));
+              await insertRows('audit_log', [{ actor: null, action: 'higgsfield.prices', entity: 'provider', entity_id: null, after: { day, card, complete, at: new Date().toISOString() } }]);
               prices = card;
             }
           } catch (e) { prices = { error: String(e.message || e).slice(0, 200) }; }
