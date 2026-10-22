@@ -851,6 +851,15 @@ Status: **PASSED** by checker. Both hosts report `revision: aab4439` with the pa
 
 **Phase 12 complete.** Its remaining steps are owner actions, listed in item 01 of the gate.
 
+## Phase 13 final review (commit d78a0f8, FINAL_REVIEW.md; released through the gate)
+
+Status: **PASSED** by checker. CI green; both hosts report `revision: d78a0f8` with the page byte-identical; local 236/236.
+
+- The checker recounted AUDIT.md: **57 findings** (6 Critical, 21 High, 25 Medium, 5 Low), matching the review. Statuses: 33 fixed, 14 partly fixed, 6 open, 1 owner-blocked (D-05, rotating the pasted passwords), 3 won't fix or no defect. **All 6 Critical findings fixed**; 15 of 21 High fixed and the other 6 partly fixed, none open. Spot-checked rows (A-02, A-05, B-05, C-12, D-05) carry the commit and the evidence, and the honest downgrades are recorded (B-05 open, C-10 and C-12 partly).
+- Section 2b lists the defects the original audit missed, all found and fixed during the rebuild: the other-project posts counted as Samsung Gulf's (TikTok reach about six times too high), the silent audit-log and generation-record write failures, the public comment read, approval spoofing under the shared password, the keyword sentiment fallback, Facebook views shown as 0, the 1,000-row truncation, the budget resolution loophole, the simulated publishing calendar, and the backup allowlist gap.
+- The backup list now has an explicit EXCLUDED list, and a test fails if any `create table` in the migrations is in neither list or in both.
+- Definition of Done gaps stated honestly: no one-command local run, content quality not measurable without renders (owner's no-spend rule), lineage on real data waits on migration 018, an incomplete environment-variable table in the README. The builder takes the last and the local run next.
+
 ## [GATE] Owner items (only the user can do these)
 
 01. **Phase 12 decisions:** the account-wide daily spend ceiling (proposed $100 a day, about five 720p pieces); create a second free Supabase project for previews; an alert destination (a Slack webhook or e-mail relay); your Supabase plan's backup tier and how approval documents and assets should be backed up; GitHub production-environment secrets and you as the required release reviewer.
