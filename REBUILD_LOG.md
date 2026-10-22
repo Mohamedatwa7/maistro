@@ -4,6 +4,7 @@ Running log of the Maistro rebuild programme. Newest entries at the top of each 
 
 ## Progress
 
+- **2026-10-22 — 6.9 human override + the release gate in the repo:** people can replace a moodboard/thumbnail or a shot's keyframe/clip with their own file (signed upload into the private bucket, bytes validated, labelled human-made, history kept, approval cleared, re-checked, audit-logged). `demo-ui/scripts/release.sh` is the gate used for every release (suite, CI for the exact SHA, deploy, health, served page). 166 tests.
 - **2026-10-22 — Release-process slip, fixed:** 64a44a8 was deployed with one failing test (records.test.js still read the last generation record, which is now the refusal rewrite's) and red CI, because my command chain did not halt on failure. Production behaviour was correct; the test is fixed and every release now goes through a gate script that stops on a red suite, red CI, failed deploy, health or a page mismatch.
 - **2026-10-22 — 6.9 policy refusals:** a moderated render fails uncharged with the likely trigger and a compliant rewrite stored on the job and shown in the Studio; never resubmitted automatically. 165 tests.
 - **2026-10-22 — 6.9 Hermes parity:** pushes through `/api/ingest` now run the Studio's automated checks (vision on copied images, brief code checks or a failing "structured brief missing", F1X8 on a pushed final); an asset that cannot be copied is recorded as a failing check. 164 tests.

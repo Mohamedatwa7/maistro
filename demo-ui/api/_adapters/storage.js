@@ -43,6 +43,26 @@ async function signedUrl(path, expiresIn = 3600) {
   return `${c.url}/storage/v1${j.signedURL}`;
 }
 
+/** 6.9 human override: a signed upload URL so the browser puts a large file (a video) straight into the
+ *  private bucket — function bodies are capped at 4.5 MB. → { uploadUrl, path } (single use, ~2 h). */
+async function signedUploadUrl(path) {
+  const c = cfg();
+  const r = await fetchT(`${c.url}/storage/v1/object/upload/sign/${ASSETS_BUCKET}/${path}`, { method: 'POST', headers: { ...c.headers, 'Content-Type': 'application/json' }, body: '{}' }, { timeoutMs: 10000 });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.url) throw Object.assign(new Error(`upload sign failed (${r.status})`), { status: 502 });
+  return { uploadUrl: `${c.url}/storage/v1${j.url}`, path };
+}
+
+/** Read a stored object's bytes (through a short signed URL). */
+async function readObject(path, maxBytes = 200 * 1024 * 1024) {
+  const url = await signedUrl(path, 600);
+  const r = await fetchT(url, {}, { timeoutMs: 60000 });
+  if (!r.ok) throw Object.assign(new Error(`stored object ${path} could not be read (${r.status})`), { status: r.status === 404 ? 404 : 502 });
+  const buf = Buffer.from(await r.arrayBuffer());
+  if (buf.length > maxBytes) throw Object.assign(new Error('stored object too large'), { status: 413 });
+  return buf;
+}
+
 /** Store a small blob (e.g. an F1X8 heatmap PNG as base64) → { path, sha256, size }. */
 async function putBlob(path, bytes, contentType) {
   const c = cfg();
@@ -53,4 +73,4 @@ async function putBlob(path, bytes, contentType) {
   return { path, sha256: crypto.createHash('sha256').update(bytes).digest('hex'), size: bytes.length };
 }
 
-module.exports = { copyIn, signedUrl, putBlob, ASSETS_BUCKET };
+module.exports = { copyIn, signedUrl, signedUploadUrl, readObject, putBlob, ASSETS_BUCKET };

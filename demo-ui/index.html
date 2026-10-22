@@ -2417,6 +2417,7 @@ function rBoard(p,locked){
       ${kf&&kf.state==='rendered'&&!(rv&&rv.decision==='approved')?`<button class="btn btn-go btn-sm" onclick="shotDecide('${p.id}',${sh.n},'approved')">Approve shot</button>`:''}
       ${kf&&kf.state==='rendered'&&!(rv&&rv.decision==='rejected')?`<button class="btn btn-ghost btn-sm" onclick="shotRejectForm('${p.id}',${sh.n})">Reject</button>`:''}
       ${kf&&kf.state!=='pending'?`<button class="btn btn-gold btn-sm" onclick="shotRegenForm('${p.id}',${sh.n})">↻ Regenerate</button>`:''}
+      <button class="btn btn-ghost btn-sm" onclick="overrideUpload('${p.id}','board',${sh.n})" title="Use your own keyframe for this shot (human-made, re-checked)">⬆ Own keyframe</button>
      </div><div id="shot-form-board-${sh.n}"></div>`:''}
     </div></div>`}).join('')}</div>
   ${GEN.err[key]?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[key])}</div>`:''}
@@ -2429,6 +2430,25 @@ function shotRejectForm(pid,n,stage){
 function shotRegenForm(pid,n,stage){
  stage=stage||'board';const el=document.getElementById('shot-form-'+stage+'-'+n);if(!el)return;
  el.innerHTML=`<div style="margin-top:8px;display:grid;gap:6px"><input class="inp-l" id="sg-changes-${n}" placeholder="${stage==='draft'?'e.g. slower push-in, keep the device still':'e.g. closer on the cover screen, warmer light'}"><button class="btn btn-gold btn-sm" onclick="shotRegen('${pid}',${n},'${stage}')">↻ Re-render only this shot</button></div>`;
+}
+/* 6.9 — human override: the browser uploads straight to the private bucket (signed URL), the server validates and records it */
+function overrideUpload(pid,stage,shot){
+ const inp=document.createElement('input');inp.type='file';inp.accept=(stage==='draft'||stage==='final')?'video/mp4,video/quicktime':'image/png,image/jpeg,image/webp';
+ inp.onchange=async()=>{const file=inp.files&&inp.files[0];if(!file)return;const p=PROJECTS.find(x=>x.id===pid);if(!p)return;
+  try{
+   toast('<span style="font-size:12.5px">Uploading your file…</span>');
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'override-sign',pieceId:pid,stage,shot,contentType:file.type,piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
+   if(file.size>sd.maxBytes)throw new Error('the file is larger than '+Math.round(sd.maxBytes/1048576)+' MB');
+   const up=await fetch(sd.uploadUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});if(!up.ok)throw new Error('upload failed ('+up.status+')');
+   const cr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'override',pieceId:pid,stage,shot,path:sd.path,piece:storeMeta(p)})});
+   const cd=await cr.json().catch(()=>({}));if(!cr.ok)throw new Error(cd.error||('studio responded '+cr.status));
+   if(shot==null){attachTo(p,stage,{...(p[stage]||{}),imageUrl:null,images:undefined,assetPath:cd.asset.assetPath,sha256:cd.asset.sha256,override:true,note:'Uploaded by a person in place of a generated image'},'You',{recorded:{version:cd.version}});delete CHECKS[pid+':'+stage]}
+   else{const sh=p[stage]&&p[stage].shots&&p[stage].shots.find(x=>x.n===shot);if(sh){sh[stage==='board'?'keyframe':'clip']=cd.asset;sh.review=null}saveGenerated()}
+   studioRefresh();toast(`<span style="font-size:12.5px"><b style="color:#6ee7b9">Your ${shot==null?stage:'shot '+shot} upload is in</b> — labelled human-made and checked like a generated one.</span>`);
+  }catch(e){toast(`<b style="color:#fb7185">Upload:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
+ };
+ inp.click();
 }
 /* 6.9 — the piece budget: spent, in progress, cap and warning threshold; every render is priced before it is submitted */
 const BUDGET={};
@@ -2630,6 +2650,7 @@ function rDraft(p,locked,stg){
       ${c&&c.state==='rendered'&&!(rv&&rv.decision==='approved')?`<button class="btn btn-go btn-sm" onclick="shotDecide('${p.id}',${sh.n},'approved','${stg}')">Approve clip</button>`:''}
       ${c&&c.state==='rendered'&&!(rv&&rv.decision==='rejected')?`<button class="btn btn-ghost btn-sm" onclick="shotRejectForm('${p.id}',${sh.n},'${stg}')">Reject</button>`:''}
       ${c&&c.state!=='pending'?`<button class="btn btn-gold btn-sm" onclick="shotRegenForm('${p.id}',${sh.n},'${stg}')">↻ Re-render</button>`:''}
+      <button class="btn btn-ghost btn-sm" onclick="overrideUpload('${p.id}','${stg}',${sh.n})" title="Use your own clip for this shot (human-made, re-checked)">⬆ Own clip</button>
      </div><div id="shot-form-${stg}-${sh.n}"></div>`:''}
     </div></div>`}).join('')}</div>
   ${GEN.err[key]?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[key])}</div>`:''}
@@ -2818,6 +2839,7 @@ function regenBox(p,sid){
    <input id="regen-in-${sid}" style="flex:1;background:rgba(255,255,255,.04);border:1px solid var(--hairline);border-radius:10px;color:var(--text);font-size:12.5px;padding:9px 12px;font-family:var(--font-d)"
     placeholder="e.g. “warmer light, product bigger, less clutter”" onkeydown="if(event.key==='Enter'){event.preventDefault();stageRegen('${p.id}','${sid}')}">
    <button class="btn btn-gold btn-sm" onclick="stageRegen('${p.id}','${sid}')">↻ Regenerate</button>
+   ${useJobs()&&(sid==='mood'||sid==='thumb')?`<button class="btn btn-ghost btn-sm" onclick="overrideUpload('${p.id}','${sid}',null)" title="Use your own image instead — stored as a human-made version and checked like a generated one">⬆ Upload my own</button>`:''}
   </div>
   ${GEN.err[key]?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[key])}</div>`:''}
  </div>`;

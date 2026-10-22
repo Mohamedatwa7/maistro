@@ -125,7 +125,7 @@ module.exports = async (req, res) => {
     }
     if (!(await refreshMember(req, res))) return;
     const b = req.body || {};
-    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package', 'budget'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
+    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package', 'budget', 'override-sign', 'override'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
     const legacyId = String(b.pieceId || '');
     if (b.action === 'thumb-composite') {
       const data = String(b.data || '');
@@ -191,6 +191,48 @@ module.exports = async (req, res) => {
       await jobsSvc.advance(job).catch(() => null);
       const fresh = await jobsSvc.getJob(job.id);
       return res.status(200).json({ ok: true, shot: n, job: jobsSvc.publicJob(fresh || job, legacyId) });
+    }
+    if (b.action === 'override-sign' || b.action === 'override') {
+      // 6.9 human override: a person's own asset in place of a generated one — versioned, labelled human-made, re-checked
+      const KINDS = { image: { types: { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' }, max: 15 * 1024 * 1024 }, video: { types: { 'video/mp4': 'mp4', 'video/quicktime': 'mov' }, max: 200 * 1024 * 1024 } };
+      const stg = String(b.stage || '');
+      const shotN = b.shot == null ? null : Number(b.shot);
+      const target = ['mood', 'thumb'].includes(stg) && shotN == null ? { media: 'image', slot: null } : stg === 'board' && Number.isInteger(shotN) ? { media: 'image', slot: 'keyframe' } : ['draft', 'final'].includes(stg) && Number.isInteger(shotN) ? { media: 'video', slot: 'clip' } : null;
+      if (!target) return res.status(400).json({ error: 'override: mood/thumb (whole stage), board (a shot keyframe) or draft/final (a shot clip)' });
+      const spec = KINDS[target.media];
+      if (b.action === 'override-sign') {
+        const ext = spec.types[String(b.contentType || '')];
+        if (!ext) return res.status(415).json({ error: `contentType must be one of ${Object.keys(spec.types).join(', ')}` });
+        const path = `pieces/${legacyId}/${stg}/override-${shotN != null ? `${shotN}-` : ''}${Date.now().toString(36)}.${ext}`;
+        return res.status(200).json({ ok: true, ...(await storage.signedUploadUrl(path)), maxBytes: spec.max });
+      }
+      const path = String(b.path || '');
+      if (!new RegExp(`^pieces/${legacyId.replace(/[^a-zA-Z0-9_-]/g, '')}/${stg}/override-[a-z0-9-]+\\.(png|jpg|webp|mp4|mov)$`).test(path)) return res.status(422).json({ error: 'path must be this piece\'s override upload' });
+      const bytes = await storage.readObject(path, spec.max);
+      const isPng = bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+      const isJpg = bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+      const isWebp = bytes.length > 12 && bytes.slice(0, 4).toString() === 'RIFF' && bytes.slice(8, 12).toString() === 'WEBP';
+      const isMp4 = bytes.length > 12 && bytes.slice(4, 8).toString() === 'ftyp';
+      if (target.media === 'image' ? !(isPng || isJpg || isWebp) : !isMp4) return res.status(422).json({ error: `the uploaded file is not a valid ${target.media}` });
+      const sha256 = require('node:crypto').createHash('sha256').update(bytes).digest('hex');
+      const by = req.member ? req.member.id : 'password-session';
+      const asset = { state: 'rendered', url: null, assetPath: path, sha256, size: bytes.length, override: true, overriddenBy: by, at: new Date().toISOString() };
+      if (!target.slot) {
+        const out = await recordVersion(legacyId, stg, { imageUrl: null, assetPath: path, sha256, size: bytes.length, override: true, overriddenBy: by, note: 'Uploaded by a person in place of a generated image' }, { piece: b.piece || {}, producedBy: 'manual', kind: 'image', generatedBy: req.member ? req.member.id : null });
+        const job = await createJob({ legacyId, stage: stg, kind: 'vision_check', payload: { versionId: out.versionId, images: [{ index: 0, url: null, assetPath: path }], product: piece.product || null, productLook: bits.productLook, rules: bits.rules, expectProduct: stg === 'thumb' && Boolean(bits.productLook), source: 'override' } });
+        return res.status(200).json({ ok: true, version: out.version, versionId: out.versionId, asset, checkJob: job.id });
+      }
+      const [st0] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.${stg}&limit=1`);
+      if (!st0 || !st0.current_version_id) return res.status(409).json({ error: `no ${stg} version`, code: 'no_version' });
+      if (st0.state === 'approved') return res.status(409).json({ error: `the ${stg} is approved; reopen it first`, code: 'approved_immutable' });
+      const r0 = await jobsSvc.updateShots(st0.current_version_id, (payload) => { if (!Array.isArray(payload.shots) || !payload.shots[shotN - 1]) return null; const shots = payload.shots.map((s) => ({ ...s })); const prev = shots[shotN - 1][target.slot]; shots[shotN - 1] = { ...shots[shotN - 1], [target.slot]: asset, [`${target.slot}History`]: [...(shots[shotN - 1][`${target.slot}History`] || []), ...(prev && prev.state === 'rendered' ? [prev] : [])], review: null }; return { ...payload, shots }; });
+      if (r0.unchanged) return res.status(404).json({ error: `shot ${shotN} not found` });
+      const sh = r0.payload.shots[shotN - 1];
+      const check = target.slot === 'clip'
+        ? await insertRows('jobs', [{ piece_id: piece.id, stage_id: st0.id, kind: 'clip_check', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: stg, versionId: st0.current_version_id, shot: shotN, clipAssetPath: path, keyframeAssetPath: sh.keyframe ? sh.keyframe.assetPath : null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: Boolean(sh.product && sh.product.visible), source: 'override' } }], { returning: true })
+        : await insertRows('jobs', [{ piece_id: piece.id, stage_id: st0.id, kind: 'vision_check', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: stg, versionId: st0.current_version_id, shot: shotN, images: [{ index: shotN, url: null, assetPath: path }], product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: Boolean(sh.product && sh.product.visible), source: 'override' } }], { returning: true });
+      try { await insertRows('audit_log', [{ actor: req.member ? req.member.id : null, action: `${stg}.override`, entity: 'artifact_version', entity_id: st0.current_version_id, after: { pieceId: legacyId, shot: shotN, assetPath: path, sha256 } }]); } catch (e) { /* best effort */ }
+      return res.status(200).json({ ok: true, shot: shotN, asset, checkJob: check[0] ? check[0].id : null });
     }
     if (b.action === 'budget') {
       // 6.9: the per-piece cap and warning threshold, set by a line manager or admin (or the interim password session)
