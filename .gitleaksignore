@@ -1,0 +1,4 @@
+# Exactly one accepted finding: the LOCALHOST CI test-database URL in commit 5cd057a (2026-09-04),
+# .github/workflows/ci.yml line 58. It never pointed at a live system (SECURITY.md section 1). Fingerprint
+# = commit:file:rule:line, so any other finding, or this URL anywhere else, is still reported.
+5cd057a8b0c92d302b1bb89876ae6b6fe40e45c1:.github/workflows/ci.yml:postgres-url-with-password:58

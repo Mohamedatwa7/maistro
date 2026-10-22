@@ -8,13 +8,5 @@ description = "A Postgres connection string with an inline password"
 regex = '''postgres(?:ql)?://[^:@\s/'"]+:[^@\s'"]{6,}@[^\s'"]+'''
 keywords = ["postgres"]
 
-# Exactly one known, accepted finding: a LOCALHOST test-database URL in the CI config of commit 5cd057a
-# (2026-09-04, .github/workflows/ci.yml line 58). It never pointed at a live system (SECURITY.md §1). Both
-# conditions must hold (AND): that commit and that exact localhost URL — any other secret in that commit, or
-# this URL anywhere else, is still reported.
-[[allowlists]]
-description = "known localhost CI test DB URL in 5cd057a (SECURITY.md §1)"
-condition = "AND"
-commits = ["5cd057a8b0c92d302b1bb89876ae6b6fe40e45c1"]
-regexTarget = "line"
-regexes = ['''MAISTRO_TEST_DATABASE_URL: postgresql://postgres:[^@\s]+@localhost:5432/maistro_test''']
+# The one known, accepted finding (a localhost test DB URL in 5cd057a) is ignored by its exact fingerprint in
+# .gitleaksignore — not by path, commit or pattern.
