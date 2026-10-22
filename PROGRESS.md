@@ -653,6 +653,13 @@ Status: **PASSED** by checker, with an amendment to the 7.0 verdict above. Found
 - **Checker's independent check of the served data (60 days):** every platform shows only `samsunggulf`; tiktok 112 posts, 741,127 views; x 73 posts, 278,233 views; instagram 79 posts, 284,333 views; facebook 110 posts; zero foreign rows in `/api/track` and zero in `/api/sentiment` (375 posts). Builder's live rows: row 5 (07:43) posts equal on all platforms after the fix; row 6 (07:51:30) ok:true with R-3 12,415 on both sides.
 - **New finding for 7.x:** all 110 Facebook posts report 0 views, so the Facebook views total shows 0. The tracker does not collect Facebook views; the page should say "not collected" for that platform rather than a zero that reads as no reach.
 
+## Reconciliation R-8 (owned accounts only) and Facebook views marked not collected (commit 8582d85; released through the gate)
+
+Status: **PASSED** by checker. CI green; local 173/173; production `revision: 8582d85`.
+
+- R-8: every counted post's `platform:account` (lower-cased, "@" stripped) must be in `MAISTRO_OWNED_ACCOUNTS` (default samsunggulf on tiktok, instagram, facebook, x, twitter); the report carries `population {owned, foreign, sample}` and `ok` now requires R-8. A wrong population now fails the report. Live row 7 (08:09:25, builder's reading): ok:true, R-1, R-3, R-4, R-6 and R-8 all true, foreign 0.
+- Facebook: `viewsNotCollected()` marks any platform whose posts never carry views above zero; those zeros stay out of Total views, the KPI says "excludes Facebook (views not collected)", and post lines read "views not collected".
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
