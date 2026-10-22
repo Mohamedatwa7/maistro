@@ -4248,13 +4248,24 @@ function perfNewestAt(){
  }
  return m||null;
 }
+/* 7.x: ingestion lags differently per platform (2026-10-22: X and Facebook ~6 days behind TikTok and
+   Instagram), so the page shows "data as of" per platform, each red past PERF_STALE_H */
+function perfNewestByPlatform(){
+ const m={};
+ for(const p of SENTI.posts){
+  const k=String(p.platform||'other').toLowerCase();let t=p.postedAt?new Date(p.postedAt).getTime():0;
+  for(const c of (p.comments||[])){const u=c.at?new Date(c.at).getTime():0;if(u>t)t=u}
+  if(t>(m[k]||0))m[k]=t;
+ }
+ return m;
+}
 function perfAgePill(){
- const n=perfNewestAt();if(!n)return '';
- const h=(Date.now()-n)/36e5;
- const label=`DATA AS OF ${fmtStamp(n)}`;
- return h>PERF_STALE_H
-  ?`<span class="pill" style="border-color:rgba(251,113,133,.5);color:#fda4af"><span class="dot" style="background:#fb7185"></span>STALE · ${label}</span>`
-  :`<span class="pill"><span class="dot"></span>${label}</span>`;
+ const by=perfNewestByPlatform();const keys=Object.keys(by).sort();if(!keys.length)return '';
+ const name={x:'X',twitter:'X',tiktok:'TikTok',instagram:'Instagram',facebook:'Facebook'};
+ return keys.map(k=>{const n=by[k],h=(Date.now()-n)/36e5,label=`${(name[k]||k).toUpperCase()} · DATA AS OF ${fmtStamp(n)}`;
+  return h>PERF_STALE_H
+   ?`<span class="pill" style="border-color:rgba(251,113,133,.5);color:#fda4af"><span class="dot" style="background:#fb7185"></span>STALE · ${label}</span>`
+   :`<span class="pill"><span class="dot"></span>${label}</span>`}).join(' ');
 }
 function rPerformance(){
  if(SENTI.posts.length){

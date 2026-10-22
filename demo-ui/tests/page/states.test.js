@@ -44,12 +44,20 @@ test('performance: header shows DATA AS OF the newest post/comment and STALE whe
     await new Promise((r) => setTimeout(r, 50));
     let html = X.rPerformance();
     assert.match(html, /DATA AS OF \d{2} Oct 2026, \d{2}:\d{2} GST/);
-    assert.ok(!/STALE ·/.test(html), 'fixture is fresh relative to the frozen clock');
+    // one pill per platform, each judged on its own newest post/comment (ingestion lags differ by platform)
+    const by = X.perfNewestByPlatform(); const now = Date.now();
+    assert.ok(Object.keys(by).length >= 1);
+    for (const [k, t] of Object.entries(by)) {
+      const name = { x: 'X', twitter: 'X', tiktok: 'TIKTOK', instagram: 'INSTAGRAM', facebook: 'FACEBOOK' }[k] || k.toUpperCase();
+      const stale = (now - t) / 36e5 > 48;
+      assert.equal(new RegExp(`STALE · ${name} · DATA AS OF`).test(html), stale, `${k}: ${stale ? 'stale' : 'fresh'} pill`);
+      if (!stale) assert.match(html, new RegExp(`${name} · DATA AS OF`));
+    }
     assert.match(html, /CONSUMER SENTIMENT TRACKER · LIVE/);
     // age everything by 10 days → stale
     for (const p of X.SENTI.posts) { p.postedAt = '2026-10-05T00:00:00Z'; for (const c of p.comments || []) c.at = '2026-10-05T00:00:00Z'; }
     html = X.rPerformance();
-    assert.match(html, /STALE · DATA AS OF 05 Oct 2026/);
+    assert.match(html, /STALE · [A-Z]+ · DATA AS OF 05 Oct 2026/); assert.ok(!/<span class="pill"><span class="dot"><\/span>[A-Z]+ · DATA AS OF/.test(html), 'every platform stale once everything is 10 days old');
   } finally { X.restore(); }
 });
 
