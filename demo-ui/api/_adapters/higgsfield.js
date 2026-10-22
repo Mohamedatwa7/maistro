@@ -173,7 +173,9 @@ async function estimate(endpoint, body) {
   const usd = num('usd'), credits = num('credits');
   if (usd == null) {
     const shape = Object.entries(d || {}).map(([k, v]) => (v && typeof v === 'object' && !Array.isArray(v) ? `${k}{${Object.keys(v).join(',')}}` : k)).join(',');
-    throw Object.assign(new Error(`estimate returned no usd (keys: ${shape || 'none'})`), { status: 502, credits });
+    // video endpoints answer { type, pricing_description } (2026-10-22): keep the provider's public pricing text
+    const desc = typeof d.pricing_description === 'string' ? d.pricing_description.slice(0, 300) : null;
+    throw Object.assign(new Error(`estimate returned no usd (keys: ${shape || 'none'})${desc ? ` — ${desc}` : ''}`), { status: 502, credits, pricingType: typeof d.type === 'string' ? d.type.slice(0, 40) : null, pricingDescription: desc });
   }
   return { usd, credits };
 }

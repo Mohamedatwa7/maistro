@@ -447,7 +447,7 @@ module.exports = async (req, res) => {
                 ['t2v_5s_720p', { kind: 'video', prompt: 'price card', aspect_ratio: '9:16', duration: 5, resolution: '720p' }],
               ];
               const card = {};
-              await Promise.all(cards.map(async ([k, body]) => { try { card[k] = await hf.estimateRequest(body); } catch (e) { card[k] = { error: String(e.message || e).slice(0, 120) }; } }));
+              await Promise.all(cards.map(async ([k, body]) => { try { card[k] = await hf.estimateRequest(body); } catch (e) { card[k] = { error: String(e.message || e).slice(0, 400), pricingType: e.pricingType || null, pricingDescription: e.pricingDescription || null }; } }));
               const complete = Object.values(card).every((x) => x && Number.isFinite(x.usd));
               await insertRows('audit_log', [{ actor: null, action: 'higgsfield.prices', entity: 'provider', entity_id: null, after: { day, card, complete, at: new Date().toISOString() } }]);
               prices = card;

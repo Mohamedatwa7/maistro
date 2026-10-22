@@ -90,7 +90,7 @@ test('budget: the estimate is reserved before the comparison — two renders gat
 });
 
 test('estimate parser: the documented { credits, usd }, a nested usd one level down, and a body without usd fails naming its keys (not values)', async () => {
-  const bodies = [{ usd: 0.5, credits: 8 }, { estimate: { usd: '0.75', credits: 12 } }, { credits: 30, model: 'x' }];
+  const bodies = [{ usd: 0.5, credits: 8 }, { estimate: { usd: '0.75', credits: 12 } }, { credits: 30, model: 'x' }, { type: 'per_second', pricing_description: '6 credits per second at 720p' }];
   let i = 0;
   const f = mockFetch([[/api\.higgsfield\.ai\/estimate\//, () => json(bodies[i++])]]);
   const saved = process.env.HF_CREDENTIALS; process.env.HF_CREDENTIALS = 'id:secret';
@@ -99,5 +99,6 @@ test('estimate parser: the documented { credits, usd }, a nested usd one level d
     assert.deepEqual(await hg.estimate('bytedance/seedance-2.5/image-to-video', {}), { usd: 0.5, credits: 8 });
     assert.deepEqual(await hg.estimate('bytedance/seedance-2.5/image-to-video', {}), { usd: 0.75, credits: 12 });
     await assert.rejects(hg.estimate('bytedance/seedance-2.5/image-to-video', {}), (e) => /no usd \(keys: credits,model\)/.test(e.message) && e.credits === 30);
+    await assert.rejects(hg.estimate('bytedance/seedance-2.5/image-to-video', {}), (e) => e.pricingType === 'per_second' && e.pricingDescription === '6 credits per second at 720p' && /— 6 credits per second/.test(e.message));
   } finally { f.restore(); if (saved === undefined) delete process.env.HF_CREDENTIALS; else process.env.HF_CREDENTIALS = saved; }
 });
