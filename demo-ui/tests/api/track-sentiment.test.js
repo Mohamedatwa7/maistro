@@ -84,12 +84,16 @@ test('golden: dedupeTwins on 402 recorded rows', () => {
   let before = 0, after = 0;
   for (const list of byPost.values()) { before += list.length; after += dedupeTwins(list).length; }
   assert.equal(before, 402);
-  assert.equal(after, 374, 'frozen on 2026-10-21 from the live 60-day payload; a change here is a behaviour change');
-  // invariant: never two survivors with the same author+normalised text in one post
+  // frozen on 2026-10-21 from the live 60-day payload at 374; 373 since the 2026-10-22 message key (labelled audit):
+  // one author's three emoji-only variants of a long comment fold into one (−2) and a blank pair is no longer merged (+1)
+  assert.equal(after, 373, 'a change here is a behaviour change');
+  // invariant: never two survivors with the same author + message key in one post (blank text is never merged)
+  const { messageKey } = api('track.js', ENV).handler;
   for (const list of byPost.values()) {
     const seen = new Set();
     for (const c of dedupeTwins(list)) {
-      const k = String(c.author_username).trim().toLowerCase() + '|' + String(c.text).replace(/\s+/g, ' ').trim();
+      if (messageKey(c.text) == null) continue;
+      const k = String(c.author_username).trim().toLowerCase() + '|' + messageKey(c.text);
       assert.ok(!seen.has(k)); seen.add(k);
     }
   }
@@ -195,7 +199,7 @@ test('twinAudit (7.0): counts merged groups and kept-apart near-duplicates; samp
     { postId: 'p1', platform: 'instagram', rows: [
       { external_id: '18012345678901234', author_username: 'amal', text: 'Love it', likes_count: 1, published_at: t(0), sentiment: 'positive' },
       { external_id: 'DAbc_amal_1760954460', author_username: 'amal', text: 'Love  it', likes_count: 0, published_at: t(60) }, // merged twin
-      { external_id: '3', author_username: 'Amal', text: 'love it!', likes_count: 0, published_at: t(120) }, // same author, text differs only in case and punctuation → kept apart, a loose near-duplicate
+      { external_id: '3', author_username: 'Amal', text: 'love it!', likes_count: 0, published_at: t(120) }, // same author, text differs only in case and punctuation → the same message, merged
       { external_id: '4', author_username: 'sara', text: 'When is it available in Dubai?', published_at: t(0) },
       { external_id: '5', author_username: 'sara', text: 'When is it available in Dubai? Also price', published_at: t(30) }, // truncated
       { external_id: '6', author_username: 'omar', text: 'Totally worth the upgrade', published_at: t(5) },
@@ -207,10 +211,38 @@ test('twinAudit (7.0): counts merged groups and kept-apart near-duplicates; samp
     ] },
   ];
   const a = twinAudit(lists, { seed: 's' });
-  assert.equal(a.counts.groupsMerged, 2); assert.equal(a.counts.rowsRemoved, 2);
-  assert.deepEqual(a.counts.nearPairs, { loose: 1, truncated: 1, otherAuthor: 1 });
+  assert.equal(a.counts.groupsMerged, 2); assert.equal(a.counts.rowsRemoved, 3);
+  assert.deepEqual(a.counts.nearPairs, { loose: 0, truncated: 1, otherAuthor: 1 });
   assert.deepEqual(a.counts.mergedByPlatform, { instagram: 1, tiktok: 1 });
-  assert.deepEqual(a.sample.merged.find((g) => g.postId === 'p1').members.map((m) => m.idForm), ['numeric', 'synthetic']);
+  assert.deepEqual(a.sample.merged.find((g) => g.postId === 'p1').members.map((m) => m.idForm), ['numeric', 'synthetic', 'numeric']);
   assert.deepEqual(twinAudit(lists, { seed: 's' }), a, 'same seed, same sample');
   assert.equal(twinAudit(lists, { seed: 's', perPlatform: 1 }).sample.near.length, 1);
+});
+
+test('golden: the collapse rule against the labelled twin audit (2026-10-22, 72 cases): no false merges, no missed duplicates', () => {
+  const { dedupeTwins } = api('track.js', ENV).handler;
+  const f = fixture('twin-audit-2026-10-22.json');
+  const rows = (g) => g.members.map((m) => ({ author_username: m.author, text: m.text, likes_count: m.likes, published_at: m.at, sentiment: m.sentiment }));
+  const tally = { falseMerge: 0, missed: 0, unverifiableMerged: 0 };
+  for (const g of [...f.merged, ...f.near]) {
+    const survivors = dedupeTwins(rows(g)).length;
+    if (g.label === 'same' && survivors !== 1) tally.missed++;
+    if (g.label === 'different' && survivors !== g.members.length) tally.falseMerge++;
+    if (g.label === 'unverifiable' && survivors !== g.members.length) tally.unverifiableMerged++;
+  }
+  assert.equal(f.merged.length + f.near.length, 72);
+  assert.deepEqual(tally, { falseMerge: 0, missed: 0, unverifiableMerged: 0 });
+});
+
+test('the page collapses comments with the same message key as the server (index.html sentiKey vs messageKey)', () => {
+  const { messageKey } = api('track.js', ENV).handler;
+  const html = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', '..', 'index.html'), 'utf8');
+  const src = html.match(/let sentiBlank=0;\nfunction sentiKey\(c\)\{[\s\S]*?\n\}/)[0];
+  const sentiKey = new Function(`${src}; return sentiKey;`)();
+  const f = fixture('twin-audit-2026-10-22.json');
+  for (const g of [...f.merged, ...f.near]) for (const m of g.members) {
+    const k = messageKey(m.text), s = sentiKey({ author: m.author, text: m.text });
+    if (k == null) assert.match(s, /^\u0000blank/);
+    else assert.equal(s, `${String(m.author || '').trim().toLowerCase()}|${k}`);
+  }
 });

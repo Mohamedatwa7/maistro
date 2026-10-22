@@ -3015,13 +3015,24 @@ async function fetchPosts(url,tries=2){
  return null;
 }
 const sentiId=p=>String(p.postId).replace(/^(tiktok|instagram|facebook|x)-/,'');
-/* collapse twin comments (same author + text on one post) — the server does
-   this for /api/track, but older bridge-pushed snapshots never went through it */
+/* collapse twin comments (same author + same message on one post) — the server does
+   this for /api/track (messageKey in api/_handlers/track.js; keep the two in step), but
+   older bridge-pushed snapshots never went through it. The message ignores punctuation,
+   symbols and emoji, marks, @mentions, whitespace and case, and folds a repeated paste;
+   blank text is never merged. */
+let sentiBlank=0;
+function sentiKey(c){
+ const exact=String(c.text||'').replace(/\s+/g,' ').trim();
+ let m=exact.normalize('NFKC').toLowerCase().replace(/@[\w.]+/g,' ').replace(/[\p{P}\p{S}\p{M}\s\u200b-\u200d\u2060\ufeff]+/gu,'');
+ for(let n=1;n<=m.length/2;n++){let r=true;for(let i=n;i<m.length&&r;i++)r=m[i]===m[i%n];if(r){m=m.slice(0,n);break}}
+ m=m||exact;
+ return m?String(c.author||'').trim().toLowerCase()+'|'+m:'\u0000blank'+(sentiBlank++);
+}
 function sentiDedupe(cmts){
  if(!Array.isArray(cmts)||cmts.length<2)return cmts;
  const best=new Map();
  for(const c of cmts){
-  const k=String(c.author||'').trim().toLowerCase()+'|'+String(c.text||'').replace(/\s+/g,' ').trim();
+  const k=sentiKey(c);
   const cur=best.get(k);
   if(!cur){best.set(k,c);continue}
   const curA=/^(pos|neu|neg)$/.test(cur.sentiment),cA=/^(pos|neu|neg)$/.test(c.sentiment);
@@ -3034,8 +3045,8 @@ function sentiDedupe(cmts){
    (critical alerts, drill-downs) fold those too and say how many posts. */
 function sentiFoldAcross(cmts){
  const out=sentiDedupe(cmts),seen=new Map();
- for(const c of cmts){const k=String(c.author||'').trim().toLowerCase()+'|'+String(c.text||'').replace(/\s+/g,' ').trim();seen.set(k,(seen.get(k)||new Set()).add(c.postId))}
- for(const c of out){const k=String(c.author||'').trim().toLowerCase()+'|'+String(c.text||'').replace(/\s+/g,' ').trim();c.across=(seen.get(k)||new Set()).size}
+ for(const c of cmts){const k=sentiKey(c);seen.set(k,(seen.get(k)||new Set()).add(c.postId))}
+ for(const c of out){const k=sentiKey(c);c.across=(seen.get(k)||new Set()).size}
  return out;
 }
 function sentiCompose(){

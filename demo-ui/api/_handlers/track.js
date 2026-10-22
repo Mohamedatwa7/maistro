@@ -194,23 +194,37 @@ function resolvePost(index, c) {
   return null;
 }
 
-// Twin comments. Different actors key the same comment differently (a
-// synthetic shortcode_user_timestamp id vs the real numeric id) and stamp it
-// with different times (one gives the exact second, the other a minute-
-// rounded or scrape-relative time), so one comment is stored several times
-// with different likes and only one copy sentiment-analyzed. In the 60-day
-// window 22% of all comments were such twins — Instagram alone 1.4k — and
-// keying on the publish second (the previous rule) caught almost none of
-// them: the copies sit a median 60 s apart. So collapse on author + text
-// within a post regardless of time. A real same-user repeat ("giveaway spam"
-// posted twice) is collapsed too; for a sentiment dashboard that is the
-// right call — one voice, one comment. Keep the analyzed copy, then the one
-// with more likes, then the earliest.
+// Twin comments: one voice, one comment. The collapse was written for storage twins (one comment keyed
+// twice by different actors, a synthetic shortcode_user_timestamp id vs the real numeric id, a median 60 s
+// apart). The labelled audit of 2026-10-22 (tests/fixtures/twin-audit-2026-10-22.json, 72 sampled cases of
+// a 60-day window) found none of those any more: every merged group was the same author posting the same
+// text under distinct numeric ids — giveaway entries re-posted, a complaint sent twice — and the rule
+// missed 23 of 36 near-duplicates, the same entries re-posted with a dot, an emoji, a friend's @mention or
+// the text pasted several times (exact text was the old key). So the key is the author plus the message with
+// punctuation, symbols and emoji, combining marks, @mentions, whitespace and case removed, and a verbatim
+// self-repeat folded to one copy. Added or changed words stay separate comments; another author is always another
+// voice. A text that is only emoji falls back to its exact form; blank text (a sticker, an image) is never
+// merged, since what it says is unknown. Keep the analyzed copy, then the one with more likes, then the
+// earliest.
 const normText = (t) => String(t || '').replace(/\s+/g, ' ').trim();
+function messageKey(text) {
+  const exact = normText(text);
+  let c = exact.normalize('NFKC').toLowerCase().replace(/@[\w.]+/g, ' ')
+    .replace(/[\p{P}\p{S}\p{M}\s\u200b-\u200d\u2060\ufeff]+/gu, '');
+  // a text pasted several times (the last copy may be cut off) is the text once
+  for (let n = 1; n <= c.length / 2; n++) {
+    let rep = true;
+    for (let i = n; i < c.length && rep; i++) rep = c[i] === c[i % n];
+    if (rep) { c = c.slice(0, n); break; }
+  }
+  return c || exact || null;
+}
+let blankSeq = 0;
+const twinKey = (c) => { const m = messageKey(c.text); return m == null ? `\u0000blank${blankSeq++}` : `${String(c.author_username || '').trim().toLowerCase()}|${m}`; };
 function dedupeTwins(rows) {
   const best = new Map();
   for (const c of rows) {
-    const k = `${String(c.author_username || '').trim().toLowerCase()}|${normText(c.text)}`;
+    const k = twinKey(c);
     const cur = best.get(k);
     if (!cur) { best.set(k, c); continue; }
     const curA = !!SENT_MAP[cur.sentiment], cA = !!SENT_MAP[c.sentiment];
@@ -240,7 +254,7 @@ function twinAudit(lists, { seed = '', perPlatform = 12 } = {}) {
   const merged = [], near = [], counts = { groupsMerged: 0, rowsRemoved: 0, nearPairs: { loose: 0, truncated: 0, otherAuthor: 0 } };
   for (const { postId, platform, rows } of lists) {
     const groups = new Map();
-    for (const c of rows) { const k = `${String(c.author_username || '').trim().toLowerCase()}|${normText(c.text)}`; (groups.get(k) || groups.set(k, []).get(k)).push(c); }
+    for (const c of rows) { const k = twinKey(c); (groups.get(k) || groups.set(k, []).get(k)).push(c); }
     for (const g of groups.values()) if (g.length > 1) { counts.groupsMerged++; counts.rowsRemoved += g.length - 1; merged.push({ postId, platform, members: g.map(row) }); }
     const kept = dedupeTwins(rows);
     for (let i = 0; i < kept.length; i++) for (let j = i + 1; j < kept.length; j++) {
@@ -587,3 +601,4 @@ module.exports = async (req, res) => {
 
 module.exports.dedupeTwins = dedupeTwins; // exposed for tests
 module.exports.twinAudit = twinAudit;
+module.exports.messageKey = messageKey;

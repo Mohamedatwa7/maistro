@@ -1,0 +1,2514 @@
+{
+ "source": "reconciliation_reports row 8 (2026-10-22T09:24:40.839155+00:00), 60-day window; report.twins sample (seeded by the window start, up to 12 per outcome per platform)",
+ "labelledBy": "Claude (builder session maistro-5e), 2026-10-22; owner to re-label if any call is disputed",
+ "labellingRule": "same = same author and same message ignoring punctuation, whitespace, case, emoji, @mentions and a verbatim self-repeat; added/changed words = different; different authors = different; blank text = unverifiable",
+ "anonymisation": "authors and @mentions (except @SamsungGulf) replaced by md5-derived tokens; comment ids dropped (id form kept); one employee name redacted",
+ "windowCounts": {
+  "nearPairs": {
+   "loose": 320,
+   "truncated": 419,
+   "otherAuthor": 208
+  },
+  "rowsRemoved": 1979,
+  "groupsMerged": 301,
+  "nearByPlatform": {
+   "x": 763,
+   "facebook": 56,
+   "instagram": 128
+  },
+  "mergedByPlatform": {
+   "x": 99,
+   "facebook": 64,
+   "instagram": 138
+  }
+ },
+ "comments": {
+  "matched": 8332,
+  "deduped": 6353,
+  "twinsRemoved": 1979
+ },
+ "merged": [
+  {
+   "platform": "facebook",
+   "platformTotal": 64,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "u4bb67021",
+     "text": "As a Samsung User for last 19 years +. I Never Expected This Type of Negligence from a Brand I Trusted for So long time  Unfortunately, I am Now facing the Network Problem  Issues  on my New   Samsung",
+     "at": "2026-09-23T13:55:08+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "negative"
+    },
+    {
+     "author": "u4bb67021",
+     "text": "As a Samsung User for last 19 years +. I Never Expected This Type of Negligence from a Brand I Trusted for So long time  Unfortunately, I am Now facing the Network Problem  Issues  on my New   Samsung",
+     "at": "2026-09-23T13:54:51+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 64,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ud0ff1dd5",
+     "text": "Get the Galaxy Z Fold8 Ultra 1TB for AED 8,799 instead of AED 10,399 with code FOLDABLES, available on Samsung.com or Shop App. ✨ Double the storage double the fun!",
+     "at": "2026-09-24T12:34:47+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ud0ff1dd5",
+     "text": "Get the Galaxy Z Fold8 Ultra 1TB for AED 8,799 instead of AED 10,399 with code FOLDABLES, available on Samsung.com or Shop App. ✨ Double the storage double the fun!",
+     "at": "2026-09-24T12:12:18+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 64,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 . . .",
+     "at": "2026-09-14T22:03:04+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 . . .",
+     "at": "2026-09-14T22:02:57+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 64,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ud0ff1dd5",
+     "text": "Complete your Galaxy setup and enjoy 30% off selected Cases, 15% off selected Wearables and 10% off selected Galaxy Tabs.",
+     "at": "2026-09-24T12:37:59+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "ud0ff1dd5",
+     "text": "Complete your Galaxy setup and enjoy 30% off selected Cases, 15% off selected Wearables and 10% off selected Galaxy Tabs.",
+     "at": "2026-09-24T12:19:27+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 64,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "u7572772b",
+     "text": "Superb ✨️😍 #GalaxyZFold8 Buds4 Pro and Watch9",
+     "at": "2026-08-26T16:27:26+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u7572772b",
+     "text": "Superb ✨️😍 #GalaxyZFold8 Buds4 Pro and Watch9",
+     "at": "2026-08-26T16:27:22+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u7572772b",
+     "text": "Superb ✨️😍 #GalaxyZFold8 Buds4 Pro and Watch9",
+     "at": "2026-08-26T16:27:15+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u7572772b",
+     "text": "Superb ✨️😍 #GalaxyZFold8 Buds4 Pro and Watch9",
+     "at": "2026-08-26T16:27:08+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u7572772b",
+     "text": "Superb ✨️😍 #GalaxyZFold8 Buds4 Pro and Watch9",
+     "at": "2026-08-25T16:30:36+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u7572772b",
+     "text": "Superb ✨️😍 #GalaxyZFold8 Buds4 Pro and Watch9",
+     "at": "2026-08-25T16:30:34+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u7572772b",
+     "text": "Superb ✨️😍 #GalaxyZFold8 Buds4 Pro and Watch9",
+     "at": "2026-08-25T09:29:06+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u7572772b",
+     "text": "Superb ✨️😍 #GalaxyZFold8 Buds4 Pro and Watch9",
+     "at": "2026-08-24T09:34:16+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 64,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 \n\n.",
+     "at": "2026-09-14T22:02:47+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 \n .",
+     "at": "2026-09-14T22:02:42+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 \n.",
+     "at": "2026-09-14T22:02:37+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 .",
+     "at": "2026-09-14T22:02:20+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 64,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "u9a47d4e9",
+     "text": "✅ Galaxy Z Flip8 - Mint\n\n #GalaxyZFold8, #GalaxyZFold8Ultra #GalaxyZFlip8",
+     "at": "2026-09-09T03:07:18+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "u9a47d4e9",
+     "text": "✅ Galaxy Z Flip8 - Mint\n\n #GalaxyZFold8, #GalaxyZFold8Ultra #GalaxyZFlip8",
+     "at": "2026-09-09T03:07:10+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u9a47d4e9",
+     "text": "✅ Galaxy Z Flip8 - Mint\n\n #GalaxyZFold8, #GalaxyZFold8Ultra #GalaxyZFlip8",
+     "at": "2026-09-09T03:07:01+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u9a47d4e9",
+     "text": "✅ Galaxy Z Flip8 - Mint\n\n #GalaxyZFold8, #GalaxyZFold8Ultra #GalaxyZFlip8",
+     "at": "2026-09-09T03:06:53+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u9a47d4e9",
+     "text": "✅ Galaxy Z Flip8 - Mint\n\n #GalaxyZFold8, #GalaxyZFold8Ultra #GalaxyZFlip8",
+     "at": "2026-09-09T03:06:48+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u9a47d4e9",
+     "text": "✅ Galaxy Z Flip8 - Mint\n\n #GalaxyZFold8, #GalaxyZFold8Ultra #GalaxyZFlip8",
+     "at": "2026-09-09T03:06:43+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u9a47d4e9",
+     "text": "✅ Galaxy Z Flip8 - Mint\n\n #GalaxyZFold8, #GalaxyZFold8Ultra #GalaxyZFlip8",
+     "at": "2026-09-09T03:06:37+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u9a47d4e9",
+     "text": "✅ Galaxy Z Flip8 - Mint\n\n #GalaxyZFold8, #GalaxyZFold8Ultra #GalaxyZFlip8",
+     "at": "2026-09-09T03:06:29+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u9a47d4e9",
+     "text": "✅ Galaxy Z Flip8 - Mint\n\n #GalaxyZFold8, #GalaxyZFold8Ultra #GalaxyZFlip8",
+     "at": "2026-09-08T14:00:21+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u9a47d4e9",
+     "text": "✅ Galaxy Z Flip8 - Mint\n\n #GalaxyZFold8, #GalaxyZFold8Ultra #GalaxyZFlip8",
+     "at": "2026-09-08T14:00:13+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 64,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "u34d20d7a",
+     "text": "My productivity-maxxing combo would be Galaxy Z Fold8 Ultra + Galaxy Watch6 ⌚📱✨ — the perfect duo for multitasking, staying organized, and getting more done every day! 💜\n\n#GalaxyZFold8Ultra",
+     "at": "2026-09-14T19:32:44+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u34d20d7a",
+     "text": "My productivity-maxxing combo would be Galaxy Z Fold8 Ultra + Galaxy Watch6 ⌚📱✨ — the perfect duo for multitasking, staying organized, and getting more done every day! 💜\n\n#GalaxyZFold8Ultra",
+     "at": "2026-09-14T09:04:05+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 64,
+   "outcome": "merged",
+   "label": "unverifiable",
+   "reason": "blank text (sticker or image): content unknown",
+   "members": [
+    {
+     "author": "u899afd91",
+     "text": "",
+     "at": "2026-10-07T05:58:06+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u899afd91",
+     "text": "",
+     "at": "2026-10-07T05:58:04+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 64,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 ..",
+     "at": "2026-09-14T22:02:29+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 ..",
+     "at": "2026-09-14T22:02:16+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 64,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "u6f22f6a2",
+     "text": "#GalaxyZFold8Ultra",
+     "at": "2026-09-10T13:39:06+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u6f22f6a2",
+     "text": "#GalaxyZFold8Ultra",
+     "at": "2026-09-10T13:38:39+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 64,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "u7abf7509",
+     "text": "#GalaxyZFold8\nGalaxyZFold8 and watch9",
+     "at": "2026-08-26T12:16:08+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "u7abf7509",
+     "text": "#GalaxyZFold8\nGalaxyZFold8 and watch9",
+     "at": "2026-08-26T12:16:04+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "u7abf7509",
+     "text": "#GalaxyZFold8\nGalaxyZFold8 and watch9",
+     "at": "2026-08-24T17:50:58+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 138,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "udfd67319",
+     "text": "اسواء خدمه عملاء قابلتها بحياتي موظف سامسونج بفرع مردف سيتي سنتر اسمه [name] اليوم قالي مش عايز اتكلم معاكي و مدير الفرع واقف قالي هابعت لمديره تخيلو الروعه الموظف بيعصب عليا و بيرميلي التليفونات و",
+     "at": "2026-09-26T15:03:44+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "negative"
+    },
+    {
+     "author": "udfd67319",
+     "text": "اسواء خدمه عملاء قابلتها بحياتي موظف سامسونج بفرع مردف سيتي سنتر اسمه [name] اليوم قالي مش عايز اتكلم معاكي و مدير الفرع واقف قالي هابعت لمديره تخيلو الروعه الموظف بيعصب عليا و بيرميلي التليفونات و",
+     "at": "2026-09-26T15:03:38+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "negative"
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 138,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:28+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:26+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:24+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:23+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:21+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:19+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:17+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:15+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:13+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:11+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:09+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:07+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:05+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:03+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:01+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:05:00+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:04:58+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:04:56+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:04:53+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:04:52+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:04:49+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:04:47+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:04:45+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:04:43+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u212e5db7",
+     "text": "#GalaxyZFold8",
+     "at": "2026-08-25T05:04:37+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 138,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:51+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:50+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:49+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:47+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:46+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:44+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:43+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:41+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:40+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:38+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:36+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:35+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:34+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:31+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:30+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:29+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:27+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:26+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uc596f7ad",
+     "text": "GalaxyZ Fold8 Buds4 Pro Watch9 #samsunggulf #galaxyzfold8",
+     "at": "2026-08-26T02:06:24+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 138,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "uf76c7c4b",
+     "text": "Gaalxy Z Fold 8 | Watch9 | Buds 4 Pro ✨",
+     "at": "2026-08-24T20:24:59+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uf76c7c4b",
+     "text": "Gaalxy Z Fold 8 | Watch9 | Buds 4 Pro ✨",
+     "at": "2026-08-24T20:24:30+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 138,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "u4cef929c",
+     "text": "#galaxyzfold8 #galaxyzfold8",
+     "at": "2026-08-24T19:56:42+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u4cef929c",
+     "text": "#galaxyzfold8 #galaxyzfold8",
+     "at": "2026-08-24T19:55:59+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 138,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "u9ca3f904",
+     "text": "Z Fold8 + Buds4 Pro + Watch9! 💜✨ The ultimate combo for my everyday life—style, music, and staying connected! 📱🎧⌚ #GalaxyZFold8",
+     "at": "2026-08-26T17:25:59+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u9ca3f904",
+     "text": "Z Fold8 + Buds4 Pro + Watch9! 💜✨ The ultimate combo for my everyday life—style, music, and staying connected! 📱🎧⌚ #GalaxyZFold8",
+     "at": "2026-08-26T17:25:57+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u9ca3f904",
+     "text": "Z Fold8 + Buds4 Pro + Watch9! 💜✨ The ultimate combo for my everyday life—style, music, and staying connected! 📱🎧⌚ #GalaxyZFold8",
+     "at": "2026-08-26T17:25:55+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u9ca3f904",
+     "text": "Z Fold8 + Buds4 Pro + Watch9! 💜✨ The ultimate combo for my everyday life—style, music, and staying connected! 📱🎧⌚ #GalaxyZFold8",
+     "at": "2026-08-26T17:25:52+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 138,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "udbfa3f83",
+     "text": "The Fold8 and Watch9 combo looks amazing! 💚 #GalaxyZFold8",
+     "at": "2026-08-25T01:30:37+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "udbfa3f83",
+     "text": "The Fold8 and Watch9 combo looks amazing! 💚 #GalaxyZFold8",
+     "at": "2026-08-25T01:30:24+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 138,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "u79b45373",
+     "text": "Galaxy Z fold8 | Watch 9 | Buds 4 pro \n#GalaxyZFold8",
+     "at": "2026-08-25T02:57:04+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u79b45373",
+     "text": "Galaxy Z fold8 | Watch 9 | Buds 4 pro \n#GalaxyZFold8",
+     "at": "2026-08-25T02:57:01+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u79b45373",
+     "text": "Galaxy Z fold8 | Watch 9 | Buds 4 pro \n#GalaxyZFold8",
+     "at": "2026-08-25T02:56:58+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u79b45373",
+     "text": "Galaxy Z fold8 | Watch 9 | Buds 4 pro \n#GalaxyZFold8",
+     "at": "2026-08-25T02:56:56+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u79b45373",
+     "text": "Galaxy Z fold8 | Watch 9 | Buds 4 pro \n#GalaxyZFold8",
+     "at": "2026-08-25T02:56:53+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u79b45373",
+     "text": "Galaxy Z fold8 | Watch 9 | Buds 4 pro \n#GalaxyZFold8",
+     "at": "2026-08-25T02:56:51+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u79b45373",
+     "text": "Galaxy Z fold8 | Watch 9 | Buds 4 pro \n#GalaxyZFold8",
+     "at": "2026-08-25T02:56:48+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u79b45373",
+     "text": "Galaxy Z fold8 | Watch 9 | Buds 4 pro \n#GalaxyZFold8",
+     "at": "2026-08-25T02:56:45+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 138,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ub6fcf1a3",
+     "text": "ANSWER : BEST COMBO - GALAXY Z FOLD 8 with BUDS4 PRO with WATCH9 ✅✅\n#SamsungGulf #GalaxyZFold8 @samsunggulf ✅✅✅\n\nMANIFESTING to win this GIVEAWAY and gift it to my PARENTS as a token of love and appre",
+     "at": "2026-08-26T04:40:38+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ub6fcf1a3",
+     "text": "ANSWER : BEST COMBO - GALAXY Z FOLD 8 with BUDS4 PRO with WATCH9 ✅✅\n#SamsungGulf #GalaxyZFold8 @samsunggulf ✅✅✅\n\nMANIFESTING to win this GIVEAWAY and gift it to my PARENTS as a token of love and appre",
+     "at": "2026-08-26T04:40:36+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ub6fcf1a3",
+     "text": "ANSWER : BEST COMBO - GALAXY Z FOLD 8 with BUDS4 PRO with WATCH9 ✅✅\n#SamsungGulf #GalaxyZFold8 @samsunggulf ✅✅✅\n\nMANIFESTING to win this GIVEAWAY and gift it to my PARENTS as a token of love and appre",
+     "at": "2026-08-26T04:40:35+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ub6fcf1a3",
+     "text": "ANSWER : BEST COMBO - GALAXY Z FOLD 8 with BUDS4 PRO with WATCH9 ✅✅\n#SamsungGulf #GalaxyZFold8 @samsunggulf ✅✅✅\n\nMANIFESTING to win this GIVEAWAY and gift it to my PARENTS as a token of love and appre",
+     "at": "2026-08-26T04:40:34+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ub6fcf1a3",
+     "text": "ANSWER : BEST COMBO - GALAXY Z FOLD 8 with BUDS4 PRO with WATCH9 ✅✅\n#SamsungGulf #GalaxyZFold8 @samsunggulf ✅✅✅\n\nMANIFESTING to win this GIVEAWAY and gift it to my PARENTS as a token of love and appre",
+     "at": "2026-08-26T04:40:32+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ub6fcf1a3",
+     "text": "ANSWER : BEST COMBO - GALAXY Z FOLD 8 with BUDS4 PRO with WATCH9 ✅✅\n#SamsungGulf #GalaxyZFold8 @samsunggulf ✅✅✅\n\nMANIFESTING to win this GIVEAWAY and gift it to my PARENTS as a token of love and appre",
+     "at": "2026-08-26T04:40:31+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ub6fcf1a3",
+     "text": "ANSWER : BEST COMBO - GALAXY Z FOLD 8 with BUDS4 PRO with WATCH9 ✅✅\n#SamsungGulf #GalaxyZFold8 @samsunggulf ✅✅✅\n\nMANIFESTING to win this GIVEAWAY and gift it to my PARENTS as a token of love and appre",
+     "at": "2026-08-26T04:40:30+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ub6fcf1a3",
+     "text": "ANSWER : BEST COMBO - GALAXY Z FOLD 8 with BUDS4 PRO with WATCH9 ✅✅\n#SamsungGulf #GalaxyZFold8 @samsunggulf ✅✅✅\n\nMANIFESTING to win this GIVEAWAY and gift it to my PARENTS as a token of love and appre",
+     "at": "2026-08-26T04:40:22+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 138,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ucfd053ef",
+     "text": "💗💗💗 #galaxyzfold8 Galaxy Z fold + watch 9",
+     "at": "2026-08-25T01:32:10+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ucfd053ef",
+     "text": "💗💗💗 #galaxyzfold8 Galaxy Z fold + watch 9",
+     "at": "2026-08-25T01:31:28+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ucfd053ef",
+     "text": "💗💗💗 #galaxyzfold8  Galaxy Z fold + watch 9",
+     "at": "2026-08-25T01:31:17+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ucfd053ef",
+     "text": "💗💗💗 #galaxyzfold8 Galaxy Z fold + watch 9",
+     "at": "2026-08-25T01:31:09+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ucfd053ef",
+     "text": "💗💗💗 #galaxyzfold8 Galaxy Z fold + watch 9",
+     "at": "2026-08-25T01:30:55+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ucfd053ef",
+     "text": "💗💗💗 #galaxyzfold8 Galaxy Z fold + watch 9",
+     "at": "2026-08-25T01:29:25+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 138,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "udbfa3f83",
+     "text": "I need that Fold8 and Buds4 Pro combo! 😭💜 #GalaxyZFold8",
+     "at": "2026-08-25T22:40:53+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "udbfa3f83",
+     "text": "I need that Fold8 and Buds4 Pro combo! 😭💜 #GalaxyZFold8",
+     "at": "2026-08-25T22:40:44+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 138,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "u37ed9917",
+     "text": "#tastegalaxy #samsunggalaxy",
+     "at": "2026-08-28T18:06:10+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u37ed9917",
+     "text": "#tastegalaxy #samsunggalaxy",
+     "at": "2026-08-28T18:02:20+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 99,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n364",
+     "at": "2026-09-15T15:20:41+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n364",
+     "at": "2026-09-13T15:55:56+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 99,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n194",
+     "at": "2026-09-14T04:47:26+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n194",
+     "at": "2026-09-11T23:08:46+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 99,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ua030212b",
+     "text": "@SamsungGulf So if you answer #GalaxyZFold8Ultra because that would really complete your outfit you get send a s26 which is not completing your outfit at all? good thing I am not into the folding phon",
+     "at": "2026-09-11T17:55:14+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": "negative"
+    },
+    {
+     "author": "ua030212b",
+     "text": "@SamsungGulf So if you answer #GalaxyZFold8Ultra because that would really complete your outfit you get send a s26 which is not completing your outfit at all? good thing I am not into the folding phon",
+     "at": "2026-09-10T16:24:21+00:00",
+     "idForm": "numeric",
+     "likes": 3,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 99,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n354",
+     "at": "2026-09-15T11:53:59+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n354",
+     "at": "2026-09-13T14:22:20+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 99,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "u30ea18bd",
+     "text": "@SamsungGulf @u1aa004fc 💚Mint in my pocket #GalaxyZFlip8 \nI appreciate the chance 🫶🏼\n#GalaxyZFold8 ,  #GalaxyZFold8Ultra ,  or  #GalaxyZFlip8",
+     "at": "2026-09-09T10:49:26+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u30ea18bd",
+     "text": "@SamsungGulf @u1aa004fc 💚Mint in my pocket #GalaxyZFlip8\nI appreciate the chance 🫶🏼\n#GalaxyZFold8 ,  #GalaxyZFold8Ultra ,  or  #GalaxyZFlip8",
+     "at": "2026-09-09T10:46:26+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 99,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n379",
+     "at": "2026-09-15T17:33:07+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n379",
+     "at": "2026-09-13T20:54:32+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 99,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n367",
+     "at": "2026-09-15T15:20:55+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n367",
+     "at": "2026-09-13T15:56:08+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 99,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n359",
+     "at": "2026-09-15T11:54:24+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n359",
+     "at": "2026-09-13T15:55:31+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 99,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n189",
+     "at": "2026-09-14T02:24:33+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n189",
+     "at": "2026-09-11T17:01:52+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 99,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ueb5f130c",
+     "text": "@SamsungGulf #GalaxyZFlip8 Mint 🍏  \n#GalaxyZFold8",
+     "at": "2026-09-09T04:05:57+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "ueb5f130c",
+     "text": "@SamsungGulf #GalaxyZFlip8 Mint 🍏  #GalaxyZFold8",
+     "at": "2026-09-09T04:05:38+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 99,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "u4495c1d1",
+     "text": "@SamsungGulf My Galaxy Z Fold 8 Ultra is my outfit’s best accessory — sleek, stylish, and always completing the  look ✨📱💗\n #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+     "at": "2026-09-18T10:12:58+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u4495c1d1",
+     "text": "@SamsungGulf My Galaxy Z Fold 8 Ultra is my outfit’s best accessory — sleek, stylish, and always completing the look   ✨📱💗\n #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+     "at": "2026-09-18T10:12:30+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u4495c1d1",
+     "text": "@SamsungGulf My Galaxy Z Fold 8 Ultra is my outfit’s best accessory — sleek, stylish, and always completing the look ✨📱💗\n #GalaxyZFold8 #GalaxyZFold8Ultra #GalaxyZFlip8",
+     "at": "2026-09-18T10:12:17+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 99,
+   "outcome": "merged",
+   "label": "same",
+   "reason": "same author, identical text; distinct numeric platform ids: a real repeat, not a storage twin",
+   "members": [
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n370",
+     "at": "2026-09-15T15:21:08+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ue3143cea",
+     "text": "@SamsungGulf My Galaxy #SamsungZFold8 is my outfit's best accessory!\n370",
+     "at": "2026-09-13T15:56:22+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  }
+ ],
+ "near": [
+  {
+   "platform": "facebook",
+   "platformTotal": 56,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 292,
+   "label": "different",
+   "reason": "adds words (\"with your purchase\")",
+   "members": [
+    {
+     "author": "ud0ff1dd5",
+     "text": "Earn 5X Samsung Rewards Points with your purchase.",
+     "at": "2026-09-24T12:19:34+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ud0ff1dd5",
+     "text": "Earn 5X Samsung Rewards Points.",
+     "at": "2026-09-24T12:24:26+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 56,
+   "outcome": "keptApart",
+   "kind": "otherAuthor",
+   "dtSec": 160,
+   "label": "different",
+   "reason": "different authors",
+   "members": [
+    {
+     "author": "u6c8f2152",
+     "text": "#GalaxyZFold8Ultra",
+     "at": "2026-09-10T13:09:22+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u9bdf5410",
+     "text": "#GalaxyZFold8Ultra",
+     "at": "2026-09-10T13:06:42+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 56,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 45,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "uf3d191dd",
+     "text": "🍏 \n#GalaxyZFlip8",
+     "at": "2026-09-07T21:50:33+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "uf3d191dd",
+     "text": "🍏 \n#GalaxyZFlip8.",
+     "at": "2026-09-07T21:51:18+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 56,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 10,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "uf3d191dd",
+     "text": "🍏 \n#GalaxyZFlip8",
+     "at": "2026-09-07T21:50:33+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "uf3d191dd",
+     "text": "🍏 \n#GalaxyZFlip8\n.",
+     "at": "2026-09-07T21:50:43+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 56,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 32,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 . . .",
+     "at": "2026-09-14T22:02:57+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8.",
+     "at": "2026-09-14T22:02:25+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 56,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 18,
+   "label": "different",
+   "reason": "adds \"and buds\"",
+   "members": [
+    {
+     "author": "u6f5bab83",
+     "text": "#GalaxyZFold8Ultra WITH galaxy tablet.",
+     "at": "2026-09-14T15:28:20+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u6f5bab83",
+     "text": "#GalaxyZFold8Ultra WITH galaxy tablet and buds .",
+     "at": "2026-09-14T15:28:02+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 56,
+   "outcome": "keptApart",
+   "kind": "otherAuthor",
+   "dtSec": 473,
+   "label": "different",
+   "reason": "different authors",
+   "members": [
+    {
+     "author": "u6c8f2152",
+     "text": "#GalaxyZFold8Ultra",
+     "at": "2026-09-10T13:09:22+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u32d605d8",
+     "text": "#GalaxyZFold8Ultra",
+     "at": "2026-09-10T13:01:29+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 56,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 4,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 .",
+     "at": "2026-09-14T22:02:20+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 ..",
+     "at": "2026-09-14T22:02:16+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 56,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 25,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 ...",
+     "at": "2026-09-14T22:02:34+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8",
+     "at": "2026-09-14T22:02:09+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 56,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 84,
+   "label": "different",
+   "reason": "adds \"and watch. A perfect combo.\"",
+   "members": [
+    {
+     "author": "u6f5bab83",
+     "text": "#GalaxyZFold8Ultra WITH galaxy tablet and buds and watch. A perfect combo.",
+     "at": "2026-09-14T15:29:26+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u6f5bab83",
+     "text": "#GalaxyZFold8Ultra WITH galaxy tablet and buds .",
+     "at": "2026-09-14T15:28:02+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 56,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 18,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 ...",
+     "at": "2026-09-14T22:02:34+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 ..",
+     "at": "2026-09-14T22:02:16+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "facebook",
+   "platformTotal": 56,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 41,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 . . .",
+     "at": "2026-09-14T22:02:57+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "uf3d191dd",
+     "text": "Galaxy Bud + Galaxy Watch\n\n#GalaxyZFold8 ..",
+     "at": "2026-09-14T22:02:16+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 128,
+   "outcome": "keptApart",
+   "kind": "otherAuthor",
+   "dtSec": 251,
+   "label": "different",
+   "reason": "different authors",
+   "members": [
+    {
+     "author": "uaf42cf56",
+     "text": "#tastegalaxy #samsunggalaxy",
+     "at": "2026-08-28T19:00:17+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u822bbe01",
+     "text": "#tastegalaxy #samsunggalaxy",
+     "at": "2026-08-28T18:56:06+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 128,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 73,
+   "label": "same",
+   "reason": "differs only by emoji, punctuation, @mentions or a self-repeat",
+   "members": [
+    {
+     "author": "u6bdf4369",
+     "text": "Galaxy Z Fold 8 + Watch9 + Buds Pro #GalaxyZFold8\nGalaxy Z Fold 8 + Watch9 + Buds Pro #GalaxyZFold8Galaxy Z Fold 8 + Watch9 + Buds Pro #GalaxyZFold8\nGalaxy Z Fold 8 + Watch9 + Buds Pro #GalaxyZFold8Ga",
+     "at": "2026-08-24T19:35:32+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "u6bdf4369",
+     "text": "Galaxy Z Fold 8 + Watch9 + Buds Pro #GalaxyZFold8",
+     "at": "2026-08-24T19:34:19+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 128,
+   "outcome": "keptApart",
+   "kind": "otherAuthor",
+   "dtSec": 246,
+   "label": "different",
+   "reason": "different authors",
+   "members": [
+    {
+     "author": "ueb0f1c0e",
+     "text": "#samsunggalaxy #tastegalaxy",
+     "at": "2026-08-28T15:00:08+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ud0da87b2",
+     "text": "#samsunggalaxy #tastegalaxy",
+     "at": "2026-08-28T14:56:02+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 128,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 40,
+   "label": "different",
+   "reason": "adds a sentence",
+   "members": [
+    {
+     "author": "uaf42e129",
+     "text": "The combo which has GalxyZfold8 + buds 4 pro + watch 9. Would gift it to my borther as a birthday present.",
+     "at": "2026-08-25T04:30:34+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uaf42e129",
+     "text": "The combo which has GalxyZfold8 + buds 4 pro + watch 9",
+     "at": "2026-08-25T04:29:54+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 128,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 28,
+   "label": "same",
+   "reason": "differs only by emoji, punctuation, @mentions or a self-repeat",
+   "members": [
+    {
+     "author": "udc5d932a",
+     "text": "Galaxy Z Fold8 / Watch9 💗💗💗 #GalaxyZFold8",
+     "at": "2026-08-25T20:16:51+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "udc5d932a",
+     "text": "Galaxy Z Fold8 / Watch9 💗💗💗 #GalaxyZFold8Galaxy Z Fold8 / Watch9 💗💗💗 #GalaxyZFold8",
+     "at": "2026-08-25T20:17:19+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 128,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 5,
+   "label": "same",
+   "reason": "differs only by emoji, punctuation, @mentions or a self-repeat",
+   "members": [
+    {
+     "author": "u6bdf4369",
+     "text": "Galaxy Z Fold 8 + Watch9 + Buds Pro #GalaxyZFold8 @samsunggulf",
+     "at": "2026-08-26T14:58:28+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "u6bdf4369",
+     "text": "Galaxy Z Fold 8 + Watch9 + Buds Pro #GalaxyZFold8",
+     "at": "2026-08-26T14:58:23+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 128,
+   "outcome": "keptApart",
+   "kind": "otherAuthor",
+   "dtSec": 569,
+   "label": "different",
+   "reason": "different authors",
+   "members": [
+    {
+     "author": "u1032d5d1",
+     "text": "#tastegalaxy #samsunggalaxy",
+     "at": "2026-08-28T17:59:20+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u58721257",
+     "text": "#tastegalaxy #samsunggalaxy",
+     "at": "2026-08-28T17:49:51+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 128,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 31,
+   "label": "same",
+   "reason": "differs only by emoji, punctuation, @mentions or a self-repeat",
+   "members": [
+    {
+     "author": "u6bdf4369",
+     "text": "Galaxy Z Fold 8 + Watch9 + Buds Pro #GalaxyZFold8\nGalaxy Z Fold 8 + Watch9 + Buds Pro #GalaxyZFold8Galaxy Z Fold 8 + Watch9 + Buds Pro #GalaxyZFold8\nGalaxy Z Fold 8 + Watch9 + Buds Pro #GalaxyZFold8",
+     "at": "2026-08-24T19:34:50+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "u6bdf4369",
+     "text": "Galaxy Z Fold 8 + Watch9 + Buds Pro #GalaxyZFold8",
+     "at": "2026-08-24T19:34:19+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 128,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 45,
+   "label": "same",
+   "reason": "differs only by emoji, punctuation, @mentions or a self-repeat",
+   "members": [
+    {
+     "author": "u3bc13421",
+     "text": "Definitely the ultimate combo with the Galaxy Z Fold8, Buds4 Pro, and Watch9! It has everything I need to stay connected and active❤️ #GalaxyZFold8 wish me luck @ub62497df @ua1153be2 @u3dbddcf9",
+     "at": "2026-08-25T04:14:31+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    },
+    {
+     "author": "u3bc13421",
+     "text": "Definitely the ultimate combo with the Galaxy Z Fold8, Buds4 Pro, and Watch9! It has everything I need to stay connected and active❤️ #GalaxyZFold8 wish me luck",
+     "at": "2026-08-25T04:13:46+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 128,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 2,
+   "label": "same",
+   "reason": "differs only by emoji, punctuation, @mentions or a self-repeat",
+   "members": [
+    {
+     "author": "uc65c0091",
+     "text": "Galaxy Z Fold / Buds4 pro #GalaxyZFold8",
+     "at": "2026-08-26T22:12:19+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "neutral"
+    },
+    {
+     "author": "uc65c0091",
+     "text": "Galaxy Z Fold / Buds4 pro #GalaxyZFold8 💗",
+     "at": "2026-08-26T22:12:21+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 128,
+   "outcome": "keptApart",
+   "kind": "otherAuthor",
+   "dtSec": 301,
+   "label": "different",
+   "reason": "different authors",
+   "members": [
+    {
+     "author": "u190f762f",
+     "text": "#tastegalaxy #samsunggalaxy",
+     "at": "2026-08-28T18:44:10+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ua0f901e8",
+     "text": "#tastegalaxy #samsunggalaxy",
+     "at": "2026-08-28T18:39:09+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "instagram",
+   "platformTotal": 128,
+   "outcome": "keptApart",
+   "kind": "otherAuthor",
+   "dtSec": 20,
+   "label": "different",
+   "reason": "different authors",
+   "members": [
+    {
+     "author": "u592b34e8",
+     "text": "#tastegalaxy #samsunggalaxy",
+     "at": "2026-08-28T16:57:37+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u8460fb89",
+     "text": "#tastegalaxy #samsunggalaxy",
+     "at": "2026-08-28T16:57:17+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 763,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 7,
+   "label": "same",
+   "reason": "differs only by emoji, punctuation, @mentions or a self-repeat",
+   "members": [
+    {
+     "author": "ue425704f",
+     "text": "@SamsungGulf Samsung Galaxy Z Fold8 Ultra\n\ngood luck 🏆 \n#GalaxyZFold8Ultra\n\n.ً",
+     "at": "2026-09-11T02:54:27+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "ue425704f",
+     "text": "@SamsungGulf Samsung Galaxy Z Fold8 Ultra\n\ngood luck 🏆 \n#GalaxyZFold8Ultra\n\n.",
+     "at": "2026-09-11T02:54:20+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 763,
+   "outcome": "keptApart",
+   "kind": "otherAuthor",
+   "dtSec": 65,
+   "label": "different",
+   "reason": "different authors",
+   "members": [
+    {
+     "author": "ue425704f",
+     "text": "@SamsungGulf Samsung Galaxy Z Fold8 Ultra\n\ngood luck 🏆 \n#GalaxyZFold8Ultra\n\n……",
+     "at": "2026-09-11T02:54:43+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "uaf3b9251",
+     "text": "@SamsungGulf Samsung Galaxy Z Fold8 Ultra\n\ngood luck 🏆 \n#GalaxyZFold8Ultra\n\n.",
+     "at": "2026-09-11T02:53:38+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": "positive"
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 763,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 214,
+   "label": "same",
+   "reason": "differs only by emoji, punctuation, @mentions or a self-repeat",
+   "members": [
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Obsessed with the Mint Galaxy Z Flip8 Clean, fresh and totally my style. 💚✨\n#GalaxyZFold8 #GalaxyS26 #GalaxyZFold8Ultra #Samsung #GalaxyZFlip8✔️..",
+     "at": "2026-09-07T12:27:41+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": null
+    },
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Obsessed with the Mint Galaxy Z. Flip8 Clean, fresh and totally my style. 💚✨\n#GalaxyZFold8 #GalaxyS26 #GalaxyZFold8Ultra #Samsung #GalaxyZFlip8",
+     "at": "2026-09-07T12:24:07+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": "positive"
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 763,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 197,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Galxy Z Flip8 - Cream\n\n#GalaxyZFold8 #GalaxyS26\n\n#GalaxyZFold8Ultra #Samsung\n\n#GalaxyZFlip8،",
+     "at": "2026-09-07T11:26:42+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": null
+    },
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Galxy Z Flip8 - Cream\n\n#GalaxyZFold8 #GalaxyS26\n\n#GalaxyZFold8Ultra #Samsung\n. \n#GalaxyZFlip8",
+     "at": "2026-09-07T11:23:25+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 763,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 213,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Galxy Z Flip8 - Cream.. \n#GalaxyZFold8 #GalaxyS26\n\n#GalaxyZFold8Ultra #Samsung\n\n#GalaxyZFlip8",
+     "at": "2026-09-07T11:32:20+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": null
+    },
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Galxy Z Flip8 - Cream\n\n#GalaxyZFold8 #GalaxyS26\n\n#GalaxyZFold8Ultra #Samsung\n#GalaxyZFlip8",
+     "at": "2026-09-07T11:28:47+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": "neutral"
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 763,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 419,
+   "label": "same",
+   "reason": "differs only by emoji, punctuation, @mentions or a self-repeat",
+   "members": [
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Obsessed with the Mint Galaxy Z Flip8 Clean, fresh and totally my style. 💚✨\n#GalaxyZFold8 #GalaxyS26 #GalaxyZFold8Ultra #Samsung #GalaxyZFlip8✔️\n:",
+     "at": "2026-09-07T12:28:02+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": null
+    },
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Obsessed with the Mint Galaxy Z Flip8 Clean, fresh and totally my style. 💚✨\n#GalaxyZFold8 #GalaxyS26 #GalaxyZFold8Ultra #Samsung #GalaxyZFlip8",
+     "at": "2026-09-07T12:21:03+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": "positive"
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 763,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 332,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Galxy Z Flip8 - Cream\n\n#GalaxyZFold8 #GalaxyS26\n\n#GalaxyZFold8Ultra #Samsung\n\n#GalaxyZFlip8\n.",
+     "at": "2026-09-07T11:28:57+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": null
+    },
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Galxy Z Flip8 - Cream\n\n#GalaxyZFold8 #GalaxyS26\n\n#GalaxyZFold8Ultra #Samsung\n. \n#GalaxyZFlip8",
+     "at": "2026-09-07T11:23:25+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 763,
+   "outcome": "keptApart",
+   "kind": "truncated",
+   "dtSec": 47,
+   "label": "different",
+   "reason": "adds a sentence",
+   "members": [
+    {
+     "author": "u6a177718",
+     "text": "@SamsungGulf My Galaxy #GalaxzyZFold8Ultra is my outfit's best accessory",
+     "at": "2026-09-11T23:36:02+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u6a177718",
+     "text": "@SamsungGulf My Galaxy #GalaxzyZFold8Ultra is my outfit's best accessory\nI can already picture it 😉\nI really hope I win\nSo I can match with my outfits and post tons of pictures tagging @SamsungGulf",
+     "at": "2026-09-11T23:35:15+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 763,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 525,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Galxy Z Flip8 - Cream\n.. \n#GalaxyZFold8 #GalaxyS26\n\n#GalaxyZFold8Ultra #Samsung\n\n#GalaxyZFlip8",
+     "at": "2026-09-07T11:32:10+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": null
+    },
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Galxy Z Flip8 - Cream\n\n#GalaxyZFold8 #GalaxyS26\n\n#GalaxyZFold8Ultra #Samsung\n. \n#GalaxyZFlip8",
+     "at": "2026-09-07T11:23:25+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 763,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 26,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "u6f49062e",
+     "text": "@SamsungGulf Galaxy Z Flip8-Cream\n..\n..\n#GalaxyZFold8\n#GalaxyZFold8Ultra\n#GalaxyZFlip8\n\n...\n...\n\nGOOD LUCK 🩷🩷\n..",
+     "at": "2026-09-08T01:22:01+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u6f49062e",
+     "text": "@SamsungGulf Galaxy Z Flip8-Cream\n..\n..\n#GalaxyZFold8\n#GalaxyZFold8Ultra\n#GalaxyZFlip8\n\n...\n...\n\nGOOD LUCK 🩷🩷",
+     "at": "2026-09-08T01:21:35+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 763,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 608,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "u8174fdba",
+     "text": "@SamsungGulf CREAM 🍦\n.\n..\nيارب يكون من نصيبي 🤲🏻🤍\n\n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n.\n..\n.\n.\n.\n\n.\n.\n.\n.\n.\n.\n.\n.\n...",
+     "at": "2026-09-07T20:23:50+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    },
+    {
+     "author": "u8174fdba",
+     "text": "@SamsungGulf CREAM 🍦\n.\n..\nيارب يكون من نصيبي 🤲🏻🤍\n\n#GalaxyZFlip8 #GalaxyZFold8Ultra #GalaxyZFold8",
+     "at": "2026-09-07T20:13:42+00:00",
+     "idForm": "numeric",
+     "likes": 0,
+     "sentiment": null
+    }
+   ]
+  },
+  {
+   "platform": "x",
+   "platformTotal": 763,
+   "outcome": "keptApart",
+   "kind": "loose",
+   "dtSec": 114,
+   "label": "same",
+   "reason": "punctuation/whitespace only",
+   "members": [
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Obsessed with the Mint Galaxy Z Flip8 Clean, fresh and totally my style. 💚✨\n#GalaxyZFold8 #GalaxyS26؛ #GalaxyZFold8Ultra #Samsung #GalaxyZFlip8",
+     "at": "2026-09-07T12:26:01+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": null
+    },
+    {
+     "author": "u956dcb1a",
+     "text": "@SamsungGulf Obsessed with the Mint Galaxy Z. Flip8 Clean, fresh and totally my style. 💚✨\n#GalaxyZFold8 #GalaxyS26 #GalaxyZFold8Ultra #Samsung #GalaxyZFlip8",
+     "at": "2026-09-07T12:24:07+00:00",
+     "idForm": "numeric",
+     "likes": 1,
+     "sentiment": "positive"
+    }
+   ]
+  }
+ ]
+}
