@@ -719,11 +719,22 @@ Status: **PASSED** by checker, verified independently because the builder's own 
 - The panel shows the server's cells exactly as computed (no statistic derived in the browser): n and P25, median, P75, P90 for mature organic cells; "n < 20: count only" below that; the count excluded for views under 500; young-band counts with their expected dates; giveaways counted separately; a line saying "a benchmark, not boost advice". Each post shows one standing line or why it is not ranked, and a suspected-giveaway note to confirm.
 - A further breach of the no-means rule fixed: the headline "Avg engagement" was a mean over every post including those under 500 views; it is now "Median engagement", nearest-rank over posts with at least 500 views, with the count shown.
 
+## Phase 7.1: Decisions strip, comments marked handled, product sentiment labelled (commit e685a60; released through the gate)
+
+Status: **PASSED** by checker, verified independently: CI run 39764367563 green; both hosts report `revision: e685a60` and serve a page byte-identical to `index.html`; the handled routes answer 401 without a session (GET `?handled=1` and POST `comment-handled` on `/api/sentiment`).
+
+- Role: marking a comment handled is allowed to reviewer, line manager and admin (server-side; a viewer gets 403). This is a builder ASSUMPTION flagged to the owner: no "responder" role exists, and adding one needs a migration and an ADR-003 amendment. Under the shared password the mark records "password session (no member sign-in)", so anyone with the password can mark until member sign-in is enforced.
+- Key: post id without the platform prefix, the author lower-cased, and the twin-collapse message key (blank text keyed by time), so a re-collected or twin copy stays handled; a page/server parity test covers the variants.
+- Append-only: each mark or undo is an `audit_log` row (`comment.handled` or `comment.unhandled`) with who, when and an optional note; the newest row per key is the state; ordered by identity id. Note: the state read takes the newest 5,000 rows, so after 5,000 handled events older marks fall out of view; move the state to its own table or page the read before volume reaches that.
+- Product sentiment is labelled "mapped from caption text" with the unmapped share and each device's analysed count.
+- The Decisions strip covers Respond (flagged and handled counts), Boost (not yet supportable, with the earliest expected date), Mix, Product and Trust (stale platforms listed).
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
 2. **Click-through for the database half of M2:** while signed in, create one Studio campaign; the builder confirms it in the database.
 2b. ~~Per-piece budget~~ **decided by the owner on 2026-10-22: $20 per piece at 720p, $50 at 1080p** (warning at 80 %), sized for an average video of 10 to 15 s (replaces the owner's first answer of $10 and $20). Basis: a 15 s piece generates about 35 s of video including four re-rendered clips, about $16.18 at 720p and $39.80 at 1080p, plus about 20 % headroom. Implementation handed to the builder. **Live in 8b4b06d.**
+2e. **Who may mark comments handled** (from 7.1): today reviewer, line manager and admin. Say whether to add a dedicated responder role instead.
 2d. **Twin-collapse sample** (from 0b82631): run the reader the builder gave you so the duplicate-comment audit can be labelled.
 2c. **TikTok reach was overstated** on the Performance page before 2026-10-22 (about six times, from another project's fan and news accounts in the tracker). Any figure taken from the page before that date should not be reused.
 3. **Licensed audio library** (from 6.7): QC fixes of type audio swap stay blocked until a licensed audio source is connected.
