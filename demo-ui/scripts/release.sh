@@ -42,6 +42,13 @@ for HOST in https://maistro-demo.vercel.app https://www.ma1stro.com; do
     sleep 10
   done
   [ -n "$OK" ] || { echo "RELEASE STOPPED: $HOST did not converge on $SHORT within 3 min (answers $(echo "$H" | grep -o '"revision":[^,]*'), health $(echo "$H" | grep -o '"ok":[a-z]*'))"; exit 1; }
-  [ "$(curl -s "$HOST/" | sha256sum | cut -c1-64)" = "$(sha256sum index.html | cut -c1-64)" ] || { echo "RELEASE STOPPED: $HOST serves a page that differs from index.html"; exit 1; }
+  # the edge can serve the previous page for a few seconds after the revision switches (868268a, 2026-10-22):
+  # poll up to a minute before calling it a mismatch
+  WANT=$(sha256sum index.html | cut -c1-64); PAGE_OK=""
+  for i in $(seq 1 6); do
+    [ "$(curl -s "$HOST/" | sha256sum | cut -c1-64)" = "$WANT" ] && { PAGE_OK=1; break; }
+    sleep 10
+  done
+  [ -n "$PAGE_OK" ] || { echo "RELEASE STOPPED: $HOST serves a page that differs from index.html"; exit 1; }
 done
 echo "RELEASED $(git log --oneline -1) at $(date -u +%H:%M) UTC"
