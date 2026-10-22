@@ -839,6 +839,18 @@ Status: **PASSED** by checker, with one RUNBOOK gap. CI green for the released c
 
 **RUNBOOK gap:** rollback is code-only. Migrations stay applied, so promoting a deployment from before a migration runs old code against the newer schema. All migrations so far are additive (new tables and columns, widened checks), so older code should still run, but RUNBOOK should say so, name the last deployment that predates each migration, and state that a non-additive migration needs a written down-migration before release.
 
+## Phase 12 complete: release workflow, monitor, backups, preview isolation, cutover (commits 27ee9f9, 252a1d2, aab4439; released through the gate)
+
+Status: **PASSED** by checker. Both hosts report `revision: aab4439` with the page byte-identical; local 235/235; `/api/monitor` answers 401 without a session; five crons configured.
+
+- Release workflow: a manual GitHub release for a given SHA requires a green CI run for that SHA, then (in a "production" environment with the owner as required reviewer) fast-forwards main without force, deploys with the revision label and waits for both hosts and the page. Inert until the owner adds the Vercel secrets and the reviewer.
+- Monitor (5th cron): stale trends and snapshots, Higgsfield failure rate and refusal spikes, spend at 80 % of the daily ceiling, F1X8 timeouts, tracker platforms silent for 48 h, reconciliation and price card missing, failed or stale; one open alert per kind, resolved on recovery, new alerts posted to an optional webhook; tests for each check, no duplicates, recovery and the webhook. It reads "unavailable" until migration 022 is applied.
+- RUNBOOK: rollback runs old code on the current schema; all 22 migrations are additive (the drops are idempotent re-creates or widened checks); any non-additive change needs a written down-migration first; the commit introducing each of 018 to 022 is listed.
+- Backups (inert until secrets): nightly encrypted dump of an explicit allowlist of Maistro-owned tables, kept 14 days; monthly restore drill into a throwaway Postgres that compares row counts and keeps nothing; customer-text tables excluded. Note: because the backup is an allowlist, a new table is not backed up until it is added; a test that every created table is either backed up or listed as excluded would keep the two in step.
+- Preview isolation: `/api/health` reports whether previews use the production database (the production deploy reads "ok"); RUNBOOK has the steps for a separate preview database. Cutover procedure documented; no cutover is pending.
+
+**Phase 12 complete.** Its remaining steps are owner actions, listed in item 01 of the gate.
+
 ## [GATE] Owner items (only the user can do these)
 
 01. **Phase 12 decisions:** the account-wide daily spend ceiling (proposed $100 a day, about five 720p pieces); create a second free Supabase project for previews; an alert destination (a Slack webhook or e-mail relay); your Supabase plan's backup tier and how approval documents and assets should be backed up; GitHub production-environment secrets and you as the required release reviewer.
