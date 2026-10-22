@@ -751,11 +751,19 @@ Status: **PASSED** by checker, verified independently: CI green; both hosts repo
 
 **Security finding (for Phase 11, raised by the builder, confirmed by the checker):** the public `/api/track` read returns customer comment text with author usernames to anyone, with `Access-Control-Allow-Origin: *` (probe: 152 comments in 7 days, all with authors). The page already requires a session, so gating this read (and `/api/sentiment`) behind the session, or stripping authors from the public shape, is cheap. Recommended before any wider sharing of the site address.
 
+## Security: customer comments need a session or the ingest key (commit 315c2c9; released through the gate)
+
+Status: **PASSED** by checker, verified independently: CI green; both hosts report `revision: 315c2c9`. Without a session, `/api/track?days=7` and `/api/sentiment` answer 401 on both hosts with no `Access-Control-Allow-Origin` header; `?benchmarks=1` stays public and carries no comment text (its only "text" is the format name). The track read is private with a 5-minute browser cache; snapshots are private, no-store; the page loads Performance after sign-in. Closes the security finding from 7.4.
+
+- External consumer: the only outside reader is the tracker repo's `scripts/scrape-and-push-maistro.mjs` (its read-back of `/api/sentiment`). The builder committed the ingest-key change there as SamsungSentiment `39d2568` (checker confirmed: local `main` is one commit ahead of origin) but did **not push**, because pushing deploys the tracker. Until it is pushed, that script's read-back gets 401 (owner gate item).
+- Cost noted: the 60-day read is no longer edge-cached, so each signed-in visit reads the tracker database (one to two minutes, off the critical path); a stored payload is a Phase 10 item.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
 2. **Click-through for the database half of M2:** while signed in, create one Studio campaign; the builder confirms it in the database.
 2b. ~~Per-piece budget~~ **decided by the owner on 2026-10-22: $20 per piece at 720p, $50 at 1080p** (warning at 80 %), sized for an average video of 10 to 15 s (replaces the owner's first answer of $10 and $20). Basis: a 15 s piece generates about 35 s of video including four re-rendered clips, about $16.18 at 720p and $39.80 at 1080p, plus about 20 % headroom. Implementation handed to the builder. **Live in 8b4b06d.**
+2g. **Push the tracker change** SamsungSentiment `39d2568` (the push-to-Maistro script sends the ingest key when it reads Maistro's snapshots back). Pushing deploys the tracker, so it is your call; until then that script's read-back answers 401.
 2f. **Sentiment coverage** (from 7.3): over 60 days two thirds of comments have no tracker label, so the page leaves them out (the keyword fallback was 43 % accurate). Decide whether to fund a labelling backfill in the tracker (proposal and cost in PERFORMANCE_INSIGHTS section 3), and arrange a native Arabic speaker to check the Arabic, Gulf, Arabizi and sarcasm labels.
 2e. **Who may mark comments handled** (from 7.1): today reviewer, line manager and admin. Say whether to add a dedicated responder role instead.
 2d. **Twin-collapse sample** (from 0b82631): run the reader the builder gave you so the duplicate-comment audit can be labelled.
