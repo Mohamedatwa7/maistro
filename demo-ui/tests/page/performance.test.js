@@ -219,3 +219,19 @@ test('7.4 themes panel: groups in decision order, low-confidence and undercount 
     assert.match(html, /green line on my S22 Ultra/);
   } finally { X.restore(); }
 });
+
+test('7.5 "Published as" on an approved final: active links with who/when, removed links counted, the not-migrated state said plainly', async () => {
+  const X = pageWith();
+  try {
+    await new Promise((r) => setTimeout(r, 30));
+    X.POSTLINKS['gen-1'] = { links: [
+      { id: 2, platform: 'tiktok', url: 'https://www.tiktok.com/@samsunggulf/video/1', account: 'samsunggulf', linkedBy: 'Lina', linkedAt: '2026-10-22T09:00:00Z', active: true },
+      { id: 1, platform: 'tiktok', url: 'https://www.tiktok.com/@samsunggulf/video/9', account: 'samsunggulf', linkedBy: 'Lina', linkedAt: '2026-10-21T09:00:00Z', active: false },
+    ] };
+    const html = X.rPostLinks({ id: 'gen-1' });
+    assert.match(html, /Published as/); assert.match(html, /video\/1/); assert.doesNotMatch(html, /video\/9/);
+    assert.match(html, /linked by Lina 2026-10-22/); assert.match(html, /1 earlier link removed/);
+    X.POSTLINKS['gen-2'] = { error: 'attribution storage not migrated', code: 'not_migrated' };
+    assert.match(X.rPostLinks({ id: 'gen-2' }), /migration 018\) has not been applied/);
+  } finally { X.restore(); }
+});

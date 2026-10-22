@@ -1,7 +1,7 @@
 # PERFORMANCE_INSIGHTS — Phase 7 (benchmarks and the decisions the Performance page supports)
 
 Status 2026-10-22: §1 (decisions, 7.1), §2 (benchmarks, 7.2), §3 (sentiment quality, 7.3) and §4 (comment insight, 7.4) are done; §2 is `GET /api/track?benchmarks=1` (`api/_perf/benchmarks.js`,
-tests in `tests/perf/benchmarks.test.js`) with its page panel. §5–§6 (7.5 attribution, 7.6 closing the loop) follow.
+tests in `tests/perf/benchmarks.test.js`) with its page panel. §5 (7.5 attribution) is in progress; §6 (7.6 closing the loop) follows.
 Every number here is computed in code from the tracker's rows and Maistro's daily snapshots, never by a model.
 
 ## 1. The decisions the page supports (7.1) — builder default, owner to amend
@@ -158,3 +158,24 @@ in the audit), and Portuguese and Spanish complaints.
 **Live, 60 days (2026-10-22 11:00 UTC).** 6,038 customer comments (29 brand replies left out): 4,556 giveaway
 entries (75 %), 1,249 (21 %) with no theme. Brand complaints 82, repair / warranty 58, customer service 58,
 screen / display 57, update-caused 11, battery 6, price 41, wants to buy 12, asks for a free device 26.
+
+## 5. Attribution (7.5) — in progress
+
+**Step 1 (done): linking a final to the post it became.** Sprinklr is not live, so no post id comes back
+automatically. On an approved final, a line manager or admin pastes the published post's URL (**Published as**),
+and the link is set up as follows:
+- **Resolution:** the URL is resolved to the tracker's post the same way the reader resolves aliases (query
+  strings, trailing slashes and `m.` hosts don't matter; Instagram shortcodes and ids both work).
+- **Owned accounts only:** a post on a non-owned account is refused (R-8).
+- **One active link per (piece, post):** a unique index in migration 018. An unlink keeps the row (who, when,
+  why), and a relink adds a new one.
+- **No guessing:** no caption guessing makes a link, and historic posts not made in Maistro stay unattributed.
+- **Storage:** `piece_posts` (`db/migrations/018_piece_posts.sql`). **Until the migration is applied, every
+  attribution call answers 503 "attribution storage not migrated"** and the page says so.
+
+**Next:**
+- **Each linked post carries** trend, trend score and confidence at decision time, angle, piece, creation path
+  (Studio / Hermes), F1X8 at QC and final, revision rounds per stage, stage history, product, markets, format,
+  and its 7.2 standing.
+- **The analysis** compares standings within each 7.2 cell, by attribute, with n shown and n ≥ 20 per cell. It
+  gives no attribute weight until 30 posts are attributed, shown as a progress count. Today 0 posts are linked.

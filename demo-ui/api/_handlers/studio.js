@@ -121,6 +121,13 @@ module.exports = async (req, res) => {
           stages: Object.fromEntries(['plan', 'mood', 'thumb', 'brief', 'board', 'draft', 'qc', 'final'].map((k) => [k, stageView(k)])),
         });
       }
+      if (q.posts) {
+        // 7.5: the posts this piece became (active and unlinked, newest first)
+        const [piece] = await queryRows('content_pieces', `select=id&legacy_id=eq.${encodeURIComponent(String(q.posts))}&limit=1`);
+        if (!piece) return res.status(404).json({ error: 'piece not found' });
+        const out = await require('../_studio/attribution.js').list(piece.id);
+        return res.status(out.status).json(out.body);
+      }
       if (q.budget) {
         const [piece] = await queryRows('content_pieces', `select=id&legacy_id=eq.${encodeURIComponent(String(q.budget))}&limit=1`);
         if (!piece) return res.status(404).json({ error: 'piece not found' });
@@ -161,8 +168,18 @@ module.exports = async (req, res) => {
     }
     if (!(await refreshMember(req, res))) return;
     const b = req.body || {};
-    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package', 'budget', 'override-sign', 'override'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
+    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package', 'budget', 'override-sign', 'override', 'post-link', 'post-unlink'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
     const legacyId = String(b.pieceId || '');
+    if (b.action === 'post-link' || b.action === 'post-unlink') {
+      // 7.5: link the approved final to the published post (owned accounts only), or unlink it (history kept)
+      const [piece] = await queryRows('content_pieces', `select=id&legacy_id=eq.${encodeURIComponent(legacyId)}&limit=1`);
+      if (!piece) return res.status(404).json({ error: 'piece not found' });
+      const attr = require('../_studio/attribution.js');
+      const out = b.action === 'post-link'
+        ? await attr.link({ piece, url: b.url, member: req.member || null, resolve: require('./track.js').resolvePostUrl })
+        : await attr.unlink({ piece, id: b.id, reason: b.reason, member: req.member || null });
+      return res.status(out.status).json(out.body);
+    }
     if (b.action === 'thumb-composite') {
       const data = String(b.data || '');
       if (!data) return res.status(422).json({ error: 'data (base64 PNG) is required' });

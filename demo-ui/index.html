@@ -2594,6 +2594,39 @@ async function assembleDraft(pid,stg){
 /* 6.8 — the final: QC fixes applied at their units, per-shot diff, verification of every risk, the package */
 const FINAL_DIFF={};
 async function loadFinalDiff(pid){try{const r=await authFetch('/api/studio?shots='+encodeURIComponent(pid)+'&stage=final');const d=await r.json().catch(()=>({}));if(r.ok){FINAL_DIFF[pid]=d.diff||[];const p=PROJECTS.find(x=>x.id===pid);if(p&&d.payload){p.final={...p.final,...d.payload,version:'v'+d.version}}studioRefresh()}}catch(e){}}
+/* 7.5 — "Published as": link the approved final to the post it became (owned accounts only; a line manager or
+   admin). Until Sprinklr returns post ids this is the only link — no caption guessing. */
+const POSTLINKS={};
+async function loadPostLinks(pid){
+ try{const r=await authFetch('/api/studio?posts='+encodeURIComponent(pid));const d=await r.json().catch(()=>({}));POSTLINKS[pid]=r.ok?{links:d.links||[]}:{error:d.error||('links unavailable ('+r.status+')'),code:d.code}}
+ catch(e){POSTLINKS[pid]={error:'links unavailable'}}
+ studioRefresh();
+}
+async function postLink(pid,action,extra){
+ const st=POSTLINKS[pid]=POSTLINKS[pid]||{};st.busy=true;st.msg=null;studioRefresh();
+ try{
+  const r=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,pieceId:pid,...extra})});
+  const d=await r.json().catch(()=>({}));
+  st.busy=false;if(!r.ok){st.msg=d.error||('not saved ('+r.status+')');studioRefresh();return}
+  delete POSTLINKS[pid];loadPostLinks(pid);
+ }catch(e){st.busy=false;st.msg='not saved';studioRefresh()}
+}
+function postLinkSubmit(pid){const el=document.querySelector(`[data-postlink-url="${CSS.escape(pid)}"]`);const url=el&&el.value.trim();if(url)postLink(pid,'post-link',{url})}
+function rPostLinks(p){
+ const st=POSTLINKS[p.id];
+ if(st===undefined){POSTLINKS[p.id]=null;loadPostLinks(p.id);return ''}
+ if(!st)return '';
+ if(st.code==='not_migrated')return `<div class="pc-note" style="margin-bottom:10px">Published-post links are not available yet: the attribution table (migration 018) has not been applied.</div>`;
+ if(st.error)return `<div class="dim" style="font-size:11px;margin-bottom:10px">${esc(st.error)}</div>`;
+ const act=(st.links||[]).filter(l=>l.active),old=(st.links||[]).filter(l=>!l.active);
+ return `<div style="margin-bottom:12px"><span class="kick">Published as</span>
+  ${act.map(l=>`<div style="font-size:12px;margin-top:4px">${badge('go',esc(l.platform.toUpperCase()))} <a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.url)}</a> <span class="dim" style="font-size:10.5px">· ${esc(l.account||'')} · linked by ${esc(l.linkedBy||'?')} ${esc(String(l.linkedAt||'').slice(0,10))}</span> <button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="postLink('${esc(p.id)}','post-unlink',{id:${Number(l.id)},reason:'unlinked from the page'})">Unlink</button></div>`).join('')||'<div class="dim" style="font-size:11.5px;margin-top:4px">Not linked to a published post yet.</div>'}
+  ${old.length?`<div class="dim" style="font-size:10.5px;margin-top:4px">${old.length} earlier link${old.length===1?'':'s'} removed (kept in the history).</div>`:''}
+  <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap"><input type="url" data-postlink-url="${esc(p.id)}" placeholder="https://www.tiktok.com/@samsunggulf/video/…" style="flex:1;min-width:220px;font-size:11.5px"><button class="btn btn-sm" ${st.busy?'disabled':''} onclick="postLinkSubmit('${esc(p.id)}')">Link post</button></div>
+  ${st.msg?`<div style="font-size:11px;color:var(--alert);margin-top:4px">${esc(st.msg)}</div>`:''}
+  <div class="dim" style="font-size:10.5px;margin-top:4px">Only posts from the owned accounts can be linked; the tracker must have collected the post (daily).</div>
+ </div>`;
+}
 function rFinal(p,locked){
  const f=p.final;
  if(FINAL_DIFF[p.id]===undefined){FINAL_DIFF[p.id]=null;loadFinalDiff(p.id)}
@@ -2609,6 +2642,7 @@ function rFinal(p,locked){
   ${v?`<span class="kick">Each QC risk after the fixes</span><div style="margin:6px 0 12px">${v.risks.map(r=>`<div style="font-size:12px;margin-top:4px">${badge(r.resolved==='yes'?'go':r.resolved==='partial'?'gold':'alert',esc(r.ref)+' · '+r.resolved.toUpperCase())} <span class="dim">${esc(r.evidence)}</span></div>`).join('')}</div>`:''}
   ${p.studio&&!locked&&f.assembled&&!v?`<div style="margin-bottom:10px"><button class="btn btn-ai btn-sm" onclick="finalVerify('${p.id}')">Re-run F1X8 and verify every risk</button></div>`:''}
   ${f.assembled&&locked?`<div style="margin-bottom:10px"><button class="btn btn-go btn-sm" onclick="finalPackage('${p.id}')">Export the delivery package</button> <span class="dim" style="font-size:11px">Video, thumbnail, captions per language, hashtags, disclaimers and metadata, for Sprinklr or manual posting.</span></div>`:''}
+  ${f.assembled&&locked?rPostLinks(p):''}
   ${rDraft(p,locked,'final')}`;
 }
 async function finalVerify(pid){

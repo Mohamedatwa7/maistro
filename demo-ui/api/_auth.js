@@ -108,6 +108,7 @@ function requireSession(req, res) {
   }
   const s = readSession((req.headers || {}).cookie, secret);
   if (s) { req.member = s.member; return true; }
+  res.setHeader('Cache-Control', 'no-store'); // a 401 is never cached by anyone (checker finding 2026-10-22)
   res.status(401).json({ error: 'login required' });
   return false;
 }

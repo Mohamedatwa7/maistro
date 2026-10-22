@@ -118,6 +118,10 @@ function fakePostgrest(base = 'https://sb.test') {
           if (prefer.includes('merge-duplicates')) { Object.assign(dupRow, raw); inserted.push(dupRow); continue; }
           return new Response(JSON.stringify({ code: '23505', message: `duplicate key value violates unique constraint on ${p.table}` }), { status: 409 });
         }
+        // 018: piece_posts_active_uniq — one active (unlinked_at is null) link per (piece, platform, post)
+        if (p.table === 'piece_posts' && !r.unlinked_at && rows.some((x) => !x.unlinked_at && x.piece_id === r.piece_id && x.platform === r.platform && x.post_id === r.post_id)) {
+          return new Response(JSON.stringify({ code: '23505', message: 'duplicate key value violates unique constraint "piece_posts_active_uniq"' }), { status: 409 });
+        }
         if (p.table === 'approvals' && r.decision === 'approved' && rows.some((x) => x.artifact_version_id === r.artifact_version_id && x.decision === 'approved')) {
           return new Response(JSON.stringify({ code: '23505', message: 'approvals_one_approved_per_version' }), { status: 409 });
         }

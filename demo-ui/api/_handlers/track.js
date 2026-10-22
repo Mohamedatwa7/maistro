@@ -630,5 +630,41 @@ module.exports = async (req, res) => {
 };
 
 module.exports.dedupeTwins = dedupeTwins; // exposed for tests
+
+// 7.5: resolve a pasted post URL to the tracker's post the way the reader resolves aliases (postAliases), and
+// say whether it belongs to an owned account (R-8). Returns null when the tracker holds no such post.
+const URL_PLATFORM = [[/(^|\.)tiktok\.com$/, 'tiktok'], [/(^|\.)instagram\.com$/, 'instagram'], [/(^|\.)(facebook\.com|fb\.watch)$/, 'facebook'], [/(^|\.)(x\.com|twitter\.com)$/, 'twitter']];
+function urlKeys(raw) {
+  let u;
+  try { u = new URL(String(raw || '').trim()); } catch (e) { return null; }
+  const host = u.hostname.toLowerCase().replace(/^(www|m|mobile)\./, '');
+  const hit = URL_PLATFORM.find(([re]) => re.test(host));
+  if (!hit) return null;
+  const platform = hit[1];
+  const clean = `https://${platform === 'twitter' ? host : 'www.' + host}${u.pathname.replace(/\/+$/, '')}`;
+  let token = null;
+  if (platform === 'tiktok') token = (u.pathname.match(/\/video\/(\d+)/) || [])[1];
+  else if (platform === 'instagram') token = igShortcodeFromUrl(clean + '/');
+  else if (platform === 'facebook') token = ([...u.pathname.matchAll(/(\d{10,})/g)].pop() || [])[1] || u.searchParams.get('v') || u.searchParams.get('story_fbid');
+  else token = (u.pathname.match(/\/status\/(\d+)/) || [])[1];
+  return token ? { platform, clean, token } : null;
+}
+async function resolvePostUrl(raw) {
+  const k = urlKeys(raw);
+  if (!k) return { error: 'not a TikTok, Instagram, Facebook or X post URL' };
+  const base = process.env.TRACK_SUPABASE_URL, key = process.env.TRACK_SUPABASE_KEY;
+  if (!base || !key) return { error: 'tracker DB is not configured', status: 503 };
+  const ids = [k.token, ...(k.platform === 'instagram' ? [igShortcodeToId(k.token)] : [])].filter(Boolean);
+  const path = `social_posts?select=${POST_COLUMNS}&platform=eq.${k.platform}${PROJECT_EXCL}&or=(${ids.map((x) => `external_id.eq.${encodeURIComponent(x)}`).join(',')},post_url.ilike.*${encodeURIComponent(k.token)}*)&limit=10`;
+  const r = await fetchT(`${base}/rest/v1/${path}`, { headers: { apikey: key, Authorization: `Bearer ${key}` } }, { timeoutMs: 15000, retries: 1 });
+  if (!r.ok) return { error: `tracker lookup failed (${r.status})`, status: 502 };
+  const rows = await r.json();
+  const row = rows.find((p) => { const a = postAliases(p); return a.includes(k.token) || a.includes(k.clean) || ids.some((x) => a.includes(x)); });
+  if (!row) return null;
+  const platform = row.platform === 'twitter' ? 'x' : row.platform, account = author(row);
+  return { postId: String(row.external_id), platform, url: row.post_url || k.clean, account, owned: isOwned(ownedAccounts(), platform, account) };
+}
+module.exports.resolvePostUrl = resolvePostUrl;
+module.exports.urlKeys = urlKeys;
 module.exports.twinAudit = twinAudit;
 module.exports.messageKey = messageKey;
