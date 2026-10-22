@@ -691,6 +691,13 @@ Status: **PASSED** by checker, with one loophole to close. CI green; local 178/1
 
 Loophole: the 1080p default applies as soon as one 1080p video job exists on the piece, and the job under consideration is itself counted. A 720p piece that has reached its $20 cap can therefore request a 1080p render and jump to the $50 cap. Decide the resolution from the piece's setting (or from its first video job) rather than from any job, or require a line manager or admin to switch a piece to 1080p.
 
+## Cap loophole closed; collected comments shown beside the collapsed count (commit 09c88b8; released through the gate)
+
+Status: **PASSED** by checker. CI green; local 179/179; production `revision: 09c88b8`.
+
+- A piece's resolution is now its first video job's, so a 720p piece cannot reach the $50 default by requesting a 1080p render; the test refuses a 5 s 1080p clip on a 720p piece with $19 spent at $24.69 of its $20 cap (checker's arithmetic: 19 + 5 x 1.1372 = 24.69). Moving a piece up goes through "Set cap" by a line manager or admin.
+- Every `/api/track` post carries `commentsCollected` (rows stored before the collapse); the page shows "N comments analyzed · M collected" when they differ. Checker's independent count on production (14 days): 88 posts, all with the field, 200 collected, 192 after collapse, and no post with more collapsed than collected.
+
 ## [GATE] Owner items (only the user can do these)
 
 1. **Supabase Auth redirect** (new, from 4a2af0e): in the Supabase dashboard, Authentication, URL Configuration, set the Site URL to `https://www.ma1stro.com` and add `https://www.ma1stro.com/` to the redirect allow-list. Then open www.ma1stro.com, enter your e-mail, click "Email me a sign-in link", and follow the link once: your address is in `MAISTRO_ADMIN_EMAILS`, so that first sign-in creates your admin membership. This closes the "login works" half of M2.
