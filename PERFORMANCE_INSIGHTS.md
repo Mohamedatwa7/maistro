@@ -28,16 +28,16 @@ entry instruction, a chance to win). It flags 59, and a scan of every unflagged 
 word (win / winning / prize / reward / raffle / ربح / سحب …) found no giveaway left. These captions are in the
 test's true and false lists. The classification was read by Claude, so the owner may re-read it.
 
-**First live read (2026-10-22 10:03 UTC, 90 days, 3,373 owned snapshot rows).** Mature organic cells with
+**Live read with the corrected pattern (2026-10-22 10:09 UTC, 90 days, 3,373 owned snapshot rows).** Mature organic cells with
 percentiles:
 
 | Platform · format | Metric | n | P25 | Median | P75 | P90 | Left out (views < 500) |
 |---|---|---|---|---|---|---|---|
-| TikTok | ER | 115 | 5.36 % | 7.01 % | 8.17 % | 9.84 % | 41 |
-| Instagram video | ER | 81 | 2.50 % | 4.21 % | 10.0 % | 15.1 % | 50 |
+| TikTok | ER | 114 | 5.36 % | 6.91 % | 8.17 % | 9.84 % | 42 |
+| Instagram video | ER | 83 | 2.50 % | 4.19 % | 10.0 % | 15.2 % | 50 |
 | X video | ER | 53 | 0.87 % | 1.08 % | 1.38 % | 1.74 % | 55 |
 | Instagram image / carousel | engagements | 37 | 64 | 98 | 204 | 291 | — |
-| Facebook | engagements | 178 | 27 | 65 | 165 | 305 | — |
+| Facebook | engagements | 177 | 27 | 66 | 165 | 305 | — |
 
 X text (3 posts) and every giveaway cell show counts only. No young band has reached n ≥ 20 yet: the largest is
 Instagram video at 3–7 d, with n = 15. Facebook and X have been stale since 2026-10-16 (tracker collection), so
