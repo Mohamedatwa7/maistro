@@ -31,6 +31,29 @@ goes through `bash demo-ui/scripts/release.sh <msg-file> <paths…>`, and every 
    report that revision and serve the same page. `main` in git does not change.
 3. Fix forward: a new commit, then `release.sh`.
 
+**Rollback and the schema.** A rollback changes code only: migrations stay applied, so an older deployment runs
+on the newer schema.
+- **All 22 migrations to date are additive**: new tables, new columns, and check constraints *widened* by drop
+  and re-add (013, 014, 017, 021); the other drops re-create triggers and policies idempotently. Older code keeps
+  working on them; it simply ignores what it does not know.
+- **Before releasing a non-additive change** (a dropped or renamed column, a narrowed constraint, rewritten data),
+  write and test its down-migration first, and note it here.
+
+The release that introduced each recent migration. Rolling back to a deployment older than that commit means old
+code on that table:
+
+| Migration | Introduced in | Rolling back past it means |
+|---|---|---|
+| 018 piece_posts | 4e6b0c4 | attribution links stay; old code does not read them |
+| 019 publishing_slots | 868268a | planned posts stay; the Calendar is the simulated one again |
+| 020 perf_payloads | 465b390 | the stored 60-day copy is ignored (live reads) |
+| 021 bench kind | 6ae67f8 | the stored benchmarks are ignored |
+| 022 login_attempts, ops_alerts | 61d381e | no throttle, no alerts; the rows stay |
+
+To check a candidate: read the revision from `<deployment-url>/api/health`, then run
+`git merge-base --is-ancestor <revision> <introducing-commit>`. A zero exit status means the deployment predates
+that migration.
+
 ### Trend feed empty or stale
 - Check `/api/trends` (it shows the board date) and whether the newest `trend_scores` row is under 2 h old.
 - Kymah / Trend Radar is upstream (`TRENDRADAR_BASE_URL`). If its board publish failed, see the Trend Radar
@@ -125,3 +148,23 @@ table with the dump's manifest. The workflow run is the proof.
 - [ ] After the release: `/api/health` ok on both hosts; crons listed (`vercel crons ls`); the monitor shows no
       new critical alert.
 - [ ] REBUILD_LOG.md entry; the checker told.
+
+## Monitoring (Phase 12 O4)
+The hourly `/api/monitor` cron (:40) checks, from stored data only, with no provider calls:
+
+| Check | Fails when |
+|---|---|
+| trend scores stale | newest > 2 h |
+| Trend Radar feed not fetched | newest snapshot > 2 h |
+| Higgsfield failure rate | > 20 % of ≥ 5 jobs in 24 h |
+| Higgsfield refusal spike | > 3 refused in 24 h |
+| daily spend near the ceiling | ≥ 80 % |
+| F1X8 timeouts | any in 24 h |
+| tracker stale | a platform with no post in 48 h |
+| reconciliation | newest missing, failed or > 26 h old |
+| price card | missing, incomplete or > 26 h old |
+
+Each failing check keeps **one** open `ops_alerts` row, which is resolved when the check passes. New alerts are
+POSTed to `MAISTRO_ALERT_WEBHOOK` (a Slack-compatible `{text}`; optional, owner to set) and marked `sent_at`.
+`GET /api/monitor` (signed-in) lists the open alerts, and `/api/health` shows `integrations` as ok or alert per
+check.

@@ -1,0 +1,68 @@
+# Production release with a manual approval (Phase 12 O2). Run it from the Actions tab with the commit to release.
+# The "deploy" job runs in the GitHub Environment "production": set the owner as its required reviewer and add
+# VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID as environment secrets. Until then the job cannot run, and
+# scripts/release.sh (the same checks, run locally) stays the way to release.
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Commit to release (must be on rebuild/phase-0-recon, a fast-forward of main, with a green demo-ui CI run)"
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: The demo-ui CI run for this exact commit is green
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          C=$(gh run list -R "$GITHUB_REPOSITORY" --workflow demo-ui.yml --commit "${{ inputs.sha }}" --limit 1 --json conclusion -q '.[0].conclusion')
+          echo "CI conclusion: ${C:-none}"
+          [ "$C" = "success" ] || { echo "::error::no green demo-ui CI run for ${{ inputs.sha }}"; exit 1; }
+
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+          fetch-depth: 0
+      - name: main moves by fast-forward only (never --force)
+        run: git push origin "${{ inputs.sha }}:refs/heads/main"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Deploy to production with the revision pinned
+        working-directory: demo-ui
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@54.11.1 deploy --prod --yes --token "$VERCEL_TOKEN" --env MAISTRO_REVISION="${{ inputs.sha }}"
+      - name: Both hosts converge on this revision and serve the released page
+        run: |
+          SHORT=$(echo "${{ inputs.sha }}" | cut -c1-7)
+          WANT=$(sha256sum demo-ui/index.html | cut -c1-64)
+          for HOST in https://maistro-demo.vercel.app https://www.ma1stro.com; do
+            OK=""
+            for i in $(seq 1 18); do
+              H=$(curl -s "$HOST/api/health")
+              if echo "$H" | grep -q '"ok":true' && echo "$H" | grep -q "\"revision\":\"$SHORT\""; then OK=1; break; fi
+              sleep 10
+            done
+            [ -n "$OK" ] || { echo "::error::$HOST did not converge on $SHORT"; exit 1; }
+            PAGE=""
+            for i in $(seq 1 6); do [ "$(curl -s "$HOST/" | sha256sum | cut -c1-64)" = "$WANT" ] && { PAGE=1; break; }; sleep 10; done
+            [ -n "$PAGE" ] || { echo "::error::$HOST serves a page that differs from index.html"; exit 1; }
+          done
+          echo "RELEASED $SHORT on both hosts"

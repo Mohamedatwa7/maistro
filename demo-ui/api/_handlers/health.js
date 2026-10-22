@@ -18,6 +18,16 @@ module.exports = async (req, res) => {
   // Optional switches that change behaviour (names only): bootstrap admins
   // for first sign-in, and whether decisions still accept password sessions.
   const features = { MAISTRO_ADMIN_EMAILS: Boolean(process.env.MAISTRO_ADMIN_EMAILS), MAISTRO_REQUIRE_MEMBER: process.env.MAISTRO_REQUIRE_MEMBER === '1', MAISTRO_APP_PASSWORD: Boolean(process.env.MAISTRO_APP_PASSWORD) };
+  // Phase 12 O4: one status per monitored integration from the open alerts (names and ok/alert only, no details)
+  let integrations = null;
+  if (configured.SUPABASE_URL && configured.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const { CHECKS } = require('../_ops/monitor.js');
+      const open = await require('../_supabase.js').queryRows('ops_alerts', 'select=kind&resolved_at=is.null&limit=200');
+      const bad = new Set(open.map((x) => x.kind));
+      integrations = Object.fromEntries(Object.keys(CHECKS).map((k) => [k, bad.has(k) ? 'alert' : 'ok']));
+    } catch (e) { integrations = { unavailable: true }; }
+  }
   return res.status(missing.length ? 503 : 200).json({
     ok: missing.length === 0,
     // CLI deploys carry no git metadata: the release gate passes MAISTRO_REVISION (the SHA CI tested) as a deployment env
@@ -26,6 +36,7 @@ module.exports = async (req, res) => {
     configured,
     missing,
     features,
+    integrations,
     tools: { ffmpeg: (() => { try { const f = require('ffmpeg-static'); return Boolean(f && require('node:fs').existsSync(f)); } catch (e) { return false; } })() }, checkedAt: new Date().toISOString(),
   });
 };
