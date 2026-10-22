@@ -8,8 +8,12 @@
   },
   "crons": [
     {
-      "path": "/api/track",
+      "path": "/api/track?cron=1",
       "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/track?cron=1&verify=20261022",
+      "schedule": "50 6 * * *"
     },
     {
       "path": "/api/trends",

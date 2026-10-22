@@ -473,7 +473,9 @@ module.exports = async (req, res) => {
       }
     }
 
-    res.setHeader('Cache-Control', commentsPartial ? 'no-store' : 's-maxage=600, stale-while-revalidate=86400');
+    // a cron response is never cached: the edge cache once answered the 06:30 cron from a page read, so the
+    // function (snapshot store + reconciliation) never ran (found 2026-10-22: zero reconciliation_reports rows)
+    res.setHeader('Cache-Control', isCron || commentsPartial ? 'no-store' : 's-maxage=600, stale-while-revalidate=86400');
     return res.status(200).json({
       source: 'samsungtrack DB (daily Apify schedule — no duplicate pulls)',
       fetchedAt: new Date().toISOString(),
