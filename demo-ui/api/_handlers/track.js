@@ -294,6 +294,10 @@ async function countRows(base, H, path) {
   return m && m[1] !== '*' ? Number(m[1]) : null;
 }
 
+// R-8 owned accounts, "platform:account,…" (MAISTRO_OWNED_ACCOUNTS overrides the Samsung Gulf default)
+const ownedAccounts = () => new Set(String(process.env.MAISTRO_OWNED_ACCOUNTS || 'tiktok:samsunggulf,instagram:samsunggulf,facebook:samsunggulf,x:samsunggulf,twitter:samsunggulf').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean));
+const isOwned = (owned, platform, account) => owned.has(`${String(platform).toLowerCase()}:${String(account || '').toLowerCase().replace(/^@/, '')}`);
+
 const TRACKER_PLATFORM = { x: 'twitter' };
 async function reconcile(days, R, get, H, base) {
   const { out, commentsSeen, commentsMatched, commentsPartial } = R;
@@ -366,8 +370,8 @@ async function reconcile(days, R, get, H, base) {
   // R-8 population: every counted post belongs to an owned account (the two-sided counts agree even on a
   // wrong population — the ifold_ rows passed R-1 until 2026-10-22). MAISTRO_OWNED_ACCOUNTS overrides,
   // as "platform:account,…"; default: the Samsung Gulf accounts on the four platforms.
-  const owned = new Set(String(process.env.MAISTRO_OWNED_ACCOUNTS || 'tiktok:samsunggulf,instagram:samsunggulf,facebook:samsunggulf,x:samsunggulf,twitter:samsunggulf').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean));
-  const foreign = out.filter((p) => !owned.has(`${String(p.platform).toLowerCase()}:${String(p.account || '').toLowerCase().replace(/^@/, '')}`));
+  const owned = ownedAccounts();
+  const foreign = out.filter((p) => !isOwned(owned, p.platform, p.account));
   report.population = { owned: [...owned], foreign: foreign.length, sample: foreign.slice(0, 5).map((p) => ({ postId: p.postId, platform: p.platform, account: p.account || null, url: p.url })) };
   report.checks.R8_ownedAccountsOnly = foreign.length === 0;
   report.ok = Boolean(report.checks.R1_posts && report.checks.R3_commentsSeen && report.checks.R4_matchedLowerBound && report.checks.R6_postsUniqueById && report.checks.R8_ownedAccountsOnly);
@@ -503,6 +507,8 @@ module.exports = async (req, res) => {
         mediaType: p.media_type || null,
         metrics: {
           views: views || null, likes: likes || null, comments: cn || null, shares: shares || null,
+          // the tracker's own share count, 0 included (shares above maps 0 to null); null = not collected
+          sharesRaw: p.shares_count == null ? null : +p.shares_count,
           er: views ? (likes + cn + shares) / views : null,
           thumb: thumbOf(p),
         },
@@ -516,7 +522,8 @@ module.exports = async (req, res) => {
   };
 
   try {
-    let days = Math.min(DAYS_MAX, Math.max(1, parseInt(isCron ? 60 : q.days, 10) || 60));
+    const wantBench = !isCron && String(q.benchmarks || '') === '1';
+    let days = Math.min(DAYS_MAX, Math.max(1, parseInt(isCron ? 60 : wantBench ? DAYS_MAX : q.days, 10) || 60));
     let R;
     try {
       R = await readWindow(days);
@@ -540,6 +547,24 @@ module.exports = async (req, res) => {
     // counted two ways — by this reader and by the database itself — plus
     // the definitional differences made visible. Ingest key or cron only;
     // never cached; never writes.
+    // 7.2 benchmarks (api/_perf/benchmarks.js): the 90-day read plus Maistro's daily snapshots for the young
+    // age bands, re-filtered to owned accounts on read so rows stored before the population fix drop out
+    if (wantBench) {
+      const { benchmarks, SNAPSHOTS_SINCE } = require('../_perf/benchmarks.js');
+      const owned = ownedAccounts(), snapshots = [];
+      try {
+        for (let off = 0; off < 50000; off += 1000) {
+          const rows = await queryRows('sentiment_posts', `select=post_id,platform,account,caption,posted_at,metrics,at&at=gte.${SNAPSHOTS_SINCE}&order=at.desc&limit=1000&offset=${off}`);
+          snapshots.push(...rows.filter((s) => isOwned(owned, s.platform, s.account) && !/^(ifold|unpacked|roster)_/.test(String(s.post_id))));
+          if (rows.length < 1000) break;
+        }
+      } catch (e) { console.error('[track] benchmark snapshots read failed:', e.message); }
+      const newestByPlatform = {};
+      for (const p of out) if (p.postedAt && (!newestByPlatform[p.platform] || p.postedAt > newestByPlatform[p.platform])) newestByPlatform[p.platform] = p.postedAt;
+      res.setHeader('Cache-Control', commentsPartial ? 'no-store' : 's-maxage=3600, stale-while-revalidate=86400');
+      return res.status(200).json({ ...benchmarks({ posts: out, snapshots, windowDays: days, newestByPlatform }), commentsPartial, snapshotRows: snapshots.length });
+    }
+
     if (String(q.reconcile || '') === '1' && (isCron || authorized)) {
       res.setHeader('Cache-Control', 'no-store');
       return res.status(200).json(await reconcile(days, R, get, H, base));

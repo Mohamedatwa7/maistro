@@ -46,7 +46,7 @@ test('browser read: shape, twin collapse (author+text, a minute apart), cache he
   assert.deepEqual(r.body.comments, { seen: 2, matched: 2, partial: false });
   const p = r.body.posts[0];
   assert.deepEqual(Object.keys(p).sort(), ['account', 'caption', 'comments', 'commentsCollected', 'mediaType', 'metrics', 'platform', 'postId', 'postedAt', 'url']);
-  assert.deepEqual(Object.keys(p.metrics).sort(), ['comments', 'er', 'likes', 'shares', 'thumb', 'views']);
+  assert.deepEqual(Object.keys(p.metrics).sort(), ['comments', 'er', 'likes', 'shares', 'sharesRaw', 'thumb', 'views']);
   assert.equal(p.comments.length, 1, 'the twin collapsed');
   assert.equal(p.commentsCollected, 2, 'the twin is counted as collected beside the collapsed list');
   assert.equal(p.comments[0].sentiment, 'pos', 'the analyzed copy wins; sentiment mapped to pos/neu/neg');
@@ -246,4 +246,28 @@ test('the page collapses comments with the same message key as the server (index
     if (k == null) assert.match(s, /^\u0000blank/);
     else assert.equal(s, `${String(m.author || '').trim().toLowerCase()}|${k}`);
   }
+});
+
+test('benchmarks route (7.2): 90-day read, snapshots re-filtered to owned accounts (foreign and ifold_ rows dropped), cached an hour', async () => {
+  const snaps = [
+    { post_id: 'p1', platform: 'instagram', account: '@samsunggulf', caption: 'x', posted_at: new Date(Date.now() - 2 * 864e5).toISOString(), metrics: { views: 900, likes: 9 }, at: new Date(Date.now() - 0.5 * 864e5).toISOString() }, // observed at 1.5 d: the 1–3 d band
+    { post_id: 'f1', platform: 'tiktok', account: 'samsung_galaxy2026', caption: 'fan', posted_at: new Date(Date.now() - 2 * 864e5).toISOString(), metrics: { views: 1e6 }, at: new Date(Date.now() - 864e5).toISOString() },
+    { post_id: 'ifold_1', platform: 'tiktok', account: 'samsunggulf', caption: 'old', posted_at: new Date(Date.now() - 2 * 864e5).toISOString(), metrics: { views: 1e6 }, at: new Date(Date.now() - 864e5).toISOString() },
+  ];
+  const routes = trackerRoutes();
+  routes[0] = ['https://maistro.test/rest/v1/sentiment_posts', (u, init) => (init && init.method === 'POST' ? new Response('', { status: 201 }) : json(snaps))];
+  const f = mockFetch(routes);
+  const h = api('track.js', ENV);
+  try {
+    const r = res();
+    await h.handler(req({ query: { benchmarks: '1' } }), r);
+    assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+    assert.equal(r.body.windowDays, 90); assert.equal(r.body.snapshotRows, 1, 'only the owned, non-ifold snapshot');
+    assert.match(r.headers['cache-control'], /s-maxage=3600/);
+    const postsQ = f.calls.map((c) => String(c.url)).find((u) => u.includes('/social_posts?') && u.includes('platform=eq.instagram'));
+    const since = decodeURIComponent(postsQ.match(/published_at=gte\.([^&]+)/)[1]);
+    assert.ok(Math.abs((Date.now() - Date.parse(since)) / 864e5 - 90) < 0.01, '90-day read');
+    assert.equal(r.body.posts.p1.band, '1-3d'); assert.equal(r.body.posts.p1.young.n, 1);
+    assert.ok(r.body.cells.some((c) => c.platform === 'instagram' && c.band === '1-3d' && c.n === 1));
+  } finally { f.restore(); h.restore(); }
 });
