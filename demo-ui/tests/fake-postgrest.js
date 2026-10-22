@@ -52,6 +52,13 @@ function fakePostgrest(base = 'https://sb.test') {
   });
   const project = (row, select) => (select === '*' ? { ...row } : Object.fromEntries(select.split(',').map((c) => [c, row[c]])));
 
+  // columns of tables whose shape the code must respect exactly (a wrong column is a 400 in PostgREST)
+  const COLUMNS = { audit_log: ['id', 'actor', 'action', 'entity', 'entity_id', 'before', 'after', 'at'] };
+  function checkColumns(table, row) {
+    const cols = COLUMNS[table]; if (!cols) return;
+    const bad = Object.keys(row).filter((k) => !cols.includes(k));
+    if (bad.length) throw Object.assign(new Error(`fake-postgrest: column ${bad.join(', ')} of ${table} does not exist`), { pgColumn: true });
+  }
   function defaults(table, row) {
     const r = { ...row };
     if (!r.id) r.id = crypto.randomUUID();
@@ -89,6 +96,7 @@ function fakePostgrest(base = 'https://sb.test') {
       const list = Array.isArray(body) ? body : [body];
       const inserted = [];
       for (const raw of list) {
+        try { checkColumns(p.table, raw); } catch (e) { return new Response(JSON.stringify({ code: '42703', message: e.message }), { status: 400, headers: { 'content-type': 'application/json' } }); }
         const r = defaults(p.table, raw);
         const keys = UNIQUE[p.table] || [];
         const dupRow = rows.find((x) => keys.some((cols) => cols.every((c) => String(x[c]) === String(r[c]))));

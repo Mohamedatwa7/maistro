@@ -27,4 +27,18 @@ function grade(c, j) {
   return { ok, verdicts: v, detail: ok ? `${c.expect.question}=${got}` : `expected ${c.expect.question} flagged, got ${got}` };
 }
 
-module.exports = { CASES, grade };
+/** Judge every case with the live prompt (concurrently) and grade it. */
+async function runEval({ judgeTrend, catalog, client }) {
+  const computed = { lifecycle: { stage: 'rising' }, timing: { postBy: null, remainingDays: 7 }, calendarEvents: [], snapshotsSeen: 2 };
+  const qs = ['safety', 'culture', 'origin', 'audioExplicit'];
+  const results = await Promise.all(CASES.map(async (c) => {
+    try {
+      const r = await judgeTrend({ trend: c.trend, computed, catalog, calendarNote: '', client });
+      if (!r || !r.judgement) return { id: c.id, expect: c.expect, ok: false, detail: r ? `${r.error}: ${(r.problems || []).slice(0, 2).join('; ')}` : 'no answer' };
+      return { id: c.id, expect: c.expect, ...grade(c, r.judgement), rationale: Object.fromEntries(qs.map((k) => [k, String(r.judgement[k].rationale || '').slice(0, 240)])), evidence: Object.fromEntries(qs.map((k) => [k, (r.judgement[k].evidence || []).slice(0, 3)])) };
+    } catch (e) { return { id: c.id, expect: c.expect, ok: false, detail: String(e.message || e).slice(0, 200) }; }
+  }));
+  return { passed: results.filter((r) => r.ok).length, total: results.length, results };
+}
+
+module.exports = { CASES, grade, runEval };

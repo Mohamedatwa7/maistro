@@ -408,7 +408,24 @@ module.exports = async (req, res) => {
           try { const { scoreBoard } = require('../_trends/engine.js'); scoring = (await scoreBoard(board, { deadline: startedAt + (maxS - 45) * 1000 })).summary; }
           catch (e) { scoring = { error: String(e.message || e).slice(0, 200) }; }
         }
-        return res.status(200).json({ ok: true, refreshed: true, source: board.source, boardTotal: board.total, curated: curated.length, curatedBy, snapshots: snap, scoring, at: new Date().toISOString() });
+        // 5.9: the guard-rail eval runs once per prompt version (any prompt change re-runs it), recorded in audit_log
+        let evalRun = null;
+        if (cacheConfigured() && process.env.ANTHROPIC_API_KEY && process.env.MAISTRO_TREND_SCORING !== '0' && Date.now() - startedAt < (Number(process.env.MAISTRO_FUNCTION_MAX_S || 300) - 90) * 1000) {
+          try {
+            const P = require('../_trends/prompts/profile-v1.js');
+            const { queryRows, insertRows } = require('../_supabase.js');
+            const done = await queryRows('audit_log', `select=id&action=eq.trends.eval&after->>promptVersion=eq.${encodeURIComponent(P.VERSION)}&limit=1`);
+            if (!done.length) {
+              const { runEval } = require('../_trends/eval-set.js');
+              const { judgeTrend } = require('../_trends/judge.js');
+              const { PRODUCT_CATALOG } = require('../_brand.js');
+              const ev = await runEval({ judgeTrend, catalog: PRODUCT_CATALOG });
+              await insertRows('audit_log', [{ actor: null, action: 'trends.eval', entity: 'prompt', entity_id: null, after: { promptVersion: P.VERSION, ...ev, at: new Date().toISOString() } }]);
+              evalRun = { promptVersion: P.VERSION, passed: ev.passed, total: ev.total, failed: ev.results.filter((r) => !r.ok).map((r) => r.id) };
+            }
+          } catch (e) { evalRun = { error: String(e.message || e).slice(0, 200) }; }
+        }
+        return res.status(200).json({ ok: true, refreshed: true, source: board.source, boardTotal: board.total, curated: curated.length, curatedBy, snapshots: snap, scoring, eval: evalRun, at: new Date().toISOString() });
       } catch (e) {
         await markCacheError(e.message || e);
         return res.status(502).json({ ok: false, refreshed: false, error: String(e.message || e) });
@@ -427,16 +444,11 @@ module.exports = async (req, res) => {
         const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
         const recent = cacheConfigured() ? await queryRows('generation_records', `select=id&kind=eq.trend_judge&params->>trendId=eq.eval-explicit-sound&at=gte.${encodeURIComponent(since)}&limit=1`) : [];
         if (recent.length) return res.status(429).json({ error: 'the eval ran in the last 10 minutes' });
-        const { CASES, grade } = require('../_trends/eval-set.js');
+        const { runEval } = require('../_trends/eval-set.js');
         const { judgeTrend } = require('../_trends/judge.js');
         const { PRODUCT_CATALOG } = require('../_brand.js');
         const P = require('../_trends/prompts/profile-v1.js');
-        const computed = { lifecycle: { stage: 'rising' }, timing: { postBy: null, remainingDays: 7 }, calendarEvents: [], snapshotsSeen: 2 };
-        const results = await Promise.all(CASES.map(async (c) => {
-          try { const r = await judgeTrend({ trend: c.trend, computed, catalog: PRODUCT_CATALOG, calendarNote: '' }); if (!r || !r.judgement) return { id: c.id, ok: false, detail: r ? r.error : 'no answer' }; const g = grade(c, r.judgement); return { id: c.id, expect: c.expect, ...g, rationale: Object.fromEntries(['safety', 'culture', 'origin', 'audioExplicit'].map((k) => [k, r.judgement[k].rationale.slice(0, 200)])) }; }
-          catch (e) { return { id: c.id, ok: false, detail: String(e.message || e).slice(0, 200) }; }
-        }));
-        return res.status(200).json({ promptVersion: P.VERSION, passed: results.filter((r) => r.ok).length, total: results.length, results });
+        return res.status(200).json({ promptVersion: P.VERSION, ...(await runEval({ judgeTrend, catalog: PRODUCT_CATALOG })) });
       } catch (e) { return res.status(502).json({ error: String(e.message || e) }); }
     }
     if (String(q.view || '') === 'scored') {

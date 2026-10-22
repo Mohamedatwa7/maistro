@@ -117,12 +117,17 @@ test('hourly refresh runs the scoring after the snapshots (MAISTRO_TREND_SCORING
     assert.equal(r.statusCode, 200); assert.equal(r.body.refreshed, true);
     assert.equal(r.body.scoring.error, undefined, JSON.stringify(r.body.scoring));
     assert.equal(r.body.scoring.trends, 12); assert.equal(r.body.scoring.judged, 9, 'three fixture trends are hard-vetoed by the deterministic rules and never sent to the judge'); assert.equal(r.body.scoring.skippedVetoed, 3); assert.equal(r.body.scoring.deferred, 0); assert.equal(pg.tables.trend_scores.length, 12);
+    // the guard-rail eval ran once for this prompt version and is recorded with real audit_log columns
+    assert.ok(r.body.eval && r.body.eval.total === 8, JSON.stringify(r.body.eval));
+    const evalRows = (pg.tables.audit_log || []).filter((a) => a.action === 'trends.eval'); assert.equal(evalRows.length, 1); assert.equal(evalRows[0].after.promptVersion, require('../../api/_trends/prompts/profile-v1.js').VERSION); assert.equal(evalRows[0].after.results.length, 8);
+    r = res(); await h.handler(req({ headers: { authorization: 'Bearer cron' } }), r);
+    assert.equal(r.body.eval, null, 'not re-run for the same prompt version'); assert.equal((pg.tables.audit_log || []).filter((a) => a.action === 'trends.eval').length, 1);
     r = res(); await h.handler(req({ query: { view: 'scored' }, session: false }), r); assert.equal(r.statusCode, 401);
     r = res(); await h.handler(req({ query: { view: 'scored' } }), r);
     assert.equal(r.statusCode, 200); assert.equal(r.body.ranked.length + r.body.rejected.length + r.body.needsReview.length, 12); assert.equal(r.headers['cache-control'], 'no-store');
     process.env.MAISTRO_TREND_SCORING = '0';
     r = res(); await h.handler(req({ headers: { authorization: 'Bearer cron' } }), r);
-    assert.equal(r.body.scoring, null); assert.equal(pg.tables.trend_scores.length, 12);
+    assert.equal(r.body.scoring, null); assert.equal(pg.tables.trend_scores.length, 24, 'two scored refreshes, the third disabled');
   } finally { delete process.env.MAISTRO_TREND_SCORING; f.restore(); h.restore(); }
 });
 

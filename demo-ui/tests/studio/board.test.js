@@ -104,6 +104,7 @@ test('POST /api/studio action board: needs the brief; shot list version with che
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'board-shot-decide', pieceId: 'gen-bd1', shot: 3, decision: 'rejected', name: 'N' } }), r); assert.equal(r.statusCode, 400, 'a reason is required');
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'board-shot-decide', pieceId: 'gen-bd1', shot: 3, decision: 'rejected', reason: 'device too small', reasonCode: 'wrong_product', name: 'N' } }), r);
     assert.equal(r.statusCode, 200); assert.deepEqual(r.body.pending, [3]);
+    const audits = pg.tables.audit_log || []; assert.ok(audits.some((a) => a.action === 'board.shot.rejected' && a.entity === 'artifact_version' && a.after.reason === 'device too small'), 'the shot decision is audit-logged with real columns');
     r = res(); await decisions.handler(req({ method: 'POST', body: { pieceId: 'gen-bd1', stage: 'board', decision: 'approved', name: 'N', role: 'reviewer' } }), r);
     assert.equal(r.statusCode, 409, JSON.stringify(r.body)); assert.equal(r.body.code, 'shots_pending');
     // only shot 3 regenerates; its previous keyframe goes to history; the stage returns to generating then generated

@@ -160,7 +160,7 @@ module.exports = async (req, res) => {
       const r = await jobsSvc.updateShots(v.id, (payload) => { const shots = payload.shots.map((s) => ({ ...s })); const cur = shots[n - 1][slot] ? shots[n - 1][slot].jobId || null : null; if (decision === 'approved' && cur !== review.keyframeJobId) return null; shots[n - 1] = { ...shots[n - 1], review }; return { ...payload, shots }; });
       if (r.unchanged) return res.status(409).json({ error: `shot ${n} was re-rendered while you reviewed it — look at the new ${slot}`, code: 'keyframe_changed' });
       const shots = r.payload.shots;
-      try { await insertRows('audit_log', [{ actor: req.member ? req.member.id : null, action: `${sk}.shot.${decision}`, target: v.id, details: { pieceId: legacyId, shot: n, reasonCode: review.reasonCode, reason: review.reason } }]); } catch (e) { /* best effort */ }
+      try { await insertRows('audit_log', [{ actor: req.member ? req.member.id : null, action: `${sk}.shot.${decision}`, entity: 'artifact_version', entity_id: v.id, after: { pieceId: legacyId, shot: n, reasonCode: review.reasonCode, reason: review.reason } }]); } catch (e) { /* best effort */ }
       return res.status(200).json({ ok: true, shot: n, review, pending: shots.filter((s) => !s.review || s.review.decision !== 'approved').map((s) => s.n) });
     }
     if (b.action === 'board-shot') {
@@ -242,7 +242,7 @@ module.exports = async (req, res) => {
       pkg.manifest.adlcp = docs.map((d) => ({ kind: d.kind, sha256: d.sha256 }));
       const body = JSON.stringify(pkg.manifest, null, 1);
       const put = await storage.putBlob(`pieces/${legacyId}/final/package-v${fv.version}-${Date.now().toString(36)}.json`, Buffer.from(body), 'application/json');
-      try { await insertRows('audit_log', [{ actor: req.member ? req.member.id : null, action: 'final.package', target: fv.id, details: { pieceId: legacyId, assetPath: put.path, sha256: put.sha256 } }]); } catch (e) { /* best effort */ }
+      try { await insertRows('audit_log', [{ actor: req.member ? req.member.id : null, action: 'final.package', entity: 'artifact_version', entity_id: fv.id, after: { pieceId: legacyId, assetPath: put.path, sha256: put.sha256 } }]); } catch (e) { /* best effort */ }
       const urls = {};
       for (const [k, pth] of [['video', pkg.manifest.final.video && pkg.manifest.final.video.assetPath], ['thumbnail', pkg.manifest.thumbnail && pkg.manifest.thumbnail.assetPath], ['manifest', put.path]]) if (pth) { try { urls[k] = await storage.signedUrl(pth, 7 * 24 * 3600); } catch (e) { /* unsigned */ } }
       return res.status(200).json({ ok: true, manifest: pkg.manifest, assetPath: put.path, sha256: put.sha256, urls });
