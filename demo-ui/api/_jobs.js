@@ -269,6 +269,13 @@ async function pollRender(job) {
   }
   if (['failed', 'nsfw', 'canceled'].includes(st.status)) {
     await fail(job, 'failed', st.status === 'nsfw' ? 'moderated (nsfw) — nothing was generated' : `provider reported ${st.status}`);
+    if (st.status === 'nsfw') {
+      // 6.9: explain the refusal and suggest a compliant rewrite (never resubmitted automatically)
+      try {
+        const sug = await require('./_studio/refusal.js').suggestRewrite({ prompt: job.payload.prompt, stage: job.payload.stage, legacyId: job.payload.pieceId, memberId: job.payload.generatedBy || null });
+        if (sug) await patchRows('jobs', `id=eq.${q(job.id)}`, { result: { refusal: { ...sug, refusedPrompt: String(job.payload.prompt || '').slice(0, 2000) } } });
+      } catch (e) { console.warn('[jobs] refusal rewrite failed:', e.message); }
+    }
     return 'failed';
   }
   await patchRows('jobs', `id=eq.${q(job.id)}`, { state: 'running', error: null });

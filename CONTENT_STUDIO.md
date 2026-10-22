@@ -145,6 +145,10 @@ Hardening (checker findings): an unpriced render (v1 reference path, or a failed
 
 Known window (checker note): a reopened stage keeps its version id until it is regenerated, so stages built on it read fresh until the new version lands — to be shown as "upstream reopened" later.
 
+### Policy refusals
+
+A render Higgsfield moderates (`nsfw`) fails uncharged (cost $0 on its record, refused status) and the job service asks Sonnet (`refusal-rewrite-v1`) for the likely trigger and a compliant rewrite that keeps scene, product, camera and mood; both are stored on the job (`result.refusal`) and shown in the Studio's error. Nothing is resubmitted automatically — the person decides.
+
 ### Hermes parity
 
 Every push through `POST /api/ingest` that lands in the store runs the same automated checks as a Studio artifact (`api/_studio/parity.js`): images (mood, thumbnail, storyboard sheet) are copied into the private bucket and get the 6.2 vision check (product expected on thumbnail and storyboard when the piece names one); a structured brief gets the 6.4 code checks, a legacy-shaped brief is recorded as failing "structured brief missing"; a final video is copied in and analysed by F1X8 bound to its version. When an asset cannot be copied (host outside the media allow-list, fetch failure) a **failing** check records it — a push is never silently unchecked. The response lists what was queued.

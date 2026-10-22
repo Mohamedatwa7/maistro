@@ -31,3 +31,27 @@ test('ingest parity: a pushed image is copied in and vision-checked like a Studi
     assert.equal(r.statusCode, 200); assert.match(r.body.checks[0].reason, /structured brief missing/);
   } finally { f.restore(); h.restore(); }
 });
+
+test('policy refusal: a moderated render fails uncharged with an explanation and a compliant rewrite on the job (never resubmitted)', async () => {
+  const pg = fakePostgrest();
+  let submits = 0;
+  const f = mockFetch([
+    [/api\.higgsfield\.ai\/estimate\//, () => json({ usd: 0.1, credits: 1 })],
+    [/\/higgsfield-ai\/soul\/v2\/standard$/, () => { submits++; return json({ status: 'queued', request_id: 'nsfw00001x', status_url: 'x', cancel_url: 'y' }); }],
+    [/\/requests\/nsfw00001x\/status/, () => json({ status: 'nsfw' })],
+    ['api.anthropic.com', () => json({ content: [{ type: 'text', text: JSON.stringify({ reason: '"bare shoulders" reads as body focus.', rewrite: 'A woman in a modest linen abaya holds the foldable on a sunlit terrace.' }) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } })],
+    pg.route,
+  ]);
+  const env = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', HF_CREDENTIALS: 'id:secret', ANTHROPIC_API_KEY: 'k' };
+  const jobs = api('jobs.js', env); const pieces = api('pieces.js', env);
+  try {
+    let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-nsfw', stage: 'plan', artifact: { title: 'N', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] } } }), r);
+    r = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-nsfw', stage: 'thumb', kind: 'higgsfield_image', payload: { prompt: 'a woman with bare shoulders holding the phone', aspect_ratio: '9:16' } } }), r);
+    const j = pg.tables.jobs[0]; j.next_poll_at = new Date(Date.now() - 1000).toISOString();
+    r = res(); await jobs.handler(req({ method: 'GET', query: { id: j.id } }), r);
+    assert.equal(r.body.job.state, 'failed'); assert.match(r.body.job.error, /moderated/);
+    const row = pg.tables.jobs[0]; assert.match(row.result.refusal.reason, /body focus/); assert.match(row.result.refusal.rewrite, /modest linen abaya/); assert.match(row.result.refusal.refusedPrompt, /bare shoulders/);
+    assert.equal(submits, 1, 'never resubmitted automatically');
+    const rec = pg.tables.generation_records.find((g) => g.job_id === j.id && g.status === 'refused'); assert.ok(rec); assert.equal(Number(rec.cost_usd), 0, 'moderated renders are not charged');
+  } finally { f.restore(); jobs.restore(); pieces.restore(); }
+});

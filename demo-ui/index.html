@@ -2059,7 +2059,8 @@ function jobPoll(pid,sid,jobId,tries){
    }
    if(j.state==='failed'||j.state==='timed_out'){
     delete GEN.busy[key];
-    GEN.err[key]=/moderated/.test(j.error||'')?'The request was moderated — nothing was generated. Rephrase and try again.':((j.error||'Generation '+j.state)+' — nothing was generated. Try again.');
+    const rf=j.result&&j.result.refusal;
+    GEN.err[key]=/moderated/.test(j.error||'')?('The request was moderated — nothing was generated (and nothing was charged).'+(rf?' Likely cause: '+rf.reason+' Suggested compliant prompt: “'+rf.rewrite+'”':' Rephrase and try again.')):((j.error||'Generation '+j.state)+' — nothing was generated. Try again.');
     const p=PROJECTS.find(x=>x.id===pid);
     if(p&&p.jobs){delete p.jobs['g:'+sid];saveGenerated()}
     studioRefresh();return;
