@@ -51,6 +51,9 @@ const SprinklrAdapter = {
   },
 };
 const adapter = () => (SprinklrAdapter.enabled ? SprinklrAdapter : ManualExportAdapter);
+// manual mode with Sprinklr connected for reading (the Calendar shows the accounts' posts) but drafts not on yet
+const READ_ONLY_LABEL = 'Sprinklr: connected, read-only — drafts not on yet (export the package, post by hand, then link the published post)';
+const modeLabel = () => (adapter() === ManualExportAdapter && SprinklrAdapter.connected ? READ_ONLY_LABEL : adapter().label);
 
 /** signed URLs (7 days, like the delivery package) for the approved final's video and the thumbnail */
 async function finalMedia(pieceId) {
@@ -83,7 +86,7 @@ async function calendar({ from, to }) {
     const postBy = {}; for (const s of scores) if (s.post_by && !postBy[s.trend_id]) postBy[s.trend_id] = s.post_by;
     const unscheduled = finals.filter((f) => !open.has(f.piece_id)).map((f) => { const p = byId.get(f.piece_id) || {}; return { pieceId: p.legacy_id, title: p.title, product: p.product, platforms: p.platforms || [], markets: p.markets || [], trend: p.trend_name, postBy: postBy[p.trend_id] || null }; })
       .sort((a, b) => String(a.postBy || '9').localeCompare(String(b.postBy || '9')));
-    return { status: 200, body: { mode: adapter().mode, connected: adapter().connected, label: adapter().label, sprinklrConfigured: SprinklrAdapter.connected, sprinklr: sprinklrView(), owned: Object.fromEntries(Object.entries(ownedByPlatform()).map(([k, v]) => [k, [...v]])), slots: slots.map((s) => slotView(s, byId.get(s.piece_id))), unscheduled } };
+    return { status: 200, body: { mode: adapter().mode, connected: adapter().connected, label: modeLabel(), sprinklrConfigured: SprinklrAdapter.connected, sprinklr: sprinklrView(), owned: Object.fromEntries(Object.entries(ownedByPlatform()).map(([k, v]) => [k, [...v]])), slots: slots.map((s) => slotView(s, byId.get(s.piece_id))), unscheduled } };
   } catch (e) { if (storageMissing(e)) return MISSING; throw e; }
 }
 

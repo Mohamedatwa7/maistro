@@ -115,6 +115,7 @@ test('fallbacks: no opt-in stays manual; an unmapped account or a Sprinklr error
   try {
     let r = await get(studio, { calendar: '1' });
     assert.equal(r.body.mode, 'manual_export'); assert.deepEqual(r.body.sprinklr, { configured: true, drafts: false, livePublishing: false });
+    assert.match(r.body.label, /^Sprinklr: connected, read-only — drafts not on yet/);
     r = await post(studio, planBody);
     r = await post(studio, { action: 'slot-export', pieceId: 'gen-p1', id: r.body.slot.id });
     assert.equal(r.body.manual, true); assert.equal(r.body.sprinklr, undefined);

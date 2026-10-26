@@ -668,16 +668,16 @@ select.inp option{background:var(--panel-solid);color:var(--text)}
 
 /* ---------- calendar ---------- */
 .cal{border:1px solid var(--hairline);border-radius:var(--r);overflow:hidden}
-.cal .dow{display:grid;grid-template-columns:repeat(7,1fr);background:rgba(255,255,255,.03);border-bottom:1px solid var(--hairline)}
+.cal .dow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:rgba(255,255,255,.03);border-bottom:1px solid var(--hairline)}
 .cal .dow div{padding:7px;text-align:center;font-family:var(--font-m);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.cal .days{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal .days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
 .cal .day{min-height:92px;border-bottom:1px solid rgba(255,255,255,.06);border-right:1px solid rgba(255,255,255,.06);padding:6px;background:rgba(255,255,255,.012)}
 .cal .day:nth-child(7n){border-right:none}
 .cal .day.empty{background:transparent}
 .cal .day .dn{font-family:var(--font-m);font-size:10.5px;color:var(--muted);margin-bottom:4px}
 .cal .day.opt{background:rgba(125,211,252,.05);box-shadow:inset 0 0 0 1px rgba(125,211,252,.14)}
 .optlab{font-family:var(--font-m);font-size:7.5px;letter-spacing:.13em;color:#7dd3fc;margin-left:6px;white-space:nowrap}
-.cal .ev{display:flex;align-items:center;gap:4px;width:100%;text-align:left;cursor:pointer;
+.cal .ev{display:flex;align-items:center;gap:4px;width:100%;min-width:0;text-align:left;cursor:pointer;
   border:none;border-left:2.5px solid;border-radius:6px;padding:3.5px 6px;margin-bottom:3px;
   font-family:var(--font-d);font-size:10.8px;color:var(--text);transition:.15s}
 .cal .ev .tm{font-family:var(--font-m);font-size:9px;color:var(--muted);flex:none}
@@ -4437,7 +4437,7 @@ function calDay(iso){CALM.day=iso;CALM.sel=null;calRedraw()}
 /* one list for the month: Sprinklr posts and Maistro's planned posts (canceled ones left out) */
 function calEvents(d,f){
  const ev=[];
- for(const i of (f&&f.items)||[])if(i.at)ev.push({key:'f:'+i.id,at:Date.parse(i.at),platform:i.platform,status:i.status,cls:FEED_EV[i.status]||'ev-always-on',label:i.text||'(no caption)',src:'sprinklr',item:i});
+ for(const i of (f&&f.items)||[])if(i.at)ev.push({key:'f:'+i.id,at:Date.parse(i.at),platform:i.platform,status:i.status,cls:FEED_EV[i.status]||'ev-always-on',label:i.text||(i.media?i.media.toLowerCase().replace('_',' '):'no caption'),src:'sprinklr',item:i});
  for(const s of d.slots||[])if(s.status!=='canceled')ev.push({key:'s:'+s.id,at:Date.parse(s.slotAt),platform:s.platform,status:'maistro_'+s.status,cls:'ev-priority',label:s.title||s.pieceId||'Maistro post',src:'maistro',slot:s});
  return ev.sort((a,b)=>a.at-b.at);
 }
