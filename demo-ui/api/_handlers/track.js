@@ -35,6 +35,7 @@
 const { insertRow, queryRows, upsertRows } = require('../_supabase.js');
 const { requireSession, bearerMatches, isCron: isCronRequest } = require('../_auth.js');
 const { fetchT } = require('../_http.js');
+const { filterSpam } = require('../_perf/spam.js');
 
 const DAYS_MAX = 90;
 const FALLBACK_DAYS = 14; // cron snapshot window when the full read fails or is partial
@@ -330,7 +331,7 @@ async function reconcile(days, R, get, H, base) {
     }
   } catch (e) { report.comments.matchedError = e.message; dbMatchedCanonical = null; }
   const deduped = out.reduce((s, p) => s + p.comments.length, 0);
-  report.comments = { ...report.comments, seen: commentsSeen, dbSeen, partial: commentsPartial, matched: commentsMatched, dbMatchedCanonical, aliasOnly: dbMatchedCanonical == null ? null : commentsMatched - dbMatchedCanonical, deduped, twinsRemoved: commentsMatched - deduped, matchRate: commentsSeen ? +(commentsMatched / commentsSeen).toFixed(4) : null };
+  report.comments = { ...report.comments, seen: commentsSeen, dbSeen, partial: commentsPartial, matched: commentsMatched, dbMatchedCanonical, aliasOnly: dbMatchedCanonical == null ? null : commentsMatched - dbMatchedCanonical, deduped, spamRemoved: (R.spam && R.spam.removed) || 0, twinsRemoved: commentsMatched - deduped - ((R.spam && R.spam.removed) || 0), matchRate: commentsSeen ? +(commentsMatched / commentsSeen).toFixed(4) : null };
   report.checks.R3_commentsSeen = !commentsPartial && dbSeen != null && dbSeen === commentsSeen;
   report.checks.R4_matchedLowerBound = dbMatchedCanonical != null && dbMatchedCanonical <= commentsMatched;
 
@@ -510,7 +511,9 @@ module.exports = async (req, res) => {
         comments: cmts,
       };
     });
-    return { out, commentsSeen, commentsMatched, commentsPartial, since, floor, raw: ours.map((p) => ({ postId: String(p.external_id), platform: p.platform === 'twitter' ? 'x' : p.platform, rows: byId.get(String(p.external_id)) || [] })) };
+    // spam (other-market campaigns, bait, copy-paste walls) never reaches the page: api/_perf/spam.js
+    const spam = filterSpam(out);
+    return { out: spam.posts, spam: { removed: spam.removed, byReason: spam.byReason }, commentsSeen, commentsMatched, commentsPartial, since, floor, raw: ours.map((p) => ({ postId: String(p.external_id), platform: p.platform === 'twitter' ? 'x' : p.platform, rows: byId.get(String(p.external_id)) || [] })) };
   };
 
   try {
@@ -530,7 +533,10 @@ module.exports = async (req, res) => {
         const [row] = await queryRows('perf_payloads', 'select=computed_at,tracker_newest,comments_partial,payload&kind=eq.track_60d&limit=1');
         if (row && !row.comments_partial && Date.now() - Date.parse(row.computed_at) <= STORED_MAX_H * 36e5) {
           res.setHeader('Cache-Control', 'private, max-age=300');
-          return res.status(200).json({ ...row.payload, served: 'stored', computedAt: row.computed_at, trackerNewest: row.tracker_newest });
+          // re-filtered on read so a payload stored before a spam rule changed carries none of it
+          const sp = filterSpam(row.payload.posts);
+          const prev = row.payload.spam || { removed: 0, byReason: {} };
+          return res.status(200).json({ ...row.payload, posts: sp.posts, spam: { removed: prev.removed + sp.removed, byReason: Object.fromEntries([...new Set([...Object.keys(prev.byReason || {}), ...Object.keys(sp.byReason)])].map((k) => [k, ((prev.byReason || {})[k] || 0) + (sp.byReason[k] || 0)])) }, served: 'stored', computedAt: row.computed_at, trackerNewest: row.tracker_newest });
         }
       } catch (e) { console.error('[track] stored payload unavailable, reading live:', e.message); }
     }
@@ -571,7 +577,7 @@ module.exports = async (req, res) => {
     if (wantThemes) {
       const { themes } = require('../_perf/themes.js');
       res.setHeader('Cache-Control', 'private, no-store');
-      return res.status(200).json({ days, fetchedAt: new Date().toISOString(), commentsPartial, ...themes(out, { seed: R.since || '' }) });
+      return res.status(200).json({ days, fetchedAt: new Date().toISOString(), commentsPartial, spamRemoved: (R.spam && R.spam.removed) || 0, ...themes(out, { seed: R.since || '' }) });
     }
 
     // the 7.2 benchmarks over this read (shared by ?benchmarks=1 and ?attribution=1)
@@ -678,6 +684,7 @@ module.exports = async (req, res) => {
       days,
       count: out.length,
       comments: { seen: commentsSeen, matched: commentsMatched, partial: commentsPartial },
+      spam: R.spam || { removed: 0, byReason: {} },
       stored,
       reconciled,
       timings,

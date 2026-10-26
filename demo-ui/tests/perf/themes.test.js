@@ -48,7 +48,7 @@ test('counting: brand replies excluded; giveaway posts give entries, not praise;
   assert.equal(get('giveaway_entry').n, 1, 'the colour comment on the giveaway post is an entry');
   assert.equal(get('praise_design').n, 1, 'only the organic post\'s colour comment is praise');
   assert.equal(get('issue_screen').n, 2);
-  assert.deepEqual(get('issue_screen').products, [{ name: 'Galaxy S22 Ultra', n: 1 }, { name: 'Galaxy Z Flip8', n: 1 }], 'product from the comment, else the caption; no shares below n = 20');
+  assert.deepEqual(get('issue_screen').products, [{ name: 'Older models (pre-2026)', n: 1 }, { name: 'Galaxy Z Flip8', n: 1 }], 'product from the comment (an S22 Ultra counts as an older model), else the caption; no shares below n = 20');
   assert.deepEqual(get('issue_screen').sentiment, { pos: 0, neu: 0, neg: 1, notAnalysed: 1 });
   assert.equal(get('issue_screen').examples.length, 2);
 });

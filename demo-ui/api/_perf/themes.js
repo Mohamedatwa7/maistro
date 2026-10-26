@@ -66,9 +66,28 @@ function canonicalModel(raw) {
   if ((m = s.match(/^tabs(\d{1,2})$/))) return `Galaxy Tab S${m[1]}`;
   return raw.trim();
 }
+// The current lineup (api/_brand.js, 2026): S26, Z Fold8 / Flip8, Watch9, Buds4, Tab S12, A and M series ending
+// in 6 or 7 (A06 … A57). A device named in a comment that is older than that is a real device the customer owns,
+// so it is never renamed to a current one; it is counted under one "Older models" line instead of under its own
+// name, so the product breakdown reads in today's lineup (an S23 complaint does not appear as an "S23" product).
+const OLDER_MODELS = 'Older models (pre-2026)';
+function isCurrentModel(name) {
+  let m;
+  if ((m = name.match(/^Galaxy Z (?:Fold|Flip)(\d+)/))) return +m[1] >= 8;
+  if ((m = name.match(/^Galaxy S(\d+)/))) return +m[1] >= 26;
+  if ((m = name.match(/^Galaxy [AM](\d+)/))) return /[67]$/.test(m[1]) && +m[1] >= 6;
+  if ((m = name.match(/^Galaxy Watch(\d+)/))) return +m[1] >= 9;
+  if ((m = name.match(/^Galaxy Buds(\d+)/))) return +m[1] >= 4;
+  if ((m = name.match(/^Galaxy Tab S(\d+)/))) return +m[1] >= 12;
+  if (/^Galaxy Note/.test(name)) return false; // discontinued line
+  return true;
+}
 function productFor(text, caption) {
   const m = String(text || '').match(MODEL_IN_TEXT);
-  if (m) return { product: canonicalModel(m[0]), productFrom: 'comment' };
+  if (m) {
+    const device = canonicalModel(m[0]);
+    return isCurrentModel(device) ? { product: device, productFrom: 'comment' } : { product: OLDER_MODELS, productFrom: 'comment', device };
+  }
   const c = productOf(caption);
   return c ? { product: c, productFrom: 'post caption' } : { product: 'product unknown', productFrom: null };
 }
@@ -102,7 +121,7 @@ function themes(posts, { seed = '', examples = 3 } = {}) {
       // the brand's own replies (offers, raffle notices) are not customer comments
       if (isBrand(c.author)) { brandReplies++; continue; }
       total++;
-      const { product, productFrom } = productFor(c.text, p.caption);
+      const { product, productFrom, device } = productFor(c.text, p.caption);
       const { ids, question } = classify(c.text);
       // praise words inside a complaint or an issue report ("pink lines") are not praise
       const negative = ids.some((id) => byId[id].group === 'product_issue' || byId[id].group === 'complaint');
@@ -116,7 +135,7 @@ function themes(posts, { seed = '', examples = 3 } = {}) {
         const s = c.sentiment === 'pos' || c.sentiment === 'neu' || c.sentiment === 'neg' ? c.sentiment : 'notAnalysed';
         h.sentiment[s]++;
         if (h.group === 'product_issue' || h.group === 'complaint' || h.group === 'purchase') h.products[product] = (h.products[product] || 0) + 1;
-        h.items.push({ postId: p.postId, platform: p.platform, author: c.author || null, text: c.text || '', at: c.at || null, likes: c.likes ?? null, sentiment: c.sentiment || null, product, productFrom, question });
+        h.items.push({ postId: p.postId, postUrl: p.url || null, platform: p.platform, ...(device ? { device } : {}), author: c.author || null, text: c.text || '', at: c.at || null, likes: c.likes ?? null, sentiment: c.sentiment || null, product, productFrom, question });
       }
     }
   }
@@ -131,9 +150,9 @@ function themes(posts, { seed = '', examples = 3 } = {}) {
     const a = AUDIT[h.id];
     const confidence = !a ? null : (a.tp + a.fp < 5 ? 'not enough audited examples' : a.precision < 0.8 ? 'low' : 'ok');
     const undercounted = Boolean(a && (h.group === 'product_issue' || h.group === 'complaint') && a.recall != null && a.recall < 0.7);
-    return { id: h.id, group: h.group, label: h.label, n: h.n, confidence, ...(a ? { audit: { precision: a.precision, recall: a.recall, basis: a.basis } } : {}), ...(undercounted ? { mayBeUndercounted: true } : {}), share: total ? Math.round((h.n / total) * 1000) / 1000 : null, questions: h.questions, sentiment: h.sentiment, products, productsMappedFrom: 'a device named in the comment, else the post caption', examples: [...top, ...rest.slice(0, examples)] };
+    return { id: h.id, group: h.group, label: h.label, n: h.n, confidence, ...(a ? { audit: { precision: a.precision, recall: a.recall, basis: a.basis } } : {}), ...(undercounted ? { mayBeUndercounted: true } : {}), share: total ? Math.round((h.n / total) * 1000) / 1000 : null, questions: h.questions, sentiment: h.sentiment, products, productsMappedFrom: 'a device named in the comment (older than the 2026 lineup → "Older models"), else the post caption', examples: [...top, ...rest.slice(0, examples)] };
   }).sort((a, b) => b.n - a.n);
   return { version: THEMES_VERSION, total, themed, unthemed: total - themed, unthemedShare: total ? Math.round(((total - themed) / total) * 1000) / 1000 : null, minN: MIN_N, brandRepliesExcluded: brandReplies, themes: out };
 }
 
-module.exports = { themes, classify, productOf, productFor, THEMES, THEMES_VERSION, AUDIT };
+module.exports = { themes, classify, productOf, productFor, isCurrentModel, OLDER_MODELS, THEMES, THEMES_VERSION, AUDIT };

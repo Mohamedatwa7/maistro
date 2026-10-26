@@ -3327,6 +3327,9 @@ function handledBit(c){
   ?`<span class="mono" style="font-size:9px;color:var(--go);border:1px solid currentColor;border-radius:99px;padding:1px 7px;margin-left:5px" title="${esc('by '+(h.by||'?')+' · '+String(h.at||'').slice(0,16).replace('T',' ')+' UTC')}">✓ HANDLED</span><button class="btn ghost" style="font-size:9px;padding:0 6px;margin-left:4px" data-c="${payload}" data-on="0" onclick="event.stopPropagation();markHandled(this)">undo</button>`
   :`<button class="btn ghost" style="font-size:9px;padding:0 6px;margin-left:5px" data-c="${payload}" data-on="1" onclick="event.stopPropagation();markHandled(this)">Mark handled</button>`;
 }
+/* the post a comment came from: the comment's own postUrl, else the loaded post with its id */
+function commentPostUrl(c){if(c.postUrl)return c.postUrl;try{const p=(pfPosts()||[]).find(x=>x.postId===c.postId);return p&&p.url||null}catch(e){return null}}
+function postLink(c){const u=commentPostUrl(c);return u&&/^https?:\/\//i.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener" class="mono" style="font-size:9.5px;color:#7dd3fc;text-decoration:none;margin-left:6px;white-space:nowrap" title="Open the post this comment is on" onclick="event.stopPropagation()">VIEW POST ↗</a>`:''}
 function rCommentRow(c){
  const fl=stFlags(c.text);
  return `
@@ -3334,7 +3337,7 @@ function rCommentRow(c){
    <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.55">
     ${c.platform&&PLAT[c.platform]?plat(c.platform):''} <b style="font-size:12px">${esc(c.author||'')}</b>
     <span dir="auto" style="color:var(--text);unicode-bidi:plaintext"> ${esc(c.text||'')}</span>
-    ${c.likes!=null?`<span class="mono dim" style="font-size:10px"> · ${fmt(c.likes)} ♥</span>`:''}${c.across>1?`<span class="mono dim" style="font-size:9px;margin-left:5px">× ${c.across} POSTS</span>`:''}
+    ${c.likes!=null?`<span class="mono dim" style="font-size:10px"> · ${fmt(c.likes)} ♥</span>`:''}${c.across>1?`<span class="mono dim" style="font-size:9px;margin-left:5px">× ${c.across} POSTS</span>`:''}${c.device?`<span class="mono dim" style="font-size:9px;margin-left:5px" title="An older device named in the comment">${esc(String(c.device).replace(/^Galaxy /,''))} · OLDER MODEL</span>`:''}${postLink(c)}
     ${fl.map(f=>`<span class="mono" style="font-size:9px;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-left:5px">⚑ ${f.l.toUpperCase()}</span>`).join('')}
     ${fl.length||(HANDLED.data&&HANDLED.data[handledKey(c)])?handledBit(c):''}
     ${trBits(c.text)}
@@ -3383,7 +3386,7 @@ function kpiDrill(kind){
    (date/platform/department/feature/sentiment/flagged/search) drives all of it. */
 function allComments(list){
  const out=[];
- for(const p of list)for(const c of (p.comments||[]))out.push({...c,platform:p.platform,postId:p.postId,postCaption:p.caption||''});
+ for(const p of list)for(const c of (p.comments||[]))out.push({...c,platform:p.platform,postId:p.postId,postUrl:p.url||null,postCaption:p.caption||''});
  return out;
 }
 function cfMore(){STATE.cfN=(STATE.cfN||15)+25;$('#view').innerHTML=rPerformance();reveal()}
@@ -3463,7 +3466,7 @@ function rReviewsDash(list,s){
   <div class="card p5"><span class="kick accent">Critical alerts</span>
    ${alerts.length?alerts.map(({c,fl})=>`<div class="qc-risk" style="margin-top:9px">
      <div style="font-size:12px;line-height:1.55"><b>${esc(c.author||'')}</b> <span class="dim" dir="auto" style="unicode-bidi:plaintext">${esc((c.text||'').slice(0,110))}${(c.text||'').length>110?'…':''}</span>${trBits(c.text)}</div>
-     <div style="margin-top:4px">${fl.map(f=>`<span class="mono" style="font-size:9px;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-right:4px">⚑ ${f.l.toUpperCase()}</span>`).join('')}${c.platform&&PLAT[c.platform]?plat(c.platform):''}${c.across>1?`<span class="mono dim" style="font-size:9px;margin-left:5px">× ${c.across} POSTS</span>`:''}</div>
+     <div style="margin-top:4px">${fl.map(f=>`<span class="mono" style="font-size:9px;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-right:4px">⚑ ${f.l.toUpperCase()}</span>`).join('')}${c.platform&&PLAT[c.platform]?plat(c.platform):''}${c.across>1?`<span class="mono dim" style="font-size:9px;margin-left:5px">× ${c.across} POSTS</span>`:''}${postLink(c)}</div>
     </div>`).join(''):`<p class="dim" style="font-size:12.5px;margin-top:12px">No refund, technical, support or competitor flags in this view. 🎉</p>`}
   </div>
  </div>
@@ -4356,7 +4359,7 @@ function rThemes(){
   const s=t.sentiment,an=s.pos+s.neu+s.neg;
   const conf=t.confidence==='low'?`<span class="mono" style="font-size:9px;color:var(--gold,#e6c26b);border:1px solid currentColor;border-radius:99px;padding:0 6px;margin-left:6px" title="measured precision ${t.audit?t.audit.precision:'?'} (${esc(t.audit?t.audit.basis:'')})">LOW CONFIDENCE</span>`:t.confidence==='not enough audited examples'?`<span class="mono dim" style="font-size:9px;margin-left:6px">few audited examples</span>`:'';
   const under=t.mayBeUndercounted?`<span class="mono" style="font-size:9px;color:var(--alert);margin-left:6px">may be undercounted</span>`:'';
-  const prods=t.products&&t.products.length?`<div class="dim" style="font-size:10.5px;margin-top:3px">${t.products.slice(0,4).map(p=>`${esc(p.name)} ${p.n}${p.share!=null?' ('+Math.round(p.share*100)+' %)':''}`).join(' · ')} <span class="mono" style="font-size:9px">· product from the comment, else the post caption</span></div>`:'';
+  const prods=t.products&&t.products.length?`<div class="dim" style="font-size:10.5px;margin-top:3px">${t.products.slice(0,4).map(p=>`${esc(p.name)} ${p.n}${p.share!=null?' ('+Math.round(p.share*100)+' %)':''}`).join(' · ')} <span class="mono" style="font-size:9px">· product from the comment, else the post caption; devices older than the 2026 lineup count as “Older models”</span></div>`:'';
   const open=THEMES_UI.open[t.id];
   const ex=open?`<div style="margin-top:6px">${t.examples.map(c=>rCommentRow({...c,postId:c.postId})).join('')}</div>`:'';
   return `<div style="padding:8px 0;border-top:1px solid var(--hairline)">
@@ -4369,7 +4372,7 @@ function rThemes(){
  const groups=THEME_GROUPS.map(([g,lab])=>{const ts=d.themes.filter(t=>t.group===g&&t.n);if(!ts.length)return '';return `<div style="margin-top:10px"><span class="kick" style="font-size:10px">${lab}</span>${ts.map(row).join('')}</div>`}).join('');
  return `<div class="card p5" style="margin-bottom:16px">
   <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="kick accent">What people are saying · last ${days} days</span><span class="mono dim" style="font-size:10px">${esc(d.version)}</span></div>
-  <div class="dim" style="font-size:11px;margin-top:6px;line-height:1.5">Counted in code from tested word patterns (English, Arabic, Arabizi); a comment can carry several themes. ${fmt(d.total)} customer comments; ${fmt(d.unthemed)} (${d.unthemedShare!=null?Math.round(d.unthemedShare*100):0} %) match no theme; ${fmt(d.brandRepliesExcluded||0)} brand replies left out. Comments on giveaway posts count as entries, not praise. Low confidence = under 80 % precision in the labelled audit.</div>
+  <div class="dim" style="font-size:11px;margin-top:6px;line-height:1.5">Counted in code from tested word patterns (English, Arabic, Arabizi); a comment can carry several themes. ${fmt(d.total)} customer comments; ${fmt(d.unthemed)} (${d.unthemedShare!=null?Math.round(d.unthemedShare*100):0} %) match no theme; ${fmt(d.brandRepliesExcluded||0)} brand replies left out${d.spamRemoved?`; ${fmt(d.spamRemoved)} spam comments removed (other-market campaigns, bait, copy-paste walls)`:''}. Comments on giveaway posts count as entries, not praise. Low confidence = under 80 % precision in the labelled audit.</div>
   ${groups}
  </div>`;
 }

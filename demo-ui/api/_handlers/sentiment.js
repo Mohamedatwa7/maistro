@@ -131,7 +131,7 @@ module.exports = async (req, res) => {
       if (FOREIGN.test(String(r.post_id))) continue;
       if (!latest.has(r.post_id)) latest.set(r.post_id, r);
     }
-    const posts = [...latest.values()]
+    const posts0 = [...latest.values()]
       .map((r) => ({
         postId: r.post_id,
         platform: r.platform,
@@ -145,7 +145,17 @@ module.exports = async (req, res) => {
         updatedAt: r.at,
       }))
       .sort((a, b) => new Date(b.postedAt || b.updatedAt) - new Date(a.postedAt || a.updatedAt));
-    res.status(200).json({ count: posts.length, posts });
+    // spam never reaches the page (api/_perf/spam.js); a snapshot that lost spam gets its sentiment mix recounted
+    const { filterSpam } = require('../_perf/spam.js');
+    const sp = filterSpam(posts0);
+    const posts = sp.posts.map((p) => {
+      if (!p.spamRemoved) return p;
+      const n = { pos: 0, neu: 0, neg: 0 };
+      for (const c of p.comments) if (n[c.sentiment] != null) n[c.sentiment]++;
+      const tot = n.pos + n.neu + n.neg;
+      return { ...p, sentiment: tot ? { pos: n.pos / tot, neu: n.neu / tot, neg: n.neg / tot } : {} };
+    });
+    res.status(200).json({ count: posts.length, spam: { removed: sp.removed, byReason: sp.byReason }, posts });
   } catch (err) {
     res.status(502).json({ error: String((err && err.message) || err) });
   }
