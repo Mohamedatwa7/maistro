@@ -80,3 +80,23 @@ The calendar becomes real in manual mode (approved pieces, chosen slots, posted 
   epoch milliseconds; whether a signed Supabase URL is fetched by Sprinklr at draft time or at publish time (7-day
   expiry); the shape of `POST /publishing/draft` and the preview-generate response (spec: a string).
 - `SPRINKLR_API_SECRET` is no longer read; v3 calls use the access token.
+
+## Amendment 2026-10-26 (later): the Calendar shows the accounts' real Sprinklr calendar
+- With credentials set, the Calendar loads `GET /api/studio?sprinklr=feed`: what the Samsung Gulf accounts posted
+  and have lined up in Sprinklr. It reads only; Maistro still never schedules or posts.
+  - The accounts are Facebook 6625, Instagram 53027, TikTok 1776286, X 7952 and YouTube 7953;
+    `SPRINKLR_FEED_ACCOUNTS` overrides them.
+  - **The call:** `POST /reports/query` on the `OUTBOUND_MESSAGE` engine (the time field is the schedule date),
+    filtered to those accounts and `MESSAGE_TYPE` 2 ("Update" = a feed post). DMs, comments and replies are other
+    types.
+  - **Two queries:** the future window and the past window are queried separately, so two weeks of posts can't
+    page the scheduled ones out.
+  - **Detail:** text, permalink and media come from `GET /publishing/post` (and `GET /publishing/draft` for drafts
+    and posts in approval), 50 ids per call. The result is cached per instance for 10 minutes; an uncached load
+    takes about 6–14 s.
+  - **Found the hard way:** grouping by `PUBLISHED_TIME` silently drops every scheduled post (they have no value
+    for it), so the time shown is the schedule date. For a sent post it is within seconds of the publish time.
+- The client allowlist gains `POST /reports/query`, a read. `WRITES` lists the only call that changes anything
+  in Sprinklr: `POST /publishing/draft`.
+- The API user (a client admin) cannot create campaigns (403 on `POST /campaign`) or search accounts. Drafts mode
+  still needs a campaign and the account group ids.

@@ -155,4 +155,11 @@ async function markPosted({ pieceId, platform, piecePostId }) {
   } catch (e) { if (storageMissing(e)) return null; throw e; }
 }
 
-module.exports = { calendar, plan, setStatus, draftCheck, sprinklrCheck, markPosted, ManualExportAdapter, SprinklrAdapter, adapter, storageMissing };
+/** what the owned accounts posted and have lined up in Sprinklr (read-only, sprinklr/feed.js) */
+async function sprinklrFeed({ from, to }) {
+  if (!SprinklrAdapter.connected) return { status: 200, body: { configured: false, items: [] } };
+  try { return { status: 200, body: { configured: true, ...(await require('./sprinklr/feed.js').feed({ from: Date.parse(from), to: Date.parse(to) })) } }; }
+  catch (e) { return { status: 200, body: { configured: true, items: [], error: e.message, code: e.code || 'sprinklr_error' } }; }
+}
+
+module.exports = { calendar, plan, setStatus, draftCheck, sprinklrCheck, sprinklrFeed, markPosted, ManualExportAdapter, SprinklrAdapter, adapter, storageMissing };

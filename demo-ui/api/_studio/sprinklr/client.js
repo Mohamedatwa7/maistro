@@ -1,10 +1,13 @@
 // Sprinklr API v3 client (ADR-008), built from the vendored spec docs/vendor/sprinklr-v3-publishing.json — no
 // guessed endpoints. Drafts only: the client can verify credentials, create and read drafts, render a preview and
-// read posts. Scheduling and publishing (POST /publishing/draft/schedule, POST /publishing/post, /publishing/message,
+// read posts, and run read-only reporting queries (the Calendar's feed of what the accounts posted and have
+// scheduled). Scheduling and publishing (POST /publishing/draft/schedule, POST /publishing/post, /publishing/message,
 // /publishing/reply) are not on the allowlist, so nothing Maistro does can put a post live on an account; a person
 // schedules the draft inside Sprinklr.
 const ENVS = ['prod', 'prod0', 'prod2', 'prod3', 'prod4', 'prod5', 'prod6', 'prod8', 'prod11', 'prod12', 'prod15', 'prod16', 'prod17', 'prod18', 'prod19', 'prod21', 'prod25'];
-const ALLOWED = new Set(['GET /me', 'POST /publishing/draft', 'GET /publishing/draft', 'GET /publishing/preview/generate', 'GET /publishing/preview/status', 'GET /publishing/post']);
+const ALLOWED = new Set(['GET /me', 'POST /publishing/draft', 'GET /publishing/draft', 'GET /publishing/preview/generate', 'GET /publishing/preview/status', 'GET /publishing/post', 'POST /reports/query']);
+/** the only allowed call that changes anything in Sprinklr; POST /reports/query is a read */
+const WRITES = new Set(['POST /publishing/draft']);
 const TIMEOUT_MS = 20000;
 
 const fail = (status, code, message, extra) => Object.assign(new Error(message), { status, code, ...extra });
@@ -51,5 +54,8 @@ async function getDraft(id) { const d = unwrap(await call('GET', '/publishing/dr
 async function previewGenerate(messageId) { const d = unwrap(await call('GET', '/publishing/preview/generate', { query: { messageId, exportType: 'PNG', name: `maistro-${messageId}` } })); return typeof d === 'string' ? d : d && d.id != null ? String(d.id) : null; }
 async function previewStatus(id) { const d = unwrap(await call('GET', '/publishing/preview/status', { query: { id } })); return { id: d && d.id ? String(d.id) : id, status: (d && d.status) || null, url: (d && d.url) || null }; }
 async function getPosts(ids) { const d = unwrap(await call('GET', '/publishing/post', { query: { id: [].concat(ids).slice(0, 50).join(',') } })); return [].concat(d || []); }
+async function getDrafts(ids) { const d = unwrap(await call('GET', '/publishing/draft', { query: { id: [].concat(ids).slice(0, 50).join(',') } })); return [].concat(d || []); }
+/** a reporting query (spec ReportRequest) → { rows, hasMore } */
+async function report(body) { const d = unwrap(await call('POST', '/reports/query', { body: { jsonResponse: true, ...body } })); return { rows: (d && d.data) || [], hasMore: Boolean(d && d.hasMore) }; }
 
-module.exports = { ENVS, ALLOWED, config, call, me, createDraft, getDraft, previewGenerate, previewStatus, getPosts };
+module.exports = { ENVS, ALLOWED, WRITES, config, call, me, createDraft, getDraft, previewGenerate, previewStatus, getPosts, getDrafts, report };

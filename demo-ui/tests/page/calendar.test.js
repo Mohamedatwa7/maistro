@@ -28,3 +28,25 @@ test('drafts mode: a draft that failed shows the reason in red; manual mode keep
   assert.match(html, /after posting, link the post on the final/);
   assert.ok(!/calDraftCheck|calPreview|SPRINKLR DRAFT/.test(html));
 });
+
+test('Sprinklr feed: coming up and posted side by side, with status, Gulf time, platform and a link; nothing when not configured', async () => {
+  const feed = { configured: true, from: '2026-10-07T10:00:00.000Z', to: '2026-12-05T10:00:00.000Z', fetchedAt: '2026-10-21T09:58:00.000Z', items: [
+    { id: '501', platform: 'instagram', status: 'scheduled', at: '2026-10-28T07:30:00.000Z', text: 'Meet the new Galaxy Z Fold8', permalink: null, media: 'VIDEO' },
+    { id: '600', platform: 'tiktok', status: 'draft', at: '2026-10-30T10:00:00.000Z', text: 'draft copy', permalink: null, media: null },
+    { id: '401', platform: 'tiktok', status: 'posted', at: '2026-10-20T09:00:03.000Z', text: '#QuickShare + AirDrop', permalink: 'https://www.tiktok.com/@samsunggulf/video/1', media: 'VIDEO' }] };
+  const X = loadPage({ fetchImpl: async (u) => (String(u).includes('calendar=1') ? json(cal()) : String(u).includes('sprinklr=feed') ? json(feed) : new Promise(() => {})), hash: '#/calendar' });
+  try {
+    X.rCalendar(); await new Promise((r) => setTimeout(r, 30));
+    X.rCalendar(); await new Promise((r) => setTimeout(r, 30)); // the second render starts the feed load
+    const html = X.rCalendar();
+    assert.match(html, /Samsung Gulf on Sprinklr/);
+    assert.match(html, /1 SCHEDULED · 1 POSTED SINCE/);
+    const [up, posted] = html.split('>Posted<');
+    assert.ok(up.indexOf('Meet the new Galaxy Z Fold8') < up.indexOf('draft copy'), 'coming up runs soonest first');
+    assert.match(up, /SCHEDULED/); assert.match(up, /DRAFT/);
+    assert.match(posted, /POSTED/); assert.match(posted, /href="https:\/\/www\.tiktok\.com\/@samsunggulf\/video\/1"/);
+    assert.ok(!/Post now|Publish via Sprinklr/.test(html));
+  } finally { X.restore(); }
+  const html = await render(cal({ sprinklr: { configured: false, drafts: false, livePublishing: false } }));
+  assert.ok(!/Samsung Gulf on Sprinklr/.test(html));
+});

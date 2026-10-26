@@ -4397,7 +4397,44 @@ function rCalendar(){
    <div class="card p5"><span class="kick accent">Approved finals waiting for a slot</span>${wait}</div>
    <div class="card p5"><span class="kick accent">Planned posts</span>${planned}</div>
   </div>
+  ${rSprinklrFeed()}
  </section>`;
+}
+/* What the Samsung Gulf accounts posted and have lined up in Sprinklr (read-only, ?sprinklr=feed): loaded after
+   the Calendar so its few seconds never hold the page; cached 10 minutes on the server. */
+const FEEDV={data:null,busy:false,showAll:false};
+const FEED_PLAT={tiktok:'TikTok',instagram:'Instagram',facebook:'Facebook',x:'X',youtube:'YouTube'};
+const FEED_TONE={posted:'go',scheduled:'gold',in_approval:'muted',draft:'muted',failed:'alert'};
+async function loadSprinklrFeed(){
+ if(FEEDV.busy)return;FEEDV.busy=true;
+ try{const r=await authFetch('/api/studio?sprinklr=feed');const d=await r.json().catch(()=>({}));FEEDV.data=r.ok?d:{configured:true,items:[],error:d.error||('feed unavailable ('+r.status+')')}}
+ catch(e){FEEDV.data={configured:true,items:[],error:'feed unavailable'}}
+ finally{FEEDV.busy=false;if(location.hash.replace(/^#\//,'').split('/')[0]==='calendar'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rCalendar();reveal()}}
+}
+function feedRow(i){
+ return `<div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;padding:6px 0;border-top:1px dashed var(--hairline);font-size:12px">
+  ${badge(FEED_TONE[i.status]||'muted',esc(i.status.replace('_',' ').toUpperCase()))}<span class="mono dim">${i.at?esc(fmtStamp(Date.parse(i.at))):''}</span><b>${esc(FEED_PLAT[i.platform]||i.platform)}</b>${i.media?`<span class="dim" style="font-size:10.5px">${esc(i.media.toLowerCase().replace('_',' '))}</span>`:''}
+  ${i.permalink?`<a href="${esc(i.permalink)}" target="_blank" rel="noopener" style="font-size:11px">open</a>`:''}
+  ${i.text?`<span class="dim" style="flex-basis:100%;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" dir="auto">${esc(i.text)}</span>`:''}
+ </div>`;
+}
+function rSprinklrFeed(){
+ const d=CALV.data;if(!d||!d.sprinklr||!d.sprinklr.configured)return '';
+ if(!FEEDV.data){loadSprinklrFeed();return `<div class="card p5" style="margin-top:12px"><span class="kick accent">Samsung Gulf on Sprinklr</span><div class="dim" style="font-size:12px;margin-top:6px">Loading what the accounts posted and have scheduled…</div></div>`}
+ const f=FEEDV.data;
+ if(f.error&&!f.items.length)return `<div class="card p5" style="margin-top:12px"><span class="kick accent">Samsung Gulf on Sprinklr</span><div style="font-size:12px;margin-top:6px;color:var(--alert)">${esc(f.error)}</div></div>`;
+ const up=f.items.filter(i=>i.status!=='posted').sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+ const done=f.items.filter(i=>i.status==='posted');
+ const shown=FEEDV.showAll?done:done.slice(0,40);
+ const count=k=>f.items.filter(i=>i.status===k).length;
+ return `<div class="card p5" style="margin-top:12px">
+  <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="kick accent">Samsung Gulf on Sprinklr</span><span class="mono dim" style="font-size:10.5px">${count('scheduled')} SCHEDULED · ${count('posted')} POSTED SINCE ${esc(fmtStamp(Date.parse(f.from)).split(',')[0])}${f.fetchedAt?' · AS OF '+esc(fmtStamp(Date.parse(f.fetchedAt))):''}</span></div>
+  <div class="dim" style="font-size:11px;margin-top:4px">Read from Sprinklr: posts on the Samsung Gulf accounts (not replies or messages). Scheduling stays in Sprinklr.</div>
+  <div class="grid2e" style="margin-top:8px">
+   <div><span class="kick" style="font-size:10px">Coming up · scheduled, in approval, drafts</span>${up.map(feedRow).join('')||'<div class="dim" style="font-size:12px;margin-top:6px">Nothing scheduled.</div>'}</div>
+   <div><span class="kick" style="font-size:10px">Posted</span>${shown.map(feedRow).join('')||'<div class="dim" style="font-size:12px;margin-top:6px">No posts in this window.</div>'}
+    ${done.length>shown.length?`<button class="btn btn-ghost btn-sm" style="font-size:10px;margin-top:6px" onclick="FEEDV.showAll=true;$('#view').innerHTML=rCalendar();reveal()">Show all ${done.length}</button>`:''}</div>
+  </div></div>`;
 }
 /* ================= 04 PERFORMANCE ================= */
 /* How old is what the page shows? Newest post or comment across the loaded

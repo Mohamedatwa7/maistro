@@ -101,7 +101,8 @@ test('no live posts: scheduling, publishing and messaging are refused before any
       await assert.rejects(C.call(m, p, { body: {} }), (e) => e.status === 403 && e.code === 'sprinklr_call_blocked');
     }
     assert.equal(sp.s.calls.length, 0, 'nothing reached Sprinklr');
-    assert.ok([...C.ALLOWED].every((k) => k.startsWith('GET ') || k === 'POST /publishing/draft'), 'the only write is creating a draft');
+    assert.ok([...C.ALLOWED].every((k) => k.startsWith('GET ') || k === 'POST /publishing/draft' || k === 'POST /reports/query'), 'the only write is creating a draft; the reporting query is a read');
+    assert.deepEqual([...C.WRITES], ['POST /publishing/draft']);
   } finally { f.restore(); studio.restore(); }
 });
 

@@ -132,6 +132,11 @@ module.exports = async (req, res) => {
         const out = await require('../_studio/publishing.js').calendar({ from: q.from ? String(q.from) : null, to: q.to ? String(q.to) : null });
         return res.status(out.status).json(out.body);
       }
+      if (q.sprinklr === 'feed') {
+        // the Calendar's read-only view of the owned accounts in Sprinklr: posted, scheduled, in approval, drafts
+        const out = await require('../_studio/publishing.js').sprinklrFeed({ from: q.from ? String(q.from) : null, to: q.to ? String(q.to) : null });
+        return res.status(out.status).json(out.body);
+      }
       if (q.sprinklr === 'check') {
         // ADR-008: read-only credential check (GET /me), admin only
         if (!memberOnly(req, res, ['admin'])) return;
