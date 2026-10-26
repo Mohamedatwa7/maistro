@@ -4319,8 +4319,10 @@ $('#modal-back').addEventListener('click',e=>{if(e.target.id==='modal-back')clos
 /* 8b (ADR-008): the Calendar is real in manual/export mode. Approved finals wait for a slot (sorted by their
    trend's post-by date); a line manager or admin plans the platform, owned account, Gulf time and caption,
    exports the delivery package, posts by hand, and links the published post on the final, which marks the slot
-   posted. Sprinklr is "not connected" until access exists — nothing here claims an integration. */
-const CALV={data:null,busy:false,msg:{}};
+   posted. Sprinklr is "not connected" until access exists — nothing here claims an integration. In Sprinklr drafts
+   mode the export also creates the Sprinklr draft; its status and a preview read back here, and a person schedules
+   it inside Sprinklr — Maistro never posts. */
+const CALV={data:null,busy:false,msg:{},preview:{}};
 async function loadCalendar(){
  if(CALV.busy)return;CALV.busy=true;
  try{const r=await authFetch('/api/studio?calendar=1');const d=await r.json().catch(()=>({}));CALV.data=r.ok&&d.slots?d:{error:d.error||('calendar unavailable ('+r.status+')'),code:d.code}}
@@ -4344,7 +4346,22 @@ function calPlan(pid){
  const [platform,account]=(g('acc').value||':').split(':');
  calAction(pid,{action:'slot-plan',platform,account,slotAt:gulfToIso(g('when').value),caption:g('cap').value});
 }
-function calExport(pid,id){calAction(pid,{action:'slot-export',id},d=>{toast(`<span style="font-size:12.5px"><b>Exported.</b> ${esc(d.instruction||'')}</span>`);if(typeof finalPackage==='function')finalPackage(pid)})}
+function calExport(pid,id){calAction(pid,{action:'slot-export',id},d=>{
+ const sp=d.sprinklr;
+ toast(`<span style="font-size:12.5px"><b>Exported.</b> ${sp?(sp.draftId?`Sprinklr draft ${esc(sp.draftId)} ${sp.reused?'already exists':'created'} — schedule it in Sprinklr, then link the post on the final.`:`The Sprinklr draft was not created: ${esc(sp.error||'unknown error')}`):esc(d.instruction||'')}</span>`);
+ if(!sp&&typeof finalPackage==='function')finalPackage(pid)})}
+/* the draft's status from Sprinklr; preview asks Sprinklr to render one and polls until it has a URL */
+function calDraftCheck(pid,id){calAction(pid,{action:'slot-draft-check',id})}
+async function calPreview(pid,id){
+ CALV.preview[id]={status:'requested'};$('#view').innerHTML=rCalendar();reveal();
+ const ask=async b=>{const r=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pieceId:pid,action:'slot-draft-check',id,preview:true,...b})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('preview failed ('+r.status+')'));return d.preview};
+ try{
+  let pv=await ask({});
+  for(let i=0;i<10&&pv&&pv.id&&!pv.url&&!/FAIL|ERROR/i.test(pv.status||'');i++){await new Promise(r=>setTimeout(r,3000));pv=await ask({previewId:pv.id})}
+  CALV.preview[id]=pv&&pv.url?pv:{error:pv&&/FAIL|ERROR/i.test(pv.status||'')?'Sprinklr could not render the preview':'the preview is not ready yet — try again shortly'};
+ }catch(e){CALV.preview[id]={error:e.message}}
+ $('#view').innerHTML=rCalendar();reveal();
+}
 function calCancel(pid,id){calAction(pid,{action:'slot-cancel',id,reason:'canceled from the calendar'})}
 function rCalendar(){
  if(!CALV.data){loadCalendar()}
@@ -4369,7 +4386,9 @@ function rCalendar(){
  const planned=Object.entries(byDay).map(([day,ss])=>`<div style="margin-top:10px"><span class="kick" style="font-size:10px">${esc(day)}</span>${ss.map(s=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px dashed var(--hairline);font-size:12px">
    ${badge(tone[s.status]||'muted',esc(s.status.toUpperCase()))}<span class="mono dim">${esc(fmtStamp(Date.parse(s.slotAt)))}</span><b>${esc(s.title||s.pieceId||'')}</b><span class="dim">${esc(s.platform)} · @${esc(s.account)}</span>
    ${s.caption?`<span class="dim" style="flex-basis:100%;font-size:11px" dir="auto">${esc(s.caption)}</span>`:''}
-   ${s.status==='planned'||s.status==='exported'?`<button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="calExport('${esc(s.pieceId)}',${Number(s.id)})">${s.status==='exported'?'Export again':'Export package'}</button><button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="calCancel('${esc(s.pieceId)}',${Number(s.id)})">Cancel</button><span class="dim" style="font-size:10.5px">after posting, link the post on the final ("Published as")</span>`:''}
+   ${s.status==='planned'||s.status==='exported'?`<button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="calExport('${esc(s.pieceId)}',${Number(s.id)})">${s.status==='exported'?'Export again':'Export package'}</button><button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="calCancel('${esc(s.pieceId)}',${Number(s.id)})">Cancel</button><span class="dim" style="font-size:10.5px">${d.mode==='sprinklr'?'export creates the Sprinklr draft; schedule it in Sprinklr, then link the post on the final ("Published as")':'after posting, link the post on the final ("Published as")'}</span>`:''}
+   ${s.sprinklrDraftId?`<span style="flex-basis:100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px"><span class="mono">SPRINKLR DRAFT ${esc(s.sprinklrDraftId)}${s.sprinklrStatus?' · '+esc(s.sprinklrStatus):''}</span>${s.sprinklrCheckedAt?`<span class="dim">checked ${esc(fmtStamp(Date.parse(s.sprinklrCheckedAt)))}</span>`:''}${d.sprinklr&&d.sprinklr.configured?`<button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="calDraftCheck('${esc(s.pieceId)}',${Number(s.id)})">Check draft</button><button class="btn btn-ghost btn-sm" style="font-size:10px" onclick="calPreview('${esc(s.pieceId)}',${Number(s.id)})">Preview</button>`:''}${(p=>p?p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener">open preview</a>`:p.error?`<span style="color:var(--alert)">${esc(p.error)}</span>`:'<span class="dim">rendering preview…</span>':'')(CALV.preview[s.id])}</span>`:''}
+   ${s.sprinklrError&&!s.sprinklrDraftId?`<span style="flex-basis:100%;font-size:11px;color:var(--alert)">Sprinklr draft not created: ${esc(s.sprinklrError)}</span>`:''}
    ${s.status==='canceled'&&s.cancelReason?`<span class="dim" style="font-size:10.5px">${esc(s.cancelReason)}</span>`:''}
   </div>`).join('')}</div>`).join('')||'<div class="dim" style="font-size:12px;margin-top:6px">Nothing planned yet.</div>';
  return `<section>${head}

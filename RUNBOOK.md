@@ -33,7 +33,7 @@ goes through `bash demo-ui/scripts/release.sh <msg-file> <paths…>`, and every 
 
 **Rollback and the schema.** A rollback changes code only: migrations stay applied, so an older deployment runs
 on the newer schema.
-- **All 22 migrations to date are additive**: new tables, new columns, and check constraints *widened* by drop
+- **All 23 migrations to date are additive**: new tables, new columns, and check constraints *widened* by drop
   and re-add (013, 014, 017, 021); the other drops re-create triggers and policies idempotently. Older code keeps
   working on them; it simply ignores what it does not know.
 - **Before releasing a non-additive change** (a dropped or renamed column, a narrowed constraint, rewritten data),
@@ -49,10 +49,25 @@ code on that table:
 | 020 perf_payloads | 465b390 | the stored 60-day copy is ignored (live reads) |
 | 021 bench kind | 6ae67f8 | the stored benchmarks are ignored |
 | 022 login_attempts, ops_alerts | 61d381e | no throttle, no alerts; the rows stay |
+| 023 publishing_slots Sprinklr columns | c0ca368 | draft ids and statuses stay; old code does not read them |
 
 To check a candidate: read the revision from `<deployment-url>/api/health`, then run
 `git merge-base --is-ancestor <revision> <introducing-commit>`. A zero exit status means the deployment predates
 that migration.
+
+### Turning on Sprinklr drafts (ADR-008)
+Maistro creates Sprinklr **drafts only**; a person schedules them in Sprinklr. Nothing in Maistro can schedule or post.
+1. Apply migration 023 (`node db/migrate.mjs` with the production URL).
+2. In Vercel (Production), set `SPRINKLR_API_KEY`, `SPRINKLR_ACCESS_TOKEN` and `SPRINKLR_ENV` (e.g. `prod2`; it is in
+   the Sprinklr app URL and in the developer portal). Redeploy (`release.sh` or `vercel deploy --prod`).
+3. As an admin, open `/api/studio?sprinklr=check`: `ok: true` with the API user means the credentials work.
+4. Set `SPRINKLR_CAMPAIGN_ID` (the campaign the drafts are filed under) and `SPRINKLR_ACCOUNT_GROUPS`
+   (`tiktok:samsunggulf=<account group id>,instagram:samsunggulf=<id>,…`, one per owned account in
+   `MAISTRO_OWNED_ACCOUNTS`), then `SPRINKLR_DRAFTS=1`, and redeploy. The Calendar pill reads "Sprinklr: drafts only".
+5. Plan one post and export it. The slot shows `SPRINKLR DRAFT <id>`; **Check draft** reads its status and
+   **Preview** renders it. If the draft was not created, the slot says why in red (unmapped account, campaign, a
+   Sprinklr error).
+6. To switch back to manual mode, remove `SPRINKLR_DRAFTS` and redeploy.
 
 ### Trend feed empty or stale
 - Check `/api/trends` (it shows the board date) and whether the newest `trend_scores` row is under 2 h old.
