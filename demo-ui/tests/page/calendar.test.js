@@ -29,24 +29,34 @@ test('drafts mode: a draft that failed shows the reason in red; manual mode keep
   assert.ok(!/calDraftCheck|calPreview|SPRINKLR DRAFT/.test(html));
 });
 
-test('Sprinklr feed: coming up and posted side by side, with status, Gulf time, platform and a link; nothing when not configured', async () => {
-  const feed = { configured: true, from: '2026-10-07T10:00:00.000Z', to: '2026-12-05T10:00:00.000Z', fetchedAt: '2026-10-21T09:58:00.000Z', items: [
+test('month view: a grid for the month with Sprinklr posts and Maistro slots by Gulf day; platform chips filter; any month can be opened', async () => {
+  const feed = { configured: true, from: '2026-09-30T20:00:00.000Z', to: '2026-10-31T20:00:00.000Z', fetchedAt: '2026-10-21T09:58:00.000Z', items: [
     { id: '501', platform: 'instagram', status: 'scheduled', at: '2026-10-28T07:30:00.000Z', text: 'Meet the new Galaxy Z Fold8', permalink: null, media: 'VIDEO' },
     { id: '600', platform: 'tiktok', status: 'draft', at: '2026-10-30T10:00:00.000Z', text: 'draft copy', permalink: null, media: null },
-    { id: '401', platform: 'tiktok', status: 'posted', at: '2026-10-20T09:00:03.000Z', text: '#QuickShare + AirDrop', permalink: 'https://www.tiktok.com/@samsunggulf/video/1', media: 'VIDEO' }] };
-  const X = loadPage({ fetchImpl: async (u) => (String(u).includes('calendar=1') ? json(cal()) : String(u).includes('sprinklr=feed') ? json(feed) : new Promise(() => {})), hash: '#/calendar' });
+    { id: '401', platform: 'tiktok', status: 'posted', at: '2026-10-20T21:00:03.000Z', text: '#QuickShare + AirDrop', permalink: 'https://www.tiktok.com/@samsunggulf/video/1', media: 'VIDEO' }] };
+  const asked = [];
+  const X = loadPage({ fetchImpl: async (u) => { asked.push(String(u)); return String(u).includes('calendar=1') ? json(cal({ slots: [slot({ id: 9, slotAt: '2026-10-25T12:00:00.000Z', platform: 'tiktok', title: 'Deadpan' })] })) : String(u).includes('sprinklr=feed') ? json(feed) : new Promise(() => {}); }, hash: '#/calendar' });
   try {
     X.rCalendar(); await new Promise((r) => setTimeout(r, 30));
-    X.rCalendar(); await new Promise((r) => setTimeout(r, 30)); // the second render starts the feed load
-    const html = X.rCalendar();
-    assert.match(html, /Samsung Gulf on Sprinklr/);
-    assert.match(html, /1 SCHEDULED · 1 POSTED SINCE/);
-    const [up, posted] = html.split('>Posted<');
-    assert.ok(up.indexOf('Meet the new Galaxy Z Fold8') < up.indexOf('draft copy'), 'coming up runs soonest first');
-    assert.match(up, /SCHEDULED/); assert.match(up, /DRAFT/);
-    assert.match(posted, /POSTED/); assert.match(posted, /href="https:\/\/www\.tiktok\.com\/@samsunggulf\/video\/1"/);
+    X.rCalendar(); await new Promise((r) => setTimeout(r, 30)); // the second render starts the month's feed load
+    let html = X.rCalendar();
+    assert.match(html, /<h3[^>]*>October 2026<\/h3>/);
+    assert.ok(asked.some((u) => /sprinklr=feed&from=2026-09-30T20%3A00%3A00\.000Z&to=2026-10-31T20%3A00%3A00\.000Z/.test(u)), 'the feed is asked for the Gulf month');
+    assert.match(html, /<div class="days">/); assert.match(html, /TODAY/);
+    assert.match(html, /ev-seasonal[^"]*" onclick="calSelect\('f:501'\)"[^>]*><span class="tm">11:30<\/span><span class="ti">IG · Meet the new Galaxy Z Fold8/, 'scheduled, at Gulf time');
+    assert.match(html, /ev-live[^"]*" onclick="calSelect\('f:401'\)"[^>]*><span class="tm">01:00<\/span>/, 'posted 21:00 UTC is 01:00 GST the next day');
+    assert.match(html, /ev-priority[^"]*" onclick="calSelect\('s:9'\)"/, 'a Maistro planned post');
+    assert.match(html, /All platforms · 4/); assert.match(html, /TikTok · 3/); assert.match(html, /Instagram · 1/); assert.match(html, /Facebook · 0/); assert.match(html, /YouTube · 0/); assert.match(html, />X · 0/);
+    const day21 = html.split('calDay(\'2026-10-21\')')[1].split('class="day')[0];
+    assert.match(day21, /calSelect\('f:401'\)/, 'grouped by the Gulf day');
+    X.calPlat('instagram'); html = X.rCalendar();
+    assert.ok(html.includes("calSelect('f:501')") && !html.includes("calSelect('f:401')") && !html.includes("calSelect('s:9')"), 'the chip filters Sprinklr and Maistro posts alike');
     assert.ok(!/Post now|Publish via Sprinklr/.test(html));
+    X.calPick('2026-11'); html = X.rCalendar();
+    assert.match(html, /<h3[^>]*>November 2026<\/h3>/);
+    X.calGo(-2); html = X.rCalendar();
+    assert.match(html, /<h3[^>]*>September 2026<\/h3>/);
   } finally { X.restore(); }
   const html = await render(cal({ sprinklr: { configured: false, drafts: false, livePublishing: false } }));
-  assert.ok(!/Samsung Gulf on Sprinklr/.test(html));
+  assert.match(html, /SPRINKLR NOT CONNECTED — MAISTRO POSTS ONLY/);
 });

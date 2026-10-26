@@ -686,6 +686,12 @@ select.inp option{background:var(--panel-solid);color:var(--text)}
 .ev-seasonal{background:rgba(96,165,250,.12);border-left-color:var(--signal)}
 .ev-always-on{background:rgba(255,255,255,.05);border-left-color:var(--muted)}
 .ev-live{background:rgba(52,211,153,.1);border-left-color:var(--go)}
+.ev-failed{background:rgba(251,113,133,.12);border-left-color:var(--alert)}
+.cal .day.daysel{box-shadow:inset 0 0 0 1px var(--ai2)}
+.cal .dnb{all:unset;cursor:pointer;font:inherit;color:inherit}
+.cal .dnb:hover{color:#fff}
+.cal .evmore{all:unset;cursor:pointer;font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:2px}
+.cal .evmore:hover{color:#fff}
 .cal .ev.sel{outline:1.5px solid var(--ai2)}
 .legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--muted)}
 .legend i{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
@@ -4393,48 +4399,116 @@ function rCalendar(){
   </div>`).join('')}</div>`).join('')||'<div class="dim" style="font-size:12px;margin-top:6px">Nothing planned yet.</div>';
  return `<section>${head}
   <div class="pc-note" style="margin-bottom:12px">${esc(d.label)}. Times are Gulf time (GST).</div>
-  <div class="grid2e">
+  ${rMonth(d)}
+  <div class="grid2e" style="margin-top:14px">
    <div class="card p5"><span class="kick accent">Approved finals waiting for a slot</span>${wait}</div>
    <div class="card p5"><span class="kick accent">Planned posts</span>${planned}</div>
   </div>
-  ${rSprinklrFeed()}
  </section>`;
 }
-/* What the Samsung Gulf accounts posted and have lined up in Sprinklr (read-only, ?sprinklr=feed): loaded after
-   the Calendar so its few seconds never hold the page; cached 10 minutes on the server. */
-const FEEDV={data:null,busy:false,showAll:false};
-const FEED_PLAT={tiktok:'TikTok',instagram:'Instagram',facebook:'Facebook',x:'X',youtube:'YouTube'};
+/* Month view: what the Samsung Gulf accounts posted and have lined up in Sprinklr (read-only, ?sprinklr=feed for the
+   month shown, loaded after the page so its few seconds never hold it; cached 10 minutes on the server) together
+   with Maistro's own planned posts. Any month can be opened; the platform chips filter both. */
+const FEEDV={months:{},busy:{}};
+const CALM={month:null,plat:'all',sel:null,day:null};
+const FEED_PLAT={instagram:'Instagram',tiktok:'TikTok',facebook:'Facebook',x:'X',youtube:'YouTube'};
+const FEED_SHORT={instagram:'IG',tiktok:'TT',facebook:'FB',x:'X',youtube:'YT'};
 const FEED_TONE={posted:'go',scheduled:'gold',in_approval:'muted',draft:'muted',failed:'alert'};
-async function loadSprinklrFeed(){
- if(FEEDV.busy)return;FEEDV.busy=true;
- try{const r=await authFetch('/api/studio?sprinklr=feed');const d=await r.json().catch(()=>({}));FEEDV.data=r.ok?d:{configured:true,items:[],error:d.error||('feed unavailable ('+r.status+')')}}
- catch(e){FEEDV.data={configured:true,items:[],error:'feed unavailable'}}
- finally{FEEDV.busy=false;if(location.hash.replace(/^#\//,'').split('/')[0]==='calendar'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rCalendar();reveal()}}
+const FEED_EV={posted:'ev-live',scheduled:'ev-seasonal',in_approval:'ev-always-on',draft:'ev-always-on',failed:'ev-failed'};
+const GST=4*36e5;
+const gstDay=ms=>new Date(ms+GST).toISOString().slice(0,10);
+const gstTime=ms=>new Date(ms+GST).toISOString().slice(11,16);
+const calMonth=()=>CALM.month||(CALM.month=gstDay(Date.now()).slice(0,7));
+function monthBounds(m){const [y,mo]=m.split('-').map(Number);return {y,mo,from:Date.UTC(y,mo-1,1)-GST,to:Date.UTC(y,mo,1)-GST}}
+const calRedraw=()=>{$('#view').innerHTML=rCalendar();reveal()};
+async function loadSprinklrFeed(m){
+ if(FEEDV.busy[m])return;FEEDV.busy[m]=true;
+ const b=monthBounds(m);
+ try{const r=await authFetch(`/api/studio?sprinklr=feed&from=${encodeURIComponent(new Date(b.from).toISOString())}&to=${encodeURIComponent(new Date(b.to).toISOString())}`);const d=await r.json().catch(()=>({}));FEEDV.months[m]=r.ok?d:{configured:true,items:[],error:d.error||('feed unavailable ('+r.status+')')}}
+ catch(e){FEEDV.months[m]={configured:true,items:[],error:'feed unavailable'}}
+ finally{FEEDV.busy[m]=false;if(location.hash.replace(/^#\//,'').split('/')[0]==='calendar'&&!document.body.classList.contains('locked'))calRedraw()}
 }
-function feedRow(i){
- return `<div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;padding:6px 0;border-top:1px dashed var(--hairline);font-size:12px">
-  ${badge(FEED_TONE[i.status]||'muted',esc(i.status.replace('_',' ').toUpperCase()))}<span class="mono dim">${i.at?esc(fmtStamp(Date.parse(i.at))):''}</span><b>${esc(FEED_PLAT[i.platform]||i.platform)}</b>${i.media?`<span class="dim" style="font-size:10.5px">${esc(i.media.toLowerCase().replace('_',' '))}</span>`:''}
-  ${i.permalink?`<a href="${esc(i.permalink)}" target="_blank" rel="noopener" style="font-size:11px">open</a>`:''}
-  ${i.text?`<span class="dim" style="flex-basis:100%;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" dir="auto">${esc(i.text)}</span>`:''}
- </div>`;
+function calGo(delta){const b=monthBounds(calMonth());CALM.month=new Date(Date.UTC(b.y,b.mo-1+delta,1)).toISOString().slice(0,7);CALM.sel=null;CALM.day=null;calRedraw()}
+function calPick(v){if(/^\d{4}-\d{2}$/.test(v||'')){CALM.month=v;CALM.sel=null;CALM.day=null;calRedraw()}}
+function calToday(){CALM.month=null;CALM.sel=null;CALM.day=gstDay(Date.now());calRedraw()}
+function calPlat(p){CALM.plat=p;CALM.sel=null;calRedraw()}
+function calSelect(k){CALM.sel=k;calRedraw()}
+function calDay(iso){CALM.day=iso;CALM.sel=null;calRedraw()}
+/* one list for the month: Sprinklr posts and Maistro's planned posts (canceled ones left out) */
+function calEvents(d,f){
+ const ev=[];
+ for(const i of (f&&f.items)||[])if(i.at)ev.push({key:'f:'+i.id,at:Date.parse(i.at),platform:i.platform,status:i.status,cls:FEED_EV[i.status]||'ev-always-on',label:i.text||'(no caption)',src:'sprinklr',item:i});
+ for(const s of d.slots||[])if(s.status!=='canceled')ev.push({key:'s:'+s.id,at:Date.parse(s.slotAt),platform:s.platform,status:'maistro_'+s.status,cls:'ev-priority',label:s.title||s.pieceId||'Maistro post',src:'maistro',slot:s});
+ return ev.sort((a,b)=>a.at-b.at);
 }
-function rSprinklrFeed(){
- const d=CALV.data;if(!d||!d.sprinklr||!d.sprinklr.configured)return '';
- if(!FEEDV.data){loadSprinklrFeed();return `<div class="card p5" style="margin-top:12px"><span class="kick accent">Samsung Gulf on Sprinklr</span><div class="dim" style="font-size:12px;margin-top:6px">Loading what the accounts posted and have scheduled…</div></div>`}
- const f=FEEDV.data;
- if(f.error&&!f.items.length)return `<div class="card p5" style="margin-top:12px"><span class="kick accent">Samsung Gulf on Sprinklr</span><div style="font-size:12px;margin-top:6px;color:var(--alert)">${esc(f.error)}</div></div>`;
- const up=f.items.filter(i=>i.status!=='posted').sort((a,b)=>String(a.at).localeCompare(String(b.at)));
- const done=f.items.filter(i=>i.status==='posted');
- const shown=FEEDV.showAll?done:done.slice(0,40);
- const count=k=>f.items.filter(i=>i.status===k).length;
- return `<div class="card p5" style="margin-top:12px">
-  <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="kick accent">Samsung Gulf on Sprinklr</span><span class="mono dim" style="font-size:10.5px">${count('scheduled')} SCHEDULED · ${count('posted')} POSTED SINCE ${esc(fmtStamp(Date.parse(f.from)).split(',')[0])}${f.fetchedAt?' · AS OF '+esc(fmtStamp(Date.parse(f.fetchedAt))):''}</span></div>
-  <div class="dim" style="font-size:11px;margin-top:4px">Read from Sprinklr: posts on the Samsung Gulf accounts (not replies or messages). Scheduling stays in Sprinklr.</div>
-  <div class="grid2e" style="margin-top:8px">
-   <div style="min-width:0"><span class="kick" style="font-size:10px">Coming up · scheduled, in approval, drafts</span>${up.map(feedRow).join('')||'<div class="dim" style="font-size:12px;margin-top:6px">Nothing scheduled.</div>'}</div>
-   <div style="min-width:0"><span class="kick" style="font-size:10px">Posted</span>${shown.map(feedRow).join('')||'<div class="dim" style="font-size:12px;margin-top:6px">No posts in this window.</div>'}
-    ${done.length>shown.length?`<button class="btn btn-ghost btn-sm" style="font-size:10px;margin-top:6px" onclick="FEEDV.showAll=true;$('#view').innerHTML=rCalendar();reveal()">Show all ${done.length}</button>`:''}</div>
-  </div></div>`;
+function calDetail(e){
+ if(e.src==='maistro'){const s=e.slot;return `<span class="kick accent">Maistro planned post</span><h3 style="font-size:17px;margin-top:8px">${esc(s.title||s.pieceId||'')}</h3>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">${badge(s.status==='posted'?'go':s.status==='exported'?'gold':'muted',esc(s.status.toUpperCase()))}<b>${esc(FEED_PLAT[s.platform]||s.platform)}</b><span class="dim">@${esc(s.account)}</span></div>
+  <div class="mono dim" style="font-size:11px;margin-top:8px">${esc(fmtStamp(e.at))}</div>
+  ${s.caption?`<p style="font-size:12.5px;line-height:1.6;margin-top:10px" dir="auto">${esc(s.caption)}</p>`:''}
+  <div class="dim" style="font-size:11px;margin-top:10px">Export, cancel and the Sprinklr draft are under Planned posts below.</div>`}
+ const i=e.item;
+ return `<span class="kick accent">Sprinklr · Samsung Gulf</span>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">${badge(FEED_TONE[i.status]||'muted',esc(i.status.replace('_',' ').toUpperCase()))}<b>${esc(FEED_PLAT[i.platform]||i.platform)}</b>${i.media?`<span class="dim" style="font-size:11px">${esc(i.media.toLowerCase().replace('_',' '))}</span>`:''}</div>
+  <div class="mono dim" style="font-size:11px;margin-top:8px">${i.status==='posted'?'POSTED ':'SCHEDULED FOR '}${esc(fmtStamp(e.at))}</div>
+  ${i.text?`<p style="font-size:12.5px;line-height:1.6;margin-top:10px" dir="auto">${esc(i.text)}</p>`:'<p class="dim" style="font-size:12px;margin-top:10px">No caption.</p>'}
+  ${i.permalink?`<a class="btn btn-ghost btn-sm" style="margin-top:10px;display:inline-block" href="${esc(i.permalink)}" target="_blank" rel="noopener">Open the post ↗</a>`:''}
+  <div class="dim" style="font-size:11px;margin-top:10px">${i.status==='posted'?'Published from Sprinklr.':'Scheduling and approval happen in Sprinklr; Maistro only reads them.'}</div>`;
+}
+function rMonth(d){
+ const m=calMonth(),b=monthBounds(m),sprk=d.sprinklr&&d.sprinklr.configured;
+ const f=sprk?FEEDV.months[m]:null;
+ if(sprk&&!f)loadSprinklrFeed(m);
+ const all=calEvents(d,f).filter(e=>e.at>=b.from&&e.at<b.to);
+ const ev=CALM.plat==='all'?all:all.filter(e=>e.platform===CALM.plat);
+ const byDay={};for(const e of ev)(byDay[gstDay(e.at)]=byDay[gstDay(e.at)]||[]).push(e);
+ const first=new Date(Date.UTC(b.y,b.mo-1,1)).getUTCDay(),daysIn=new Date(Date.UTC(b.y,b.mo,0)).getUTCDate(),today=gstDay(Date.now());
+ let cells='';
+ for(let i=0;i<first;i++)cells+='<div class="day empty"></div>';
+ for(let day=1;day<=daysIn;day++){
+  const iso=`${m}-${String(day).padStart(2,'0')}`,es=byDay[iso]||[];
+  cells+=`<div class="day ${iso===today?'opt':''} ${iso===CALM.day?'daysel':''}"><div class="dn"><button class="dnb" onclick="calDay('${iso}')">${day}</button>${iso===today?'<span class="optlab">TODAY</span>':''}</div>
+   ${es.slice(0,4).map(e=>`<button class="ev ${e.cls} ${e.key===CALM.sel?'sel':''}" onclick="calSelect('${esc(e.key)}')" title="${esc(e.label)}"><span class="tm">${gstTime(e.at)}</span><span class="ti">${esc(FEED_SHORT[e.platform]||e.platform||'')} · ${esc(e.label)}</span></button>`).join('')}
+   ${es.length>4?`<button class="evmore" onclick="calDay('${iso}')">+${es.length-4} more</button>`:''}</div>`;
+ }
+ const total=first+daysIn;for(let i=total;i<Math.ceil(total/7)*7;i++)cells+='<div class="day empty"></div>';
+ const label=new Date(Date.UTC(b.y,b.mo-1,15)).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'});
+ const plats=['all',...Object.keys(FEED_PLAT)];
+ const n=p=>p==='all'?all.length:all.filter(e=>e.platform===p).length;
+ const count=s=>ev.filter(e=>e.status===s).length;
+ const sel=ev.find(e=>e.key===CALM.sel);
+ const dayList=CALM.day&&CALM.day.startsWith(m)?(byDay[CALM.day]||[]):null;
+ const side=sel?calDetail(sel)
+  :dayList?`<span class="kick accent">${esc(new Date(CALM.day+'T12:00:00Z').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'}))}</span>${dayList.map(e=>`<button class="ev ${e.cls}" style="margin-top:6px" onclick="calSelect('${esc(e.key)}')"><span class="tm">${gstTime(e.at)}</span><span class="ti">${esc(FEED_PLAT[e.platform]||e.platform||'')} · ${esc(e.label)}</span></button>`).join('')||'<div class="dim" style="font-size:12px;margin-top:8px">Nothing on this day.</div>'}`
+  :`<span class="kick accent">${esc(label)}</span>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+    ${[['posted','Posted'],['scheduled','Scheduled'],['in_approval','In approval'],['draft','Drafts']].map(([k,l])=>`<div><div class="mono" style="font-size:20px;color:#fff">${count(k)}</div><div class="dim" style="font-size:11px">${l}</div></div>`).join('')}
+   </div>
+   <div class="dim" style="font-size:11.5px;margin-top:12px;line-height:1.6">Click a post for its caption and link, or a date for everything that day.${sprk?' Read from Sprinklr: feed posts on the Samsung Gulf accounts (not replies or messages).':''}</div>`;
+ const status=!sprk?'<span class="mono dim" style="font-size:10px">SPRINKLR NOT CONNECTED — MAISTRO POSTS ONLY</span>'
+  :!f?'<span class="mono dim" style="font-size:10px">LOADING SPRINKLR…</span>'
+  :f.error?`<span class="mono" style="font-size:10px;color:var(--alert)">${esc(f.error)}</span>`
+  :`<span class="mono dim" style="font-size:10px">SPRINKLR AS OF ${esc(fmtStamp(Date.parse(f.fetchedAt)))}</span>`;
+ return `<div class="legend" style="margin-bottom:12px">
+   <span><i style="background:var(--go)"></i>Posted</span><span><i style="background:var(--signal)"></i>Scheduled</span>
+   <span><i style="background:var(--muted)"></i>Draft · in approval</span><span><i style="background:var(--alert)"></i>Failed</span><span><i style="background:#fff"></i>Maistro planned</span>
+  </div>
+  <div class="grid2">
+   <div style="min-width:0">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="calGo(-1)" aria-label="Previous month">‹</button>
+      <h3 style="font-size:16px;min-width:150px;text-align:center">${esc(label)}</h3>
+      <button class="btn btn-ghost btn-sm" onclick="calGo(1)" aria-label="Next month">›</button>
+      <button class="btn btn-ghost btn-sm" style="font-size:10.5px" onclick="calToday()">Today</button>
+      <input type="month" value="${esc(m)}" onchange="calPick(this.value)" style="font-size:11.5px" aria-label="Go to month">
+     </div>${status}</div>
+    <div class="chips" style="margin-bottom:10px">${plats.map(p=>`<button class="${CALM.plat===p?'on':''}" onclick="calPlat('${p}')">${p==='all'?'All platforms':esc(FEED_PLAT[p])} · ${n(p)}</button>`).join('')}</div>
+    <div class="cal"><div class="dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+     <div class="days">${cells}</div></div>
+   </div>
+   <div><div class="card p5">${side}</div></div>
+  </div>`;
 }
 /* ================= 04 PERFORMANCE ================= */
 /* How old is what the page shows? Newest post or comment across the loaded

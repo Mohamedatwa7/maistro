@@ -9,7 +9,7 @@ const DEFAULT_ACCOUNTS = 'facebook:6625,instagram:53027,tiktok:1776286,x:7952,yo
 const STATUS = { SENT: 'posted', SCHEDULED: 'scheduled', APPROVAL: 'in_approval', DRAFT: 'draft', FAILED: 'failed' };
 const UPDATE = '2';
 const PAGE = 200, MAX_PAGES = 15, TTL_MS = 10 * 60 * 1000;
-let cache = null;
+const cache = new Map(); // window → { at, value }; a few months at most
 
 function feedAccounts() {
   const out = {};
@@ -61,11 +61,12 @@ async function details(list) {
   return by;
 }
 
-/** { items, from, to, fetchedAt } — items newest first; cached 10 minutes for the same window */
+/** { items, from, to, fetchedAt } — items newest first; cached 10 minutes per window */
 async function feed({ from, to, now = Date.now() } = {}) {
   const f = Number.isFinite(from) ? from : now - 14 * 864e5, t = Number.isFinite(to) ? to : now + 45 * 864e5;
   const key = `${Math.floor(f / 36e5)}:${Math.floor(t / 36e5)}:${process.env.SPRINKLR_FEED_ACCOUNTS || ''}`;
-  if (cache && cache.key === key && now - cache.at < TTL_MS) return cache.value;
+  const hit = cache.get(key);
+  if (hit && now - hit.at < TTL_MS) return hit.value;
   const accounts = feedAccounts();
   const list = await rows(f, t, now);
   const by = await details(list);
@@ -75,7 +76,8 @@ async function feed({ from, to, now = Date.now() } = {}) {
     return { id: r.id, platform: accounts[r.accountId] || null, accountId: r.accountId, status: r.status, at: r.at, text: String(c.text || c.title || '').slice(0, 280), permalink: d.permalink || null, media: a.type || null };
   }).filter((x) => x.platform).sort((a, b) => String(b.at).localeCompare(String(a.at)));
   const value = { items, from: new Date(f).toISOString(), to: new Date(t).toISOString(), fetchedAt: new Date(now).toISOString() };
-  cache = { key, at: now, value };
+  cache.set(key, { at: now, value });
+  if (cache.size > 12) cache.delete(cache.keys().next().value);
   return value;
 }
 
