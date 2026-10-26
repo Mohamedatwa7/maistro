@@ -4431,8 +4431,8 @@ function rSprinklrFeed(){
   <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span class="kick accent">Samsung Gulf on Sprinklr</span><span class="mono dim" style="font-size:10.5px">${count('scheduled')} SCHEDULED · ${count('posted')} POSTED SINCE ${esc(fmtStamp(Date.parse(f.from)).split(',')[0])}${f.fetchedAt?' · AS OF '+esc(fmtStamp(Date.parse(f.fetchedAt))):''}</span></div>
   <div class="dim" style="font-size:11px;margin-top:4px">Read from Sprinklr: posts on the Samsung Gulf accounts (not replies or messages). Scheduling stays in Sprinklr.</div>
   <div class="grid2e" style="margin-top:8px">
-   <div><span class="kick" style="font-size:10px">Coming up · scheduled, in approval, drafts</span>${up.map(feedRow).join('')||'<div class="dim" style="font-size:12px;margin-top:6px">Nothing scheduled.</div>'}</div>
-   <div><span class="kick" style="font-size:10px">Posted</span>${shown.map(feedRow).join('')||'<div class="dim" style="font-size:12px;margin-top:6px">No posts in this window.</div>'}
+   <div style="min-width:0"><span class="kick" style="font-size:10px">Coming up · scheduled, in approval, drafts</span>${up.map(feedRow).join('')||'<div class="dim" style="font-size:12px;margin-top:6px">Nothing scheduled.</div>'}</div>
+   <div style="min-width:0"><span class="kick" style="font-size:10px">Posted</span>${shown.map(feedRow).join('')||'<div class="dim" style="font-size:12px;margin-top:6px">No posts in this window.</div>'}
     ${done.length>shown.length?`<button class="btn btn-ghost btn-sm" style="font-size:10px;margin-top:6px" onclick="FEEDV.showAll=true;$('#view').innerHTML=rCalendar();reveal()">Show all ${done.length}</button>`:''}</div>
   </div></div>`;
 }
