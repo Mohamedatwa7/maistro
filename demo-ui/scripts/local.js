@@ -26,7 +26,7 @@ Object.assign(process.env, {
   MAISTRO_REVISION: 'local',
 });
 for (const k of ['ANTHROPIC_API_KEY', 'HF_CREDENTIALS', 'MAISTRO_DATABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'SUPABASE_ANON_KEY',
-  'SPRINKLR_API_KEY', 'SPRINKLR_API_SECRET', 'SPRINKLR_ENV', 'MAISTRO_ALERT_WEBHOOK', 'MAISTRO_F1X8_BASE_URL']) delete process.env[k];
+  'SPRINKLR_API_KEY', 'SPRINKLR_API_SECRET', 'SPRINKLR_ACCESS_TOKEN', 'SPRINKLR_ENV', 'SPRINKLR_DRAFTS', 'MAISTRO_ALERT_WEBHOOK', 'MAISTRO_F1X8_BASE_URL']) delete process.env[k];
 
 const { fakePostgrest } = require('../tests/fake-postgrest.js');
 const db = fakePostgrest(process.env.SUPABASE_URL);

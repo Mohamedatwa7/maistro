@@ -1,0 +1,7359 @@
+{
+ "openapi": "3.0.3",
+ "info": {
+  "title": "Sprinklr API v3",
+  "description": "Sprinklr v3 APIs provide a robust, RESTful interface for managing customer experience data and processes across the Sprinklr platform. Designed for enterprise-scale integration, these APIs enable developers to interact with customer, asset, and reporting data, automate workflows, and connect Sprinklr with external systems. The v3 APIs follow OpenAPI 3.0 standards, support OAuth 2.0 Bearer authentication, and offer consistent response formats for ease of development and integration.",
+  "version": "3.0.0",
+  "contact": {
+   "name": "Sprinklr API Team"
+  },
+  "x-metadata": {
+   "title": "Sprinklr Developer Portal",
+   "description": "Sprinklr offers robust, convenient, and simple RESTful Web service APIs to integrate data from Sprinklr to any external system."
+  },
+  "x-maistro-subset": "Only the publishing endpoints Maistro calls (ADR-008), with every schema they reference.",
+  "x-source": "https://developer.sprinklr.com/_spec/apis/sprinklr-v3.json",
+  "x-downloaded": "2026-10-26",
+  "x-full-sha256": "bf63eb1354457f3f31daccd6c4991ca640a319e6ea0b5bdb2a1ede4833101779"
+ },
+ "servers": [
+  {
+   "url": "https://api3.sprinklr.com/{env}/api/v3",
+   "description": "Production Server",
+   "variables": {
+    "env": {
+     "default": "prod",
+     "enum": [
+      "prod",
+      "prod0",
+      "prod2",
+      "prod3",
+      "prod4",
+      "prod5",
+      "prod6",
+      "prod8",
+      "prod11",
+      "prod12",
+      "prod15",
+      "prod16",
+      "prod17",
+      "prod18",
+      "prod19",
+      "prod21",
+      "prod25"
+     ]
+    }
+   }
+  }
+ ],
+ "security": [
+  {
+   "bearerAuth": [],
+   "apiKeyAuth": []
+  }
+ ],
+ "paths": {
+  "/me": {
+   "get": {
+    "tags": [
+     "User"
+    ],
+    "summary": "Fetch current user",
+    "operationId": "MeApiV3_getCurrentUser",
+    "responses": {
+     "200": {
+      "description": "Success",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "404": {
+      "$ref": "#/components/responses/NotFound"
+     }
+    }
+   }
+  },
+  "/publishing/draft": {
+   "post": {
+    "tags": [
+     "Publishing"
+    ],
+    "summary": "Create draft of given message",
+    "operationId": "PublishingApiV3_createDraft",
+    "responses": {
+     "200": {
+      "description": "Success",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "404": {
+      "$ref": "#/components/responses/NotFound"
+     }
+    },
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/OutboundMessage"
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "Publishing"
+    ],
+    "summary": "Fetch draft(s) by id",
+    "operationId": "PublishingApiV3_fetchDrafts",
+    "responses": {
+     "200": {
+      "description": "Success",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/OutboundMessage"
+         }
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "404": {
+      "$ref": "#/components/responses/NotFound"
+     }
+    },
+    "parameters": [
+     {
+      "name": "id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "Draft message id(s): one id or comma-separated list (max 50)"
+     }
+    ]
+   }
+  },
+  "/publishing/preview/generate": {
+   "get": {
+    "tags": [
+     "Publishing"
+    ],
+    "summary": "Generate preview of message by id",
+    "operationId": "PublishingApiV3_generatePreview",
+    "responses": {
+     "200": {
+      "description": "Success",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "404": {
+      "$ref": "#/components/responses/NotFound"
+     }
+    },
+    "parameters": [
+     {
+      "name": "messageId",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "Outbound message id"
+     },
+     {
+      "name": "exportType",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "Preview export type (PNG or PDF)"
+     },
+     {
+      "name": "name",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "Preview report name"
+     }
+    ]
+   }
+  },
+  "/publishing/preview/status": {
+   "get": {
+    "tags": [
+     "Publishing"
+    ],
+    "summary": "Fetch status of preview request",
+    "operationId": "PublishingApiV3_getPreviewStatus",
+    "responses": {
+     "200": {
+      "description": "Success",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MessagePreviewResponse"
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "404": {
+      "$ref": "#/components/responses/NotFound"
+     }
+    },
+    "parameters": [
+     {
+      "name": "id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "Scheduled export config id returned from preview generate"
+     }
+    ]
+   }
+  },
+  "/publishing/post": {
+   "get": {
+    "tags": [
+     "Publishing"
+    ],
+    "summary": "Fetch post(s) by id",
+    "operationId": "PublishingApiV3_fetchPosts",
+    "responses": {
+     "200": {
+      "description": "Success",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/Post"
+         }
+        }
+       }
+      }
+     },
+     "400": {
+      "$ref": "#/components/responses/BadRequest"
+     },
+     "401": {
+      "$ref": "#/components/responses/Unauthorized"
+     },
+     "403": {
+      "$ref": "#/components/responses/Forbidden"
+     },
+     "404": {
+      "$ref": "#/components/responses/NotFound"
+     }
+    },
+    "parameters": [
+     {
+      "name": "id",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "Post id(s): one id or comma-separated list (max 50)"
+     }
+    ]
+   }
+  }
+ },
+ "components": {
+  "responses": {
+   "BadRequest": {
+    "description": "Bad request",
+    "content": {
+     "application/json": {
+      "schema": {
+       "$ref": "#/components/schemas/ErrorResponse"
+      }
+     }
+    }
+   },
+   "Unauthorized": {
+    "description": "Missing or invalid authentication",
+    "content": {
+     "application/json": {
+      "schema": {
+       "$ref": "#/components/schemas/ErrorResponse"
+      }
+     }
+    }
+   },
+   "Forbidden": {
+    "description": "Insufficient permissions",
+    "content": {
+     "application/json": {
+      "schema": {
+       "$ref": "#/components/schemas/ErrorResponse"
+      }
+     }
+    }
+   },
+   "NotFound": {
+    "description": "Resource not found",
+    "content": {
+     "application/json": {
+      "schema": {
+       "$ref": "#/components/schemas/ErrorResponse"
+      }
+     }
+    }
+   }
+  },
+  "schemas": {
+   "ErrorResponse": {
+    "type": "object",
+    "properties": {
+     "data": {
+      "type": "object",
+      "nullable": true
+     },
+     "errors": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Error"
+      }
+     },
+     "metadata": {
+      "type": "object"
+     }
+    }
+   },
+   "Error": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "description": "24-character hex ObjectId"
+     },
+     "code": {
+      "type": "integer"
+     },
+     "message": {
+      "type": "string",
+      "description": "Dotted error key (e.g. account.not.found)"
+     }
+    },
+    "required": [
+     "id",
+     "code",
+     "message"
+    ]
+   },
+   "OutboundMessage": {
+    "type": "object",
+    "properties": {
+     "content": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Content"
+       }
+      ],
+      "description": "Describes the content to be used in the message."
+     },
+     "channelOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelOptions"
+      },
+      "description": "Channel specific options, if any."
+     },
+     "scheduleDate": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Schedule date for the message."
+     },
+     "taxonomy": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Taxonomy"
+       }
+      ],
+      "description": "Tags, campaign, url shortener and other sprinklr workflow properties to be added to the message"
+     },
+     "approval": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Approval"
+       }
+      ],
+      "description": "Approval option for the message."
+     },
+     "status": {
+      "type": "string",
+      "description": "Status of the message. e.g. SCHEDULED, APPROVAL, SENT"
+     },
+     "sourceLocale": {
+      "type": "string",
+      "description": "Locale of the source message, if this is a translated copy."
+     },
+     "contentLocale": {
+      "type": "string",
+      "description": "Locale of the message"
+     },
+     "autoResponse": {
+      "type": "boolean",
+      "description": "True if the message was published by the system or a bot."
+     },
+     "createdTime": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Created time of the message."
+     },
+     "modifiedTime": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Modified time of the message."
+     },
+     "authorId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Author Id of the user for the message"
+     },
+     "customPropertiesMetadata": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/CustomPropertyWithMetadata"
+      },
+      "description": "Custom Property details"
+     },
+     "externalId": {
+      "type": "string"
+     },
+     "id": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Unique id of the outbound message in sprinklr"
+     },
+     "accountIds": {
+      "type": "array",
+      "items": {
+       "type": "integer",
+       "format": "int64"
+      }
+     },
+     "accountGroupIds": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Account group id to draft/schedule group message to."
+     },
+     "creationSource": {
+      "type": "string",
+      "description": "Creation Source of the message"
+     },
+     "inReplyToMessageId": {
+      "type": "string",
+      "description": "The message id on which the reply is being sent."
+     },
+     "version": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Current version of the message"
+     },
+     "contentTemplateIds": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Templates used while creating the message."
+     },
+     "accountTypes": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Account types included in the message."
+     },
+     "variantDetails": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/VariantDetails"
+       }
+      ],
+      "description": "Variant details of the message."
+     },
+     "audienceIds": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "channelRichContent": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "additionalProperties": {
+        "type": "string"
+       }
+      }
+     }
+    },
+    "description": "Describes the schema for Outbound message. It's used for plan new post generally",
+    "required": [
+     "content",
+     "scheduleDate",
+     "taxonomy",
+     "accountGroupIds"
+    ]
+   },
+   "Content": {
+    "type": "object",
+    "properties": {
+     "title": {
+      "type": "string",
+      "description": "Title of the message."
+     },
+     "titleHash": {
+      "type": "string",
+      "description": "Hashed Title of the message."
+     },
+     "text": {
+      "type": "string",
+      "description": "Text content of the message."
+     },
+     "textHash": {
+      "type": "string",
+      "description": "Hashed Text content of the message."
+     },
+     "richText": {
+      "type": "string",
+      "description": "Rich Text content of the message."
+     },
+     "postbackPayload": {
+      "type": "string",
+      "description": "Postback Payload of the button selected."
+     },
+     "attachment": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Attachment"
+       }
+      ],
+      "description": "Attachment of the message to be published."
+     },
+     "templateId": {
+      "type": "string",
+      "description": "Content template ID"
+     },
+     "isRichText": {
+      "type": "boolean",
+      "description": "Is the provided text a rich text"
+     }
+    }
+   },
+   "Attachment": {
+    "oneOf": [
+     {
+      "$ref": "#/components/schemas/ImageAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/VideoAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/LinkAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/DocumentAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/Base64Attachment"
+     },
+     {
+      "$ref": "#/components/schemas/CarouselAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/MultiMediaAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/GeoLocationAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/CardAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/CoBrowseInviteAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/RichTextCarouselAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/QuickReplyAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/AudioAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/AuthenticationAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/ApplePayInteractiveAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/AppLinkAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/ListPickerAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/LocationRequestAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/CTAUrlAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/AddressAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/TimePickerAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/RichLinkAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/EventsAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/ContactDetailsFormAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/FeedbackAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/FormAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/SecureFormAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/AppointmentAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/SurveyAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/ProductCardAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/ProductShowcaseCardAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/InfoCardAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/ProductBannerAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/ProductListAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/QuickSelectPillsAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/VoiceAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/HSMAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/ButtonTemplateAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/ListTemplateAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/ProductAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/PollAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/AlbumAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/StoryAttachment"
+     },
+     {
+      "$ref": "#/components/schemas/ThreadAttachment"
+     }
+    ],
+    "discriminator": {
+     "propertyName": "type",
+     "mapping": {
+      "IMAGE": "#/components/schemas/ImageAttachment",
+      "VIDEO": "#/components/schemas/VideoAttachment",
+      "LINK": "#/components/schemas/LinkAttachment",
+      "DOC": "#/components/schemas/DocumentAttachment",
+      "BASE64": "#/components/schemas/Base64Attachment",
+      "CAROUSEL": "#/components/schemas/CarouselAttachment",
+      "MULTI_MEDIA": "#/components/schemas/MultiMediaAttachment",
+      "GEO_LOCATION": "#/components/schemas/GeoLocationAttachment",
+      "CARD": "#/components/schemas/CardAttachment",
+      "CO_BROWSE_INVITE": "#/components/schemas/CoBrowseInviteAttachment",
+      "RICH_TEXT_CAROUSEL": "#/components/schemas/RichTextCarouselAttachment",
+      "QuickReplyAttachment": "#/components/schemas/QuickReplyAttachment",
+      "AUDIO": "#/components/schemas/AudioAttachment",
+      "AuthenticationAttachment": "#/components/schemas/AuthenticationAttachment",
+      "ApplePayInteractiveAttachment": "#/components/schemas/ApplePayInteractiveAttachment",
+      "AppLinkAttachment": "#/components/schemas/AppLinkAttachment",
+      "ListPickerAttachment": "#/components/schemas/ListPickerAttachment",
+      "REQUEST_LOCATION": "#/components/schemas/LocationRequestAttachment",
+      "CTA_URL": "#/components/schemas/CTAUrlAttachment",
+      "ADDRESS": "#/components/schemas/AddressAttachment",
+      "TimePickerAttachment": "#/components/schemas/TimePickerAttachment",
+      "RICH_LINK": "#/components/schemas/RichLinkAttachment",
+      "EVENTS": "#/components/schemas/EventsAttachment",
+      "CONTACT_DETAILS_FORM": "#/components/schemas/ContactDetailsFormAttachment",
+      "FEEDBACK_FORM": "#/components/schemas/FeedbackAttachment",
+      "FORM": "#/components/schemas/FormAttachment",
+      "SECURE_FORM": "#/components/schemas/SecureFormAttachment",
+      "APPOINTMENT": "#/components/schemas/AppointmentAttachment",
+      "SURVEY": "#/components/schemas/SurveyAttachment",
+      "PRODUCT_CARD": "#/components/schemas/ProductCardAttachment",
+      "PRODUCT_SHOWCASE_CARD": "#/components/schemas/ProductShowcaseCardAttachment",
+      "INFO_CARD": "#/components/schemas/InfoCardAttachment",
+      "PRODUCT_BANNER": "#/components/schemas/ProductBannerAttachment",
+      "PRODUCT_LIST": "#/components/schemas/ProductListAttachment",
+      "QUICK_SELECT_PILLS": "#/components/schemas/QuickSelectPillsAttachment",
+      "VOICE": "#/components/schemas/VoiceAttachment",
+      "HSMAttachment": "#/components/schemas/HSMAttachment",
+      "BUTTON_TEMPLATE": "#/components/schemas/ButtonTemplateAttachment",
+      "LIST_TEMPLATE": "#/components/schemas/ListTemplateAttachment",
+      "ProductAttachment": "#/components/schemas/ProductAttachment",
+      "POLL": "#/components/schemas/PollAttachment",
+      "ALBUM": "#/components/schemas/AlbumAttachment",
+      "STORY": "#/components/schemas/StoryAttachment",
+      "ThreadAttachment": "#/components/schemas/ThreadAttachment"
+     }
+    }
+   },
+   "ImageAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "url": {
+      "type": "string",
+      "description": "Url of the image to publish."
+     },
+     "urlHash": {
+      "type": "string",
+      "description": "Hashed Url of the image to publish."
+     },
+     "title": {
+      "type": "string",
+      "description": "Title for the image, if any."
+     },
+     "description": {
+      "type": "string",
+      "description": "Description for the image, if any."
+     },
+     "previewUrl": {
+      "type": "string",
+      "description": "Preview url of the image"
+     },
+     "hashedPreviewUrl": {
+      "type": "string",
+      "description": "Hashed Preview url of the image"
+     },
+     "mimeType": {
+      "type": "string",
+      "description": "Content-type of the image"
+     },
+     "alternateText": {
+      "type": "string",
+      "description": "Alt text of the image"
+     },
+     "height": {
+      "type": "number",
+      "format": "double",
+      "description": "Image height of the image"
+     },
+     "width": {
+      "type": "number",
+      "format": "double",
+      "description": "Image width of the image"
+     },
+     "encryptedUrl": {
+      "type": "string",
+      "description": "Encrypted url of the image to publish"
+     },
+     "sizeInBytes": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Size of media in bytes"
+     }
+    },
+    "description": "Image attachment in content.",
+    "required": [
+     "type"
+    ]
+   },
+   "ChannelSpecificMediaProperties": {
+    "oneOf": [
+     {
+      "$ref": "#/components/schemas/FacebookMediaProperties"
+     },
+     {
+      "$ref": "#/components/schemas/TwitterMediaProperties"
+     },
+     {
+      "$ref": "#/components/schemas/InstagramMediaProperties"
+     },
+     {
+      "$ref": "#/components/schemas/YoutubeMediaProperties"
+     }
+    ],
+    "discriminator": {
+     "propertyName": "channelType",
+     "mapping": {
+      "FACEBOOK": "#/components/schemas/FacebookMediaProperties",
+      "TWITTER": "#/components/schemas/TwitterMediaProperties",
+      "INSTAGRAM": "#/components/schemas/InstagramMediaProperties",
+      "YOUTUBE": "#/components/schemas/YoutubeMediaProperties"
+     }
+    }
+   },
+   "FacebookMediaProperties": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for media options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the properties are specific to an account inaddition to channelType, accountId can be specified and the properties would then only be used for the given account."
+     },
+     "embeddable": {
+      "type": "boolean",
+      "description": "To specify if the video is embeddable. Is used only when the attachment is of type VIDEO"
+     },
+     "category": {
+      "type": "string",
+      "description": "To specify the content category of the video . Is used only when the attachment is of type VIDEO"
+     },
+     "noStory": {
+      "type": "boolean",
+      "description": "If set to true, this will suppress Facebook feed and timeline story. Is used only when the attachment is of type VIDEO"
+     },
+     "secret": {
+      "type": "boolean",
+      "description": "If set to true, this video will not appear anywhere on Facebook and is not searchable. It can be viewed and shared using permalink and embeds. Default value is false."
+     },
+     "blockSocialActions": {
+      "type": "boolean"
+     },
+     "expirationEnabled": {
+      "type": "boolean",
+      "description": "If set to true, video is set to expiry. The time for video expiry must be specified via expirationDate."
+     },
+     "expirationDate": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If expirationEnabled is set to true, this field is required and specifies the expiry date for the video."
+     },
+     "deletePost": {
+      "type": "boolean",
+      "description": "If expirationEnabled is set to true, deletePost specifies where to delete the post after expiry or only expire on Facebook."
+     }
+    },
+    "required": [
+     "channelType"
+    ]
+   },
+   "TwitterMediaProperties": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for media options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the properties are specific to an account inaddition to channelType, accountId can be specified and the properties would then only be used for the given account."
+     },
+     "embeddable": {
+      "type": "boolean",
+      "description": "Allow embedding the video when posted to twitter. It is used only when attachment is VIDEO"
+     },
+     "videoCategories": {
+      "type": "array",
+      "items": {
+       "type": "integer",
+       "format": "int64"
+      },
+      "description": "Video categories"
+     },
+     "blackListCategories": {
+      "type": "array",
+      "items": {
+       "type": "integer",
+       "format": "int64"
+      },
+      "description": "Blacklist categories"
+     }
+    },
+    "required": [
+     "channelType"
+    ]
+   },
+   "InstagramMediaProperties": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for media options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the properties are specific to an account inaddition to channelType, accountId can be specified and the properties would then only be used for the given account."
+     },
+     "locationId": {
+      "type": "string",
+      "description": "To specify the tagged location"
+     },
+     "userTags": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/UserTag"
+      },
+      "description": "To specify tagged users in a media"
+     },
+     "collaborators": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Collaborator"
+      },
+      "description": "Instagram collaborators for collab posts"
+     }
+    },
+    "required": [
+     "channelType"
+    ]
+   },
+   "UserTag": {
+    "type": "object",
+    "properties": {
+     "username": {
+      "type": "string",
+      "description": "Username of the user on channel."
+     },
+     "displayName": {
+      "type": "string",
+      "description": "Display Name of the user on channel."
+     },
+     "url": {
+      "type": "string",
+      "description": "Profile Link of the user on channel."
+     },
+     "x": {
+      "type": "number",
+      "format": "float",
+      "description": "X location for the tag, must be a float number that specifies the x distance from top left corner, within range 0.0-1.0"
+     },
+     "y": {
+      "type": "number",
+      "format": "float",
+      "description": "Y location for the tag, must be a float number that specifies the y distance from top left corner, within range 0.0-1.0"
+     }
+    },
+    "description": "User and tag details on the media",
+    "required": [
+     "username"
+    ]
+   },
+   "Collaborator": {
+    "type": "object",
+    "properties": {
+     "username": {
+      "type": "string",
+      "description": "Instagram username of the collaborator"
+     }
+    },
+    "description": "Instagram collaborator for collab posts",
+    "required": [
+     "username"
+    ]
+   },
+   "YoutubeMediaProperties": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for media options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the properties are specific to an account inaddition to channelType, accountId can be specified and the properties would then only be used for the given account."
+     },
+     "visibility": {
+      "type": "string",
+      "description": "To specify the video visibility"
+     },
+     "license": {
+      "type": "string",
+      "description": "To specify the video license"
+     },
+     "category": {
+      "type": "string",
+      "description": "To specify the video category"
+     },
+     "tags": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "To specify the video tags"
+     },
+     "playlistsInfo": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "description": "Unresolved type (PlaylistInfo)"
+      },
+      "description": "To specify the video playlists details"
+     },
+     "embeddable": {
+      "type": "boolean",
+      "description": "To specify if video can be embedded"
+     },
+     "notifySubscribers": {
+      "type": "boolean",
+      "description": "To specify if subscribers should be notified"
+     },
+     "madeForKids": {
+      "type": "boolean",
+      "description": "To specify if the video is made for kids"
+     },
+     "playlistId": {
+      "type": "string"
+     },
+     "playlistName": {
+      "type": "string"
+     },
+     "playlistPosition": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "channelType"
+    ]
+   },
+   "VideoAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "url": {
+      "type": "string",
+      "description": "Url of the video to publish."
+     },
+     "urlHash": {
+      "type": "string",
+      "description": "Hashed Url of the video to publish."
+     },
+     "previewUrl": {
+      "type": "string",
+      "description": "Url of the Preview Image of the video, only used when customization of preview url is supported by the channel."
+     },
+     "hashedPreviewUrl": {
+      "type": "string",
+      "description": "Hashed Url of the Preview Image of the video, only used when customization of preview url is supported by the channel."
+     },
+     "title": {
+      "type": "string",
+      "description": "Title for the video, if any."
+     },
+     "description": {
+      "type": "string",
+      "description": "Description for the video, if any."
+     },
+     "alternateText": {
+      "type": "string",
+      "description": "Alt text of the video"
+     },
+     "mimeType": {
+      "type": "string",
+      "description": "Content-type of the video"
+     },
+     "closedCaptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ClosedCaption"
+      },
+      "description": "Captions of the video"
+     },
+     "thumbnails": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Custom Thumbnails for the video"
+     },
+     "rate": {
+      "type": "number",
+      "format": "double",
+      "description": "Video rate of the video"
+     },
+     "duration": {
+      "type": "number",
+      "format": "double",
+      "description": "Duration of the video"
+     },
+     "encryptedUrl": {
+      "type": "string",
+      "description": "Encrypted url of the video to publish"
+     },
+     "sizeInBytes": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Size of media in bytes"
+     }
+    },
+    "description": "Video attachment in content.",
+    "required": [
+     "type"
+    ]
+   },
+   "ClosedCaption": {
+    "type": "object",
+    "properties": {
+     "title": {
+      "type": "string",
+      "description": "Title of the file"
+     },
+     "url": {
+      "type": "string",
+      "description": "Url of the file"
+     },
+     "languageCode": {
+      "type": "string",
+      "description": "Language of the caption"
+     },
+     "extension": {
+      "type": "string",
+      "description": "Extension of the file"
+     }
+    },
+    "description": "Describes the schema for ClosedCaption",
+    "required": [
+     "title",
+     "url",
+     "languageCode",
+     "extension"
+    ]
+   },
+   "LinkAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "url": {
+      "type": "string",
+      "description": "Link url."
+     },
+     "urlHash": {
+      "type": "string",
+      "description": "Hashed Link url."
+     },
+     "title": {
+      "type": "string",
+      "description": "Title for the link, if any."
+     },
+     "description": {
+      "type": "string",
+      "description": "Description for the link, if any."
+     },
+     "previewImageUrl": {
+      "type": "string",
+      "description": "Image Url for the link preview."
+     },
+     "hashedPreviewImageUrl": {
+      "type": "string",
+      "description": "Hashed Image Url for the link preview."
+     }
+    },
+    "description": "Describes the schema for link attachment.",
+    "required": [
+     "type"
+    ]
+   },
+   "DocumentAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "url": {
+      "type": "string",
+      "description": "Url of the document source."
+     },
+     "title": {
+      "type": "string",
+      "description": "Title for the document, if any."
+     },
+     "description": {
+      "type": "string",
+      "description": "Description for the document, if any."
+     },
+     "alternateText": {
+      "type": "string",
+      "description": "Alt text of the document"
+     },
+     "previewImageUrl": {
+      "type": "string",
+      "description": "Preview image of the document, if any"
+     },
+     "previewUrl": {
+      "type": "string",
+      "description": "Preview URL of the document, if any"
+     },
+     "mimeType": {
+      "type": "string",
+      "description": "Mimetype of the document, if any"
+     },
+     "encryptedUrl": {
+      "type": "string",
+      "description": "Encrypted url of the document to publish"
+     },
+     "sizeInBytes": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Size of media in bytes"
+     }
+    },
+    "description": "Describes the schema for Document attachment",
+    "required": [
+     "type"
+    ]
+   },
+   "Base64Attachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "base64EncodedContent": {
+      "type": "string",
+      "description": "base64 encoded content."
+     },
+     "fileName": {
+      "type": "string",
+      "description": "Filename for the content."
+     },
+     "title": {
+      "type": "string",
+      "description": "Title for the content, if any."
+     },
+     "description": {
+      "type": "string",
+      "description": "Description for the content, if any."
+     }
+    },
+    "required": [
+     "type"
+    ]
+   },
+   "CarouselAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "cardAttachmentList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/CardAttachment"
+      },
+      "description": "List of cards in the carousel"
+     },
+     "mediaAttachmentList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Attachment"
+      },
+      "description": "List of medias in the carousel"
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response in Live Chat."
+     },
+     "reSubmittable": {
+      "type": "boolean",
+      "description": "Boolean flag of whether the carousel is re-submittable in Live Chat"
+     },
+     "postSubmitImageUrl": {
+      "type": "string",
+      "description": "Image Url after submitting in Live Chat"
+     },
+     "postSubmitSubtitle": {
+      "type": "string",
+      "description": "Subtitle after submitting in Live Chat"
+     },
+     "postSubmitTitle": {
+      "type": "string",
+      "description": "Title after submitting in Live Chat"
+     },
+     "clickThroughUrl": {
+      "type": "string",
+      "description": "Click Through Url"
+     },
+     "title": {
+      "type": "string",
+      "description": "Title of the carousel"
+     },
+     "description": {
+      "type": "string",
+      "description": "Description of the carousel"
+     },
+     "buttons": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Button"
+      },
+      "description": "Buttons for the carousel"
+     },
+     "disableUserFeedback": {
+      "type": "boolean",
+      "description": "Boolean flag to disable user feedback"
+     },
+     "hideAttachment": {
+      "type": "boolean",
+      "description": "Boolean flag to hide attachment"
+     },
+     "screenReaderLabel": {
+      "type": "string",
+      "description": "Screen reader label"
+     },
+     "otherConfigs": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      },
+      "description": "Additional configuration for the template"
+     }
+    },
+    "description": "Describes the schema for carousel attachment.",
+    "required": [
+     "type"
+    ]
+   },
+   "CardAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "title": {
+      "type": "string",
+      "description": "Title of the card."
+     },
+     "description": {
+      "type": "string",
+      "description": "Description of the card."
+     },
+     "previewImageUrl": {
+      "type": "string",
+      "description": "Preview Url of the image."
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response"
+     },
+     "buttons": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Button"
+      },
+      "description": "Buttons used in the card"
+     },
+     "defaultButton": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "Default Button used in the card"
+     },
+     "reSubmittable": {
+      "type": "boolean",
+      "description": "Boolean flag of whether the card is re-submittable in Live Chat"
+     },
+     "postSubmitImageUrl": {
+      "type": "string",
+      "description": "Image Url after submitting in Live Chat"
+     },
+     "postSubmitSubtitle": {
+      "type": "string",
+      "description": "Subtitle after submitting in Live Chat"
+     },
+     "postSubmitTitle": {
+      "type": "string",
+      "description": "Title after submitting in Live Chat"
+     },
+     "header": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Header"
+       }
+      ],
+      "description": "Header for Whatsapp interactive messages"
+     },
+     "footerText": {
+      "type": "string",
+      "description": "Footer text for Whatsapp interactive messages"
+     }
+    },
+    "description": "Describes the schema for card attachment.",
+    "required": [
+     "type"
+    ]
+   },
+   "Button": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "description": "Id of the button"
+     },
+     "title": {
+      "type": "string",
+      "description": "Title of the button"
+     },
+     "subtitle": {
+      "type": "string",
+      "description": "Subtitle of the button."
+     },
+     "imageUrl": {
+      "type": "string",
+      "description": "Image URL of the button"
+     },
+     "payload": {
+      "type": "string",
+      "description": "Payload of the button"
+     },
+     "actionDetail": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/ActionDetail"
+       }
+      ],
+      "description": "Action detail of the button."
+     },
+     "placeholders": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Placeholder"
+      },
+      "description": "placeholders detail for button."
+     },
+     "example": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "examples of placeholders"
+     }
+    },
+    "description": "Button used for card/quick reply"
+   },
+   "ActionDetail": {
+    "oneOf": [
+     {
+      "$ref": "#/components/schemas/OpenUrlActionDetail"
+     },
+     {
+      "$ref": "#/components/schemas/AccountLinkActionDetail"
+     },
+     {
+      "$ref": "#/components/schemas/PostBackActionDetail"
+     },
+     {
+      "$ref": "#/components/schemas/ExternalActionDetail"
+     },
+     {
+      "$ref": "#/components/schemas/TextActionDetail"
+     },
+     {
+      "$ref": "#/components/schemas/ShareLocationActionDetail"
+     },
+     {
+      "$ref": "#/components/schemas/SharePhoneNoActionDetail"
+     },
+     {
+      "$ref": "#/components/schemas/DialActionDetail"
+     },
+     {
+      "$ref": "#/components/schemas/QuickReplyActionDetail"
+     },
+     {
+      "$ref": "#/components/schemas/CopyCodeActionDetail"
+     }
+    ],
+    "discriminator": {
+     "propertyName": "action",
+     "mapping": {
+      "OPEN_URL": "#/components/schemas/OpenUrlActionDetail",
+      "ACCOUNT_LINK": "#/components/schemas/AccountLinkActionDetail",
+      "POST_BACK": "#/components/schemas/PostBackActionDetail",
+      "EXTERNAL": "#/components/schemas/ExternalActionDetail",
+      "TEXT": "#/components/schemas/TextActionDetail",
+      "SHARE_LOCATION": "#/components/schemas/ShareLocationActionDetail",
+      "SHARE_PHONE_NO": "#/components/schemas/SharePhoneNoActionDetail",
+      "DIAL": "#/components/schemas/DialActionDetail",
+      "QUICK_REPLY": "#/components/schemas/QuickReplyActionDetail",
+      "COPY_CODE": "#/components/schemas/CopyCodeActionDetail"
+     }
+    }
+   },
+   "OpenUrlActionDetail": {
+    "type": "object",
+    "properties": {
+     "serialVersionUID": {
+      "type": "object",
+      "description": "Unresolved type (staticfinallong)"
+     },
+     "action": {
+      "type": "string",
+      "description": "Type of Action"
+     },
+     "url": {
+      "type": "string",
+      "description": "URL to be opened in quick reply"
+     },
+     "urlType": {
+      "type": "object",
+      "description": "describe the URL Type"
+     },
+     "target": {
+      "type": "string",
+      "description": "target of open url in quick reply"
+     },
+     "value": {
+      "type": "string"
+     }
+    },
+    "description": "Open URL Action in Quick Reply",
+    "required": [
+     "action"
+    ]
+   },
+   "AccountLinkActionDetail": {
+    "type": "object",
+    "properties": {
+     "serialVersionUID": {
+      "type": "object",
+      "description": "Unresolved type (staticfinallong)"
+     },
+     "action": {
+      "type": "string",
+      "description": "Type of Action"
+     },
+     "accountLinkUrl": {
+      "type": "string",
+      "description": "URL for Account Link"
+     }
+    },
+    "description": "Account Link Action in Quick Reply",
+    "required": [
+     "action"
+    ]
+   },
+   "PostBackActionDetail": {
+    "type": "object",
+    "properties": {
+     "serialVersionUID": {
+      "type": "object",
+      "description": "Unresolved type (staticfinallong)"
+     },
+     "action": {
+      "type": "string",
+      "description": "Type of Action"
+     },
+     "postBackHandlerType": {
+      "type": "string",
+      "description": "Post back handler type"
+     }
+    },
+    "description": "Post Back Action in Quick Reply",
+    "required": [
+     "action"
+    ]
+   },
+   "ExternalActionDetail": {
+    "type": "object",
+    "properties": {
+     "serialVersionUID": {
+      "type": "object",
+      "description": "Unresolved type (staticfinallong)"
+     },
+     "action": {
+      "type": "string",
+      "description": "Type of Action"
+     },
+     "params": {
+      "type": "string",
+      "description": "Params for external params."
+     },
+     "uri": {
+      "type": "string",
+      "description": "URI for external action."
+     }
+    },
+    "description": "External Action in Quick Reply",
+    "required": [
+     "action"
+    ]
+   },
+   "TextActionDetail": {
+    "type": "object",
+    "properties": {
+     "serialVersionUID": {
+      "type": "object",
+      "description": "Unresolved type (staticfinallong)"
+     },
+     "action": {
+      "type": "string",
+      "description": "Type of Action"
+     },
+     "data": {
+      "type": "string"
+     },
+     "displayText": {
+      "type": "string"
+     }
+    },
+    "description": "Text Action in Quick Reply",
+    "required": [
+     "action"
+    ]
+   },
+   "ShareLocationActionDetail": {
+    "type": "object",
+    "properties": {
+     "serialVersionUID": {
+      "type": "object",
+      "description": "Unresolved type (staticfinallong)"
+     },
+     "action": {
+      "type": "string",
+      "description": "Type of Action"
+     }
+    },
+    "description": "Share Location Action in Quick Reply",
+    "required": [
+     "action"
+    ]
+   },
+   "SharePhoneNoActionDetail": {
+    "type": "object",
+    "properties": {
+     "serialVersionUID": {
+      "type": "object",
+      "description": "Unresolved type (staticfinallong)"
+     },
+     "action": {
+      "type": "string",
+      "description": "Type of Action"
+     }
+    },
+    "description": "Share Phone Number Action in Quick Reply",
+    "required": [
+     "action"
+    ]
+   },
+   "DialActionDetail": {
+    "type": "object",
+    "properties": {
+     "serialVersionUID": {
+      "type": "object",
+      "description": "Unresolved type (staticfinallong)"
+     },
+     "action": {
+      "type": "string",
+      "description": "Type of Action"
+     },
+     "countryCode": {
+      "type": "string",
+      "description": "Country Code of phone number"
+     },
+     "phoneNumber": {
+      "type": "string",
+      "description": "Phone Number for dialing"
+     }
+    },
+    "description": "Dial a number for Action",
+    "required": [
+     "action"
+    ]
+   },
+   "QuickReplyActionDetail": {
+    "type": "object",
+    "properties": {
+     "serialVersionUID": {
+      "type": "object",
+      "description": "Unresolved type (staticfinallong)"
+     },
+     "action": {
+      "type": "string",
+      "description": "Type of Action"
+     },
+     "replyText": {
+      "type": "string",
+      "description": "text to reply"
+     },
+     "label": {
+      "type": "string",
+      "description": "label"
+     }
+    },
+    "description": "Quick Reply Action",
+    "required": [
+     "action"
+    ]
+   },
+   "CopyCodeActionDetail": {
+    "type": "object",
+    "properties": {
+     "serialVersionUID": {
+      "type": "object",
+      "description": "Unresolved type (staticfinallong)"
+     },
+     "action": {
+      "type": "string",
+      "description": "Type of Action"
+     },
+     "code": {
+      "type": "string",
+      "description": "code to be copied"
+     },
+     "codeType": {
+      "type": "object",
+      "description": "describes the code type"
+     },
+     "value": {
+      "type": "object",
+      "description": "Unresolved type (finalString)"
+     }
+    },
+    "description": "Copy Code Action",
+    "required": [
+     "action"
+    ]
+   },
+   "Placeholder": {
+    "type": "object",
+    "properties": {
+     "assetClass": {
+      "type": "string",
+      "description": "The name of the Asset class used in the placeholder."
+     },
+     "customFieldName": {
+      "type": "string",
+      "description": "The name of the custom field used in the placeholder."
+     },
+     "displayName": {
+      "type": "string",
+      "description": "display Name for placeholder."
+     },
+     "resolvedValue": {
+      "type": "string",
+      "description": "Resolved Value for placeholder."
+     }
+    }
+   },
+   "Header": {
+    "type": "object",
+    "properties": {
+     "text": {
+      "type": "string"
+     },
+     "image": {
+      "$ref": "#/components/schemas/ImageAttachment"
+     },
+     "video": {
+      "$ref": "#/components/schemas/VideoAttachment"
+     },
+     "document": {
+      "$ref": "#/components/schemas/DocumentAttachment"
+     }
+    }
+   },
+   "MultiMediaAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "attachments": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Attachment"
+      },
+      "description": "list of attachment. can be of same or different types"
+     }
+    },
+    "description": "Attachment with multiple medias in content.",
+    "required": [
+     "type"
+    ]
+   },
+   "GeoLocationAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "latitude": {
+      "type": "number",
+      "format": "double",
+      "description": "Latitude of the location"
+     },
+     "longitude": {
+      "type": "number",
+      "format": "double",
+      "description": "Longitude of the location"
+     },
+     "address": {
+      "type": "string",
+      "description": "Address of the location"
+     },
+     "name": {
+      "type": "string",
+      "description": "Name of the location"
+     }
+    },
+    "description": "Describes the schema for a geo location attachment.",
+    "required": [
+     "type"
+    ]
+   },
+   "CoBrowseInviteAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "title": {
+      "type": "string",
+      "description": "Title of the card."
+     },
+     "description": {
+      "type": "string",
+      "description": "Description of the card."
+     },
+     "previewImageUrl": {
+      "type": "string",
+      "description": "Preview Url of the image."
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response"
+     },
+     "buttons": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Button"
+      },
+      "description": "Buttons used in the card"
+     },
+     "defaultButton": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "Default Button used in the card"
+     },
+     "reSubmittable": {
+      "type": "boolean",
+      "description": "Boolean flag of whether the card is re-submittable in Live Chat"
+     },
+     "postSubmitImageUrl": {
+      "type": "string",
+      "description": "Image Url after submitting in Live Chat"
+     },
+     "postSubmitSubtitle": {
+      "type": "string",
+      "description": "Subtitle after submitting in Live Chat"
+     },
+     "postSubmitTitle": {
+      "type": "string",
+      "description": "Title after submitting in Live Chat"
+     },
+     "header": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Header"
+       }
+      ],
+      "description": "Header for Whatsapp interactive messages"
+     },
+     "footerText": {
+      "type": "string",
+      "description": "Footer text for Whatsapp interactive messages"
+     },
+     "tAndC": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "Terms and Conditions button"
+     }
+    },
+    "description": "Attachment for co-browse invite message.",
+    "required": [
+     "type"
+    ]
+   },
+   "RichTextCarouselAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "cardAttachmentList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/CardAttachment"
+      },
+      "description": "List of cards in the carousel"
+     },
+     "mediaAttachmentList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Attachment"
+      },
+      "description": "List of medias in the carousel"
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response in Live Chat."
+     },
+     "reSubmittable": {
+      "type": "boolean",
+      "description": "Boolean flag of whether the carousel is re-submittable in Live Chat"
+     },
+     "postSubmitImageUrl": {
+      "type": "string",
+      "description": "Image Url after submitting in Live Chat"
+     },
+     "postSubmitSubtitle": {
+      "type": "string",
+      "description": "Subtitle after submitting in Live Chat"
+     },
+     "postSubmitTitle": {
+      "type": "string",
+      "description": "Title after submitting in Live Chat"
+     },
+     "clickThroughUrl": {
+      "type": "string",
+      "description": "Click Through Url"
+     },
+     "title": {
+      "type": "string",
+      "description": "Title of the carousel"
+     },
+     "description": {
+      "type": "string",
+      "description": "Description of the carousel"
+     },
+     "buttons": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Button"
+      },
+      "description": "Buttons for the carousel"
+     },
+     "disableUserFeedback": {
+      "type": "boolean",
+      "description": "Boolean flag to disable user feedback"
+     },
+     "hideAttachment": {
+      "type": "boolean",
+      "description": "Boolean flag to hide attachment"
+     },
+     "screenReaderLabel": {
+      "type": "string",
+      "description": "Screen reader label"
+     },
+     "otherConfigs": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      },
+      "description": "Additional configuration for the template"
+     }
+    },
+    "description": "Attachment for rich text carousel message.",
+    "required": [
+     "type"
+    ]
+   },
+   "QuickReplyAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "message": {
+      "type": "string",
+      "description": "Message for the quick reply being sent."
+     },
+     "mediaAttachment": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Attachment"
+       }
+      ],
+      "description": "An associated media with the quick reply, supported in twitter."
+     },
+     "quickReplies": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Button"
+      },
+      "description": "Quick reply options being used."
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response."
+     }
+    },
+    "description": "Describes the schema for quick reply attachment.",
+    "required": [
+     "type"
+    ]
+   },
+   "AudioAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "url": {
+      "type": "string",
+      "description": "Url of the Audio source."
+     },
+     "urlHash": {
+      "type": "string",
+      "description": "Hashed Url of the Audio source."
+     },
+     "title": {
+      "type": "string",
+      "description": "Title for the Audio, if any."
+     },
+     "previewImageUrl": {
+      "type": "string",
+      "description": "Preview url of the Audio, if any"
+     },
+     "hashedPreviewImageUrl": {
+      "type": "string",
+      "description": "Hashed Preview url of the Audio, if any"
+     },
+     "mimeType": {
+      "type": "string",
+      "description": "Mimetype of the Audio, if any"
+     },
+     "encryptedUrl": {
+      "type": "string",
+      "description": "Encrypted url of the audio to publish"
+     },
+     "sizeInBytes": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Size of media in bytes"
+     }
+    },
+    "description": "Attachment with audio link.",
+    "required": [
+     "type"
+    ]
+   },
+   "AuthenticationAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "receivedMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "replyMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "title": {
+      "type": "string"
+     },
+     "subtitle": {
+      "type": "string"
+     },
+     "secondarySubtitle": {
+      "type": "string"
+     },
+     "tertiarySubtitle": {
+      "type": "string"
+     },
+     "imageTitle": {
+      "type": "string"
+     },
+     "imageSubtitle": {
+      "type": "string"
+     },
+     "style": {
+      "type": "string"
+     },
+     "imageUrl": {
+      "type": "string"
+     },
+     "scope": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "loginAppConfigId": {
+      "type": "string"
+     },
+     "additionalParameters": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      }
+     }
+    },
+    "description": "Attachment for interactive message with authentication details.",
+    "required": [
+     "type"
+    ]
+   },
+   "ApplePayInteractiveAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "receivedMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "replyMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "title": {
+      "type": "string"
+     },
+     "subtitle": {
+      "type": "string"
+     },
+     "secondarySubtitle": {
+      "type": "string"
+     },
+     "tertiarySubtitle": {
+      "type": "string"
+     },
+     "imageTitle": {
+      "type": "string"
+     },
+     "imageSubtitle": {
+      "type": "string"
+     },
+     "style": {
+      "type": "string"
+     },
+     "imageUrl": {
+      "type": "string"
+     },
+     "paymentRequest": {
+      "$ref": "#/components/schemas/PaymentRequest"
+     },
+     "state": {
+      "type": "string"
+     },
+     "paymentAccountId": {
+      "type": "string"
+     },
+     "lineItems": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "description": "Unresolved type (PaymentItem)"
+      }
+     },
+     "total": {
+      "type": "object",
+      "description": "Unresolved type (PaymentItem)"
+     },
+     "applePay": {
+      "type": "object",
+      "description": "Unresolved type (ApplePay)"
+     },
+     "merchantName": {
+      "type": "string"
+     },
+     "countryCode": {
+      "type": "string"
+     },
+     "currencyCode": {
+      "type": "string"
+     },
+     "requiredBillingContactFields": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "requiredShippingContactFields": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "supportedCountries": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "shippingMethods": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "description": "Unresolved type (ShippingMethod)"
+      }
+     },
+     "supportedNetworks": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "merchantCapabilities": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "label": {
+      "type": "string"
+     },
+     "detail": {
+      "type": "string"
+     },
+     "amount": {
+      "type": "string"
+     },
+     "identifier": {
+      "type": "string"
+     }
+    },
+    "description": "Attachment for interactive message with apple payment details."
+   },
+   "PaymentRequest": {
+    "type": "object",
+    "properties": {
+     "lineItems": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "description": "Unresolved type (PaymentItem)"
+      }
+     },
+     "total": {
+      "type": "object",
+      "description": "Unresolved type (PaymentItem)"
+     },
+     "applePay": {
+      "type": "object",
+      "description": "Unresolved type (ApplePay)"
+     },
+     "merchantName": {
+      "type": "string"
+     },
+     "countryCode": {
+      "type": "string"
+     },
+     "currencyCode": {
+      "type": "string"
+     },
+     "requiredBillingContactFields": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "requiredShippingContactFields": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "supportedCountries": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "shippingMethods": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "description": "Unresolved type (ApplePayShippingMethod)"
+      }
+     },
+     "label": {
+      "type": "string"
+     },
+     "amount": {
+      "type": "string"
+     },
+     "type": {
+      "type": "string"
+     },
+     "merchantIdentifier": {
+      "type": "string"
+     },
+     "supportedNetworks": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "merchantCapabilities": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "detail": {
+      "type": "string"
+     },
+     "identifier": {
+      "type": "string"
+     }
+    }
+   },
+   "AppLinkAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "receivedMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "replyMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "title": {
+      "type": "string"
+     },
+     "subtitle": {
+      "type": "string"
+     },
+     "secondarySubtitle": {
+      "type": "string"
+     },
+     "tertiarySubtitle": {
+      "type": "string"
+     },
+     "imageTitle": {
+      "type": "string"
+     },
+     "imageSubtitle": {
+      "type": "string"
+     },
+     "style": {
+      "type": "string"
+     },
+     "imageUrl": {
+      "type": "string"
+     },
+     "appId": {
+      "type": "string"
+     },
+     "appName": {
+      "type": "string"
+     },
+     "bId": {
+      "type": "string"
+     },
+     "url": {
+      "type": "string"
+     },
+     "attachments": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Attachment"
+      }
+     },
+     "useLiveLayout": {
+      "type": "boolean"
+     }
+    },
+    "description": "Attachment for interactive message with app details.",
+    "required": [
+     "type"
+    ]
+   },
+   "ListPickerAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "receivedMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "replyMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "title": {
+      "type": "string"
+     },
+     "subtitle": {
+      "type": "string"
+     },
+     "secondarySubtitle": {
+      "type": "string"
+     },
+     "tertiarySubtitle": {
+      "type": "string"
+     },
+     "imageTitle": {
+      "type": "string"
+     },
+     "imageSubtitle": {
+      "type": "string"
+     },
+     "style": {
+      "type": "string"
+     },
+     "imageUrl": {
+      "type": "string"
+     },
+     "multipleSelection": {
+      "type": "boolean"
+     },
+     "sections": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Section"
+      }
+     },
+     "header": {
+      "$ref": "#/components/schemas/Header"
+     },
+     "body": {
+      "type": "string"
+     },
+     "footerText": {
+      "type": "string"
+     },
+     "buttonTitle": {
+      "type": "string"
+     },
+     "order": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Item"
+      }
+     },
+     "id": {
+      "type": "string"
+     }
+    },
+    "description": "Attachment for interactive message with list picker.",
+    "required": [
+     "type"
+    ]
+   },
+   "Section": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "type": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "pinCount": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "board": {
+      "$ref": "#/components/schemas/Board"
+     },
+     "createdTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "permalink": {
+      "type": "string"
+     }
+    }
+   },
+   "Board": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "type": {
+      "type": "string"
+     },
+     "category": {
+      "type": "string"
+     },
+     "access": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "collabBoardEmail": {
+      "type": "boolean"
+     },
+     "collaboratedByMe": {
+      "type": "boolean"
+     },
+     "collaboratorCount": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "collaboratorInviteCounts": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      }
+     },
+     "cover": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      }
+     },
+     "coverImages": {
+      "type": "object"
+     },
+     "createdAt": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Epoch milliseconds (UTC)"
+     },
+     "debug": {
+      "type": "object"
+     },
+     "description": {
+      "type": "string"
+     },
+     "followedByMe": {
+      "type": "boolean"
+     },
+     "followerCount": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "imageCoverUrl": {
+      "type": "string"
+     },
+     "imageThumbnailUrl": {
+      "type": "string"
+     },
+     "images": {
+      "type": "object"
+     },
+     "isCollaborative": {
+      "type": "boolean"
+     },
+     "layout": {
+      "type": "string"
+     },
+     "mapId": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "pinCount": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "pinThumbnailUrls": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "privacy": {
+      "type": "string"
+     },
+     "recommendationReason": {
+      "type": "object"
+     },
+     "url": {
+      "type": "string"
+     },
+     "viewerInvitation": {
+      "type": "object"
+     },
+     "owner": {
+      "$ref": "#/components/schemas/BoardOwnerInfo"
+     }
+    }
+   },
+   "BoardOwnerInfo": {
+    "type": "object",
+    "properties": {
+     "username": {
+      "type": "string"
+     }
+    }
+   },
+   "Item": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "Item name"
+     },
+     "type": {
+      "type": "string",
+      "description": "Item type"
+     },
+     "label": {
+      "type": "string",
+      "description": "Item label"
+     },
+     "fieldType": {
+      "type": "string",
+      "description": "Item field type"
+     },
+     "checkConditions": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Item conditions"
+     },
+     "value": {
+      "type": "string",
+      "description": "Item value"
+     },
+     "additional": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      },
+      "description": "Item additional details"
+     },
+     "entityContext": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "description": "Item entity specific context"
+     },
+     "values": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ItemValueDetail"
+      },
+      "description": "Item values"
+     },
+     "isComplex": {
+      "type": "boolean",
+      "description": "Specifies if item is complex"
+     },
+     "childItems": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Item"
+      },
+      "description": "Child items for nested conditions"
+     }
+    },
+    "description": "Describes the schema for a rule condition"
+   },
+   "ItemValueDetail": {
+    "type": "object",
+    "properties": {
+     "key": {
+      "type": "string",
+      "description": "Value detail key"
+     },
+     "label": {
+      "type": "string",
+      "description": "Value detail dispaly name"
+     },
+     "metadata": {
+      "type": "object",
+      "description": "Value detail additional metadata"
+     },
+     "keyType": {
+      "type": "string",
+      "description": "Value detail type of key"
+     },
+     "assetType": {
+      "type": "string",
+      "description": "Value detail type of asset"
+     },
+     "searchTags": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Value detail tags for searching"
+     },
+     "additional": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      },
+      "description": "Value detail additional details"
+     }
+    },
+    "description": "Describes the schema for values used in rule condition"
+   },
+   "LocationRequestAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "receivedMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "replyMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "title": {
+      "type": "string"
+     },
+     "subtitle": {
+      "type": "string"
+     },
+     "secondarySubtitle": {
+      "type": "string"
+     },
+     "tertiarySubtitle": {
+      "type": "string"
+     },
+     "imageTitle": {
+      "type": "string"
+     },
+     "imageSubtitle": {
+      "type": "string"
+     },
+     "style": {
+      "type": "string"
+     },
+     "imageUrl": {
+      "type": "string"
+     },
+     "message": {
+      "type": "string",
+      "description": "Message text to display when requesting location"
+     }
+    },
+    "description": "Attachment for location request message.",
+    "required": [
+     "type"
+    ]
+   },
+   "CTAUrlAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "header": {
+      "$ref": "#/components/schemas/Header"
+     },
+     "body": {
+      "type": "string",
+      "description": "Body text of the message"
+     },
+     "footerText": {
+      "type": "string",
+      "description": "Footer text of the message"
+     },
+     "ctaUrl": {
+      "type": "string",
+      "description": "URL for the call-to-action button"
+     },
+     "displayText": {
+      "type": "string",
+      "description": "Display text for the CTA button"
+     },
+     "urlPlaceHolder": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Placeholder"
+       }
+      ],
+      "description": "Placeholder for URL"
+     },
+     "urlType": {
+      "type": "object",
+      "description": "Unresolved type (UrlType)"
+     }
+    },
+    "description": "Attachment for CTA URL message.",
+    "required": [
+     "type"
+    ]
+   },
+   "AddressAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "header": {
+      "type": "string",
+      "description": "Header of the message"
+     },
+     "footer": {
+      "type": "string",
+      "description": "Footer text of the message"
+     },
+     "message": {
+      "type": "string",
+      "description": "Message text to display when requesting address"
+     },
+     "addressFields": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "description": "Unresolved type (AddressField)"
+      },
+      "description": "List of address fields"
+     },
+     "useSavedAddresses": {
+      "type": "boolean",
+      "description": "Boolean flag to use saved addresses"
+     },
+     "fieldName": {
+      "type": "string",
+      "description": "Name of the address field"
+     },
+     "prefilledValuePlaceHolder": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Placeholder"
+       }
+      ],
+      "description": "Placeholder for prefilled value"
+     },
+     "copyResponseToCustomField": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Placeholder"
+       }
+      ],
+      "description": "Placeholder for copying response to custom field"
+     }
+    },
+    "description": "Attachment for address request message.",
+    "required": [
+     "type"
+    ]
+   },
+   "TimePickerAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "receivedMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "replyMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "title": {
+      "type": "string"
+     },
+     "subtitle": {
+      "type": "string"
+     },
+     "secondarySubtitle": {
+      "type": "string"
+     },
+     "tertiarySubtitle": {
+      "type": "string"
+     },
+     "imageTitle": {
+      "type": "string"
+     },
+     "imageSubtitle": {
+      "type": "string"
+     },
+     "style": {
+      "type": "string"
+     },
+     "imageUrl": {
+      "type": "string"
+     },
+     "timeslots": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "description": "Unresolved type (Timeslot)"
+      }
+     },
+     "timezone": {
+      "type": "string"
+     },
+     "location": {
+      "$ref": "#/components/schemas/Location"
+     },
+     "duration": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "startTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "latitude": {
+      "type": "number",
+      "format": "double"
+     },
+     "longitude": {
+      "type": "number",
+      "format": "double"
+     },
+     "radius": {
+      "type": "number",
+      "format": "double"
+     }
+    },
+    "description": "Attachment for interactive message with time picker.",
+    "required": [
+     "type"
+    ]
+   },
+   "Location": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string"
+     },
+     "address": {
+      "type": "string"
+     },
+     "crossStreet": {
+      "type": "string"
+     },
+     "lat": {
+      "type": "number",
+      "format": "double"
+     },
+     "lng": {
+      "type": "number",
+      "format": "double"
+     },
+     "postalCode": {
+      "type": "string"
+     },
+     "cc": {
+      "type": "string"
+     },
+     "city": {
+      "type": "string"
+     },
+     "state": {
+      "type": "string"
+     },
+     "country": {
+      "type": "string"
+     },
+     "distance": {
+      "type": "number",
+      "format": "double"
+     }
+    }
+   },
+   "RichLinkAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "link": {
+      "type": "string"
+     },
+     "title": {
+      "type": "string"
+     },
+     "mediaUrl": {
+      "type": "string"
+     },
+     "previewUrl": {
+      "type": "string"
+     }
+    },
+    "description": "Attachment for rich link.",
+    "required": [
+     "type"
+    ]
+   },
+   "EventsAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "events": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Event"
+      },
+      "description": "Collection of events"
+     }
+    },
+    "description": "Describes the schema for events attachment.",
+    "required": [
+     "type"
+    ]
+   },
+   "Event": {
+    "oneOf": [
+     {
+      "$ref": "#/components/schemas/ExternalDataEvent"
+     }
+    ],
+    "discriminator": {
+     "propertyName": "type",
+     "mapping": {
+      "ExternalDataEvent": "#/components/schemas/ExternalDataEvent"
+     }
+    }
+   },
+   "ExternalDataEvent": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of event"
+     },
+     "filledForm": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/FilledForm"
+       }
+      ],
+      "description": "Data of the form filled"
+     }
+    },
+    "description": "Data from external system",
+    "required": [
+     "type"
+    ]
+   },
+   "FilledForm": {
+    "type": "object",
+    "properties": {
+     "formId": {
+      "type": "string",
+      "description": "Id of the form"
+     },
+     "plainFieldValues": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      },
+      "description": "fields keys and values"
+     },
+     "subFilledForms": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "array",
+       "items": {
+        "$ref": "#/components/schemas/FilledForm"
+       }
+      },
+      "description": "subforms of current form"
+     }
+    },
+    "description": "Details of the form filled"
+   },
+   "ContactDetailsFormAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "receivedMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "replyMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "title": {
+      "type": "string"
+     },
+     "subtitle": {
+      "type": "string"
+     },
+     "secondarySubtitle": {
+      "type": "string"
+     },
+     "tertiarySubtitle": {
+      "type": "string"
+     },
+     "imageTitle": {
+      "type": "string"
+     },
+     "imageSubtitle": {
+      "type": "string"
+     },
+     "style": {
+      "type": "string"
+     },
+     "imageUrl": {
+      "type": "string"
+     },
+     "messageTitle": {
+      "type": "string"
+     },
+     "messageSubtitle": {
+      "type": "string"
+     },
+     "buttonTitle": {
+      "type": "string"
+     },
+     "form": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Form"
+       }
+      ],
+      "description": "The Form with its fields"
+     },
+     "businessPrivacyUrl": {
+      "type": "string"
+     },
+     "fbColorTheme": {
+      "type": "string"
+     },
+     "fbReceiverAppId": {
+      "type": "string"
+     },
+     "postSubmitTitle": {
+      "type": "string"
+     },
+     "postSubmitImageUrl": {
+      "type": "string"
+     },
+     "postSubmitSubtitle": {
+      "type": "string"
+     },
+     "disableManualResponse": {
+      "type": "boolean"
+     },
+     "submit": {
+      "$ref": "#/components/schemas/Button"
+     },
+     "postSubmit": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "non-clickable button shown after form is submitted"
+     },
+     "showSubmittedContent": {
+      "type": "boolean"
+     },
+     "showContentPostSubmit": {
+      "type": "boolean"
+     },
+     "showSummary": {
+      "type": "boolean"
+     }
+    },
+    "required": [
+     "type"
+    ]
+   },
+   "Form": {
+    "type": "object",
+    "properties": {
+     "formId": {
+      "type": "string"
+     },
+     "formTitle": {
+      "type": "string"
+     },
+     "repeatable": {
+      "type": "boolean"
+     },
+     "minCount": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "maxCount": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "fields": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Field"
+      }
+     }
+    }
+   },
+   "Field": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "description": "Id of the field"
+     },
+     "apiName": {
+      "type": "string",
+      "description": "Api Name for the field"
+     },
+     "name": {
+      "type": "string",
+      "description": "Name of the field"
+     },
+     "description": {
+      "type": "string",
+      "description": "Description of the field"
+     },
+     "type": {
+      "type": "string",
+      "description": "Type of the field"
+     },
+     "entityDefinitionId": {
+      "type": "string",
+      "description": "Id of the definition this field is a part of."
+     },
+     "lookupType": {
+      "type": "string",
+      "description": "If the field is of type LOOKUP, this would specify which entity is the reference for lookup"
+     },
+     "parentChild": {
+      "type": "boolean",
+      "description": "If this entity is of type LOOKUP and has a parentChild relationship, the entity with the referenced value is also deleted is the referenced entity is deleted."
+     },
+     "form": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Form"
+       }
+      ],
+      "description": "If the field is of type FORM, its definition is stored here"
+     },
+     "multivalued": {
+      "type": "boolean",
+      "description": "Specifies if the field is multivalued or not."
+     },
+     "mandatory": {
+      "type": "boolean",
+      "description": "Specifies if the field is mandatory or not."
+     },
+     "controllingField": {
+      "type": "string",
+      "description": "The id of the field controlling its values, if any."
+     },
+     "picklistValues": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/PicklistValue"
+      },
+      "description": "Picklist values defined for the field, if any."
+     },
+     "defaultValue": {
+      "type": "object",
+      "description": "Default value for the field, if any."
+     },
+     "additional": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      },
+      "description": "Additional info based on type of field."
+     },
+     "langVsTranslatedFieldValues": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object",
+       "additionalProperties": {
+        "type": "string"
+       }
+      },
+      "description": "Multiple Language support for field values"
+     }
+    }
+   },
+   "PicklistValue": {
+    "type": "object",
+    "properties": {
+     "label": {
+      "type": "string"
+     },
+     "value": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     },
+     "iconUrl": {
+      "type": "string"
+     },
+     "controllingFieldValues": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "standard": {
+      "type": "string"
+     },
+     "active": {
+      "type": "boolean"
+     },
+     "defaultValue": {
+      "type": "boolean"
+     },
+     "additional": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      }
+     },
+     "langVsTranslatedFieldValues": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object",
+       "additionalProperties": {
+        "type": "string"
+       }
+      }
+     }
+    }
+   },
+   "FeedbackAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "title": {
+      "type": "string",
+      "description": "Title of the feedback form"
+     },
+     "subtitle": {
+      "type": "string",
+      "description": "Subtitle of the feedback form"
+     },
+     "questionTitle": {
+      "type": "string",
+      "description": "Question title for the feedback form"
+     },
+     "postSubmitTitle": {
+      "type": "string",
+      "description": "Title to display after submission"
+     },
+     "submit": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "Submit button"
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response"
+     },
+     "disableUserFeedback": {
+      "type": "boolean",
+      "description": "Boolean flag to disable user feedback"
+     },
+     "feedbackLabels": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "description": "Unresolved type (FeedbackLabel)"
+      },
+      "description": "List of feedback labels"
+     },
+     "feedbackType": {
+      "type": "string"
+     },
+     "maxFeedbackRating": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Maximum feedback rating"
+     },
+     "feedbackVariant": {
+      "type": "string"
+     },
+     "feedbackCommentEnabled": {
+      "type": "boolean",
+      "description": "Whether feedback comment is enabled"
+     },
+     "feedbackCommentPlaceholder": {
+      "type": "string",
+      "description": "Placeholder text for feedback comment"
+     },
+     "ruleId": {
+      "type": "string",
+      "description": "Rule ID to execute when feedback is submitted"
+     },
+     "reverseOrder": {
+      "type": "boolean",
+      "description": "Whether to reverse the order of feedback options"
+     },
+     "businessPrivacyUrl": {
+      "type": "string",
+      "description": "Business privacy URL"
+     },
+     "expiresIn": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Number of days until the feedback form expires"
+     },
+     "hideAttachment": {
+      "type": "boolean",
+      "description": "Boolean flag to hide attachment"
+     },
+     "screenReaderLabel": {
+      "type": "string",
+      "description": "Screen reader label"
+     },
+     "label": {
+      "type": "string",
+      "description": "Label text"
+     }
+    },
+    "description": "Attachment for feedback form message.",
+    "required": [
+     "type"
+    ]
+   },
+   "FormAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "receivedMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "replyMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "title": {
+      "type": "string"
+     },
+     "subtitle": {
+      "type": "string"
+     },
+     "secondarySubtitle": {
+      "type": "string"
+     },
+     "tertiarySubtitle": {
+      "type": "string"
+     },
+     "imageTitle": {
+      "type": "string"
+     },
+     "imageSubtitle": {
+      "type": "string"
+     },
+     "style": {
+      "type": "string"
+     },
+     "imageUrl": {
+      "type": "string"
+     },
+     "messageTitle": {
+      "type": "string"
+     },
+     "messageSubtitle": {
+      "type": "string"
+     },
+     "buttonTitle": {
+      "type": "string"
+     },
+     "form": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Form"
+       }
+      ],
+      "description": "The Form with its fields"
+     },
+     "businessPrivacyUrl": {
+      "type": "string"
+     },
+     "fbColorTheme": {
+      "type": "string"
+     },
+     "fbReceiverAppId": {
+      "type": "string"
+     },
+     "postSubmitTitle": {
+      "type": "string"
+     },
+     "postSubmitImageUrl": {
+      "type": "string"
+     },
+     "postSubmitSubtitle": {
+      "type": "string"
+     },
+     "disableManualResponse": {
+      "type": "boolean"
+     },
+     "submit": {
+      "$ref": "#/components/schemas/Button"
+     },
+     "postSubmit": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "non-clickable button shown after form is submitted"
+     },
+     "showSubmittedContent": {
+      "type": "boolean"
+     },
+     "showContentPostSubmit": {
+      "type": "boolean"
+     },
+     "showSummary": {
+      "type": "boolean"
+     }
+    },
+    "description": "Describes the schema for form attachment.",
+    "required": [
+     "type"
+    ]
+   },
+   "SecureFormAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "receivedMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "replyMessage": {
+      "type": "object",
+      "description": "Unresolved type (MessageView)"
+     },
+     "title": {
+      "type": "string"
+     },
+     "subtitle": {
+      "type": "string"
+     },
+     "secondarySubtitle": {
+      "type": "string"
+     },
+     "tertiarySubtitle": {
+      "type": "string"
+     },
+     "imageTitle": {
+      "type": "string"
+     },
+     "imageSubtitle": {
+      "type": "string"
+     },
+     "style": {
+      "type": "string"
+     },
+     "imageUrl": {
+      "type": "string"
+     },
+     "messageTitle": {
+      "type": "string"
+     },
+     "messageSubtitle": {
+      "type": "string"
+     },
+     "buttonTitle": {
+      "type": "string"
+     },
+     "form": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Form"
+       }
+      ],
+      "description": "The Form with its fields"
+     },
+     "businessPrivacyUrl": {
+      "type": "string"
+     },
+     "fbColorTheme": {
+      "type": "string"
+     },
+     "fbReceiverAppId": {
+      "type": "string"
+     },
+     "postSubmitTitle": {
+      "type": "string"
+     },
+     "postSubmitImageUrl": {
+      "type": "string"
+     },
+     "postSubmitSubtitle": {
+      "type": "string"
+     },
+     "disableManualResponse": {
+      "type": "boolean"
+     },
+     "submit": {
+      "$ref": "#/components/schemas/Button"
+     },
+     "postSubmit": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "non-clickable button shown after form is submitted"
+     },
+     "showSubmittedContent": {
+      "type": "boolean"
+     },
+     "showContentPostSubmit": {
+      "type": "boolean"
+     },
+     "showSummary": {
+      "type": "boolean"
+     },
+     "disableUserFeedback": {
+      "type": "boolean",
+      "description": "Boolean flag to disable user feedback"
+     },
+     "reCaptchaValidated": {
+      "type": "boolean",
+      "description": "Boolean flag indicating if reCAPTCHA is validated"
+     },
+     "submitted": {
+      "type": "boolean",
+      "description": "Boolean flag indicating if form is submitted"
+     },
+     "cancel": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "Cancel button"
+     },
+     "hideAttachment": {
+      "type": "boolean",
+      "description": "Boolean flag to hide attachment"
+     },
+     "screenReaderLabel": {
+      "type": "string",
+      "description": "Screen reader label"
+     },
+     "expiryTimestamp": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Expiry timestamp of the submit token"
+     },
+     "submitTokenExpiryInSeconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Submit token expiry in seconds"
+     },
+     "dataValidityInSeconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Data validity in seconds"
+     },
+     "readTokenExpiryInSeconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Read token expiry in seconds"
+     },
+     "afterAccessExpiryInSeconds": {
+      "type": "integer",
+      "format": "int64",
+      "description": "After access expiry in seconds"
+     }
+    },
+    "description": "Attachment for secure form message.",
+    "required": [
+     "type"
+    ]
+   },
+   "AppointmentAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "selectDateTitle": {
+      "type": "string",
+      "description": "Title for date selection"
+     },
+     "selectTimeTitle": {
+      "type": "string",
+      "description": "Title for time selection"
+     },
+     "selectDatePlaceholder": {
+      "type": "string",
+      "description": "Placeholder for date selection"
+     },
+     "selectTimePlaceholder": {
+      "type": "string",
+      "description": "Placeholder for time selection"
+     },
+     "submitDateTitle": {
+      "type": "string",
+      "description": "Title for submitted date"
+     },
+     "submitTimeTitle": {
+      "type": "string",
+      "description": "Title for submitted time"
+     },
+     "numDays": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Number of days to show appointments"
+     },
+     "offsetDays": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Offset days from current date"
+     },
+     "submit": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "Submit button"
+     },
+     "postSubmit": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "Post-submit button"
+     },
+     "slotDefinitionConfigId": {
+      "type": "string",
+      "description": "Slot definition configuration ID"
+     },
+     "showSubmittedContent": {
+      "type": "boolean",
+      "description": "Boolean flag to show submitted content"
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response"
+     },
+     "disableUserFeedback": {
+      "type": "boolean",
+      "description": "Boolean flag to disable user feedback"
+     },
+     "postSubmitTitle": {
+      "type": "string",
+      "description": "Title to display after submission"
+     },
+     "params": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      },
+      "description": "Additional parameters"
+     },
+     "selectedDate": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Selected date timestamp"
+     },
+     "dateFormat": {
+      "type": "string",
+      "description": "Date format string"
+     },
+     "noSlotsAvailableLabel": {
+      "type": "string",
+      "description": "Label when no slots are available"
+     },
+     "fromFirstAvailableSlot": {
+      "type": "boolean",
+      "description": "Boolean flag to start from first available slot"
+     },
+     "version": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Version of appointment template"
+     },
+     "hideAttachment": {
+      "type": "boolean",
+      "description": "Boolean flag to hide attachment"
+     },
+     "screenReaderLabel": {
+      "type": "string",
+      "description": "Screen reader label"
+     }
+    },
+    "description": "Attachment for appointment message.",
+    "required": [
+     "type"
+    ]
+   },
+   "SurveyAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "title": {
+      "type": "string",
+      "description": "Title of the survey"
+     },
+     "description": {
+      "type": "string",
+      "description": "Description of the survey"
+     },
+     "name": {
+      "type": "string",
+      "description": "Name of the survey"
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response"
+     },
+     "disableUserFeedback": {
+      "type": "boolean",
+      "description": "Boolean flag to disable user feedback"
+     },
+     "postSubmitTitle": {
+      "type": "string",
+      "description": "Title to display after submission"
+     },
+     "surveyButton": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "Button to open the survey"
+     },
+     "postSubmit": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "Post-submit button"
+     },
+     "showSubmittedContent": {
+      "type": "boolean",
+      "description": "Boolean flag to show submitted content"
+     },
+     "expireAt": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Expiration timestamp"
+     },
+     "autoOpen": {
+      "type": "boolean",
+      "description": "Boolean flag to auto-open the survey"
+     },
+     "opened": {
+      "type": "boolean",
+      "description": "Boolean flag indicating if survey is opened"
+     },
+     "hideAttachment": {
+      "type": "boolean",
+      "description": "Boolean flag to hide attachment"
+     },
+     "screenReaderLabel": {
+      "type": "string",
+      "description": "Screen reader label"
+     }
+    },
+    "description": "Attachment for survey message.",
+    "required": [
+     "type"
+    ]
+   },
+   "ProductCardAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "cardAttachmentList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/CardAttachment"
+      },
+      "description": "List of cards in the carousel"
+     },
+     "mediaAttachmentList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Attachment"
+      },
+      "description": "List of medias in the carousel"
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response in Live Chat."
+     },
+     "reSubmittable": {
+      "type": "boolean",
+      "description": "Boolean flag of whether the carousel is re-submittable in Live Chat"
+     },
+     "postSubmitImageUrl": {
+      "type": "string",
+      "description": "Image Url after submitting in Live Chat"
+     },
+     "postSubmitSubtitle": {
+      "type": "string",
+      "description": "Subtitle after submitting in Live Chat"
+     },
+     "postSubmitTitle": {
+      "type": "string",
+      "description": "Title after submitting in Live Chat"
+     },
+     "clickThroughUrl": {
+      "type": "string",
+      "description": "Click Through Url"
+     },
+     "title": {
+      "type": "string",
+      "description": "Title of the carousel"
+     },
+     "description": {
+      "type": "string",
+      "description": "Description of the carousel"
+     },
+     "buttons": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Button"
+      },
+      "description": "Buttons for the carousel"
+     },
+     "disableUserFeedback": {
+      "type": "boolean",
+      "description": "Boolean flag to disable user feedback"
+     },
+     "hideAttachment": {
+      "type": "boolean",
+      "description": "Boolean flag to hide attachment"
+     },
+     "screenReaderLabel": {
+      "type": "string",
+      "description": "Screen reader label"
+     },
+     "otherConfigs": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      },
+      "description": "Additional configuration for the template"
+     }
+    },
+    "description": "Attachment for product card message.",
+    "required": [
+     "type"
+    ]
+   },
+   "ProductShowcaseCardAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "title": {
+      "type": "string",
+      "description": "Title of the card."
+     },
+     "description": {
+      "type": "string",
+      "description": "Description of the card."
+     },
+     "previewImageUrl": {
+      "type": "string",
+      "description": "Preview Url of the image."
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response"
+     },
+     "buttons": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Button"
+      },
+      "description": "Buttons used in the card"
+     },
+     "defaultButton": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "Default Button used in the card"
+     },
+     "reSubmittable": {
+      "type": "boolean",
+      "description": "Boolean flag of whether the card is re-submittable in Live Chat"
+     },
+     "postSubmitImageUrl": {
+      "type": "string",
+      "description": "Image Url after submitting in Live Chat"
+     },
+     "postSubmitSubtitle": {
+      "type": "string",
+      "description": "Subtitle after submitting in Live Chat"
+     },
+     "postSubmitTitle": {
+      "type": "string",
+      "description": "Title after submitting in Live Chat"
+     },
+     "header": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Header"
+       }
+      ],
+      "description": "Header for Whatsapp interactive messages"
+     },
+     "footerText": {
+      "type": "string",
+      "description": "Footer text for Whatsapp interactive messages"
+     }
+    },
+    "description": "Attachment for product showcase card message.",
+    "required": [
+     "type"
+    ]
+   },
+   "InfoCardAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "cardAttachmentList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/CardAttachment"
+      },
+      "description": "List of cards in the carousel"
+     },
+     "mediaAttachmentList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Attachment"
+      },
+      "description": "List of medias in the carousel"
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response in Live Chat."
+     },
+     "reSubmittable": {
+      "type": "boolean",
+      "description": "Boolean flag of whether the carousel is re-submittable in Live Chat"
+     },
+     "postSubmitImageUrl": {
+      "type": "string",
+      "description": "Image Url after submitting in Live Chat"
+     },
+     "postSubmitSubtitle": {
+      "type": "string",
+      "description": "Subtitle after submitting in Live Chat"
+     },
+     "postSubmitTitle": {
+      "type": "string",
+      "description": "Title after submitting in Live Chat"
+     },
+     "clickThroughUrl": {
+      "type": "string",
+      "description": "Click Through Url"
+     },
+     "title": {
+      "type": "string",
+      "description": "Title of the carousel"
+     },
+     "description": {
+      "type": "string",
+      "description": "Description of the carousel"
+     },
+     "buttons": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Button"
+      },
+      "description": "Buttons for the carousel"
+     },
+     "disableUserFeedback": {
+      "type": "boolean",
+      "description": "Boolean flag to disable user feedback"
+     },
+     "hideAttachment": {
+      "type": "boolean",
+      "description": "Boolean flag to hide attachment"
+     },
+     "screenReaderLabel": {
+      "type": "string",
+      "description": "Screen reader label"
+     },
+     "otherConfigs": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      },
+      "description": "Additional configuration for the template"
+     }
+    },
+    "description": "Attachment for info card message.",
+    "required": [
+     "type"
+    ]
+   },
+   "ProductBannerAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "cardAttachmentList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/CardAttachment"
+      },
+      "description": "List of cards in the carousel"
+     },
+     "mediaAttachmentList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Attachment"
+      },
+      "description": "List of medias in the carousel"
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response in Live Chat."
+     },
+     "reSubmittable": {
+      "type": "boolean",
+      "description": "Boolean flag of whether the carousel is re-submittable in Live Chat"
+     },
+     "postSubmitImageUrl": {
+      "type": "string",
+      "description": "Image Url after submitting in Live Chat"
+     },
+     "postSubmitSubtitle": {
+      "type": "string",
+      "description": "Subtitle after submitting in Live Chat"
+     },
+     "postSubmitTitle": {
+      "type": "string",
+      "description": "Title after submitting in Live Chat"
+     },
+     "clickThroughUrl": {
+      "type": "string",
+      "description": "Click Through Url"
+     },
+     "title": {
+      "type": "string",
+      "description": "Title of the carousel"
+     },
+     "description": {
+      "type": "string",
+      "description": "Description of the carousel"
+     },
+     "buttons": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Button"
+      },
+      "description": "Buttons for the carousel"
+     },
+     "disableUserFeedback": {
+      "type": "boolean",
+      "description": "Boolean flag to disable user feedback"
+     },
+     "hideAttachment": {
+      "type": "boolean",
+      "description": "Boolean flag to hide attachment"
+     },
+     "screenReaderLabel": {
+      "type": "string",
+      "description": "Screen reader label"
+     },
+     "otherConfigs": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      },
+      "description": "Additional configuration for the template"
+     }
+    },
+    "description": "Attachment for product banner message.",
+    "required": [
+     "type"
+    ]
+   },
+   "ProductListAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "cardAttachmentList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/CardAttachment"
+      },
+      "description": "List of cards in the carousel"
+     },
+     "mediaAttachmentList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Attachment"
+      },
+      "description": "List of medias in the carousel"
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response in Live Chat."
+     },
+     "reSubmittable": {
+      "type": "boolean",
+      "description": "Boolean flag of whether the carousel is re-submittable in Live Chat"
+     },
+     "postSubmitImageUrl": {
+      "type": "string",
+      "description": "Image Url after submitting in Live Chat"
+     },
+     "postSubmitSubtitle": {
+      "type": "string",
+      "description": "Subtitle after submitting in Live Chat"
+     },
+     "postSubmitTitle": {
+      "type": "string",
+      "description": "Title after submitting in Live Chat"
+     },
+     "clickThroughUrl": {
+      "type": "string",
+      "description": "Click Through Url"
+     },
+     "title": {
+      "type": "string",
+      "description": "Title of the carousel"
+     },
+     "description": {
+      "type": "string",
+      "description": "Description of the carousel"
+     },
+     "buttons": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Button"
+      },
+      "description": "Buttons for the carousel"
+     },
+     "disableUserFeedback": {
+      "type": "boolean",
+      "description": "Boolean flag to disable user feedback"
+     },
+     "hideAttachment": {
+      "type": "boolean",
+      "description": "Boolean flag to hide attachment"
+     },
+     "screenReaderLabel": {
+      "type": "string",
+      "description": "Screen reader label"
+     },
+     "otherConfigs": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      },
+      "description": "Additional configuration for the template"
+     }
+    },
+    "description": "Attachment for product list message.",
+    "required": [
+     "type"
+    ]
+   },
+   "QuickSelectPillsAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "title": {
+      "type": "string",
+      "description": "Title of the card."
+     },
+     "description": {
+      "type": "string",
+      "description": "Description of the card."
+     },
+     "previewImageUrl": {
+      "type": "string",
+      "description": "Preview Url of the image."
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response"
+     },
+     "buttons": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Button"
+      },
+      "description": "Buttons used in the card"
+     },
+     "defaultButton": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Button"
+       }
+      ],
+      "description": "Default Button used in the card"
+     },
+     "reSubmittable": {
+      "type": "boolean",
+      "description": "Boolean flag of whether the card is re-submittable in Live Chat"
+     },
+     "postSubmitImageUrl": {
+      "type": "string",
+      "description": "Image Url after submitting in Live Chat"
+     },
+     "postSubmitSubtitle": {
+      "type": "string",
+      "description": "Subtitle after submitting in Live Chat"
+     },
+     "postSubmitTitle": {
+      "type": "string",
+      "description": "Title after submitting in Live Chat"
+     },
+     "header": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Header"
+       }
+      ],
+      "description": "Header for Whatsapp interactive messages"
+     },
+     "footerText": {
+      "type": "string",
+      "description": "Footer text for Whatsapp interactive messages"
+     }
+    },
+    "description": "Attachment for quick select pills message.",
+    "required": [
+     "type"
+    ]
+   },
+   "VoiceAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "commands": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/VoiceCommand"
+      }
+     }
+    },
+    "required": [
+     "type"
+    ]
+   },
+   "VoiceCommand": {
+    "oneOf": [
+     {
+      "$ref": "#/components/schemas/IncomingCall"
+     },
+     {
+      "$ref": "#/components/schemas/OutgoingCall"
+     },
+     {
+      "$ref": "#/components/schemas/CallCompleted"
+     },
+     {
+      "$ref": "#/components/schemas/BotTranscript"
+     },
+     {
+      "$ref": "#/components/schemas/PlayText"
+     },
+     {
+      "$ref": "#/components/schemas/LanguageSpecificPlayText"
+     },
+     {
+      "$ref": "#/components/schemas/PlayAudio"
+     },
+     {
+      "$ref": "#/components/schemas/DTMFResponse"
+     },
+     {
+      "$ref": "#/components/schemas/SecureDTMFResponse"
+     },
+     {
+      "$ref": "#/components/schemas/ReceiveDTMF"
+     },
+     {
+      "$ref": "#/components/schemas/RecordedCall"
+     },
+     {
+      "$ref": "#/components/schemas/RecordingAction"
+     },
+     {
+      "$ref": "#/components/schemas/ParticipantAction"
+     },
+     {
+      "$ref": "#/components/schemas/AcwCallback"
+     },
+     {
+      "$ref": "#/components/schemas/Transcript"
+     },
+     {
+      "$ref": "#/components/schemas/HoldCall"
+     },
+     {
+      "$ref": "#/components/schemas/UnHoldCall"
+     },
+     {
+      "$ref": "#/components/schemas/VoiceMail"
+     },
+     {
+      "$ref": "#/components/schemas/SnippetRecordedCall"
+     },
+     {
+      "$ref": "#/components/schemas/Transfer"
+     },
+     {
+      "$ref": "#/components/schemas/SwitchedToFallbackIVR"
+     },
+     {
+      "$ref": "#/components/schemas/SocialAssetVoiceMessage"
+     },
+     {
+      "$ref": "#/components/schemas/Redirect"
+     },
+     {
+      "$ref": "#/components/schemas/RecordVoiceMail"
+     },
+     {
+      "$ref": "#/components/schemas/CallToExternal"
+     },
+     {
+      "$ref": "#/components/schemas/Modulation"
+     },
+     {
+      "$ref": "#/components/schemas/InviteCustomerToExternalCall"
+     },
+     {
+      "$ref": "#/components/schemas/Invite"
+     },
+     {
+      "$ref": "#/components/schemas/Break"
+     },
+     {
+      "$ref": "#/components/schemas/SayAs"
+     },
+     {
+      "$ref": "#/components/schemas/MuteCall"
+     },
+     {
+      "$ref": "#/components/schemas/UnmuteCall"
+     }
+    ],
+    "discriminator": {
+     "propertyName": "type",
+     "mapping": {
+      "INCOMING_CALL": "#/components/schemas/IncomingCall",
+      "OUTGOING_CALL": "#/components/schemas/OutgoingCall",
+      "CALL_COMPLETED": "#/components/schemas/CallCompleted",
+      "BOT_TRANSCRIPT": "#/components/schemas/BotTranscript",
+      "PLAY_TEXT": "#/components/schemas/PlayText",
+      "LANGUAGE_SPECIFIC_PLAY_TEXT": "#/components/schemas/LanguageSpecificPlayText",
+      "PLAY_AUDIO": "#/components/schemas/PlayAudio",
+      "DTMF_RESPONSE": "#/components/schemas/DTMFResponse",
+      "SECURE_DTMF_RESPONSE": "#/components/schemas/SecureDTMFResponse",
+      "RECEIVE_DTMF": "#/components/schemas/ReceiveDTMF",
+      "RECORDED_CALL": "#/components/schemas/RecordedCall",
+      "RECORDING_ACTION": "#/components/schemas/RecordingAction",
+      "PARTICIPANT_ACTION": "#/components/schemas/ParticipantAction",
+      "ACW_CALLBACK": "#/components/schemas/AcwCallback",
+      "TRANSCRIPT": "#/components/schemas/Transcript",
+      "HOLD_CALL": "#/components/schemas/HoldCall",
+      "UNHOLD_CALL": "#/components/schemas/UnHoldCall",
+      "VOICEMAIL": "#/components/schemas/VoiceMail",
+      "SNIPPET_RECORDED_CALL": "#/components/schemas/SnippetRecordedCall",
+      "TRANSFER": "#/components/schemas/Transfer",
+      "SWITCHED_TO_FALLBACK_IVR": "#/components/schemas/SwitchedToFallbackIVR",
+      "SOCIAL_ASSET_VOICE_COMMAND": "#/components/schemas/SocialAssetVoiceMessage",
+      "REDIRECT": "#/components/schemas/Redirect",
+      "RECORD_VOICE_MAIL": "#/components/schemas/RecordVoiceMail",
+      "CALL_TO_EXTERNAL": "#/components/schemas/CallToExternal",
+      "MODULATION": "#/components/schemas/Modulation",
+      "INVITE_CUSTOMER_TO_EXTERNAL_CALL": "#/components/schemas/InviteCustomerToExternalCall",
+      "INVITE": "#/components/schemas/Invite",
+      "BREAK": "#/components/schemas/Break",
+      "SAY_AS": "#/components/schemas/SayAs",
+      "MUTE_CALL": "#/components/schemas/MuteCall",
+      "UNMUTE_CALL": "#/components/schemas/UnmuteCall"
+     }
+    }
+   },
+   "IncomingCall": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "from": {
+      "type": "string"
+     },
+     "to": {
+      "type": "string"
+     }
+    }
+   },
+   "OutgoingCall": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "to": {
+      "type": "string"
+     },
+     "from": {
+      "type": "string"
+     }
+    }
+   },
+   "CallCompleted": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "duration": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "startTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "callConnected": {
+      "type": "boolean"
+     },
+     "callDirection": {
+      "type": "string"
+     },
+     "contactId": {
+      "type": "string"
+     },
+     "authChannelTypeAndUserId": {
+      "type": "string"
+     }
+    }
+   },
+   "BotTranscript": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "startTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "endTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "text": {
+      "type": "string"
+     },
+     "duration": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "interactionId": {
+      "type": "string"
+     },
+     "language": {
+      "type": "string"
+     },
+     "topics": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "callStartTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "recordingOffset": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "lastPacketReceivedTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "vadResponseTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "asrResponseTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "convEventReceivedTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "recordingId": {
+      "type": "string"
+     }
+    }
+   },
+   "PlayText": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "text": {
+      "type": "string"
+     },
+     "secure": {
+      "type": "boolean"
+     },
+     "loops": {
+      "type": "integer",
+      "format": "int32"
+     }
+    }
+   },
+   "LanguageSpecificPlayText": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "text": {
+      "type": "string"
+     },
+     "secure": {
+      "type": "boolean"
+     },
+     "loops": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "languageCode": {
+      "type": "string"
+     }
+    }
+   },
+   "PlayAudio": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "audio": {
+      "type": "string"
+     },
+     "loops": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "title": {
+      "type": "string"
+     },
+     "audioTranscript": {
+      "type": "string"
+     }
+    }
+   },
+   "DTMFResponse": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "dtmf": {
+      "type": "string"
+     },
+     "secure": {
+      "type": "boolean"
+     }
+    }
+   },
+   "SecureDTMFResponse": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "entityId": {
+      "type": "string"
+     },
+     "maskedData": {
+      "type": "string"
+     },
+     "expiryTimestamp": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "viewDetailsUrl": {
+      "type": "string"
+     },
+     "httpMethod": {
+      "type": "string"
+     },
+     "httpHeaders": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   "ReceiveDTMF": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "numDigits": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "finishOnKey": {
+      "type": "string"
+     },
+     "loops": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "voiceCommands": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/VoiceCommand"
+      }
+     },
+     "secure": {
+      "type": "boolean"
+     },
+     "accessibleToAgent": {
+      "type": "boolean"
+     },
+     "hideFromAgent": {
+      "type": "boolean"
+     }
+    }
+   },
+   "RecordedCall": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "recordingDuration": {
+      "type": "number",
+      "format": "double"
+     },
+     "recordingUrl": {
+      "type": "string"
+     },
+     "transcript": {
+      "type": "string"
+     },
+     "participantType": {
+      "type": "string"
+     },
+     "contentType": {
+      "type": "string"
+     },
+     "privateRecording": {
+      "type": "boolean"
+     },
+     "privateUrl": {
+      "type": "string"
+     },
+     "encryptedRecording": {
+      "type": "boolean"
+     },
+     "encryptedUrl": {
+      "type": "string"
+     },
+     "downloadDisabled": {
+      "type": "boolean"
+     },
+     "botRecording": {
+      "type": "boolean"
+     },
+     "recordingId": {
+      "type": "string"
+     },
+     "recordingPath": {
+      "type": "string"
+     }
+    }
+   },
+   "RecordingAction": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "caller": {
+      "type": "string"
+     },
+     "action": {
+      "type": "string"
+     },
+     "reason": {
+      "type": "string"
+     }
+    }
+   },
+   "ParticipantAction": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "caller": {
+      "type": "string"
+     },
+     "participantType": {
+      "type": "string"
+     },
+     "status": {
+      "type": "string"
+     },
+     "action": {
+      "type": "string"
+     },
+     "actionTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "creationTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "requesterCaller": {
+      "type": "string"
+     },
+     "assignmentRejectionReason": {
+      "type": "string"
+     },
+     "disconnectionReason": {
+      "type": "string"
+     },
+     "callFailureReason": {
+      "type": "string"
+     }
+    }
+   },
+   "AcwCallback": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "to": {
+      "type": "string"
+     },
+     "from": {
+      "type": "string"
+     }
+    }
+   },
+   "Transcript": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "startTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "endTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "text": {
+      "type": "string"
+     },
+     "duration": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "interactionId": {
+      "type": "string"
+     },
+     "language": {
+      "type": "string"
+     },
+     "topics": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "callStartTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "recordingOffset": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "lastPacketReceivedTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "vadResponseTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "asrResponseTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "convEventReceivedTime": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "recordingId": {
+      "type": "string"
+     }
+    }
+   },
+   "HoldCall": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "agent": {
+      "type": "string"
+     },
+     "caller": {
+      "type": "string"
+     }
+    }
+   },
+   "UnHoldCall": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "agent": {
+      "type": "string"
+     },
+     "caller": {
+      "type": "string"
+     }
+    }
+   },
+   "VoiceMail": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "recordingDuration": {
+      "type": "number",
+      "format": "double"
+     },
+     "recordingUrl": {
+      "type": "string"
+     },
+     "transcript": {
+      "type": "string"
+     },
+     "participantType": {
+      "type": "string"
+     },
+     "contentType": {
+      "type": "string"
+     },
+     "privateRecording": {
+      "type": "boolean"
+     },
+     "privateUrl": {
+      "type": "string"
+     },
+     "encryptedRecording": {
+      "type": "boolean"
+     },
+     "encryptedUrl": {
+      "type": "string"
+     },
+     "downloadDisabled": {
+      "type": "boolean"
+     },
+     "botRecording": {
+      "type": "boolean"
+     },
+     "recordingId": {
+      "type": "string"
+     },
+     "recordingPath": {
+      "type": "string"
+     }
+    }
+   },
+   "SnippetRecordedCall": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "recordingDuration": {
+      "type": "number",
+      "format": "double"
+     },
+     "recordingUrl": {
+      "type": "string"
+     },
+     "transcript": {
+      "type": "string"
+     },
+     "participantType": {
+      "type": "string"
+     },
+     "contentType": {
+      "type": "string"
+     },
+     "privateRecording": {
+      "type": "boolean"
+     },
+     "privateUrl": {
+      "type": "string"
+     },
+     "encryptedRecording": {
+      "type": "boolean"
+     },
+     "encryptedUrl": {
+      "type": "string"
+     },
+     "downloadDisabled": {
+      "type": "boolean"
+     },
+     "botRecording": {
+      "type": "boolean"
+     },
+     "recordingId": {
+      "type": "string"
+     },
+     "recordingPath": {
+      "type": "string"
+     }
+    }
+   },
+   "Transfer": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "transferType": {
+      "type": "string"
+     },
+     "assignee": {
+      "$ref": "#/components/schemas/Assignment"
+     },
+     "phoneNumber": {
+      "type": "string"
+     },
+     "processId": {
+      "type": "string"
+     },
+     "action": {
+      "type": "string"
+     },
+     "caller": {
+      "type": "string"
+     },
+     "requesterCaller": {
+      "type": "string"
+     }
+    }
+   },
+   "Assignment": {
+    "type": "object",
+    "properties": {
+     "assigneeId": {
+      "type": "string",
+      "description": "Describes the id of assignee"
+     },
+     "assigneeType": {
+      "type": "string",
+      "description": "Describes the assignee type. e.g. USER, BOT "
+     },
+     "assignedById": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Describes the assigned by user id."
+     },
+     "assignmentTime": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Assignment time."
+     }
+    },
+    "description": "Assignment details of Workflow on message/case"
+   },
+   "SwitchedToFallbackIVR": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "message": {
+      "type": "string"
+     },
+     "fallbackIVR": {
+      "type": "string"
+     }
+    }
+   },
+   "SocialAssetVoiceMessage": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     }
+    }
+   },
+   "Redirect": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "baseUrl": {
+      "type": "string"
+     },
+     "method": {
+      "type": "string"
+     }
+    }
+   },
+   "RecordVoiceMail": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "maxDuration": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "finishOnKey": {
+      "type": "string"
+     },
+     "silenceTimeout": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "playBeep": {
+      "type": "boolean"
+     },
+     "transcribe": {
+      "type": "boolean"
+     }
+    }
+   },
+   "CallToExternal": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "to": {
+      "type": "string"
+     },
+     "from": {
+      "type": "string"
+     }
+    }
+   },
+   "Modulation": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "pitch": {
+      "type": "string"
+     },
+     "speechRate": {
+      "type": "string"
+     },
+     "energy": {
+      "type": "string"
+     },
+     "text": {
+      "type": "string"
+     }
+    }
+   },
+   "InviteCustomerToExternalCall": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "to": {
+      "type": "string"
+     },
+     "from": {
+      "type": "string"
+     }
+    }
+   },
+   "Invite": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "assignee": {
+      "$ref": "#/components/schemas/Assignment"
+     },
+     "phoneNumber": {
+      "type": "string"
+     },
+     "processId": {
+      "type": "string"
+     },
+     "action": {
+      "type": "string"
+     },
+     "caller": {
+      "type": "string"
+     },
+     "requesterCaller": {
+      "type": "string"
+     },
+     "inviteType": {
+      "type": "string"
+     }
+    }
+   },
+   "Break": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "time": {
+      "type": "string"
+     }
+    }
+   },
+   "SayAs": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "language": {
+      "type": "string"
+     },
+     "text": {
+      "type": "string"
+     },
+     "format": {
+      "type": "string"
+     },
+     "formatDetails": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "object"
+      }
+     },
+     "secure": {
+      "type": "boolean"
+     }
+    }
+   },
+   "MuteCall": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "agent": {
+      "type": "string"
+     },
+     "caller": {
+      "type": "string"
+     }
+    }
+   },
+   "UnmuteCall": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string"
+     },
+     "agent": {
+      "type": "string"
+     },
+     "caller": {
+      "type": "string"
+     }
+    }
+   },
+   "HSMAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "wabaTemplateId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "template ID"
+     },
+     "namespace": {
+      "type": "string",
+      "description": "namespace for template"
+     },
+     "templateName": {
+      "type": "string",
+      "description": "template name"
+     },
+     "wabaId": {
+      "type": "string",
+      "description": "Whatsapp account Id."
+     },
+     "elementName": {
+      "type": "string",
+      "description": "the name of the template."
+     },
+     "category": {
+      "type": "string",
+      "description": "category of the template."
+     },
+     "langCode": {
+      "type": "string",
+      "description": "language code."
+     },
+     "buttons": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Button"
+      },
+      "description": "List of buttons on the carousel card."
+     },
+     "wabaTemplateStatus": {
+      "type": "string",
+      "description": "status of the template."
+     },
+     "rejectedReason": {
+      "type": "string",
+      "description": "reason for rejecting the template."
+     },
+     "message": {
+      "type": "string",
+      "description": "Header Description Message."
+     },
+     "footer": {
+      "type": "string",
+      "description": "details about the content of the Footer."
+     },
+     "header": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Header"
+       }
+      ],
+      "description": "Details about Header object."
+     },
+     "allowCategoryChange": {
+      "type": "boolean",
+      "description": "flag for allow category change."
+     },
+     "placeholders": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Placeholder"
+      },
+      "description": "List of placeholders used in the carousel card."
+     },
+     "example": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Examples."
+     },
+     "carouselCards": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "description": "Unresolved type (CarouselCard)"
+      },
+      "description": "Carousel Cards"
+     },
+     "additionalDetails": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      },
+      "description": "Additional Details"
+     },
+     "headerType": {
+      "type": "object",
+      "description": "Type of header."
+     },
+     "body": {
+      "type": "string",
+      "description": "Body of the carousel card."
+     },
+     "label": {
+      "type": "object",
+      "description": "Unresolved type (finalString)"
+     }
+    },
+    "required": [
+     "type"
+    ]
+   },
+   "ButtonTemplateAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "name": {
+      "type": "string"
+     },
+     "text": {
+      "type": "string"
+     },
+     "elementList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Element"
+      }
+     },
+     "buttons": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Element"
+      }
+     },
+     "attachment": {
+      "$ref": "#/components/schemas/Attachment"
+     }
+    },
+    "description": "Describes the schema for button template.",
+    "required": [
+     "type"
+    ]
+   },
+   "Element": {
+    "type": "object",
+    "properties": {
+     "title": {
+      "type": "string"
+     },
+     "url": {
+      "type": "string"
+     },
+     "elementList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Element"
+      }
+     },
+     "attachedAssets": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Attachment"
+      }
+     },
+     "quantity": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "price": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "currency": {
+      "type": "string"
+     },
+     "type": {
+      "type": "string"
+     },
+     "actionType": {
+      "type": "string"
+     }
+    }
+   },
+   "ListTemplateAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "name": {
+      "type": "string"
+     },
+     "text": {
+      "type": "string"
+     },
+     "elementList": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Element"
+      }
+     },
+     "buttons": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Element"
+      }
+     },
+     "attachment": {
+      "$ref": "#/components/schemas/Attachment"
+     }
+    },
+    "description": "Describes the schema for list template.",
+    "required": [
+     "type"
+    ]
+   },
+   "ProductAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "title": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string",
+      "description": "Description for the Product"
+     },
+     "footer": {
+      "type": "string"
+     },
+     "productContentSummary": {
+      "type": "object",
+      "description": "ProductContentSummary for the product"
+     },
+     "productList": {
+      "type": "array",
+      "items": {
+       "type": "object",
+       "description": "Unresolved type (ProductDetail)"
+      },
+      "description": "list of product detail"
+     },
+     "disableManualResponse": {
+      "type": "boolean",
+      "description": "Boolean flag to disable manual response."
+     },
+     "totalItems": {
+      "type": "integer",
+      "format": "int32",
+      "description": "total items of product"
+     },
+     "totalPrice": {
+      "type": "number",
+      "format": "double",
+      "description": "total price of product"
+     },
+     "currency": {
+      "type": "string",
+      "description": "currency type"
+     },
+     "id": {
+      "type": "string"
+     },
+     "catalogId": {
+      "type": "string"
+     },
+     "sourceCatalogId": {
+      "type": "string"
+     },
+     "itemUrl": {
+      "type": "string"
+     },
+     "imageUrl": {
+      "type": "string"
+     },
+     "subtitle": {
+      "type": "string"
+     },
+     "retailerId": {
+      "type": "string"
+     },
+     "name": {
+      "type": "string"
+     },
+     "price": {
+      "type": "string"
+     },
+     "quantity": {
+      "type": "integer",
+      "format": "int32"
+     }
+    },
+    "description": "Describes the schema for Product Attachment.",
+    "required": [
+     "type"
+    ]
+   },
+   "PollAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "title": {
+      "type": "string",
+      "description": "title of the POLL"
+     },
+     "content": {
+      "type": "string",
+      "description": "content of the POLL"
+     },
+     "pollsDetails": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/PollsDetails"
+       }
+      ],
+      "description": "details of the POLL like question, choices etc"
+     },
+     "visibility": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Visibility"
+       }
+      ],
+      "description": "Visibility of Poll"
+     },
+     "value": {
+      "type": "object",
+      "description": "Unresolved type (finalString)"
+     },
+     "anonymous": {
+      "type": "boolean",
+      "description": "flag to determine if poll is anonymous"
+     },
+     "pollQuestion": {
+      "type": "string",
+      "description": "question of the poll"
+     },
+     "duration": {
+      "type": "string",
+      "description": "time duration of the poll"
+     },
+     "pollOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/PollOption"
+      },
+      "description": "list of options of the poll"
+     },
+     "text": {
+      "type": "string",
+      "description": "option of the poll"
+     },
+     "votes": {
+      "type": "integer",
+      "format": "int64",
+      "description": "number of votes against the option"
+     }
+    },
+    "description": "Describes the schema for Poll",
+    "required": [
+     "type"
+    ]
+   },
+   "PollsDetails": {
+    "type": "object",
+    "properties": {
+     "anonymous": {
+      "type": "boolean"
+     },
+     "pollId": {
+      "type": "string"
+     },
+     "ownerId": {
+      "type": "string"
+     },
+     "pollQuestion": {
+      "type": "string"
+     },
+     "duration": {
+      "type": "string"
+     },
+     "pollOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/PollOption"
+      }
+     },
+     "totalVotes": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "expiryTime": {
+      "type": "string"
+     }
+    }
+   },
+   "PollOption": {
+    "type": "object",
+    "properties": {
+     "text": {
+      "type": "string"
+     },
+     "answerId": {
+      "type": "string"
+     },
+     "rating": {
+      "type": "number",
+      "format": "double"
+     },
+     "votes": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "percentage": {
+      "type": "number",
+      "format": "double"
+     }
+    }
+   },
+   "Visibility": {
+    "type": "object",
+    "properties": {
+     "globallyVisible": {
+      "type": "boolean",
+      "description": "True if Asset is globally visible"
+     },
+     "visibilityConfig": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/AssetShareConfig"
+      },
+      "description": "Config to share the asset"
+     }
+    },
+    "description": "Describes the schema of asset visibility"
+   },
+   "AssetShareConfig": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type e.g. USER, GLOBAL, CLIENT"
+     },
+     "ids": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "IDs based on type."
+     }
+    },
+    "description": "Describes the schema for Asset Share config.",
+    "required": [
+     "type"
+    ]
+   },
+   "AlbumAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "attachments": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Attachment"
+      },
+      "description": "list of attachment. can be of same or different types"
+     },
+     "title": {
+      "type": "string",
+      "description": "title of the album"
+     },
+     "existingAlbumId": {
+      "type": "string",
+      "description": "id of the already existing album"
+     }
+    },
+    "description": "Describes the schema for album template.",
+    "required": [
+     "type"
+    ]
+   },
+   "StoryAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "attachments": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Attachment"
+      },
+      "description": "list of attachment. can be of same or different types"
+     }
+    },
+    "description": "Describes the schema for story attachment.",
+    "required": [
+     "type"
+    ]
+   },
+   "ThreadAttachment": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "type": "string",
+      "description": "Type of attachment"
+     },
+     "assetId": {
+      "type": "string",
+      "description": "Sprinklr Asset Id"
+     },
+     "attachmentOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelSpecificMediaProperties"
+      },
+      "description": "Array of attachment properties per channel and/or account."
+     },
+     "threads": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Content"
+      },
+      "description": "Thread List"
+     }
+    },
+    "description": "Describes the schema for Thread attachment.",
+    "required": [
+     "type"
+    ]
+   },
+   "ChannelOptions": {
+    "oneOf": [
+     {
+      "$ref": "#/components/schemas/FacebookOptions"
+     },
+     {
+      "$ref": "#/components/schemas/SinaWeiboOptions"
+     },
+     {
+      "$ref": "#/components/schemas/TwilioOptions"
+     },
+     {
+      "$ref": "#/components/schemas/EmailOptions"
+     },
+     {
+      "$ref": "#/components/schemas/InstagramOptions"
+     },
+     {
+      "$ref": "#/components/schemas/TwitterOptions"
+     },
+     {
+      "$ref": "#/components/schemas/RolexAppOptions"
+     },
+     {
+      "$ref": "#/components/schemas/WhatsAppOptions"
+     },
+     {
+      "$ref": "#/components/schemas/WhatsAppBusinessOptions"
+     },
+     {
+      "$ref": "#/components/schemas/GoogleChatOptions"
+     },
+     {
+      "$ref": "#/components/schemas/ViberOptions"
+     },
+     {
+      "$ref": "#/components/schemas/TelegramOptions"
+     }
+    ],
+    "discriminator": {
+     "propertyName": "channelType",
+     "mapping": {
+      "FACEBOOK": "#/components/schemas/FacebookOptions",
+      "SINA_WEIBO": "#/components/schemas/SinaWeiboOptions",
+      "SMS": "#/components/schemas/TwilioOptions",
+      "EMAIL": "#/components/schemas/EmailOptions",
+      "INSTAGRAM": "#/components/schemas/InstagramOptions",
+      "TWITTER": "#/components/schemas/TwitterOptions",
+      "ROLEX_APP": "#/components/schemas/RolexAppOptions",
+      "WHATSAPP": "#/components/schemas/WhatsAppOptions",
+      "WHATSAPP_BUSINESS": "#/components/schemas/WhatsAppBusinessOptions",
+      "GOOGLE_RBM": "#/components/schemas/GoogleChatOptions",
+      "VIBER": "#/components/schemas/ViberOptions",
+      "TELEGRAM": "#/components/schemas/TelegramOptions"
+     }
+    }
+   },
+   "FacebookOptions": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for the options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the option is specific to an account inaddition to channelType, accountId can be specified and the options would then only be used for the given account."
+     },
+     "scheduleNatively": {
+      "type": "boolean",
+      "description": "If set to true, message will be scheduled natively on Facebook."
+     },
+     "darkPost": {
+      "type": "boolean",
+      "description": "If set to true, message will be published as a dark post."
+     },
+     "publishViaMobile": {
+      "type": "boolean",
+      "description": "If set to true, message will be published via SDK instead of Channel API"
+     }
+    },
+    "required": [
+     "channelType"
+    ]
+   },
+   "SinaWeiboOptions": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for the options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the option is specific to an account inaddition to channelType, accountId can be specified and the options would then only be used for the given account."
+     },
+     "articleTitle": {
+      "type": "string",
+      "description": "Article Title."
+     },
+     "leadText": {
+      "type": "string",
+      "description": "Lead Text."
+     },
+     "articleContent": {
+      "type": "string",
+      "description": "Article Content."
+     }
+    },
+    "required": [
+     "channelType"
+    ]
+   },
+   "TwilioOptions": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for the options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the option is specific to an account inaddition to channelType, accountId can be specified and the options would then only be used for the given account."
+     },
+     "PLUS_PREFIX": {
+      "type": "object",
+      "description": "Unresolved type (staticfinalString)"
+     },
+     "COUNTRY_ISD_CODE": {
+      "type": "object",
+      "description": "Unresolved type (staticfinalString)"
+     },
+     "TO_MOBILE_NUMBER": {
+      "type": "object",
+      "description": "Unresolved type (staticfinalString)"
+     },
+     "toPhoneNumber": {
+      "type": "string",
+      "description": "To Phone number"
+     },
+     "countryCode": {
+      "type": "integer",
+      "format": "int32"
+     }
+    },
+    "required": [
+     "channelType",
+     "toPhoneNumber"
+    ]
+   },
+   "EmailOptions": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for the options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the option is specific to an account inaddition to channelType, accountId can be specified and the options would then only be used for the given account."
+     },
+     "BCC_EMAIL_ADDRESS": {
+      "type": "object",
+      "description": "Unresolved type (staticfinalString)"
+     },
+     "CC_EMAIL_ADDRESS": {
+      "type": "object",
+      "description": "Unresolved type (staticfinalString)"
+     },
+     "TO_EMAIL_ADDRESS": {
+      "type": "object",
+      "description": "Unresolved type (staticfinalString)"
+     },
+     "GMAIL_THREAD_ID": {
+      "type": "object",
+      "description": "Unresolved type (staticfinalString)"
+     },
+     "UNIVERSAL_CASE_ID": {
+      "type": "object",
+      "description": "Unresolved type (staticfinalString)"
+     },
+     "bccEmailAddress": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Bcc Email Addresses"
+     },
+     "ccEmailAddress": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "CC Email Addresses"
+     },
+     "toEmailAddress": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "To Email Addresses"
+     },
+     "gmailThreadId": {
+      "type": "string",
+      "description": "Thread Id, For Gmail Reply Thread"
+     },
+     "caseId": {
+      "type": "string",
+      "description": "Sprinklr Universal Case Id"
+     },
+     "emailChannelEventData": {
+      "type": "object",
+      "description": "Email channel event data."
+     },
+     "failed": {
+      "type": "boolean"
+     },
+     "sent": {
+      "type": "boolean"
+     },
+     "delivered": {
+      "type": "boolean"
+     },
+     "read": {
+      "type": "boolean"
+     },
+     "deleted": {
+      "type": "boolean"
+     },
+     "undelivered": {
+      "type": "boolean"
+     },
+     "sesBounce": {
+      "type": "boolean"
+     },
+     "rejected": {
+      "type": "boolean"
+     },
+     "complaint": {
+      "type": "boolean"
+     },
+     "deliveryDelayed": {
+      "type": "boolean"
+     },
+     "renderingFailed": {
+      "type": "boolean"
+     },
+     "subscriptionUpdated": {
+      "type": "boolean"
+     },
+     "channelErrorInfo": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "channelType",
+     "toEmailAddress"
+    ]
+   },
+   "InstagramOptions": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for the options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the option is specific to an account inaddition to channelType, accountId can be specified and the options would then only be used for the given account."
+     },
+     "notificationUsers": {
+      "type": "array",
+      "items": {
+       "type": "integer",
+       "format": "int64"
+      },
+      "description": "Sprinklr User to Notify when publishing via mobile. -1 to notify account owner. If not provided, account owner and post author are notified."
+     },
+     "mediaType": {
+      "type": "string",
+      "description": "Instagram Media Type"
+     }
+    },
+    "required": [
+     "channelType"
+    ]
+   },
+   "TwitterOptions": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for the options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the option is specific to an account inaddition to channelType, accountId can be specified and the options would then only be used for the given account."
+     },
+     "ADD_PRIVATE_MSG_LINK": {
+      "type": "object",
+      "description": "Unresolved type (staticfinalString)"
+     },
+     "addPrivateMsgLink": {
+      "type": "boolean",
+      "description": "If set to true, link to message privately will be added on reply message"
+     }
+    },
+    "required": [
+     "channelType"
+    ]
+   },
+   "RolexAppOptions": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for the options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the option is specific to an account inaddition to channelType, accountId can be specified and the options would then only be used for the given account."
+     },
+     "contentTemplateParameters": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "description": "Content Template Parameters"
+     }
+    },
+    "required": [
+     "channelType"
+    ]
+   },
+   "WhatsAppOptions": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for the options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the option is specific to an account inaddition to channelType, accountId can be specified and the options would then only be used for the given account."
+     },
+     "TO_MOBILE_NUMBER": {
+      "type": "object",
+      "description": "Unresolved type (staticfinalString)"
+     },
+     "toPhoneNumber": {
+      "type": "string",
+      "description": "To Phone number"
+     }
+    },
+    "required": [
+     "channelType",
+     "toPhoneNumber"
+    ]
+   },
+   "WhatsAppBusinessOptions": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for the options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the option is specific to an account inaddition to channelType, accountId can be specified and the options would then only be used for the given account."
+     },
+     "TO_MOBILE_NUMBER": {
+      "type": "object",
+      "description": "Unresolved type (staticfinalString)"
+     },
+     "toPhoneNumber": {
+      "type": "string",
+      "description": "To Phone number"
+     }
+    },
+    "required": [
+     "channelType",
+     "toPhoneNumber"
+    ]
+   },
+   "GoogleChatOptions": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for the options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the option is specific to an account inaddition to channelType, accountId can be specified and the options would then only be used for the given account."
+     },
+     "TO_MOBILE_NUMBER": {
+      "type": "object",
+      "description": "Unresolved type (staticfinalString)"
+     },
+     "toPhoneNumber": {
+      "type": "string",
+      "description": "To Phone number"
+     }
+    },
+    "required": [
+     "channelType",
+     "toPhoneNumber"
+    ]
+   },
+   "ViberOptions": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for the options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the option is specific to an account inaddition to channelType, accountId can be specified and the options would then only be used for the given account."
+     },
+     "TO_MOBILE_NUMBER": {
+      "type": "object",
+      "description": "Unresolved type (staticfinalString)"
+     },
+     "toPhoneNumber": {
+      "type": "string",
+      "description": "To Phone number"
+     }
+    },
+    "required": [
+     "channelType",
+     "toPhoneNumber"
+    ]
+   },
+   "TelegramOptions": {
+    "type": "object",
+    "properties": {
+     "channelType": {
+      "type": "string",
+      "description": "ChannelType for the options."
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "If the option is specific to an account inaddition to channelType, accountId can be specified and the options would then only be used for the given account."
+     },
+     "telegramGroups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Telegram channels/groups ids"
+     }
+    },
+    "required": [
+     "channelType",
+     "telegramGroups"
+    ]
+   },
+   "Taxonomy": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "name of the message"
+     },
+     "campaignId": {
+      "type": "string",
+      "description": "campaign identifier to associate the message to"
+     },
+     "subCampaignId": {
+      "type": "string",
+      "description": "sub campaign identifier to associate the message to"
+     },
+     "clientCustomProperties": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "description": "client custom properties for the message"
+     },
+     "partnerCustomProperties": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      "description": "partner custom properties for the message"
+     },
+     "tags": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "tags to be added to the message"
+     },
+     "urlShortenerId": {
+      "type": "string",
+      "description": "url shortner identifier to apply to the message"
+     }
+    },
+    "required": [
+     "campaignId"
+    ]
+   },
+   "Approval": {
+    "type": "object",
+    "properties": {
+     "type": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Option"
+       }
+      ],
+      "description": "Type of approval to process. defaults to NONE"
+     },
+     "id": {
+      "type": "string",
+      "description": "Value for the chosen approval type."
+     }
+    }
+   },
+   "Option": {
+    "type": "object",
+    "properties": {
+     "text": {
+      "type": "object",
+      "description": "Unresolved type (HashMap<String, String>)"
+     },
+     "value": {
+      "type": "string"
+     }
+    }
+   },
+   "CustomPropertyWithMetadata": {
+    "type": "object",
+    "properties": {
+     "fieldName": {
+      "type": "string",
+      "description": "CustomField fieldName"
+     },
+     "type": {
+      "type": "string",
+      "description": "CustomField type"
+     },
+     "label": {
+      "type": "string",
+      "description": "CustomField label"
+     },
+     "clientCustomProperty": {
+      "type": "boolean",
+      "description": "Client CustomField"
+     },
+     "values": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Custom Field values"
+     }
+    },
+    "description": "Schema for CustomField with metadata on Assets"
+   },
+   "VariantDetails": {
+    "type": "object",
+    "properties": {
+     "variant": {
+      "type": "boolean",
+      "description": "True if the message is a variant."
+     },
+     "variantParentMessageId": {
+      "type": "string",
+      "description": "Parent message id of the variant"
+     },
+     "hasVariants": {
+      "type": "boolean",
+      "description": "True if this message has a variant"
+     }
+    },
+    "description": "Describes the schema for Variant details"
+   },
+   "MessagePreviewResponse": {
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "string",
+      "description": "Unique id of the outbound message preview status"
+     },
+     "url": {
+      "type": "string",
+      "description": "URL of the outbound message preview"
+     },
+     "status": {
+      "type": "string",
+      "description": "Status of the outbound message preview request"
+     }
+    },
+    "description": "Describes the schema for Outbound message preview response object"
+   },
+   "Post": {
+    "type": "object",
+    "properties": {
+     "content": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Content"
+       }
+      ],
+      "description": "Describes the content to be used in the message."
+     },
+     "channelOptions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/ChannelOptions"
+      },
+      "description": "Channel specific options, if any."
+     },
+     "scheduleDate": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Schedule date for the message."
+     },
+     "taxonomy": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Taxonomy"
+       }
+      ],
+      "description": "Tags, campaign, url shortener and other sprinklr workflow properties to be added to the message"
+     },
+     "approval": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/Approval"
+       }
+      ],
+      "description": "Approval option for the message."
+     },
+     "status": {
+      "type": "string",
+      "description": "Status of the message. e.g. SCHEDULED, APPROVAL, SENT"
+     },
+     "sourceLocale": {
+      "type": "string",
+      "description": "Locale of the source message, if this is a translated copy."
+     },
+     "contentLocale": {
+      "type": "string",
+      "description": "Locale of the message"
+     },
+     "autoResponse": {
+      "type": "boolean",
+      "description": "True if the message was published by the system or a bot."
+     },
+     "createdTime": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Created time of the message."
+     },
+     "modifiedTime": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Modified time of the message."
+     },
+     "authorId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Author Id of the user for the message"
+     },
+     "customPropertiesMetadata": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/CustomPropertyWithMetadata"
+      },
+      "description": "Custom Property details"
+     },
+     "externalId": {
+      "type": "string"
+     },
+     "id": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Unique identifier of the post in sprinklr"
+     },
+     "accountId": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "accountGroupId": {
+      "type": "string",
+      "description": "Account Group Id of the post"
+     },
+     "publishedDate": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Published date for the post. It's a system property."
+     },
+     "permalink": {
+      "type": "string",
+      "description": "Link of the published post on social channel. It's a system property."
+     },
+     "parentMessageId": {
+      "type": "integer",
+      "format": "int64",
+      "description": "Parent message id, if any. This will be present if draft was scheduled"
+     },
+     "conversationId": {
+      "type": "string",
+      "description": "Conversation Identifier for the post"
+     },
+     "accountType": {
+      "type": "string",
+      "description": "The account type of corresponding to the accountId"
+     },
+     "channelType": {
+      "type": "string",
+      "description": "Social channel for the post"
+     },
+     "enrichments": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/MessageEnrichment"
+       }
+      ],
+      "description": "Extra information added to the post as part of enrichment in Sprinklr."
+     }
+    },
+    "description": "Describes the schema for Post object in sprinklr.",
+    "required": [
+     "content",
+     "scheduleDate",
+     "taxonomy"
+    ]
+   },
+   "MessageEnrichment": {
+    "type": "object",
+    "properties": {
+     "sentiment": {
+      "type": "integer",
+      "format": "int32",
+      "description": "Sentiment on the message. A positive value indicates positive sentiment, negative values indicates negative sentiment and 0 is for neutral"
+     },
+     "engageable": {
+      "type": "boolean",
+      "description": "Signifies whether the message has been deemed engageble by Sprinklr AI."
+     },
+     "messageCategory": {
+      "type": "string",
+      "description": "Message category generated by Sprinklr AI."
+     },
+     "messageTone": {
+      "type": "string",
+      "description": "Message tone generated by Sprinklr AI."
+     },
+     "emotion": {
+      "type": "string",
+      "description": "Message emotion generated by Sprinklr AI."
+     },
+     "lstTopicIds": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "List of Sprinklr Listening topics matched for the message."
+     },
+     "lstThemeIds": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "List of Sprinklr Listening themes matched for the message."
+     },
+     "flaggedWords": {
+      "allOf": [
+       {
+        "$ref": "#/components/schemas/FlaggedWords"
+       }
+      ],
+      "description": "Flagged Words identified in the message."
+     }
+    },
+    "description": "Describes the schema for enrichments added to the message."
+   },
+   "FlaggedWords": {
+    "type": "object",
+    "properties": {
+     "allFlaggedWords": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "All Flagged Words identified in the message."
+     },
+     "imageFlaggedWords": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Flagged Words identified in the image attachments."
+     },
+     "messageFlaggedWords": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Flagged Words identified in the message."
+     },
+     "videoFlaggedWords": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "Flagged Words identified in the video attachments."
+     }
+    },
+    "description": "Describes the schema for Flagged Words identified in the message."
+   }
+  },
+  "securitySchemes": {
+   "bearerAuth": {
+    "type": "http",
+    "scheme": "bearer",
+    "bearerFormat": "Token"
+   },
+   "apiKeyAuth": {
+    "type": "apiKey",
+    "in": "header",
+    "name": "Key"
+   }
+  }
+ }
+}

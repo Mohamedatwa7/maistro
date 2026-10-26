@@ -45,3 +45,38 @@ The calendar becomes real in manual mode (approved pieces, chosen slots, posted 
   - The app always uses `ManualExportAdapter`.
   - When access is granted, implement asset upload, message creation, scheduling and status from the real
     documentation, behind the same interface, with recorded-response tests.
+
+## Amendment 2026-10-26 (drafts mode built; no live posts)
+- **Owner's scope:** build the Sprinklr publishing integration "without pushing live posts to our social media
+  accounts". Maistro therefore creates **drafts only**; a person schedules them inside Sprinklr.
+- **Contract:** `docs/vendor/sprinklr-v3-publishing.json` is a pinned subset of the public v3 spec (downloaded
+  2026-10-26, full-spec sha256 in `info.x-full-sha256`), holding only the endpoints called and their schemas.
+- **Client** (`api/_studio/sprinklr/client.js`): `Authorization: Bearer SPRINKLR_ACCESS_TOKEN`,
+  `Key: SPRINKLR_API_KEY`, base `https://api3.sprinklr.com/{SPRINKLR_ENV}/api/v3`. It refuses every call that is not
+  on its allowlist (`GET /me`, `POST /publishing/draft`, `GET /publishing/draft`, `GET /publishing/preview/generate`,
+  `GET /publishing/preview/status`, `GET /publishing/post`) **before** any request leaves. Scheduling
+  (`POST /publishing/draft/schedule`), publishing (`POST /publishing/post`), messages and replies are not on it.
+- **Drafts mode** turns on only with the credentials, `SPRINKLR_DRAFTS=1` and `SPRINKLR_CAMPAIGN_ID`. Otherwise the
+  app stays in manual/export mode exactly as before.
+  - An export also creates one draft per slot (`OutboundMessage`: caption, the approved final as a `VideoAttachment`
+    by a 7-day signed URL, thumbnail as `previewUrl`, slot time as `scheduleDate`, campaign, tags
+    `maistro-piece-…`/`maistro-slot-…`, `externalId maistro-slot-<id>`, the account group from
+    `SPRINKLR_ACCOUNT_GROUPS`). A repeated export reuses the draft.
+  - A failure (unmapped account, missing campaign, no stored video, Sprinklr error) is recorded on the slot
+    (`sprinklr_error`); the export itself still stands.
+  - `slot-draft-check` reads the draft's status back (stored as `sprinklr_status`) and, with `preview: true`,
+    requests a PNG preview, then reads it with `previewId`.
+  - `GET /api/studio?sprinklr=check` (admin) runs the read-only `GET /me` check.
+- **Migration 023** adds `sprinklr_draft_id`, `sprinklr_status`, `sprinklr_checked_at`, `sprinklr_error` to
+  `publishing_slots`. It must be applied before drafts mode is switched on.
+- **Not built, and why:**
+  - **Media upload.** `POST /media/upload` and `/media/upload/url` have no documented request body. The video
+    goes in by URL instead, which `VideoAttachment.url` documents.
+  - **Post ids for a draft.** No documented call returns the posts a scheduled draft produced. `GET
+    /publishing/post` needs post ids, so the post is still linked by hand ("Published as").
+  - **Approval sync.** `PUT /publishing/draft/workflow` only edits tags and custom properties, and the draft's
+    `approval.type` is unresolved in the spec.
+- **To confirm on the first real probe** (recorded responses, then tighten the tests): whether `scheduleDate` is
+  epoch milliseconds; whether a signed Supabase URL is fetched by Sprinklr at draft time or at publish time (7-day
+  expiry); the shape of `POST /publishing/draft` and the preview-generate response (spec: a string).
+- `SPRINKLR_API_SECRET` is no longer read; v3 calls use the access token.

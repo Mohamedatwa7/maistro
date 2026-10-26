@@ -1,8 +1,11 @@
-// 8b — publishing (ADR-008): a PublishingAdapter with the manual/export adapter active and a Sprinklr adapter
-// gated by SPRINKLR_* credentials. Sprinklr's developer documentation is not public (no access yet), so the
-// Sprinklr adapter makes no calls: it answers "not configured" until the contract is confirmed against the real
-// API — no guessed endpoints. Slots live in publishing_slots (migration 019); without it every call is a 503.
+// 8b — publishing (ADR-008): a PublishingAdapter with the manual/export adapter by default and a Sprinklr
+// drafts adapter once SPRINKLR_* credentials are set and SPRINKLR_DRAFTS=1. In drafts mode an export also creates
+// the Sprinklr draft (sprinklr/client.js, built from the vendored v3 spec); a person schedules it in Sprinklr, so
+// Maistro never puts a post live. Slots live in publishing_slots (migration 019, Sprinklr columns 023); without
+// it every call is a 503.
 const { queryRows, queryAll, insertRows, patchRows } = require('../_supabase.js');
+const sprinklr = require('./sprinklr/client.js');
+const { buildDraft, campaignId } = require('./sprinklr/draft.js');
 
 const PLANNERS = ['admin', 'line_manager'];
 const PLATFORMS = ['tiktok', 'instagram', 'facebook', 'x'];
@@ -30,15 +33,39 @@ const ManualExportAdapter = {
 };
 const SprinklrAdapter = {
   mode: 'sprinklr',
-  get connected() { return Boolean(process.env.SPRINKLR_API_KEY && process.env.SPRINKLR_API_SECRET && process.env.SPRINKLR_ENV); },
-  async publish() { const e = new Error('Sprinklr publishing is not implemented: the API contract must be confirmed against Sprinklr\'s developer documentation once access is granted'); e.status = 501; e.code = 'sprinklr_not_implemented'; throw e; },
+  get connected() { return sprinklr.config().configured; },
+  // drafts mode needs the credentials, the owner's opt-in and a campaign to file the drafts under
+  get enabled() { return this.connected && process.env.SPRINKLR_DRAFTS === '1' && Boolean(campaignId()); },
+  label: 'Sprinklr: drafts only — export creates the Sprinklr draft; schedule it in Sprinklr (Maistro never posts)',
+  // the slot's draft: created once (a repeated export reuses it); a failure is recorded on the slot, not thrown
+  async publish({ slot, piece }) {
+    if (slot.sprinklr_draft_id) return { sprinklr: { draftId: slot.sprinklr_draft_id, reused: true } };
+    let draftId = null, error = null, code = null;
+    try {
+      const built = buildDraft({ slot, piece, ...(await finalMedia(piece.id)) });
+      if (built.error) ({ error, code } = built);
+      else draftId = await sprinklr.createDraft(built.message);
+    } catch (e) { error = e.message; code = e.code || 'sprinklr_error'; }
+    await patchRows('publishing_slots', `id=eq.${encodeURIComponent(slot.id)}`, draftId ? { sprinklr_draft_id: draftId, sprinklr_error: null } : { sprinklr_error: `${code}: ${error}`.slice(0, 500) });
+    return { sprinklr: draftId ? { draftId } : { error, code } };
+  },
 };
-// Sprinklr is used only when it is both configured and implemented; today it is neither
-const adapter = () => ManualExportAdapter;
+const adapter = () => (SprinklrAdapter.enabled ? SprinklrAdapter : ManualExportAdapter);
+
+/** signed URLs (7 days, like the delivery package) for the approved final's video and the thumbnail */
+async function finalMedia(pieceId) {
+  const storage = require('../_adapters/storage.js');
+  const st = await queryRows('stages', `select=kind,current_version_id&piece_id=eq.${encodeURIComponent(pieceId)}&kind=in.(final,thumb)`);
+  const payload = async (k) => { const s = st.find((x) => x.kind === k); if (!s || !s.current_version_id) return null; const [v] = await queryRows('artifact_versions', `select=payload&id=eq.${encodeURIComponent(s.current_version_id)}&limit=1`); return v ? v.payload : null; };
+  const fin = await payload('final'), th = await payload('thumb');
+  const sign = async (p) => { if (!p) return null; try { return await storage.signedUrl(p, 7 * 24 * 3600); } catch (e) { return null; } };
+  return { videoUrl: await sign(fin && fin.assembled && fin.assembled.assetPath), thumbUrl: await sign(th && th.assetPath), durationS: fin && fin.assembled ? fin.assembled.durationS : undefined };
+}
 
 function slotView(s, piece) {
-  return { id: s.id, pieceId: piece ? piece.legacy_id : null, title: piece ? piece.title : null, platform: s.platform, account: s.account, slotAt: s.slot_at, caption: s.caption, mode: s.mode, status: s.status, createdBy: s.created_by_label, exportedAt: s.exported_at, postedAt: s.posted_at, piecePostId: s.piece_post_id, canceledAt: s.canceled_at, cancelReason: s.cancel_reason };
+  return { id: s.id, pieceId: piece ? piece.legacy_id : null, title: piece ? piece.title : null, platform: s.platform, account: s.account, slotAt: s.slot_at, caption: s.caption, mode: s.mode, status: s.status, createdBy: s.created_by_label, exportedAt: s.exported_at, postedAt: s.posted_at, piecePostId: s.piece_post_id, canceledAt: s.canceled_at, cancelReason: s.cancel_reason, sprinklrDraftId: s.sprinklr_draft_id || null, sprinklrStatus: s.sprinklr_status || null, sprinklrCheckedAt: s.sprinklr_checked_at || null, sprinklrError: s.sprinklr_error || null };
 }
+const sprinklrView = () => ({ configured: SprinklrAdapter.connected, drafts: SprinklrAdapter.enabled, livePublishing: false });
 
 /** GET ?calendar=1: slots in [from, to) plus approved finals with no open slot, each with its trend's post-by date */
 async function calendar({ from, to }) {
@@ -56,7 +83,7 @@ async function calendar({ from, to }) {
     const postBy = {}; for (const s of scores) if (s.post_by && !postBy[s.trend_id]) postBy[s.trend_id] = s.post_by;
     const unscheduled = finals.filter((f) => !open.has(f.piece_id)).map((f) => { const p = byId.get(f.piece_id) || {}; return { pieceId: p.legacy_id, title: p.title, product: p.product, platforms: p.platforms || [], markets: p.markets || [], trend: p.trend_name, postBy: postBy[p.trend_id] || null }; })
       .sort((a, b) => String(a.postBy || '9').localeCompare(String(b.postBy || '9')));
-    return { status: 200, body: { mode: adapter().mode, connected: adapter().connected, label: adapter().label, sprinklrConfigured: SprinklrAdapter.connected, owned: Object.fromEntries(Object.entries(ownedByPlatform()).map(([k, v]) => [k, [...v]])), slots: slots.map((s) => slotView(s, byId.get(s.piece_id))), unscheduled } };
+    return { status: 200, body: { mode: adapter().mode, connected: adapter().connected, label: adapter().label, sprinklrConfigured: SprinklrAdapter.connected, sprinklr: sprinklrView(), owned: Object.fromEntries(Object.entries(ownedByPlatform()).map(([k, v]) => [k, [...v]])), slots: slots.map((s) => slotView(s, byId.get(s.piece_id))), unscheduled } };
   } catch (e) { if (storageMissing(e)) return MISSING; throw e; }
 }
 
@@ -84,8 +111,38 @@ async function setStatus({ piece, id, to, member, reason }) {
   try {
     const rows = await patchRows('publishing_slots', `id=eq.${encodeURIComponent(id)}&piece_id=eq.${encodeURIComponent(piece.id)}&${from}`, patch);
     if (!rows.length) return { status: 404, body: { error: 'no open planned post with that id on this piece' } };
-    return { status: 200, body: { ok: true, slot: slotView(rows[0], piece), ...(to === 'exported' ? await adapter().publish() : {}) } };
+    const out = to === 'exported' ? await adapter().publish({ slot: rows[0], piece }) : {};
+    const [slot] = out.sprinklr ? await queryRows('publishing_slots', `select=*&id=eq.${encodeURIComponent(rows[0].id)}&limit=1`) : rows;
+    return { status: 200, body: { ok: true, slot: slotView(slot || rows[0], piece), ...out } };
   } catch (e) { if (storageMissing(e)) return MISSING; throw e; }
+}
+
+/** the slot's Sprinklr draft: its status (recorded on the slot) and, with preview, a rendered preview of it */
+async function draftCheck({ piece, id, member, preview, previewId }) {
+  if (member && !PLANNERS.includes(member.role)) return { status: 403, body: { error: 'only a line manager or admin can check a Sprinklr draft', code: 'role_required' } };
+  if (!SprinklrAdapter.connected) return { status: 409, body: { error: 'Sprinklr is not configured', code: 'sprinklr_not_configured' } };
+  try {
+    const [slot] = await queryRows('publishing_slots', `select=*&id=eq.${encodeURIComponent(id)}&piece_id=eq.${encodeURIComponent(piece.id)}&limit=1`);
+    if (!slot) return { status: 404, body: { error: 'no planned post with that id on this piece' } };
+    if (!slot.sprinklr_draft_id) return { status: 409, body: { error: 'this planned post has no Sprinklr draft yet — export it in drafts mode', code: 'no_draft' } };
+    const d = await sprinklr.getDraft(slot.sprinklr_draft_id);
+    const status = d && d.status ? String(d.status) : null;
+    const [row] = await patchRows('publishing_slots', `id=eq.${encodeURIComponent(slot.id)}`, { sprinklr_status: status, sprinklr_checked_at: new Date().toISOString() });
+    let pv = null;
+    if (preview) pv = previewId ? await sprinklr.previewStatus(String(previewId)) : { id: await sprinklr.previewGenerate(slot.sprinklr_draft_id), status: 'requested', url: null };
+    return { status: 200, body: { ok: true, slot: slotView(row || slot, piece), draft: { id: slot.sprinklr_draft_id, status, scheduleDate: d && d.scheduleDate ? new Date(d.scheduleDate).toISOString() : null }, ...(pv ? { preview: pv } : {}) } };
+  } catch (e) {
+    if (storageMissing(e)) return MISSING;
+    if (/^sprinklr_/.test(e.code || '')) return { status: e.status || 502, body: { error: e.message, code: e.code } };
+    throw e;
+  }
+}
+
+/** read-only credential check (GET /me) */
+async function sprinklrCheck() {
+  if (!SprinklrAdapter.connected) return { status: 200, body: { ...sprinklrView(), ok: false, error: 'not configured' } };
+  try { return { status: 200, body: { ...sprinklrView(), ok: true, me: await sprinklr.me() } }; }
+  catch (e) { return { status: 200, body: { ...sprinklrView(), ok: false, error: e.message, code: e.code } }; }
 }
 
 /** called when a published post is linked: the piece's earliest open slot on that platform becomes posted */
@@ -98,4 +155,4 @@ async function markPosted({ pieceId, platform, piecePostId }) {
   } catch (e) { if (storageMissing(e)) return null; throw e; }
 }
 
-module.exports = { calendar, plan, setStatus, markPosted, ManualExportAdapter, SprinklrAdapter, adapter, storageMissing };
+module.exports = { calendar, plan, setStatus, draftCheck, sprinklrCheck, markPosted, ManualExportAdapter, SprinklrAdapter, adapter, storageMissing };

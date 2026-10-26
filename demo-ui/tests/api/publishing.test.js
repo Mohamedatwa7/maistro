@@ -76,7 +76,7 @@ test('before migration 019: 503 "publishing storage not migrated"; the Sprinklr 
     r = await post(studio, { action: 'slot-plan', pieceId: 'gen-p1', platform: 'tiktok', account: 'samsunggulf', slotAt: '2026-10-25T12:00:00Z' });
     assert.equal(r.statusCode, 503);
     const P = require('../../api/_studio/publishing.js');
-    assert.equal(P.SprinklrAdapter.connected, false); assert.equal(P.adapter().mode, 'manual_export');
-    await assert.rejects(P.SprinklrAdapter.publish(), (e) => e.status === 501 && e.code === 'sprinklr_not_implemented');
+    assert.equal(P.SprinklrAdapter.connected, false); assert.equal(P.SprinklrAdapter.enabled, false); assert.equal(P.adapter().mode, 'manual_export');
+    await assert.rejects(require('../../api/_studio/sprinklr/client.js').call('POST', '/publishing/draft', { body: {} }), (e) => e.status === 503 && e.code === 'sprinklr_not_configured');
   } finally { f.restore(); studio.restore(); }
 });

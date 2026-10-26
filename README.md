@@ -80,7 +80,8 @@ it.
 | `MAISTRO_IP_SALT` | no | the session secret | Salt for hashed addresses in the login throttle |
 | `MAISTRO_ALERT_WEBHOOK` | no | — | Slack-compatible webhook for monitor alerts |
 | `MAISTRO_PREVIEW_DB` | no | — | `1` in the Preview scope once Preview has its own database |
-| `SPRINKLR_API_KEY`, `SPRINKLR_API_SECRET`, `SPRINKLR_ENV` | no | — | Until all three are set, publishing is manual/export and shown as "not connected" |
+| `SPRINKLR_API_KEY`, `SPRINKLR_ACCESS_TOKEN`, `SPRINKLR_ENV` | no | — | Sprinklr v3 credentials (`Key` header, Bearer token, environment such as `prod2`). Until all three are set, publishing is manual/export and shown as "not connected" |
+| `SPRINKLR_DRAFTS`, `SPRINKLR_CAMPAIGN_ID`, `SPRINKLR_ACCOUNT_GROUPS` | no | — | Drafts mode (ADR-008): `1`, the campaign the drafts are filed under, and `platform:account=accountGroupId,…`. An export then also creates the Sprinklr draft; Maistro never schedules or posts |
 | `MAISTRO_FFMPEG` | no | bundled `ffmpeg-static` | ffmpeg path override for assembly |
 | `MAISTRO_REVISION` | set by `release.sh` | — | The released SHA, which `/api/health` reports |
 

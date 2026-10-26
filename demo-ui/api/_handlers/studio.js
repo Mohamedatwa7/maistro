@@ -132,6 +132,12 @@ module.exports = async (req, res) => {
         const out = await require('../_studio/publishing.js').calendar({ from: q.from ? String(q.from) : null, to: q.to ? String(q.to) : null });
         return res.status(out.status).json(out.body);
       }
+      if (q.sprinklr === 'check') {
+        // ADR-008: read-only credential check (GET /me), admin only
+        if (!memberOnly(req, res, ['admin'])) return;
+        const out = await require('../_studio/publishing.js').sprinklrCheck();
+        return res.status(out.status).json(out.body);
+      }
       if (q.posts) {
         // 7.5: the posts this piece became (active and unlinked, newest first)
         const [piece] = await queryRows('content_pieces', `select=id&legacy_id=eq.${encodeURIComponent(String(q.posts))}&limit=1`);
@@ -179,15 +185,17 @@ module.exports = async (req, res) => {
     }
     if (!(await refreshMember(req, res))) return;
     const b = req.body || {};
-    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package', 'budget', 'override-sign', 'override', 'post-link', 'post-unlink', 'slot-plan', 'slot-export', 'slot-cancel'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
+    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package', 'budget', 'override-sign', 'override', 'post-link', 'post-unlink', 'slot-plan', 'slot-export', 'slot-cancel', 'slot-draft-check'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
     const legacyId = String(b.pieceId || '');
-    if (['slot-plan', 'slot-export', 'slot-cancel', 'post-link', 'post-unlink'].includes(b.action) && !claimActor(req, res)) return; // interim claim; closed by MAISTRO_REQUIRE_MEMBER=1
-    if (b.action === 'slot-plan' || b.action === 'slot-export' || b.action === 'slot-cancel') {
-      // 8b: plan / export / cancel a post (manual mode: the operator posts and then links the post)
+    if (['slot-plan', 'slot-export', 'slot-cancel', 'slot-draft-check', 'post-link', 'post-unlink'].includes(b.action) && !claimActor(req, res)) return; // interim claim; closed by MAISTRO_REQUIRE_MEMBER=1
+    if (b.action === 'slot-plan' || b.action === 'slot-export' || b.action === 'slot-cancel' || b.action === 'slot-draft-check') {
+      // 8b: plan / export / cancel a post (manual mode: the operator posts and then links the post); in Sprinklr
+      // drafts mode the export creates the draft and slot-draft-check reads its status back (preview: true renders one)
       const [piece] = await queryRows('content_pieces', `select=id,legacy_id,title&legacy_id=eq.${encodeURIComponent(legacyId)}&limit=1`);
       if (!piece) return res.status(404).json({ error: 'piece not found' });
       const pub = require('../_studio/publishing.js');
       const out = b.action === 'slot-plan' ? await pub.plan({ piece, b, member: req.member || null })
+        : b.action === 'slot-draft-check' ? await pub.draftCheck({ piece, id: b.id, member: req.member || null, preview: b.preview === true, previewId: b.previewId })
         : await pub.setStatus({ piece, id: b.id, to: b.action === 'slot-export' ? 'exported' : 'canceled', member: req.member || null, reason: b.reason });
       return res.status(out.status).json(out.body);
     }
