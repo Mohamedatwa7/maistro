@@ -1232,7 +1232,7 @@ function radarToTrend(t,i){
  if(!t.mechanic&&t.samsungFit.rationale)bits.push(esc(t.samsungFit.rationale));
  if(t.stayingPower)bits.push(`Staying power: ${esc(t.stayingPower)}.`);
  return {
-  id:t.id||('radar-'+i),name:t.name,platform:'tiktok',
+  id:t.id||('radar-'+i),trendId:String(t.trendId||t.id||''),name:t.name,platform:'tiktok',
   markets:[t.region||'Global'].concat(t.lang?[t.lang]:[]),
   type:(t.category||'trend').toLowerCase(),
   vel,velUnit:'%/DAY',spark:radarSpark(vel),usage:'organic',
@@ -1294,6 +1294,38 @@ async function recordTrendDecision(x,decision){
  }catch(e){const err=$('#td-err-'+cssId(x.trendId));if(err)err.textContent=e.message;else toast(`<b style="color:#fb7185">Decision:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
 }
 function cssId(s){return String(s).replace(/[^A-Za-z0-9_-]/g,'_')}
+/* the ranking and the live feed are the same trends: join a scored row to its live card (clips, velocity) and back */
+function liveOf(x){return TRENDS.find(t=>t.trendId&&t.trendId===String(x.trendId))||TRENDS.find(t=>t.name===x.name)||null}
+function scoredOf(t){const all=[...SCORED.ranked,...SCORED.needsReview,...SCORED.rejected];return all.find(x=>String(x.trendId)===t.trendId)||all.find(x=>x.name===t.name)||null}
+function rankBadge(t){
+ const x=SCORED.at&&scoredOf(t);
+ if(!x)return SCORED.at?badge('muted','NOT IN RANKING'):'';
+ const i=SCORED.ranked.indexOf(x);
+ return i>=0?badge('gold',`MAISTRO #${i+1} · ${x.score}/100`):badge(x.status==='vetoed'?'alert':'gold',x.status==='vetoed'?'VETOED':'NEEDS REVIEW');
+}
+/* TrendRadar's poster links are signed TikTok CDN URLs that expire after a few days (403 after that), so the tile
+   never depends on them: it falls back to a placeholder and plays the clip itself through TikTok's embed player */
+function rClipTile(c){
+ if(!c||!c.vid)return '';
+ const vid=esc(String(c.vid).replace(/\D/g,''));
+ const page=c.handle?`https://www.tiktok.com/${encodeURIComponent(String(c.handle).startsWith('@')?c.handle:'@'+c.handle)}/video/${vid}`:`https://www.tiktok.com/video/${vid}`;
+ return `<div class="card" style="overflow:hidden" onclick="event.stopPropagation()">
+  <div class="clip-frame" data-vid="${vid}" onclick="clipPlay(this)" title="Play this clip" style="position:relative;aspect-ratio:9/16;cursor:pointer;background:linear-gradient(160deg,#1e293b,#0a0f1c)">
+   ${c.poster&&/^https:\/\//.test(c.poster)?`<img src="${esc(c.poster)}" referrerpolicy="no-referrer" loading="lazy" alt="" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`:''}
+   <span style="position:absolute;inset:0;display:grid;place-items:center"><span style="width:44px;height:44px;border-radius:99px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.35);display:grid;place-items:center;font-size:16px;color:#fff;padding-left:3px">▶</span></span>
+   ${c.views!=null?`<span class="mono" style="position:absolute;left:8px;bottom:8px;font-size:10px;color:#fff;background:rgba(0,0,0,.6);border-radius:99px;padding:2px 8px">${fmt(c.views)} VIEWS</span>`:''}
+  </div>
+  <div style="padding:7px 9px;display:flex;justify-content:space-between;gap:6px;align-items:center"><span class="mono dim" style="font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.handle||'')}</span><a href="${page}" target="_blank" rel="noopener" class="mono" style="font-size:9.5px;color:#7dd3fc;text-decoration:none;white-space:nowrap">TIKTOK ↗</a></div>
+ </div>`;
+}
+function clipPlay(el){
+ if(el.dataset.playing)return;el.dataset.playing='1';
+ el.innerHTML=`<iframe src="https://www.tiktok.com/player/v1/${el.dataset.vid}?autoplay=1&music_info=1&description=1" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe>`;
+}
+function rClipStrip(clips,n){
+ const cs=(clips||[]).filter(c=>c&&c.vid).slice(0,n||clips.length);
+ return cs.length?`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:8px">${cs.map(rClipTile).join('')}</div>`:'';
+}
 function rScoredCard(x,i){
  const open=SCORED.open[x.trendId];
  const lb=LIFE_BADGE[x.lifecycle]||LIFE_BADGE.unknown;
@@ -1308,6 +1340,9 @@ function rScoredCard(x,i){
  const pm=x.productMapping;
  const id=cssId(x.trendId);
  const reasonOpts=Object.entries(REASON_LABEL).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+ const lv=liveOf(x);
+ const liveLine=lv?`<div class="mono dim" style="font-size:10.5px;margin-top:10px;display:flex;gap:14px;flex-wrap:wrap"><span>LIVE <b style="color:${lv.vel>0?'#34d399':lv.vel<0?'#fb7185':'#fff'}">${lv.vel>0?'+':''}${lv.vel}%/DAY</b></span>${lv.m.views!=null?`<span>VIEWS/WK <b style="color:#fff">${fmt(lv.m.views)}</b></span>`:''}${lv.m.er!=null?`<span>ER <b style="color:#fff">${pct(lv.m.er)}</b></span>`:''}</div>`:'';
+ const clips=lv&&lv.clips&&lv.clips.length?`<div style="margin-top:12px"><span class="kick" style="font-size:10px">Sample videos · tap to play</span>${rClipStrip(lv.clips,open?lv.clips.length:3)}</div>`:'';
  return `<div class="card hov click p5 rv" onclick="scoredToggle('${esc(x.trendId)}')">
   <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
    <div><h3 style="font-size:17px">${x.status==='scored'?`<span class="mono dim" style="font-size:12px">#${i+1}</span> `:''}${esc(x.name)}</h3>
@@ -1315,7 +1350,9 @@ function rScoredCard(x,i){
    ${x.status==='scored'?`<div style="text-align:right"><span class="num" style="font-size:26px;color:#fff">${x.score}</span><span class="dim" style="font-size:12px">/100</span></div>`:badge(x.status==='vetoed'?'alert':'gold',x.status.replace('_',' ').toUpperCase())}
   </div>
   ${pm&&pm.product&&pm.product!=='none'?`<p style="font-size:13px;margin-top:10px"><b style="color:#7dd3fc">${esc(pm.product)}</b> — ${esc(pm.feature||'')}${pm.catalogMatch===false?' '+badge('alert','NOT IN CATALOG'):''}</p>`:x.status==='scored'?`<p class="dim" style="font-size:12px;margin-top:10px">No catalog product mapped.</p>`:''}
+  ${liveLine}
   ${vetoes}
+  ${clips}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px;flex-wrap:wrap">
    <span class="mono dim" style="font-size:10px">${t.leadDays!=null?`LEAD ${t.leadDays} D${t.leadAssumed?' (ASSUMED)':''} · `:''}${t.remainingDays!=null?`${t.remainingDays} D LEFT · `:''}${x.lifecycle==='unknown'?'ONE BOARD IN HISTORY':''}</span>
    <span class="mono dim" style="font-size:10px">${open?'▲ COLLAPSE':'▼ BREAKDOWN'}</span></div>
@@ -1347,9 +1384,9 @@ function rScoredBoard(){
  const late=SCORED.ranked.filter(x=>x.timing&&x.timing.postByPassed).length;
  return `
   <div class="card p5" style="margin-bottom:18px">
-   <div class="section-head" style="margin-bottom:12px"><div><span class="kick accent">Scored board · framework v1</span><h3 style="font-size:16px">${SCORED.ranked.length} ranked · ${SCORED.needsReview.length} need review · ${SCORED.rejected.length} rejected</h3></div>
+   <div class="section-head" style="margin-bottom:12px"><div><span class="kick accent">Maistro ranking · framework v1</span><h3 style="font-size:16px">${SCORED.ranked.length} ranked · ${SCORED.needsReview.length} need review · ${SCORED.rejected.length} rejected</h3></div>
     <span class="pill"><span class="dot"></span>${SCORED.at?'SCORED '+fmtStamp(SCORED.at):'NO RUN YET'}${SCORED.error?' · '+esc(SCORED.error).toUpperCase():''}</span></div>
-   ${!SCORED.at?`<p class="dim" style="font-size:12.5px;line-height:1.7">No scoring run has completed yet — the hourly refresh scores the board after its first fetch. The curated feed below is the baseline.</p>`:`
+   ${!SCORED.at?`<p class="dim" style="font-size:12.5px;line-height:1.7">No scoring run has completed yet — the hourly refresh scores the board after its first fetch. Until then, the live feed tab shows every trend TrendRadar holds.</p>`:`
    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
     <div class="chips">${[['ranked','Ranked'],['review','Needs review'],['rejected','Rejected']].map(([k,l])=>`<button class="${tab===k?'on':''}" onclick="scoredTab('${k}')">${l}</button>`).join('')}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -3740,6 +3777,7 @@ function startFX(){
 /* ================= 01 TREND ANALYSIS ================= */
 function chipSet(c){STATE.chip=c;$('#view').innerHTML=rTrends();reveal()}
 function trendToggle(id){STATE.open[id]=!STATE.open[id];$('#view').innerHTML=rTrends();reveal()}
+function trViewSet(v){STATE.trView=v;$('#view').innerHTML=rTrends();reveal()}
 function pauseOthers(v){document.querySelectorAll('video').forEach(o=>{if(o!==v)o.pause()})}
 function audioBadge(a){if(!a)return badge('muted','NO AUDIO CLAIM');
  return a.status==='cleared'?badge('go','AUDIO CLEARED'):a.status==='pending'?badge('gold','AUDIO PENDING'):badge('alert','AUDIO BLOCKED')}
@@ -3774,6 +3812,16 @@ function rTrends(){
  const scored=TRENDS.filter(t=>t.score);
  const avgFit=scored.length?Math.round(scored.reduce((s,t)=>s+t.score.fit,0)/scored.length):0;
  const briefed=TRENDS.filter(t=>t.status==='briefed');
+ /* one page, two lenses on the same trends: the ranking (what to make, scored + vetted) and the live feed (everything TrendRadar sees) */
+ const hasRank=SCORED.loaded&&!!SCORED.at;
+ const trView=STATE.trView||(hasRank?'ranked':'live');
+ const lens=(k,n,h,d,count)=>`<button onclick="trViewSet('${k}')" class="card${trView===k?' on':''}" style="text-align:left;padding:14px 16px;cursor:pointer;border:1px solid ${trView===k?'rgba(125,211,252,.6)':'var(--hairline)'};background:${trView===k?'rgba(125,211,252,.07)':'transparent'};color:inherit;font:inherit">
+   <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span class="kick${trView===k?' accent':''}">${n} · ${h}</span><span class="num" style="font-size:18px;color:#fff">${count}</span></div>
+   <div class="dim" style="font-size:12px;line-height:1.55;margin-top:6px">${d}</div></button>`;
+ const lenses=SCORED.loaded?`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:18px">
+   ${lens('ranked','①','What to make','Maistro’s shortlist: each live trend scored on 10 criteria (timing, Gulf relevance, product fit…), with brand-safety vetoes. Start here — pick a trend and send it to the Studio.',hasRank?SCORED.ranked.length:'—')}
+   ${lens('live','②','Live feed','Everything TrendRadar is tracking today, before Maistro’s judgement: raw momentum, views and the trend sound. Use it to browse or spot something the ranking missed.',TRENDS.length)}
+  </div>`:'';
  const kpi2=LIVE.on
   ?`<div class="card kpi p4"><span class="kick">Strong Samsung fit</span><div class="v num">${strong}</div><div class="hint">of ${TRENDS.length} gated · via TrendRadar</div></div>`
   :`<div class="card kpi p4"><span class="kick">Briefed to studio</span><div class="v num">${briefed.length}</div><div class="hint">${briefed.map(t=>t.name).join(' · ')||'—'}</div></div>`;
@@ -3784,8 +3832,9 @@ function rTrends(){
  <section>
   <div class="section-head"><div><span class="kick accent">${LIVE.on?'01 · Samsung-fit feed · TrendRadar':'01 · Scout feed, scored + cleared'}</span><h2>Trend Analysis</h2></div>
    ${trendStalePill()}<span class="pill"><span class="dot"></span>${LIVE.on?`LIVE · TRENDRADAR · BOARD ${fmtStamp(LIVE.boardAt||LIVE.fetchedAt)}`:'SCANNING 4 PLATFORMS · 4 MARKETS · REFRESH 15M'}</span></div>
-  ${rScoredBoard()}
-  <div class="kpis c4" style="margin-bottom:18px">
+  ${lenses}
+  ${trView==='ranked'?rScoredBoard():''}
+  ${trView==='live'?`<div class="kpis c4" style="margin-bottom:18px">
    <div class="card kpi p4"><span class="kick">Live trends</span><div class="v num">${TRENDS.length}</div><div class="hint">${rising} rising · ${TRENDS.length-rising} flat or declining</div></div>
    ${kpi2}
    ${kpi3}
@@ -3801,15 +3850,11 @@ function rTrends(){
    const vu=t.velUnit||'% 48H';
    const velB=t.vel>0?badge('go',`+${t.vel}${vu}`):t.vel<0?badge('alert',`${t.vel}${vu}`):badge('muted',`0${vu}`);
    const stB={'briefed':badge('ai','BRIEFED'),'shortlisted':badge('c','SHORTLISTED'),'scored':badge('muted','SCORED'),'new':badge('v','NEW'),'dismissed':badge('alert','DISMISSED'),'peaking':badge('go','PEAKING'),'mature':badge('c','MATURE'),'breakout':badge('gold','BREAKOUT SIGNAL')}[t.status]||badge('v','NEW');
-   const ex=LIVE.on
-    ?(t.clips||[]).map(c=>`<div class="card" style="overflow:hidden">
-       <img src="${c.poster}" referrerpolicy="no-referrer" loading="lazy" alt="" style="width:100%;aspect-ratio:9/14;object-fit:cover;display:block;background:#0a0f1c">
-       <div style="padding:8px 10px"><div class="mono dim" style="font-size:10.5px">${esc(c.handle||'')}</div>${c.views!=null?`<div style="margin-top:5px">${badge('c',fmt(c.views)+' VIEWS')}</div>`:''}</div></div>`).join('')
-    :'';
+   const ex=LIVE.on?rClipStrip(t.clips):'';
    return `<div class="card hov click p5 rv" onclick="trendToggle('${t.id}')">
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
      <div><h3 style="font-size:17px">${esc(t.name)}</h3>
-      <div style="display:flex;gap:8px;margin-top:7px;flex-wrap:wrap;align-items:center">${plat(t.platform)}<span class="dim mono" style="font-size:10.5px">${t.markets.join(' · ')}</span>${badge('muted',t.type.toUpperCase())}${t.fitTag?badge('ai',t.fitTag):''}</div></div>
+      <div style="display:flex;gap:8px;margin-top:7px;flex-wrap:wrap;align-items:center">${plat(t.platform)}<span class="dim mono" style="font-size:10.5px">${t.markets.join(' · ')}</span>${badge('muted',t.type.toUpperCase())}${t.fitTag?badge('ai',t.fitTag):''}${rankBadge(t)}</div></div>
      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">${velB}${stB}</div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin:13px 0 4px;flex-wrap:wrap">
@@ -3840,8 +3885,8 @@ function rTrends(){
         <p class="src">${t.audio.source}<br>${esc(t.audio.permits||'')}</p></div>`:''}
       ${t.score?`<p class="dim" style="font-size:12.5px;line-height:1.7;margin-top:10px"><b style="color:#bae6fd">Why this score:</b> ${t.score.why}</p>`:''}
       ${ex?`<div style="margin-top:12px" onclick="event.stopPropagation()">
-        <span class="kick">${LIVE.on?'Top creator posts · via TrendRadar':'Example creator posts · sample footage'}</span>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:8px">${ex}</div></div>`:''}
+        <span class="kick">${LIVE.on?'Top creator posts · via TrendRadar · tap to play':'Example creator posts · sample footage'}</span>
+        ${ex}</div>`:''}
       ${t.map?`<div style="margin-top:12px;border:1px solid rgba(125,211,252,.3);border-radius:12px;padding:12px;background:rgba(125,211,252,.05)">
         <span class="kick" style="color:#7dd3fc">Mapped to product</span>
         <p style="font-size:13px;margin-top:6px"><b>${t.map.product}</b> — “${t.map.msg}”</p>
@@ -3859,7 +3904,7 @@ function rTrends(){
    <div class="grid3" style="grid-template-columns:repeat(4,1fr);margin-top:14px">
     ${RUBRIC.map(r=>`<div><div class="num" style="font-size:24px;color:#fff">${r.w}</div><div style="font-size:13px;font-weight:500;margin-top:3px">${r.n}</div><div class="dim" style="font-size:11.5px;margin-top:3px;line-height:1.5">${r.d}</div></div>`).join('')}
    </div>
-  </div>
+  </div>`:''}
  </section>`;
 }
 

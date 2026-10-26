@@ -76,7 +76,7 @@ test('scored board (5.5): ranked cards show rank, score, lifecycle, post-by or L
     assert.ok(!html.includes('Scored board'), 'not rendered before the scored view is loaded');
     await X.loadScored();
     html = X.rTrends();
-    assert.match(html, /Scored board · framework v1/); assert.match(html, /2 ranked · 1 need review · 1 rejected/); assert.match(html, /SCORED 21 Oct 2026, 19:20 GST/);
+    assert.match(html, /Maistro ranking · framework v1/); assert.match(html, /2 ranked · 1 need review · 1 rejected/); assert.match(html, /SCORED 21 Oct 2026, 19:20 GST/);
     assert.match(html, /#1<\/span> Phone flip reveal/); assert.match(html, /81\.5<\/span>/); assert.match(html, /RISING/); assert.match(html, /POST BY 24 OCT/); assert.match(html, /CONFIDENCE HIGH/); assert.match(html, /Galaxy Z Flip8<\/b> — FlexWindow/);
     assert.match(html, /LATE · POST-BY PASSED/); assert.match(html, /1 of 2 ranked trends are past their post-by date/);
     assert.ok(!html.includes('Dangerous stunt'), 'rejected not in the ranked tab');
@@ -90,8 +90,29 @@ test('scored board (5.5): ranked cards show rank, score, lifecycle, post-by or L
     X.STATE.scoredF = {}; X.SCORED.open['snd-2'] = true; html = X.rTrends();
     assert.match(html, /Score breakdown · weights vw1-2026-10-21/); assert.match(html, /MOMENTUM & TIMING <span style="color:#fff">9\.5<\/span>\/10 · w20/); assert.match(html, /Not scored \(normalised away\): Gulf relevance/); assert.match(html, /Unknowns:<\/b> origin/);
     assert.match(html, /Pick → Studio/); assert.match(html, /Reject<\/button>/);
+    // one page, two lenses: the ranking is the default once a run exists; the live feed cards carry their rank
+    assert.match(html, /① · What to make/); assert.match(html, /② · Live feed/);
+    X.STATE.trView = 'live'; html = X.rTrends();
+    assert.match(html, /MAISTRO #1 · 81\.5\/100/); assert.ok(!html.includes('Maistro ranking · framework v1'), 'the ranking is not repeated above the live feed');
+    X.STATE.trView = 'ranked';
     Object.assign(X.SCORED, { at: null, ranked: [], rejected: [], needsReview: [] }); html = X.rTrends();
     assert.match(html, /No scoring run has completed yet/);
+  } finally { X.restore(); }
+});
+
+test('trend clips: a tile never depends on the expiring TikTok poster (onerror drops it) and plays the clip through the TikTok embed player; scored cards show the sample videos of the live trend', () => {
+  const { loadPage } = require('../helpers');
+  const X = loadPage({ fetchImpl: async () => new Promise(() => {}) });
+  try {
+    const tile = X.rClipTile({ vid: '7693452843465985286', handle: '@a', views: 784000, poster: 'https://p19.tiktokcdn-us.com/x.image?x-expires=1' });
+    assert.match(tile, /data-vid="7693452843465985286"/); assert.match(tile, /onerror="this\.remove\(\)"/); assert.match(tile, /784K VIEWS|784\.0K VIEWS|784,000 VIEWS/i);
+    assert.match(tile, /https:\/\/www\.tiktok\.com\/%40a\/video\/7693452843465985286/);
+    assert.equal(X.rClipTile({ poster: 'https://x' }), '', 'no video id, no tile');
+    const el = { dataset: { vid: '7693452843465985286' }, innerHTML: '' };
+    X.clipPlay(el); assert.match(el.innerHTML, /<iframe src="https:\/\/www\.tiktok\.com\/player\/v1\/7693452843465985286\?autoplay=1/);
+    X.TRENDS.length = 0; X.TRENDS.push({ id: 'x', trendId: 'snd-9', name: 'N', vel: 4, m: { views: 1000, er: null }, clips: [1, 2, 3, 4].map((k) => ({ vid: String(k), handle: '@h' + k })) });
+    const card = X.rScoredCard({ trendId: 'snd-9', name: 'N', status: 'scored', score: 70, lifecycle: 'rising', criteria: {}, timing: {}, vetoes: [] }, 0);
+    assert.match(card, /Sample videos · tap to play/); assert.equal((card.match(/data-vid=/g) || []).length, 3, 'three clips while collapsed'); assert.match(card, /LIVE <b[^>]*>\+4%\/DAY/);
   } finally { X.restore(); }
 });
 
