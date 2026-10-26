@@ -30,6 +30,7 @@ test('comments and captions render with dir="auto" so Arabic keeps its punctuati
   const X = loadPage({ hash: '#/performance' });
   try {
     X.SENTI.posts.push({ postId: 'tiktok-1', platform: 'tiktok', account: '@samsunggulf', caption: 'تجربة الكاميرا الجديدة!', url: 'u', postedAt: '2026-10-21T08:00:00Z', metrics: { views: 10, likes: 1, comments: 1, shares: 0, er: 0.2 }, comments: [{ author: 'سارة', text: 'أفضل هاتف جربته، الكاميرا رائعة!', likes: 3, at: '2026-10-21T09:00:00Z', sentiment: 'pos' }] });
+    X.STATE.pfTab = 'posts'; X.STATE.openPost = { 'tiktok-1': true }; // the Posts tab, that post's comments opened
     const html = X.rPerformance();
     assert.match(html, /<span dir="auto" style="color:var\(--text\);unicode-bidi:plaintext"> أفضل هاتف جربته، الكاميرا رائعة!<\/span>/);
     assert.match(html, /<p dir="auto" style="font-size:13px;line-height:1\.6;margin-top:7px;unicode-bidi:plaintext">تجربة الكاميرا الجديدة!<\/p>/);

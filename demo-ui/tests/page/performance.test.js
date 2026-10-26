@@ -82,7 +82,7 @@ test('critical alerts and drill-downs fold the same author+text pasted under sev
     const post = (id, likes) => ({ postId: id, platform: 'instagram', account: '@samsunggulf', caption: 'c', url: 'u', postedAt: '2026-10-21T08:00:00Z', metrics: { views: 10, likes: 1, comments: 1, shares: 0, er: 0.2 }, comments: [cmt(likes)] });
     X.SENTI.posts.push(post('ig-1', 2), post('ig-2', 5));
     const html = X.rPerformance();
-    const panel = html.slice(html.indexOf('<span class="kick accent">Critical alerts</span>'), html.indexOf('Comment health — week on week'));
+    const panel = html.slice(html.indexOf('<span class="kick accent">Critical alerts</span>'), html.indexOf('Top posts'));
     assert.equal((panel.match(/formally complain/g) || []).length, 1, 'one alert row, not two');
     assert.match(panel, /× 2 POSTS/);
     assert.equal(X.sentiFoldAcross(X.allComments(X.SENTI.posts)).filter((c) => c.author === 'complainant').map((c) => c.likes)[0], 5, 'the most-liked copy survives');
@@ -272,5 +272,43 @@ test('Phase 10: the header says when the stored 60-day copy was computed, also a
     assert.equal(m.storedComputedAt, '2026-10-21T06:31:00Z');
     X.SENTI.track = m;
     assert.match(X.rPerformance(), /60-DAY COPY COMPUTED 21 Oct 2026, 10:31 GST/);
+  } finally { X.restore(); }
+});
+
+test('week on week reads every loaded week, not just the period filter, and rates positives over analysed comments (2026-10-26)', () => {
+  const X = loadPage({ hash: '#/performance' });
+  try {
+    const day = 864e5, now = Date.now();
+    const at = (d) => new Date(now - d * day).toISOString();
+    const cm = (d, sentiment) => ({ author: 'u' + Math.random(), text: 'x' + Math.random(), at: at(d), sentiment, likes: 0 });
+    X.SENTI.posts.push(
+      { postId: 'old', platform: 'tiktok', caption: 'c', postedAt: at(30), metrics: {}, comments: [cm(29, 'pos'), cm(29, 'pos'), cm(29, 'neg'), cm(29, null)] },
+      { postId: 'new', platform: 'tiktok', caption: 'c', postedAt: at(2), metrics: {}, comments: [cm(1, 'pos'), cm(1, 'neg')] },
+    );
+    assert.equal(X.pfState().days, '7', 'the page period stays 7 days');
+    X.STATE.pfTab = 'overview';
+    const html = X.rPerformance();
+    const chart = html.slice(html.indexOf('Comment health — week on week'), html.indexOf('Critical alerts'));
+    assert.match(chart, />67%</, 'a week four weeks back: 2 positive of 3 analysed (the unanalysed one left out)');
+    assert.match(chart, />50%</, 'this week');
+    assert.match(chart, /4 💬/, 'volume counts every comment of that week');
+  } finally { X.restore(); }
+});
+
+test('the redesigned page: four tabs, comments in one feed with their post, posts with comments folded away', () => {
+  const X = loadPage({ hash: '#/performance' });
+  try {
+    X.SENTI.posts.push({ postId: 'ig-9', platform: 'instagram', account: 'samsunggulf', caption: 'Meet the Galaxy Z Fold8', url: 'https://www.instagram.com/p/ZZ/', postedAt: new Date().toISOString(), metrics: { views: 900, er: 0.05 },
+      comments: [{ author: 'amal', text: 'I want a refund, it is not working', sentiment: 'neg', likes: 2, at: new Date().toISOString() }, { author: 'ziad', text: 'love it', sentiment: 'pos', likes: 1, at: new Date().toISOString() }] });
+    X.STATE.pfTab = 'comments'; X.STATE.pfc = { view: 'attention', sort: 'likes' };
+    let html = X.rPerformance();
+    assert.match(html, /Needs attention <span class="dim">1<\/span>/);
+    assert.match(html, /I want a refund/); assert.doesNotMatch(html, /love it/, 'the chip narrows the feed');
+    assert.match(html, /href="https:\/\/www\.instagram\.com\/p\/ZZ\/"[^>]*>VIEW POST/); assert.match(html, /on: Meet the Galaxy Z Fold8/);
+    X.STATE.pfTab = 'posts';
+    html = X.rPerformance();
+    assert.match(html, /2 comments · /); assert.match(html, /Show comments/); assert.doesNotMatch(html, /I want a refund/, 'folded until opened');
+    X.STATE.openPost = { 'ig-9': true };
+    assert.match(X.rPerformance(), /I want a refund/);
   } finally { X.restore(); }
 });

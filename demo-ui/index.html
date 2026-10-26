@@ -493,6 +493,33 @@ body.bare #view{padding:0}
 .feed-item .t{font-family:var(--font-m);font-size:10px;color:var(--muted);padding-top:3px;flex:none;width:38px}
 .spark{flex:none}
 
+/* ---------- Performance (2026-10-26 redesign) ---------- */
+.pf-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--hairline);border-radius:14px;background:rgba(10,10,11,.6)}
+.pf-bar .chips{gap:6px}.pf-bar .chips button{padding:5px 11px}
+.pf-sep{width:1px;height:22px;background:var(--hairline);flex:none}
+.pf-sel{background:#0a0a0b;color:var(--text);border:1px solid var(--hairline);border-radius:10px;padding:7px 10px;font-family:var(--font-m);font-size:10.5px;letter-spacing:.06em;outline:none;cursor:pointer}
+.pf-q{flex:1;min-width:170px;background:#0a0a0b;color:var(--text);border:1px solid var(--hairline);border-radius:10px;padding:7px 12px;font-family:var(--font-d);font-size:12px;outline:none}
+.pf-tabs{margin:14px 0 16px}
+.pf-grid>*{min-width:0}
+.pf-badge{display:inline-block;margin-left:7px;min-width:18px;padding:0 6px;border-radius:99px;background:rgba(251,113,133,.18);color:#fda4af;font-family:var(--font-m);font-size:10px;line-height:17px;text-align:center}
+.pf-weeks{display:flex;align-items:stretch;gap:8px;margin-top:14px;height:170px}
+.pf-wk{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:4px}
+.pf-wk-bar{width:70%;max-width:46px;border-radius:6px 6px 2px 2px;flex:none;max-height:100px}
+.pf-wk-vol{height:2px;border-radius:2px;background:rgba(125,211,252,.55);max-width:46px}
+.pf-post-mini{display:flex;gap:10px;align-items:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--hairline)}
+.pf-thumb{width:42px;height:56px;border-radius:8px;overflow:hidden;flex:none;background:linear-gradient(160deg,#101828,#1b2740)}
+.pf-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.pf-postcard{display:flex;gap:18px;align-items:flex-start}
+.pf-preview{position:relative;width:88px;aspect-ratio:9/16;border-radius:12px;overflow:hidden;background:linear-gradient(160deg,#101828,#1b2740);cursor:pointer;flex:none}
+.pf-preview img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pf-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;color:#fff}
+@media (max-width:900px){
+ .pf-grid{grid-template-columns:1fr !important}
+ .pf-kpis{grid-template-columns:1fr 1fr !important}
+ .pf-postcard{flex-direction:column}
+ .pf-sep{display:none}
+}
+
 /* ---------- A→Z pipeline (landing + studio) ---------- */
 .azflow{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
 .aznode{position:relative;padding:16px 14px}
@@ -3257,9 +3284,7 @@ function pfPosts(){
  if(pf.days!=='all')list=list.filter(p=>p.postedAt&&(Date.now()-new Date(p.postedAt))<=parseFloat(pf.days)*864e5);
  if(pf.plat!=='all')list=list.filter(p=>p.platform===pf.plat);
  if(pf.dept!=='all')list=list.filter(p=>stDept(postText(p)).dept===pf.dept);
- if(pf.feat!=='all')list=list.filter(p=>stFeatures(postText(p)).includes(pf.feat));
- if(pf.sent!=='all')list=list.filter(p=>(p.comments||[]).some(c=>c.sentiment===pf.sent));
- if(pf.flagged)list=list.filter(p=>(p.comments||[]).some(c=>stFlags(c.text).length));
+ /* feature narrows the Posts tab only; sentiment and flags are comment chips on the Comments tab */
  if(pf.q){const q=pf.q.toLowerCase();list=list.filter(p=>postText(p).toLowerCase().includes(q))}
  const er=p=>((p.metrics||{}).er)||0, vw=p=>+((p.metrics||{}).views)||0;
  const negs=p=>(p.comments||[]).filter(c=>c.sentiment==='neg').length;
@@ -3361,9 +3386,17 @@ function handledBit(c){
  const h=HANDLED.data[handledKey(c)];
  const payload=esc(JSON.stringify({postId:c.postId,author:c.author||'',text:c.text||'',at:c.at||null,platform:c.platform||null}));
  return h&&h.handled
-  ?`<span class="mono" style="font-size:9px;color:var(--go);border:1px solid currentColor;border-radius:99px;padding:1px 7px;margin-left:5px" title="${esc('by '+(h.by||'?')+' · '+String(h.at||'').slice(0,16).replace('T',' ')+' UTC')}">✓ HANDLED</span><button class="btn ghost" style="font-size:9px;padding:0 6px;margin-left:4px" data-c="${payload}" data-on="0" onclick="event.stopPropagation();markHandled(this)">undo</button>`
-  :`<button class="btn ghost" style="font-size:9px;padding:0 6px;margin-left:5px" data-c="${payload}" data-on="1" onclick="event.stopPropagation();markHandled(this)">Mark handled</button>`;
+  ?`<span class="mono" style="font-size:9px;color:var(--go);border:1px solid currentColor;border-radius:99px;padding:1px 7px;margin-left:5px" title="${esc('by '+(h.by||'?')+' · '+String(h.at||'').slice(0,16).replace('T',' ')+' UTC')}">✓ HANDLED</span><button class="btn btn-ghost btn-sm" style="font-size:9px;padding:0 6px;margin-left:4px" data-c="${payload}" data-on="0" onclick="event.stopPropagation();markHandled(this)">undo</button>`
+  :`<button class="btn btn-ghost btn-sm" style="font-size:9px;padding:0 6px;margin-left:5px" data-c="${payload}" data-on="1" onclick="event.stopPropagation();markHandled(this)">Mark handled</button>`;
 }
+/* a long comment (walls of text run to 1,000+ characters) shows its first 280 until "more" is clicked */
+const C_CLIP=280;
+function cText(c){
+ const t=String(c.text||''),k=trKey((c.author||'')+'|'+t);
+ if(t.length<=C_CLIP||(STATE.cOpen&&STATE.cOpen[k]))return esc(t);
+ return `${esc(t.slice(0,C_CLIP).replace(/\s+\S*$/,''))}… <a class="mono" style="font-size:9.5px;color:#7dd3fc;cursor:pointer;white-space:nowrap" onclick="event.stopPropagation();cMore('${k}')">MORE</a>`;
+}
+function cMore(k){STATE.cOpen=STATE.cOpen||{};STATE.cOpen[k]=true;if(location.hash.replace(/^#\//,'').split('/')[0]==='performance'){$('#view').innerHTML=rPerformance();reveal()}}
 /* the post a comment came from: the comment's own postUrl, else the loaded post with its id */
 function commentPostUrl(c){if(c.postUrl)return c.postUrl;try{const p=(pfPosts()||[]).find(x=>x.postId===c.postId);return p&&p.url||null}catch(e){return null}}
 function postLink(c){const u=commentPostUrl(c);return u&&/^https?:\/\//i.test(u)?`<a href="${esc(u)}" target="_blank" rel="noopener" class="mono" style="font-size:9.5px;color:#7dd3fc;text-decoration:none;margin-left:6px;white-space:nowrap" title="Open the post this comment is on" onclick="event.stopPropagation()">VIEW POST ↗</a>`:''}
@@ -3373,11 +3406,12 @@ function rCommentRow(c){
   <div class="qc-run-row" style="align-items:flex-start">
    <div style="flex:1;min-width:0;font-size:12.5px;line-height:1.55">
     ${c.platform&&PLAT[c.platform]?plat(c.platform):''} <b style="font-size:12px">${esc(c.author||'')}</b>
-    <span dir="auto" style="color:var(--text);unicode-bidi:plaintext"> ${esc(c.text||'')}</span>
+    <span dir="auto" style="color:var(--text);unicode-bidi:plaintext"> ${cText(c)}</span>
     ${c.likes!=null?`<span class="mono dim" style="font-size:10px"> · ${fmt(c.likes)} ♥</span>`:''}${c.across>1?`<span class="mono dim" style="font-size:9px;margin-left:5px">× ${c.across} POSTS</span>`:''}${c.device?`<span class="mono dim" style="font-size:9px;margin-left:5px" title="An older device named in the comment">${esc(String(c.device).replace(/^Galaxy /,''))} · OLDER MODEL</span>`:''}${postLink(c)}
     ${fl.map(f=>`<span class="mono" style="font-size:9px;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-left:5px">⚑ ${f.l.toUpperCase()}</span>`).join('')}
     ${fl.length||(HANDLED.data&&HANDLED.data[handledKey(c)])?handledBit(c):''}
     ${trBits(c.text)}
+    ${c.ctx&&c.postCaption?`<div class="dim" dir="auto" style="font-size:10.5px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;unicode-bidi:plaintext">on: ${esc(c.postCaption.replace(/\s+/g," ").slice(0,90))}</div>`:""}
    </div>${sentiBadge(c.sentiment)}</div>`;
 }
 /* ---------- KPI drill-down — click a KPI, see the comments/posts behind it ---------- */
@@ -3418,52 +3452,172 @@ function kpiDrill(kind){
   <div class="mrow"><button class="btn btn-ghost btn-sm" onclick="STATE.kpiDrill=null;closeModal()">Close</button></div>`;
  $('#modal-back').classList.add('open');
 }
-/* ---------- Social Reviews Dashboard — the samsungtrack overview, in Maistro.
-   Every section computes over the FILTERED post list, so the toolbar
-   (date/platform/department/feature/sentiment/flagged/search) drives all of it. */
+/* ---------- Performance, redesigned 2026-10-26: one filter bar, four tabs.
+   Overview = the numbers, the weekly trend, what needs attention; Comments = every comment in one place, narrowed
+   with chips; Posts = our posts, their comments folded away until asked for; Insights = benchmarks, products,
+   attribution. Every tab computes over the same filtered post list (period · platform · department · search). */
+const PF_TABS=[['overview','Overview'],['comments','Comments'],['posts','Posts'],['insights','Insights']];
+function pfRerender(){if(location.hash.replace(/^#\//,'').split('/')[0]==='performance'){$('#view').innerHTML=rPerformance();reveal()}}
+function pfTab(t,cview){STATE.pfTab=t;if(cview){pfc().view=cview;STATE.cfN=20}pfRerender()}
+function pfc(){if(!STATE.pfc)STATE.pfc={view:'all',sort:'likes'};return STATE.pfc}
+function pfcSet(k,v){pfc()[k]=v;STATE.cfN=20;pfRerender()}
 function allComments(list){
  const out=[];
  for(const p of list)for(const c of (p.comments||[]))out.push({...c,platform:p.platform,postId:p.postId,postUrl:p.url||null,postCaption:p.caption||''});
  return out;
 }
-function cfMore(){STATE.cfN=(STATE.cfN||15)+25;$('#view').innerHTML=rPerformance();reveal()}
-function rReviewsDash(list,s){
- const cmts=allComments(list),collected=list.reduce((s,p)=>s+(+p.commentsCollected||(p.comments||[]).length),0);
- if(!cmts.length&&!list.length)return '';
+function cfMore(){STATE.cfN=(STATE.cfN||20)+25;pfRerender()}
+/* the same filters, one period earlier: what the KPI deltas compare against */
+function pfPrevPosts(){
+ const pf=pfState();if(pf.days==='all')return null;
+ const d=parseFloat(pf.days)*864e5,now=Date.now();
+ let list=SENTI.posts.filter(p=>{const t=p.postedAt?now-new Date(p.postedAt):Infinity;return t>d&&t<=2*d});
+ if(pf.plat!=='all')list=list.filter(p=>p.platform===pf.plat);
+ if(pf.dept!=='all')list=list.filter(p=>stDept(postText(p)).dept===pf.dept);
+ if(pf.q){const q=pf.q.toLowerCase();list=list.filter(p=>postText(p).toLowerCase().includes(q))}
+ return list;
+}
+function pfDelta(cur,prev,kind){
+ if(cur==null||prev==null)return '';
+ if(kind==='pts'){const d=Math.round(cur-prev);return d?`<span class="${d>0?'delta-up':'delta-dn'}">${d>0?'▲':'▼'} ${Math.abs(d)} pts</span>`:'<span class="mono dim" style="font-size:12px">no change</span>'}
+ if(!prev)return '';
+ const d=Math.round((cur-prev)/prev*100);
+ return d?`<span class="${d>0?'delta-up':'delta-dn'}">${d>0?'▲':'▼'} ${Math.abs(d)} %</span>`:'<span class="mono dim" style="font-size:12px">no change</span>';
+}
+/* Weekly comment health. Bucketed by when each comment was written, over EVERYTHING loaded (up to 60 days), not
+   just the period picked above: the period filter once limited this chart to the last 7 days of posts, so every
+   week before the current one was empty. Platform and department filters still apply. Rate = positive / analysed
+   (a comment the tracker never analysed is not a negative one). */
+const PF_WEEKS=8,PF_WEEK_MIN=10;
+function perfWeeks(){
  const pf=pfState();
- /* comment-level filters for comment sections */
- let fc=cmts;
- if(pf.sent!=='all')fc=fc.filter(c=>c.sentiment===pf.sent);
- if(pf.flagged)fc=fc.filter(c=>stFlags(c.text).length);
- if(pf.q){const q=pf.q.toLowerCase();fc=fc.filter(c=>(c.text||'').toLowerCase().includes(q))}
-
- /* 1 — brand health gauge */
- const rate=s.posRate;
- const health=rate==null?['—','var(--muted)']:rate>=70?['EXCELLENT','var(--go)']:rate>=55?['HEALTHY','var(--go)']:rate>=40?['WATCH','var(--gold)']:['CRITICAL','var(--alert)'];
- const ang=rate==null?0:rate/100*180;
- const rad=a=>[100+86*Math.cos(Math.PI*(1-a/180)),92-86*Math.sin(Math.PI*(1-a/180))];
- const [gx,gy]=rad(ang);
- const gauge=`<svg viewBox="0 0 200 100" style="width:100%;max-width:240px">
-  <path d="M14 92 A86 86 0 0 1 186 92" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10" stroke-linecap="round"/>
-  ${rate!=null?`<path d="M14 92 A86 86 0 0 1 ${gx.toFixed(1)} ${gy.toFixed(1)}" fill="none" stroke="${health[1]}" stroke-width="10" stroke-linecap="round"/>`:''}
-  <text x="100" y="74" text-anchor="middle" fill="#fff" font-size="30" font-family="Inter" font-weight="200">${rate!=null?rate+'%':'—'}</text>
-  <text x="100" y="92" text-anchor="middle" fill="${health[1]}" font-size="9" font-family="JetBrains Mono" letter-spacing="2">${health[0]}</text></svg>`;
-
- /* 2 — critical alerts */
- const alerts=sentiFoldAcross(cmts).map(c=>({c,fl:stFlags(c.text)})).filter(x=>x.fl.length)
-  .sort((a,b)=>(b.c.likes||0)-(a.c.likes||0)).slice(0,6);
-
- /* 3 — week-on-week health trend (8 weeks) */
- const weeks=[];
- for(let w=7;w>=0;w--){
-  const end=Date.now()-w*7*864e5,start=end-7*864e5;
-  const inW=cmts.filter(c=>{const t=new Date(c.at||0).getTime();return t>start&&t<=end});
-  const pos=inW.filter(c=>c.sentiment==='pos').length,tot=inW.length;
-  weeks.push({label:fmtDay(end),rate:tot?Math.round(pos/tot*100):null,tot});
+ let posts=SENTI.posts;
+ if(pf.plat!=='all')posts=posts.filter(p=>p.platform===pf.plat);
+ if(pf.dept!=='all')posts=posts.filter(p=>stDept(postText(p)).dept===pf.dept);
+ const now=Date.now(),weeks=[];
+ for(let w=PF_WEEKS-1;w>=0;w--){const end=now-w*7*864e5;weeks.push({start:end-7*864e5,end,label:fmtDay(end),pos:0,neu:0,neg:0,na:0,tot:0})}
+ let oldest=Infinity;
+ for(const p of posts)for(const c of (p.comments||[])){
+  const t=new Date(c.at||0).getTime();if(!t)continue;if(t<oldest)oldest=t;
+  const wk=weeks.find(x=>t>x.start&&t<=x.end);if(!wk)continue;
+  wk.tot++;if(wk[c.sentiment]!=null)wk[c.sentiment]++;else wk.na++;
  }
- const hasTrend=weeks.some(w=>w.tot);
-
- /* 4 — product performance by model */
+ for(const w of weeks){const a=w.pos+w.neu+w.neg;w.analysed=a;w.rate=a?Math.round(w.pos/a*100):null;w.thin=a>0&&a<PF_WEEK_MIN}
+ return {weeks,oldest:oldest===Infinity?null:oldest};
+}
+function rWeekChart(){
+ const {weeks,oldest}=perfWeeks();
+ const loadingOlder=(SENTI.win||0)<SENTI_WIN.full;
+ const has=weeks.some(w=>w.tot);
+ const tone=r=>r==null?'var(--muted)':r>=55?'var(--go)':r>=40?'var(--gold)':'var(--alert)';
+ const fill=r=>r==null?'rgba(255,255,255,.05)':r>=55?'rgba(52,211,153,.55)':r>=40?'rgba(240,179,94,.55)':'rgba(251,113,133,.55)';
+ const maxTot=Math.max(1,...weeks.map(w=>w.tot));
+ const bars=weeks.map(w=>`<div class="pf-wk" title="${esc(`Week ending ${w.label}: ${w.tot} comments · ${w.pos} positive · ${w.neu} neutral · ${w.neg} negative · ${w.na} not analysed`)}">
+   <span class="mono" style="font-size:10px;color:${tone(w.rate)}">${w.rate!=null?w.rate+'%':w.tot?'n/a':'—'}</span>
+   <div class="pf-wk-bar" style="height:${w.rate!=null?Math.max(6,w.rate):4}px;background:${fill(w.rate)};${w.thin?'opacity:.45;':''}"></div>
+   <div class="pf-wk-vol" style="width:${Math.max(4,Math.round(w.tot/maxTot*100))}%"></div>
+   <span class="mono dim" style="font-size:8.5px">${w.label}</span>
+   <span class="mono dim" style="font-size:9px">${fmt(w.tot)} 💬</span></div>`).join('');
+ return `<div class="card p5">
+  <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline"><span class="kick accent">Comment health — week on week</span>
+   <span class="mono dim" style="font-size:10px">LAST ${PF_WEEKS} WEEKS${pfState().plat!=='all'?' · '+(PLAT[pfState().plat]?PLAT[pfState().plat].n.toUpperCase():pfState().plat):''}</span></div>
+  <div class="dim" style="font-size:11px;margin-top:4px">Share of analysed comments that are positive, by the week they were written. The thin line under each bar is that week's comment volume.</div>
+  ${has?`<div class="pf-weeks">${bars}</div>
+   <div class="dim" style="font-size:10.5px;margin-top:8px">${weeks.some(w=>w.thin)?`Faded bars rest on fewer than ${PF_WEEK_MIN} analysed comments. `:''}${oldest&&oldest>weeks[0].start?`Comments on record start ${fmtDay(oldest)}; earlier weeks have none. `:''}${loadingOlder?'Loading older weeks…':''}</div>`
+  :`<p class="dim" style="font-size:12.5px;margin-top:12px">${loadingOlder?'Loading the last 60 days of comments…':'No dated comments for these filters.'}</p>`}
+ </div>`;
+}
+const FLAG_CHIP=f=>`<span class="mono" style="font-size:9px;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-right:4px">⚑ ${f.l.toUpperCase()}</span>`;
+function rAttention(list){
+ if(!HANDLED.data)loadHandled();
+ const flagged=sentiFoldAcross(allComments(list)).filter(c=>stFlags(c.text).length);
+ const open=flagged.filter(c=>!(HANDLED.data&&(HANDLED.data[handledKey(c)]||{}).handled)).sort((a,b)=>(b.likes||0)-(a.likes||0));
+ const done=flagged.length-open.length;
+ return `<div class="card p5">
+  <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline"><span class="kick accent">Critical alerts</span>
+   <span class="mono" style="font-size:11px;color:${open.length?'var(--alert)':'var(--go)'}">${open.length?fmt(open.length)+' TO HANDLE':'ALL CLEAR'}</span></div>
+  <div class="dim" style="font-size:11px;margin-top:4px">Refund, technical, support and competitor mentions${done?` · ${fmt(done)} already handled`:''}.</div>
+  ${open.slice(0,3).map(c=>`<div class="qc-risk" style="margin-top:9px">
+    <div style="font-size:12px;line-height:1.55"><b>${esc(c.author||'')}</b> <span class="dim" dir="auto" style="unicode-bidi:plaintext">${esc((c.text||'').slice(0,110))}${(c.text||'').length>110?'…':''}</span>${trBits(c.text)}</div>
+    <div style="margin-top:4px">${stFlags(c.text).map(FLAG_CHIP).join('')}${c.platform&&PLAT[c.platform]?plat(c.platform):''}${c.across>1?`<span class="mono dim" style="font-size:9px;margin-left:5px">× ${c.across} POSTS</span>`:''}${postLink(c)}</div>
+   </div>`).join('')||`<p class="dim" style="font-size:12.5px;margin-top:12px">Nothing waiting in this view. 🎉</p>`}
+  ${flagged.length?`<button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="pfTab('comments','attention')">Review all ${fmt(flagged.length)} in Comments →</button>`:''}
+ </div>`;
+}
+function rTopPosts(list){
+ const ranked=list.filter(p=>(p.metrics||{}).er!=null&&(+(p.metrics||{}).views||0)>=500).sort((a,b)=>b.metrics.er-a.metrics.er);
+ const top=(ranked.length?ranked:list.slice().sort((a,b)=>(+(b.metrics||{}).views||0)-(+(a.metrics||{}).views||0))).slice(0,4);
+ return `<div class="card p5"><span class="kick accent">Top posts</span>
+  <div class="dim" style="font-size:11px;margin-top:4px">${ranked.length?'Highest engagement rate, posts with 500+ views.':'Most viewed.'}</div>
+  ${top.map(p=>{const m=p.metrics||{};return `<div class="pf-post-mini">
+    <div class="pf-thumb">${m.thumb?`<img src="${esc(m.thumb)}" referrerpolicy="no-referrer" loading="lazy" alt="">`:''}</div>
+    <div style="flex:1;min-width:0">
+     <div style="font-size:12px;line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" dir="auto">${esc(p.caption||'(no caption)')}</div>
+     <div class="mono dim" style="font-size:10px;margin-top:3px">${p.platform&&PLAT[p.platform]?plat(p.platform):''} ${m.views&&!PF_NOVIEWS.includes(p.platform)?' · '+fmt(m.views)+' views':''}${m.er!=null?' · '+pct(m.er)+' ER':''} · ${fmt((p.comments||[]).length)} 💬${p.url?` · <a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:#7dd3fc;text-decoration:none">OPEN ↗</a>`:''}</div>
+    </div></div>`}).join('')||'<p class="dim" style="font-size:12.5px;margin-top:12px">No posts in this view.</p>'}
+  ${list.length>top.length?`<button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="pfTab('posts')">All ${fmt(list.length)} posts →</button>`:''}
+ </div>`;
+}
+const THEME_TONE={product_issue:'rgba(251,113,133,.6)',complaint:'rgba(251,113,133,.45)',purchase:'rgba(125,211,252,.55)',request:'rgba(154,163,181,.45)',praise:'rgba(52,211,153,.55)'};
+function rThemeSummary(){
+ const pf=pfState(),days={1:1,3:3,7:7,30:30,60:60}[pf.days]||60;
+ const d=THEMES_UI.byDays[days];
+ if(!d)loadThemes(days);
+ const ts=d&&d.themes?d.themes.filter(t=>t.n&&THEME_TONE[t.group]).slice(0,6):[];
+ const max=Math.max(1,...ts.map(t=>t.n));
+ return `<div class="card p5"><span class="kick accent">What people are talking about</span>
+  <div class="dim" style="font-size:11px;margin-top:4px">Topics across customer comments, last ${days} days${d&&d.spamRemoved?` · ${fmt(d.spamRemoved)} spam removed`:''}.</div>
+  ${!d?'<p class="dim" style="font-size:12px;margin-top:12px">Reading comment topics…</p>':d.error?`<p class="dim" style="font-size:12px;margin-top:12px">${esc(d.error)}</p>`
+   :ts.map(t=>`<div class="bar-row" style="margin-top:10px" title="${esc(t.label)}: ${t.n} comments">
+     <span class="lab" style="width:150px;text-align:left;font-family:var(--font-d);font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.label)}</span>
+     <span class="track"><span class="fill" style="width:${Math.round(t.n/max*100)}%;background:${THEME_TONE[t.group]}"></span></span>
+     <span class="lab mono">${fmt(t.n)}</span></div>`).join('')||'<p class="dim" style="font-size:12px;margin-top:12px">No topics found in this window.</p>'}
+  <button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="pfTab('comments')">Read the comments →</button>
+ </div>`;
+}
+function rOverviewTab(list,s){
+ const prev=pfPrevPosts(),ps=prev?pfStats(prev):null;
+ const pf=pfState();
+ const dayLab={1:'past 24h',3:'past 3 days',7:'past 7 days',30:'past 30 days',60:'past 60 days',all:'all time'}[pf.days]||'past 7 days';
+ const vs=ps?`vs previous ${dayLab.replace('past ','')}`:'';
+ const sColor=s.posRate==null?'var(--muted)':(s.neg/Math.max(1,s.analyzed))>=.3?'var(--alert)':s.posRate>=50?'var(--go)':'#7dd3fc';
+ const k=(kind,title,label,value,delta,hint,color)=>`<div class="card kpi p4 click" onclick="kpiDrill('${kind}')" title="${title}"><span class="kick">${label}</span>
+   <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><div class="v num"${color?` style="color:${color}"`:''}>${value}</div>${delta}</div><div class="hint">${hint}</div></div>`;
+ return `
+  <div class="kpis c4 pf-kpis" style="margin-bottom:16px">
+   ${k('posts','Click to see the posts behind this number','Posts',s.posts,ps?pfDelta(s.posts,ps.posts):'',`${dayLab}${vs?' · '+vs:''}`)}
+   ${k('views','Click to see the top posts by views','Total views',fmt(s.views),ps?pfDelta(s.views,ps.views):'',s.viewsNotCollected.length?'excludes '+s.viewsNotCollected.map(x=>({x:'X',twitter:'X',facebook:'Facebook',tiktok:'TikTok',instagram:'Instagram'}[x]||x)).join(', ')+' (not collected)':(vs||dayLab))}
+   ${k('er','Click to see the best-engaging posts','Median engagement',s.medEr!=null?pct(s.medEr):'—',ps&&ps.medEr!=null&&s.medEr!=null?pfDelta(s.medEr*100,ps.medEr*100,'pts'):'',`posts with 500+ views (${s.ers.length})`,'var(--go)')}
+   ${k('posrate','Click for representative positive and negative comments','Total positive rate',s.posRate!=null?s.posRate+'%':'—',ps&&ps.posRate!=null&&s.posRate!=null?pfDelta(s.posRate,ps.posRate,'pts'):'',s.analyzed?`${s.pos}👍 ${s.neu}− ${s.neg}👎 of ${fmt(s.analyzed)} analysed`:'no comments analysed yet',sColor)}
+  </div>
+  ${s.coverageLow?`<div class="card p4" style="margin-bottom:14px;border-color:rgba(230,194,107,.45)">${sentiCoverageWarn(s)}<div class="dim" style="font-size:10.5px;margin-top:3px">Sentiment rates and the weekly trend describe the analysed comments only.</div></div>`:''}
+  <div class="grid2 pf-grid" style="margin-bottom:16px">${rWeekChart()}${rAttention(list)}</div>
+  <div class="grid2e pf-grid" style="margin-bottom:22px">${rTopPosts(list)}${rThemeSummary()}</div>`;
+}
+function rCommentsTab(list){
+ const c=pfc(),pf=pfState();
+ let all=sentiFoldAcross(allComments(list));
+ if(pf.q){const q=pf.q.toLowerCase();all=all.filter(x=>(x.text||'').toLowerCase().includes(q)||(x.postCaption||'').toLowerCase().includes(q))}
+ const isNA=x=>x.sentiment!=='pos'&&x.sentiment!=='neu'&&x.sentiment!=='neg';
+ const V={all:['All',()=>true],attention:['⚑ Needs attention',x=>stFlags(x.text).length>0],neg:['Negative',x=>x.sentiment==='neg'],pos:['Positive',x=>x.sentiment==='pos'],neu:['Neutral',x=>x.sentiment==='neu'],na:['Not analysed',isNA]};
+ const fc=all.filter(V[c.view]?V[c.view][1]:V.all[1]);
+ if(c.sort==='new')fc.sort((a,b)=>String(b.at||'').localeCompare(String(a.at||'')));else fc.sort((a,b)=>(b.likes||0)-(a.likes||0));
+ const n=STATE.cfN||20;
+ return `<div class="grid2 pf-grid" style="margin-bottom:22px;align-items:start">
+  <div class="card p5">
+   <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+    <div class="chips">${Object.entries(V).map(([k,[l,f]])=>`<button class="${c.view===k?'on':''}" onclick="pfcSet('view','${k}')">${l} <span class="dim">${fmt(all.filter(f).length)}</span></button>`).join('')}</div>
+    <select onchange="pfcSet('sort',this.value)" class="pf-sel"><option value="likes" ${c.sort==='likes'?'selected':''}>MOST LIKED</option><option value="new" ${c.sort==='new'?'selected':''}>NEWEST</option></select>
+   </div>
+   <div class="dim" style="font-size:10.5px;margin-top:8px">One row per voice: the same person posting the same text on several posts shows once, marked × N POSTS. Each row links to its post.</div>
+   <div style="margin-top:6px">${fc.slice(0,n).map(x=>rCommentRow({...x,ctx:true})).join('')||`<p class="dim" style="font-size:12.5px;margin-top:12px">No comments match.</p>`}</div>
+   ${fc.length>n?`<button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="cfMore()">Show ${Math.min(25,fc.length-n)} more of ${fmt(fc.length-n)}</button>`:''}
+  </div>
+  <div>${rThemes()}</div>
+ </div>`;
+}
+function rProductPanels(list){
+ const cmts=allComments(list);
  const models={};let unmappedC=0,allC=0;
  for(const p of list){
   allC+=(p.comments||[]).length;
@@ -3473,63 +3627,20 @@ function rReviewsDash(list,s){
   for(const c of (p.comments||[])){e.cmts++;if(c.sentiment==='pos')e.pos++;if(c.sentiment)e.tot++}
  }
  const prodRows=Object.entries(models).sort((a,b)=>b[1].cmts-a[1].cmts).slice(0,6);
-
- /* 5 — F8 launch analysis */
- const f8=(re)=>{
-  const m=cmts.filter(c=>re.test(c.text)||re.test(c.postCaption));
-  return {n:m.length,pos:m.filter(c=>c.sentiment==='pos').length,neg:m.filter(c=>c.sentiment==='neg').length};
- };
+ const f8=(re)=>{const m=cmts.filter(c=>re.test(c.text)||re.test(c.postCaption));return {n:m.length,pos:m.filter(c=>c.sentiment==='pos').length,neg:m.filter(c=>c.sentiment==='neg').length}};
  const fold=f8(/fold\s*8|fold8/i),flip=f8(/flip\s*8|flip8/i);
-
- /* 6 — top comments */
- const top=cmts.slice().sort((a,b)=>(b.likes||0)-(a.likes||0)).slice(0,8);
-
- const cfN=STATE.cfN||15;
- const cRow=rCommentRow;
-
- return `
- <div class="section-head" style="margin-top:6px;margin-bottom:14px"><div><span class="kick accent">samsungtrack · same daily schedule, zero duplicate pulls</span><h2 style="font-size:clamp(20px,2.4vw,28px)">Social Reviews Dashboard</h2></div>
-  <span class="pill" title="One voice, one comment: the same author repeating the same message on a post counts once. Collected = every comment row the tracker stored. Analysed = comments the tracker's model labelled; the rest are not in any sentiment rate.">${fmt(cmts.filter(c=>c.sentiment==='pos'||c.sentiment==='neu'||c.sentiment==='neg').length)} ANALYZED · ${fmt(cmts.length)} COMMENTS${collected>cmts.length?' · '+fmt(collected)+' COLLECTED':''}</span></div>
-
- <div class="grid2e" style="margin-bottom:16px">
-  <div class="card p5"><span class="kick accent">Comment health</span>
-   <div style="display:flex;align-items:center;gap:18px;margin-top:12px;flex-wrap:wrap">
-    ${gauge}
-    <div class="dim" style="font-size:12px;line-height:1.8;flex:1;min-width:150px">
-     <div>${s.pos} positive · ${s.neu} neutral · ${s.neg} negative</div>
-     <div>Pos:Neg ${s.ratio!=null?s.ratio.toFixed(1)+' : 1':s.pos?'∞':'—'}</div>
-     <div>${s.flags} critical flag${s.flags===1?'':'s'}</div></div>
-   </div></div>
-  <div class="card p5"><span class="kick accent">Critical alerts</span>
-   ${alerts.length?alerts.map(({c,fl})=>`<div class="qc-risk" style="margin-top:9px">
-     <div style="font-size:12px;line-height:1.55"><b>${esc(c.author||'')}</b> <span class="dim" dir="auto" style="unicode-bidi:plaintext">${esc((c.text||'').slice(0,110))}${(c.text||'').length>110?'…':''}</span>${trBits(c.text)}</div>
-     <div style="margin-top:4px">${fl.map(f=>`<span class="mono" style="font-size:9px;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-right:4px">⚑ ${f.l.toUpperCase()}</span>`).join('')}${c.platform&&PLAT[c.platform]?plat(c.platform):''}${c.across>1?`<span class="mono dim" style="font-size:9px;margin-left:5px">× ${c.across} POSTS</span>`:''}${postLink(c)}</div>
-    </div>`).join(''):`<p class="dim" style="font-size:12.5px;margin-top:12px">No refund, technical, support or competitor flags in this view. 🎉</p>`}
-  </div>
- </div>
-
- <div class="card p5" style="margin-bottom:16px"><span class="kick accent">Comment health — week on week</span>
-  ${hasTrend?`<div style="display:flex;align-items:flex-end;gap:10px;margin-top:14px;height:110px">
-   ${weeks.map(w=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end" title="${w.tot} comments">
-    <span class="mono" style="font-size:9.5px;color:${w.rate==null?'var(--muted)':w.rate>=55?'var(--go)':w.rate>=40?'var(--gold)':'var(--alert)'}">${w.rate!=null?w.rate+'%':'·'}</span>
-    <div style="width:70%;max-width:46px;border-radius:6px 6px 2px 2px;background:${w.rate==null?'rgba(255,255,255,.05)':w.rate>=55?'rgba(52,211,153,.5)':w.rate>=40?'rgba(240,179,94,.5)':'rgba(251,113,133,.5)'};height:${w.rate!=null?Math.max(4,w.rate*0.7):3}px"></div>
-    <span class="mono dim" style="font-size:8.5px">${w.label}</span></div>`).join('')}
-  </div>`:`<p class="dim" style="font-size:12.5px;margin-top:12px">Not enough dated comments in this view for a weekly trend.</p>`}
- </div>
-
- <div class="grid2e" style="margin-bottom:16px">
+ return `<div class="grid2e pf-grid" style="margin-bottom:16px">
   <div class="card p5"><span class="kick accent">Product performance — comments by model</span>
-   <div class="dim" style="font-size:10.5px;margin-top:4px">Mapped from caption text: a comment counts for the device its post's caption names. ${allC?Math.round(unmappedC/allC*100):0} % of comments in view (${fmt(unmappedC)} of ${fmt(allC)}) are on posts naming no device and are not counted here; a device with few analysed comments is not low praise.</div>
+   <div class="dim" style="font-size:10.5px;margin-top:4px">Mapped from caption text: a comment counts for the device its post's caption names. ${allC?Math.round(unmappedC/allC*100):0} % of comments in view (${fmt(unmappedC)} of ${fmt(allC)}) are on posts naming no device and are not counted here.</div>
    ${prodRows.length?prodRows.map(([m,e])=>`<div class="bar-row" style="margin-top:11px" title="${e.posts} posts · ${e.cmts} comments">
     <span class="lab dim mono" style="width:150px;text-align:left;font-size:10px">${esc(m.toUpperCase())}</span>
     <span class="track"><span class="fill" data-w="${e.tot?Math.round(e.pos/e.tot*100):0}%"></span></span>
-    <span class="lab mono" style="color:#fff;width:74px">${e.tot?Math.round(e.pos/e.tot*100)+'% pos':'—'}</span><span class="lab mono dim" style="width:52px" title="comments with a sentiment">n ${fmt(e.tot)}</span>
-    <span class="lab mono dim" style="width:52px">${fmt(e.cmts)}💬</span></div>`).join(''):`<p class="dim" style="font-size:12.5px;margin-top:12px">No classified products in this view.</p>`}
+    <span class="lab mono" style="color:#fff;width:74px">${e.tot?Math.round(e.pos/e.tot*100)+'% pos':'—'}</span><span class="lab mono dim" style="width:52px" title="comments with a sentiment">n ${fmt(e.tot)}</span></div>`).join(''):`<p class="dim" style="font-size:12.5px;margin-top:12px">No classified products in this view.</p>`}
   </div>
   <div class="card p5"><span class="kick accent">Foldables launch pulse — Fold8 vs Flip8</span>
-   ${[['Galaxy Z Fold8',fold],['Galaxy Z Flip8',flip]].map(([n,d])=>`
+   ${[['Galaxy Z Fold8',fold],['Galaxy Z Flip8',flip]].map(([nm,d])=>`
     <div style="margin-top:12px">
-     <div style="display:flex;justify-content:space-between;font-size:12px"><b style="color:#fff">${n}</b><span class="mono dim" style="font-size:10.5px">${fmt(d.n)} mentions</span></div>
+     <div style="display:flex;justify-content:space-between;font-size:12px"><b style="color:#fff">${nm}</b><span class="mono dim" style="font-size:10.5px">${fmt(d.n)} mentions</span></div>
      ${d.n?`<div style="display:flex;height:8px;border-radius:99px;overflow:hidden;margin-top:6px;background:rgba(255,255,255,.07)">
       <span style="width:${d.pos/d.n*100}%;background:rgba(52,211,153,.6)"></span>
       <span style="width:${(d.n-d.pos-d.neg)/d.n*100}%;background:rgba(154,163,181,.35)"></span>
@@ -3538,28 +3649,18 @@ function rReviewsDash(list,s){
      :`<p class="dim" style="font-size:11.5px;margin-top:5px">No mentions in this view.</p>`}
     </div>`).join('')}
   </div>
- </div>
-
- <div class="card p5" style="margin-bottom:16px"><span class="kick accent">Top comments — most liked</span>
-  <div style="margin-top:6px">${top.length?top.map(cRow).join(''):`<p class="dim" style="font-size:12.5px;margin-top:8px">No comments in this view.</p>`}</div>
- </div>
-
- <div class="card p5" style="margin-bottom:22px">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-   <span class="kick accent">Comments feed${pf.sent!=='all'||pf.flagged||pf.q?' — filtered':''}</span>
-   <span class="mono dim" style="font-size:10px">${fmt(fc.length)} COMMENT${fc.length===1?'':'S'}</span></div>
-  <div style="margin-top:6px">${fc.slice(0,cfN).map(cRow).join('')||`<p class="dim" style="font-size:12.5px;margin-top:8px">Nothing matches the comment filters.</p>`}</div>
-  ${fc.length>cfN?`<button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="cfMore()">Show ${Math.min(25,fc.length-cfN)} more</button>`:''}
  </div>`;
 }
-function rSentimentSection(list){
- if(!SENTI.posts.length)return '';
+function rInsightsTab(list,s){
+ return `${rDecisions(list,s)}${rBenchPanel()}${rProductPanels(list)}${rAttribution()}`;
+}
+/* Posts: our posts, newest first. Comments stay folded behind a one-line summary until opened. */
+function rPostsTab(list){
  const pf=pfState();
  STATE.openPost=STATE.openPost||{};STATE.playing=STATE.playing||{};
- const plats=[...new Set(SENTI.posts.map(p=>p.platform).filter(p=>p&&PLAT[p]))];
  const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
- const selSty='background:#0a0a0b;color:var(--text);border:1px solid var(--hairline);border-radius:10px;padding:7px 10px;font-family:var(--font-m);font-size:10.5px;letter-spacing:.06em;outline:none;cursor:pointer;appearance:auto';
- const rows=list.map(p=>{
+ const shownList=pf.feat!=='all'?list.filter(p=>stFeatures(postText(p)).includes(pf.feat)):list;
+ const rows=shownList.map(p=>{
   const m=p.metrics||{};
   const open=STATE.openPost[p.postId];
   const playing=STATE.playing[p.postId];
@@ -3573,17 +3674,16 @@ function rSentimentSection(list){
    .filter(([,v])=>v!=null)
    .map(([k,v,f])=>`<span style="font-size:11px" class="dim">${k} <b style="color:#fff">${f(v)}</b></span>`).join('');
   const preview=playing&&src
-   ?`<iframe src="${esc(src)}" style="width:323px;height:575px;border:0;border-radius:12px;background:#000" allow="fullscreen;autoplay;encrypted-media"></iframe>`
-   :`<div onclick="event.stopPropagation();${src?`playVideo('${esc(p.postId)}')`:p.url?`window.open('${esc(p.url)}','_blank')`:''}" title="${src?(video?'Play video':'Preview post'):'Open post'}"
-      style="position:relative;width:150px;aspect-ratio:9/16;border-radius:12px;overflow:hidden;background:linear-gradient(160deg,#101828,#1b2740);cursor:pointer;flex:none">
-      ${m.thumb?`<img src="${esc(m.thumb)}" referrerpolicy="no-referrer" loading="lazy" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`:''}
+   ?`<iframe src="${esc(src)}" style="width:323px;max-width:100%;height:575px;border:0;border-radius:12px;background:#000" allow="fullscreen;autoplay;encrypted-media"></iframe>`
+   :`<div onclick="event.stopPropagation();${src?`playVideo('${esc(p.postId)}')`:p.url?`window.open('${esc(p.url)}','_blank')`:''}" title="${src?(video?'Play video':'Preview post'):'Open post'}" class="pf-preview">
+      ${m.thumb?`<img src="${esc(m.thumb)}" referrerpolicy="no-referrer" loading="lazy" alt="">`:''}
       <span style="position:absolute;inset:0;background:rgba(0,0,0,.25)"></span>
-      <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.55);border:1.5px solid rgba(255,255,255,.85);display:flex;align-items:center;justify-content:center;color:#fff;font-size:${video?'15px':'17px'};${video?'padding-left:4px':''}">${video?'▶':'⤢'}</span>
+      <span class="pf-play" style="font-size:${video?'14px':'16px'};${video?'padding-left:3px':''}">${video?'▶':'⤢'}</span>
      </div>`;
-  const shown=open?cmts:cmts.slice(0,3);
   const cls=stDept(postText(p));
-  const feats=stFeatures(postText(p));
-  return `<div class="card p5 rv" style="display:flex;gap:18px;align-items:flex-start">
+  const n={pos:0,neu:0,neg:0,flag:0};for(const c of cmts){if(n[c.sentiment]!=null)n[c.sentiment]++;if(stFlags(c.text).length)n.flag++}
+  const summary=cmts.length?`${fmt(cmts.length)} comment${cmts.length===1?'':'s'} · <span style="color:var(--go)">${n.pos}👍</span> ${n.neu}− <span style="color:var(--alert)">${n.neg}👎</span>${n.flag?` · <span style="color:#fda4af">⚑ ${n.flag}</span>`:''}`:'No comments captured yet';
+  return `<div class="card p5 rv pf-postcard">
    <div style="flex:none">${preview}</div>
    <div style="flex:1;min-width:0">
     <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
@@ -3594,53 +3694,53 @@ function rSentimentSection(list){
      ${p.url?`<a href="${esc(p.url)}" target="_blank" rel="noopener" class="mono" style="font-size:10px;color:#7dd3fc;text-decoration:none">OPEN ↗</a>`:''}
     </div>
     <p dir="auto" style="font-size:13px;line-height:1.6;margin-top:7px;unicode-bidi:plaintext">${esc(p.caption||'')}</p>
-    ${feats.length?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">${feats.map(f=>`<span class="mono" style="font-size:9.5px;letter-spacing:.08em;color:var(--muted);border:1px solid var(--hairline);border-radius:99px;padding:2px 8px">${f.toUpperCase()}</span>`).join('')}</div>`:''}
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;align-items:center" class="mono">${stats}</div>${benchChip(p)}
-    <div style="margin-top:13px;border-top:1px solid var(--hairline);padding-top:11px;display:flex;flex-direction:column;gap:9px">
-     ${shown.map(c=>{const fl=stFlags(c.text);return `<div style="display:flex;gap:10px;align-items:flex-start;${c.sentiment==='pos'?'border-left:2px solid #34d399;padding-left:10px':c.sentiment==='neg'?'border-left:2px solid #fb7185;padding-left:10px':''}">
+    <div style="margin-top:12px;border-top:1px solid var(--hairline);padding-top:10px">
+     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="mono dim" style="font-size:11px">${summary}</span>
+      ${cmts.length?`<button class="btn btn-ghost btn-sm" onclick="postToggle('${esc(p.postId)}')">${open?'Hide comments':'Show comments'}</button>`:''}
+     </div>
+     ${open?`<div style="display:flex;flex-direction:column;gap:9px;margin-top:10px">${cmts.map(c=>{const fl=stFlags(c.text);return `<div style="display:flex;gap:10px;align-items:flex-start;${c.sentiment==='pos'?'border-left:2px solid #34d399;padding-left:10px':c.sentiment==='neg'?'border-left:2px solid #fb7185;padding-left:10px':''}">
         <div style="flex:1;font-size:12.5px;line-height:1.55"><b style="font-size:12px">${esc(c.author||'')}</b>
          <span dir="auto" style="color:var(--text);unicode-bidi:plaintext"> ${esc(c.text||'')}</span>
          ${c.likes!=null?`<span class="mono dim" style="font-size:10px"> · ${fmt(c.likes)} ♥</span>`:''}
          ${fl.map(f=>`<span class="mono" style="font-size:9px;letter-spacing:.06em;color:#fda4af;border:1px solid rgba(251,113,133,.35);border-radius:99px;padding:1px 7px;margin-left:5px">⚑ ${f.l.toUpperCase()}</span>`).join('')}
          ${trBits(c.text)}</div>
-        ${sentiBadge(c.sentiment)}</div>`}).join('')
-      ||'<span class="dim" style="font-size:12px">No comments captured for this video yet.</span>'}
-     ${cmts.length>3?`<button class="btn btn-ghost btn-sm" style="align-self:flex-start;margin-top:2px" onclick="postToggle('${esc(p.postId)}')">${open?'Show less':`View all ${cmts.length} comments`}</button>`:''}
+        ${sentiBadge(c.sentiment)}</div>`}).join('')}</div>`:''}
     </div>
    </div>
   </div>`}).join('');
  return `
-  <div class="section-head" style="margin-top:6px;margin-bottom:14px"><div><span class="kick accent">Straight from our accounts — samsungtrack live</span><h2 style="font-size:clamp(20px,2.4vw,28px)">Social feed · our posts &amp; their comments</h2></div>
-   <span class="pill"><span class="dot"></span>${list.length} OF ${SENTI.posts.length} POSTS · LIVE</span></div>
-  <div style="margin-bottom:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap" onclick="event.stopPropagation()">
-   <span class="kick" style="flex:none">Filters</span>
-   <select onchange="pfSet('days',this.value)" style="${selSty}">
-    ${[['1','LAST 24H'],['3','LAST 3 DAYS'],['7','LAST 7 DAYS'],['30','LAST 30 DAYS'],['60','LAST 60 DAYS'],['all','ALL TIME']].map(([v,l])=>`<option value="${v}" ${pf.days===v?'selected':''}>${l}</option>`).join('')}
-   </select>
-   <select onchange="pfSet('plat',this.value)" style="${selSty}">
-    ${['all',...plats].map(c=>`<option value="${c}" ${pf.plat===c?'selected':''}>${c==='all'?'ALL PLATFORMS':PLAT[c].n.toUpperCase()}</option>`).join('')}
-   </select>
-   <select onchange="pfSet('dept',this.value)" style="${selSty}">
-    ${[['all','ALL DEPARTMENTS'],['MX','MX · MOBILE'],['VD','VD · VISUAL DISPLAY'],['DA','DA · APPLIANCES']].map(([v,l])=>`<option value="${v}" ${pf.dept===v?'selected':''}>${l}</option>`).join('')}
-   </select>
-   <select onchange="pfSet('feat',this.value)" style="${selSty}">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+   <span class="mono dim" style="font-size:10.5px;flex:1">${fmt(shownList.length)} POST${shownList.length===1?'':'S'}</span>
+   <select onchange="pfSet('feat',this.value)" class="pf-sel">
     <option value="all" ${pf.feat==='all'?'selected':''}>ALL FEATURES</option>
     ${Object.keys(ST_FEATURES).map(f=>`<option value="${f}" ${pf.feat===f?'selected':''}>${f.toUpperCase()}</option>`).join('')}
    </select>
-   <select onchange="pfSet('sent',this.value)" style="${selSty}">
-    ${[['all','ALL SENTIMENT'],['pos','POSITIVE'],['neu','NEUTRAL'],['neg','NEGATIVE']].map(([v,l])=>`<option value="${v}" ${pf.sent===v?'selected':''}>${l}</option>`).join('')}
-   </select>
-   <button onclick="pfSet('flagged')" class="mono" style="font-size:10.5px;letter-spacing:.06em;border-radius:10px;padding:7px 12px;cursor:pointer;border:1px solid ${pf.flagged?'rgba(251,113,133,.5)':'var(--hairline)'};background:${pf.flagged?'rgba(251,113,133,.1)':'#0a0a0b'};color:${pf.flagged?'#fda4af':'var(--text)'}">⚑ FLAGGED</button>
-   <select onchange="pfSet('sort',this.value)" style="${selSty}">
+   <select onchange="pfSet('sort',this.value)" class="pf-sel">
     ${[['new','NEWEST FIRST'],['views','MOST VIEWS'],['er','BEST ER'],['neg','MOST NEGATIVE']].map(([v,l])=>`<option value="${v}" ${pf.sort===v?'selected':''}>SORT · ${l}</option>`).join('')}
    </select>
-   <input id="pf-q" value="${esc(pf.q||'')}" oninput="pfSet('q',this.value)" placeholder="Search captions & comments…"
-    style="flex:1;min-width:170px;background:#0a0a0b;color:var(--text);border:1px solid var(--hairline);border-radius:10px;padding:7px 12px;font-family:var(--font-d);font-size:12px;outline:none">
-   ${(pf.days!=='7'||pf.plat!=='all'||pf.dept!=='all'||pf.feat!=='all'||pf.sent!=='all'||pf.flagged||pf.q||pf.sort!=='new')?`<button class="btn btn-ghost btn-sm" onclick="STATE.pf=null;pfSet('plat','all')">RESET</button>`:''}
   </div>
   ${rows?`<div style="display:flex;flex-direction:column;gap:14px;margin-bottom:22px">${rows}</div>`
-    :`<div class="card p5" style="text-align:center;padding:40px 24px;margin-bottom:22px"><span class="kick accent">No posts match these filters</span><p class="dim" style="font-size:12.5px;margin-top:10px">Loosen a filter or hit RESET.</p></div>`}`;
+    :`<div class="card p5" style="text-align:center;padding:40px 24px;margin-bottom:22px"><span class="kick accent">No posts match these filters</span><p class="dim" style="font-size:12.5px;margin-top:10px">Loosen a filter or hit Reset.</p></div>`}`;
 }
+/* one bar for everything: period and platform as chips, department, search */
+function rPfFilterBar(){
+ const pf=pfState();
+ const plats=[...new Set(SENTI.posts.map(p=>p.platform).filter(p=>p&&PLAT[p]))];
+ const dirty=pf.days!=='7'||pf.plat!=='all'||pf.dept!=='all'||pf.feat!=='all'||pf.q||pf.sort!=='new';
+ return `<div class="pf-bar" onclick="event.stopPropagation()">
+  <div class="chips">${[['1','24h'],['3','3 days'],['7','7 days'],['30','30 days'],['60','60 days'],['all','All']].map(([v,l])=>`<button class="${pf.days===v?'on':''}" onclick="pfSet('days','${v}')">${l}</button>`).join('')}</div>
+  <span class="pf-sep"></span>
+  <div class="chips">${['all',...plats].map(c=>`<button class="${pf.plat===c?'on':''}" onclick="pfSet('plat','${c}')">${c==='all'?'All platforms':PLAT[c].n}</button>`).join('')}</div>
+  <select onchange="pfSet('dept',this.value)" class="pf-sel">
+   ${[['all','ALL PRODUCTS'],['MX','MOBILE'],['VD','TV & DISPLAY'],['DA','APPLIANCES']].map(([v,l])=>`<option value="${v}" ${pf.dept===v?'selected':''}>${l}</option>`).join('')}
+  </select>
+  <input id="pf-q" value="${esc(pf.q||'')}" oninput="pfSet('q',this.value)" placeholder="Search posts & comments…" class="pf-q">
+  ${dirty?`<button class="btn btn-ghost btn-sm" onclick="STATE.pf=null;pfSet('plat','all')">Reset</button>`:''}
+ </div>`;
+}
+function postToggle(id){STATE.openPost=STATE.openPost||{};STATE.openPost[id]=!STATE.openPost[id];pfRerender()}
 
 /* ================= HOME — full-screen scroll FX landing =================
    Vanilla port of the FullScreenScrollFX component (sticky stage, scroll-
@@ -4461,35 +4561,18 @@ function rPerformance(){
  if(SENTI.posts.length){
   const list=pfPosts();
   const s=pfStats(list);
-  const pf=pfState();
-  const dayLab={1:'past 24h',3:'past 3 days',7:'past 7 days',30:'past 30 days',60:'past 60 days',all:'all time'}[pf.days]||'past 7 days';
-  const sColor=s.posRate==null?'var(--muted)':(s.neg/Math.max(1,s.analyzed))>=.3?'var(--alert)':s.posRate>=50?'var(--go)':'#7dd3fc';
-  const platAbbr={instagram:'IG',tiktok:'TT',facebook:'FB',x:'X',youtube:'YT'};
-  const platSplit=Object.entries(s.plats).sort((a,b)=>b[1]-a[1])
-   .map(([k,v])=>`${platAbbr[k]||String(k).slice(0,2).toUpperCase()} ${v}`).join(' · ')||'—';
+  const tab=PF_TABS.some(([k])=>k===STATE.pfTab)?STATE.pfTab:'overview';
+  if(!BENCH.data&&!BENCH.err)loadBench(); /* decisions, post standings and the Insights tab all read it */
+  const open=HANDLED.data?allComments(list).filter(c=>stFlags(c.text).length&&!(HANDLED.data[handledKey(c)]||{}).handled).length:s.flags;
+  const count={comments:open?`<span class="pf-badge">${fmt(open)}</span>`:'',posts:`<span class="dim mono" style="font-size:10px;margin-left:6px">${fmt(list.length)}</span>`};
+  const body=tab==='comments'?rCommentsTab(list):tab==='posts'?rPostsTab(list):tab==='insights'?rInsightsTab(list,s):rOverviewTab(list,s);
   return `
  <section>
-  <div class="section-head"><div><span class="kick accent">04 · The loop closes here · samsungtrack</span><h2>Performance</h2></div>
-   ${perfAgePill()}<span class="pill"><span class="dot"></span>CONSUMER SENTIMENT TRACKER · ${SENTI.track?'LIVE':'SNAPSHOT'}</span></div>
-  ${rDecisions(list,s)}
-  <div class="kpis c4" style="margin-bottom:12px">
-   <div class="card kpi p4 click" onclick="kpiDrill('posts')" title="Click to see the posts behind this number"><span class="kick">Posts</span><div class="v num">${s.posts}</div><div class="hint">${dayLab} · our accounts${pf.plat!=='all'?' · '+(PLAT[pf.plat]?PLAT[pf.plat].n:pf.plat):''} · ⌕</div></div>
-   <div class="card kpi p4 click" onclick="kpiDrill('views')" title="Click to see the top posts by views"><span class="kick">Total views</span><div class="v num">${fmt(s.views)}</div><div class="hint">${dayLab}${s.viewsNotCollected.length?' · excludes '+s.viewsNotCollected.map(k=>({x:'X',twitter:'X',facebook:'Facebook',tiktok:'TikTok',instagram:'Instagram'}[k]||k)).join(', ')+' (views not collected)':''} · ⌕</div></div>
-   <div class="card kpi p4 click" onclick="kpiDrill('er')" title="Click to see the best-engaging posts"><span class="kick">Median engagement</span><div class="v num" style="color:var(--go)">${s.medEr!=null?pct(s.medEr):'—'}</div><div class="hint">engagements / views · posts with ≥ 500 views (${s.ers.length}) · all platforms in view · ⌕</div></div>
-   <div class="card kpi p4 click" onclick="kpiDrill('cmts')" title="Click to see the most-liked comments"><span class="kick">Comments</span><div class="v num">${fmt(s.cmts)}</div><div class="hint">reported on these posts · ⌕</div></div>
-  </div>
-  <div class="kpis c4" style="margin-bottom:18px">
-   <div class="card kpi p4 click" onclick="kpiDrill('posrate')" title="Click for representative positive and negative comments"><span class="kick">Total positive rate</span><div class="v num" style="color:${sColor}">${s.posRate!=null?s.posRate+'%':'—'}</div><div class="hint">${s.analyzed?`${s.pos}👍 ${s.neu}− ${s.neg}👎 of ${s.analyzed} analyzed`:'no comments analyzed yet'} · ⌕</div>${sentiCoverageWarn(s)}</div>
-   <div class="card kpi p4 click" onclick="kpiDrill('ratio')" title="Click to see top positive vs top negative"><span class="kick">Pos : Neg ratio</span><div class="v num">${s.ratio!=null?s.ratio.toFixed(1)+' : 1':s.pos?'∞':'—'}</div><div class="hint">brand health signal · ⌕</div>${sentiCoverageWarn(s)}</div>
-   <div class="card kpi p4 click" onclick="kpiDrill('alerts')" title="Click to see every flagged comment"><span class="kick">Critical alerts</span><div class="v num" style="color:${s.flags?'var(--alert)':'var(--muted)'}">${s.flags}</div><div class="hint">refund · technical · support · competitor flags · ⌕</div></div>
-   <div class="card kpi p4 click" onclick="kpiDrill('plats')" title="Click for the top comment per platform"><span class="kick">Platform split</span><div class="v num" style="font-size:17px;line-height:1.4;padding-top:5px">${platSplit}</div><div class="hint">posts per platform · ⌕</div></div>
-  </div>
-  ${rBenchPanel()}
-  ${s.coverageLow?`<div class="card p4" style="margin-bottom:14px;border-color:rgba(230,194,107,.45)">${sentiCoverageWarn(s)}<div class="dim" style="font-size:10.5px;margin-top:3px">Sentiment rates, product sentiment and the weekly trend below describe the analysed comments only.</div></div>`:''}
-  ${rThemes()}
-  ${rAttribution()}
-  ${rReviewsDash(list,s)}
-  ${rSentimentSection(list)}
+  <div class="section-head" style="margin-bottom:14px"><div><span class="kick accent">04 · The loop closes here · Samsung Gulf accounts</span><h2>Performance</h2></div>
+   <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${perfAgePill()}<span class="pill"><span class="dot"></span>CONSUMER SENTIMENT TRACKER · ${SENTI.track?'LIVE':'SNAPSHOT'}</span></div></div>
+  ${rPfFilterBar()}
+  <div class="tabs pf-tabs">${PF_TABS.map(([k,l])=>`<button class="${tab===k?'on':''}" onclick="pfTab('${k}')">${l}${count[k]||''}</button>`).join('')}</div>
+  ${body}
  </section>`;
  }
  return `

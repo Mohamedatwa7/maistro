@@ -69,30 +69,27 @@ X.SENTI.posts.push({postId:'p1',platform:'tiktok',account:'@SamsungGulf',caption
  postedAt:new Date().toISOString(),metrics:{views:1000,likes:50,comments:2,er:0.05},
  comments:[{author:'@a',text:'I want a refund, this is not working',sentiment:'neg',likes:1},
            {author:'@b',text:'love the camera',sentiment:'pos',likes:3}]});
-const perf = X.rPerformance();
-check('performance has tracker KPI row', perf.includes('Total positive rate') && perf.includes('Pos : Neg ratio') && perf.includes('Critical alerts') && perf.includes('Platform split'));
-check('performance has all filters', ['ALL PLATFORMS','ALL DEPARTMENTS','ALL FEATURES','ALL SENTIMENT','FLAGGED','SORT ·','Search captions'].every(x=>perf.includes(x)));
-check('post gets dept/model badge', perf.includes('MX · GALAXY Z FLIP'));
-check('feature chips rendered', perf.includes('CAMERA') && perf.includes('FOLDABLE'));
-check('comment flags rendered', perf.includes('REFUND REQUEST') && perf.includes('TECHNICAL ISSUE'));
-check('flagged alert counted', perf.includes('refund · technical · support · competitor flags'));
-
-// Social Reviews Dashboard (samsungtrack port)
-check('reviews dashboard present', perf.includes('Social Reviews Dashboard') && perf.includes('zero duplicate pulls'));
-check('brand health gauge', perf.includes('Comment health') && (perf.includes('CRITICAL') || perf.includes('WATCH') || perf.includes('HEALTHY') || perf.includes('EXCELLENT')));
-check('critical alerts section', perf.includes('Critical alerts'));
-check('week-on-week trend', perf.includes('week on week'));
-check('product performance section', perf.includes('comments by model') && perf.includes('GALAXY Z FLIP'));
-check('foldables launch pulse', perf.includes('Fold8 vs Flip8'));
-check('top comments + comments feed', perf.includes('most liked') && perf.includes('Comments feed'));
-
-// interactivity: clickable KPIs + translation
-check('KPIs are clickable drills', perf.includes("kpiDrill('posrate')") && perf.includes("kpiDrill('alerts')") && perf.includes("kpiDrill('plats')"));
+// the page is four tabs over one filter bar (2026-10-26 redesign): render each
+const tabHtml = (t) => { X.STATE.pfTab = t; return X.rPerformance(); };
+const perf = tabHtml('overview');
+check('performance has a filter bar and four tabs', ['All platforms','ALL PRODUCTS','Search posts','24h','60 days'].every(x=>perf.includes(x)) && ['Overview','Comments','Posts','Insights'].every(x=>perf.includes(`pfTab('${x.toLowerCase()}')`)));
+check('overview KPI row', perf.includes('Total positive rate') && perf.includes('Median engagement') && perf.includes('Total views'));
+check('overview: week-on-week trend', perf.includes('week on week'));
+check('overview: critical alerts', perf.includes('Critical alerts') && perf.includes('TO HANDLE') && perf.includes('REFUND REQUEST'));
+check('overview: top posts + topics', perf.includes('Top posts') && perf.includes('What people are talking about'));
+check('KPIs are clickable drills', perf.includes("kpiDrill('posrate')") && perf.includes("kpiDrill('posts')"));
+const cm = tabHtml('comments');
+check('comments tab: chips, flags, post context', cm.includes('Needs attention') && cm.includes('Not analysed') && cm.includes('TECHNICAL ISSUE') && cm.includes('on: Galaxy Z Flip8'));
+const po = tabHtml('posts');
+check('posts tab: dept badge, folded comments, feature + sort', po.includes('MX · GALAXY Z FLIP') && po.includes('Show comments') && po.includes('ALL FEATURES') && po.includes('SORT ·') && !po.includes('love the camera'));
+const ins = tabHtml('insights');
+check('insights tab: decisions, products, foldables', ins.includes('data-decisions') && ins.includes('comments by model') && ins.includes('GALAXY Z FLIP') && ins.includes('Fold8 vs Flip8'));
 X.SENTI.posts.push({postId:'p2',platform:'instagram',account:'@samsunggulf',caption:'جهاز رائع',
  postedAt:new Date().toISOString(),metrics:{views:10,er:0.1},
  comments:[{author:'@ar',text:'أحب هذا الهاتف كثيرا',sentiment:'pos',likes:9}]});
-const perf2 = X.rPerformance();
+const perf2 = tabHtml('comments');
 check('arabic comments get translate button', perf2.includes('🌐 TRANSLATE') && perf2.includes('trDo('));
+X.STATE.pfTab = 'overview';
 X.SENTI.posts.length = 0;
 
 // Studio — two pathways + copilot
