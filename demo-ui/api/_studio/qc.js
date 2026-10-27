@@ -3,8 +3,8 @@
 // bytes whose sha256 is on the draft version), the automated checks already
 // recorded on the draft, storyboard and brief versions, and the shot timeline.
 // Code computes the timeline, maps timestamps to shots, enforces that every
-// risk and failed check is covered by a fix, and prices the plan with the
-// renderer's estimate (the Hermes bots return no price, so assumed prices); the model only locates and phrases the
+// risk and failed check is covered by a fix, and prices the plan with
+// Higgsfield's free /estimate endpoint; the model only locates and phrases the
 // fixes. Output: one QC report version on the qc stage.
 const { registerPrompt, recordGeneration } = require('../_records.js');
 const { queryRows } = require('../_supabase.js');
@@ -103,7 +103,7 @@ function normalisePlan(plan, { tl, risks, failed }) {
   return { fixes, notes, coverage: { risks: risks.length, failedChecks: failed.length, uncovered, complete: uncovered.length === 0 } };
 }
 
-/** Price the plan: the renderer's estimate (Hermes: assumed prices) for every shot re-render (deduplicated per shot); edits cost a re-assembly only. */
+/** Price the plan: Higgsfield /estimate for every shot re-render (deduplicated per shot); edits cost a re-assembly only. */
 async function estimatePlan(fixes, { draft, estimate }) {
   const items = []; const regenShots = new Set(); let total = 0; const unknown = [];
   for (const f of fixes.filter((x) => x.include)) {
@@ -114,7 +114,7 @@ async function estimatePlan(fixes, { draft, estimate }) {
       regenShots.add(f.shot);
       const s = (draft.shots || []).find((x) => x.n === f.shot) || {};
       const body = { image_url: 'https://estimate.invalid/keyframe.png', prompt: f.instruction, duration: Math.min(30, Math.max(4, Math.ceil(Number(s.durationS) || 4))), resolution: draft.resolution || '720p', generate_audio: true, bitrate_mode: 'high' };
-      try { const e = await estimate('bytedance/seedance-2.5/image-to-video', body); items.push({ id: f.id, fixType: f.fixType, usd: e.usd, credits: e.credits, basis: e.basis ? `${body.duration}s ${body.resolution} clip: ${e.basis}` : `Seedance image-to-video ${body.duration}s ${body.resolution} (provider estimate)` }); total += e.usd; }
+      try { const e = await estimate('bytedance/seedance-2.5/image-to-video', body); items.push({ id: f.id, fixType: f.fixType, usd: e.usd, credits: e.credits, basis: `Seedance image-to-video ${body.duration}s ${body.resolution} (provider estimate)` }); total += e.usd; }
       catch (err) { items.push({ id: f.id, fixType: f.fixType, usd: null, basis: `estimate failed: ${String(err.message).slice(0, 120)}` }); unknown.push(f.id); }
       continue;
     }
@@ -122,7 +122,7 @@ async function estimatePlan(fixes, { draft, estimate }) {
     try {
       const k = await estimate('higgsfield-ai/soul/v2/standard', { prompt: f.instruction, aspect_ratio: draft.aspect || '9:16', resolution: '1080p', batch_size: 1 });
       const c = await estimate('bytedance/seedance-2.5/image-to-video', { image_url: 'https://estimate.invalid/keyframe.png', prompt: f.instruction, duration: 4, resolution: draft.resolution || '720p', generate_audio: true, bitrate_mode: 'high' });
-      items.push({ id: f.id, fixType: f.fixType, usd: Math.round((k.usd + c.usd) * 10000) / 10000, basis: k.basis ? `one keyframe + one 4 s clip (${c.basis}); the shot-list rewrite is a Claude call, not priced` : 'one keyframe (Soul V2) + one 4 s clip (provider estimates); the shot-list rewrite is a Claude call, not priced' }); total += k.usd + c.usd;
+      items.push({ id: f.id, fixType: f.fixType, usd: Math.round((k.usd + c.usd) * 10000) / 10000, basis: 'one keyframe (Soul V2) + one 4 s clip (provider estimates); the shot-list rewrite is a Claude call, not priced' }); total += k.usd + c.usd;
     } catch (err) { items.push({ id: f.id, fixType: f.fixType, usd: null, basis: `estimate failed: ${String(err.message).slice(0, 120)}` }); unknown.push(f.id); }
   }
   return { totalUsd: Math.round(total * 10000) / 10000, items, unknownIds: unknown, note: unknown.length ? `${unknown.length} fix(es) not priced` : 'all fixes priced' };

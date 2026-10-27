@@ -2,7 +2,7 @@
 // rejection reasons carry a structured code.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { api, req, res, mockFetch, json, anthropicReply, loadPage, HERMES_ENV, hermesFake } = require('../helpers');
+const { api, req, res, mockFetch, json, anthropicReply, loadPage } = require('../helpers');
 const { fakePostgrest } = require('../fake-postgrest');
 
 const SB = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', ANTHROPIC_API_KEY: 'k' };
@@ -36,26 +36,32 @@ test('hermes and director write a generation record (prompt name/version, resolv
 });
 
 test('jobs write a generation record on completion and on failure (render and F1X8), with assets and the job id', async () => {
-  const pg = fakePostgrest(); const H = hermesFake();
-  const f = mockFetch([...H.routes, [/\/storage\/v1\/object\/assets\//, () => json({ Key: 'ok' })], pg.route]);
-  const pieces = api('pieces.js', SB); const jobs = api('jobs.js', { ...SB, ...HERMES_ENV });
+  const pg = fakePostgrest();
+  let hfStatus = 'in_progress';
+  const PNG = new Uint8Array([137, 80, 78, 71, 1]);
+  const f = mockFetch([
+    ['/v1/text2image/soul', () => json({ id: 'jobset000001' })],
+    ['/v1/job-sets/jobset000001', () => json(hfStatus === 'completed' ? { jobs: [{ status: 'completed', results: { raw: { url: 'https://d3u0tzju9qaucj.cloudfront.net/out.png' } } }] } : { jobs: [{ status: hfStatus }] })],
+    ['https://d3u0tzju9qaucj.cloudfront.net/out.png', () => new Response(PNG, { status: 200, headers: { 'content-type': 'image/png' } })],
+    [/\/storage\/v1\/object\/assets\//, () => json({ Key: 'ok' })],
+    pg.route,
+  ]);
+  const pieces = api('pieces.js', SB); const jobs = api('jobs.js', { ...SB, HF_CREDENTIALS: 'id:secret' });
   try {
     let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-r2', stage: 'plan', artifact: { title: 'T', product: 'P', msg: 'm', markets: ['KSA'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] } } }), r);
-    r = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-r2', stage: 'thumb', kind: 'hermes_image', payload: { prompt: 'hero', ref: 'https://ref/x.jpg', aspect_ratio: '16:9', meta: {} } } }), r);
+    r = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-r2', stage: 'thumb', kind: 'higgsfield_image', payload: { prompt: 'hero', ref: 'https://ref/x.jpg', aspect_ratio: '16:9', meta: {} } } }), r);
     const id = r.body.job.id;
     assert.equal((pg.tables.generation_records || []).length, 0, 'nothing recorded while running');
-    pg.tables.jobs[0].next_poll_at = new Date(Date.now() - 1000).toISOString(); H.state.status = 'completed';
+    pg.tables.jobs[0].next_poll_at = new Date(Date.now() - 1000).toISOString(); hfStatus = 'completed';
     r = res(); await jobs.handler(req({ method: 'GET', query: { id } }), r); assert.equal(r.body.job.state, 'succeeded');
     const rec = pg.tables.generation_records[0];
-    assert.equal(rec.kind, 'hermes_image'); assert.equal(rec.status, 'succeeded'); assert.equal(rec.job_id, id); assert.equal(rec.resolved_prompt, 'hero'); assert.equal(rec.params.ref, true); assert.deepEqual(rec.input_assets, ['https://ref/x.jpg']);
-    assert.equal(rec.output_assets[0].url, 'https://hermes.test/files/run_0001-1.png'); assert.ok(rec.output_assets[0].assetPath); assert.equal(rec.legacy_piece_id, 'gen-r2');
-    // a failed run is a failure record
-    H.state.status = 'running';
-    r = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-r2', stage: 'board', kind: 'hermes_image', payload: { prompt: 'p', meta: {} } } }), r);
-    const j2 = pg.tables.jobs.find((x) => x.id === r.body.job.id); j2.next_poll_at = new Date(Date.now() - 1000).toISOString(); H.state.status = 'failed';
+    assert.equal(rec.kind, 'higgsfield_image'); assert.equal(rec.status, 'succeeded'); assert.equal(rec.job_id, id); assert.equal(rec.resolved_prompt, 'hero'); assert.equal(rec.params.ref, true); assert.deepEqual(rec.input_assets, ['https://ref/x.jpg']);
+    assert.equal(rec.output_assets[0].url, 'https://d3u0tzju9qaucj.cloudfront.net/out.png'); assert.ok(rec.output_assets[0].assetPath); assert.equal(rec.legacy_piece_id, 'gen-r2');
+    // a moderated render is a refusal
+    r = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-r2', stage: 'board', kind: 'higgsfield_image', payload: { prompt: 'p', ref: 'https://ref/x.jpg', meta: {} } } }), r);
+    const j2 = pg.tables.jobs.find((x) => x.id === r.body.job.id); j2.next_poll_at = new Date(Date.now() - 1000).toISOString(); hfStatus = 'nsfw';
     r = res(); await jobs.handler(req({ method: 'GET', query: { id: j2.id } }), r); assert.equal(r.body.job.state, 'failed');
-    const failed = pg.tables.generation_records.find((g) => g.job_id === j2.id && g.kind === 'hermes_image');
-    assert.equal(failed.status, 'failed'); assert.match(failed.error, /tool crashed/);
+    assert.equal(pg.tables.generation_records.find((g) => g.job_id === j2.id && g.kind === 'higgsfield_image').status, 'refused');
   } finally { f.restore(); pieces.restore(); jobs.restore(); }
 });
 

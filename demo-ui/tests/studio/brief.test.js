@@ -1,11 +1,11 @@
 // Phase 6.4 — Brief: structured contract from the approved moodboard/thumbnail, code checks, model copy check, human edits as new versions.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { api, req, res, mockFetch, json, loadPage, HERMES_ENV, hermesFake } = require('../helpers');
+const { api, req, res, mockFetch, json, loadPage } = require('../helpers');
 const { fakePostgrest } = require('../fake-postgrest');
 const B = require('../../api/_studio/brief.js');
 
-const ENV = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', ANTHROPIC_API_KEY: 'k', CRON_SECRET: 'cron', ...HERMES_ENV };
+const ENV = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', HF_CREDENTIALS: 'id:secret', ANTHROPIC_API_KEY: 'k', CRON_SECRET: 'cron' };
 const DIRECTION = { setting: 'terrace', lighting: 'warm rim light', mood: 'calm', styling: 'matte', wardrobe: 'linen', compositionStyle: 'negative space', cameraFeel: '50 mm', trendAdaptation: 'x', leadingPrinciple: 'Boldly lead', palette: [{ name: 'Samsung Blue', hex: '#1428A0', role: 'dominant' }], tiles: [{ tag: 'a', demonstrates: 'a', prompt: 'a' }, { tag: 'b', demonstrates: 'b', prompt: 'b' }, { tag: 'c', demonstrates: 'c', prompt: 'c' }, { tag: 'd', demonstrates: 'd', prompt: 'd' }] };
 const fmtDate = (d) => `${d.getUTCDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 const DEADLINE = fmtDate(new Date(Date.now() + 7 * 864e5));
@@ -41,15 +41,14 @@ test('validateShape and codeChecks: every field required; unmapped claims, durat
   assert.deepEqual(B.copyFlags({ ...CHECK, arabicFluency: 'literal', consistentWithMood: 'partial' }), ['Arabic reads as a literal translation', 'only loosely follows the moodboard']);
 });
 
-test('POST /api/studio action brief: needs a moodboard; the Hermes brief bot gets Maistro\'s brief rules, the approved direction + thumbnail (no claims when none are approved) and the contract; its brief is validated, recorded (produced by hermes) and checked as a copy stage_check; brief-edit stores a manual version and re-checks (an added unapproved claim fails)', async () => {
-  const pg = fakePostgrest(); const H = hermesFake({ brief: BRIEF });
-  let briefCalls = 0, checkCalls = 0;
+test('POST /api/studio action brief: needs a moodboard; writes the brief from the approved direction + thumbnail with no claims when none are approved; checks stored as a copy stage_check; brief-edit stores a manual version and re-checks (an added unapproved claim fails)', async () => {
+  const pg = fakePostgrest();
+  let briefCalls = 0, checkCalls = 0, lastBriefUser = '';
   const f = mockFetch([
-    ['api.anthropic.com', (u, init) => { const b = JSON.parse(init.body); if (/review a Samsung Gulf social-content BRIEF/.test(b.system)) { checkCalls++; return json({ content: [{ type: 'text', text: JSON.stringify(CHECK) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } }); } briefCalls++; return json({ content: [{ type: 'text', text: JSON.stringify(BRIEF) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } }); }],
-    ...H.routes,
+    ['api.anthropic.com', (u, init) => { const b = JSON.parse(init.body); if (/review a Samsung Gulf social-content BRIEF/.test(b.system)) { checkCalls++; return json({ content: [{ type: 'text', text: JSON.stringify(CHECK) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } }); } briefCalls++; lastBriefUser = b.messages[0].content; return json({ content: [{ type: 'text', text: JSON.stringify(BRIEF) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } }); }],
     pg.route,
   ]);
-  const studio = api('studio.js', ENV); const pieces = api('pieces.js', ENV); const decisions = api('decisions.js', ENV); const jobs = api('jobs.js', ENV);
+  const studio = api('studio.js', ENV); const pieces = api('pieces.js', ENV); const decisions = api('decisions.js', ENV);
   try {
     let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-br1', stage: 'plan', artifact: { title: 'Deadpan Flip', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] }, piece: { title: 'Deadpan Flip', product: 'Galaxy Z Flip8', msg: 'm', platforms: ['tiktok'], markets: ['UAE'], trendId: 'snd-1', trendName: 'Deadpan caption reveal' } } }), r);
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'brief', pieceId: 'gen-br1' } }), r);
@@ -59,59 +58,25 @@ test('POST /api/studio action brief: needs a moodboard; the Hermes brief bot get
     r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-br1', stage: 'thumb', artifact: { imageUrl: 'https://cdn/c.png', overlay: { headline: 'Setup. Pause. Flip.', headlineAr: 'يلا', side: 'left' }, prompt: 'p' } } }), r);
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'brief', pieceId: 'gen-br1', userInput: 'keep it dry' } }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
-    assert.equal(r.body.job.kind, 'hermes_brief'); assert.equal(r.body.job.state, 'running'); assert.equal(r.body.moodApproved, true); assert.equal(r.body.approvedClaims, 0);
-    assert.equal(briefCalls, 0, 'Claude no longer writes the brief'); assert.equal(checkCalls, 0, 'nothing to check yet');
-    const run = H.state.last; assert.equal(run.profile, 'brief'); assert.equal(run.url, 'https://hermes.test/p/brief/v1/runs');
-    assert.equal(run.body.instructions.startsWith(B.SYSTEM), true, 'Maistro\'s brief rules are the bot\'s instructions'); assert.match(run.body.instructions, /\{"brief": <the brief/);
-    const sent = run.body.input;
-    assert.match(sent, /APPROVED MOODBOARD: /); assert.match(sent, /"selectedTiles": \[\s*"variation 2"/); assert.match(sent, /keep the rim light/); assert.match(sent, /"headline": "Setup\. Pause\. Flip\."/); assert.match(sent, /APPROVED CLAIMS \(the only claims allowed\): \[\]/); assert.match(sent, /sweet spot 9–30 s, max 5 hashtags/); assert.match(sent, /keep it dry/);
-    assert.match(sent, /BRIEF JSON SCHEMA[^\n]*\n\{"type":"object"/, 'the contract to fill');
-    assert.equal(pg.tables.stages.find((s) => s.kind === 'brief').state, 'generating');
-    // the bot replies → validated, recorded, checked
-    const job = pg.tables.jobs.find((j) => j.kind === 'hermes_brief'); job.next_poll_at = new Date(Date.now() - 1000).toISOString(); H.state.status = 'completed';
-    r = res(); await jobs.handler(req({ method: 'GET', query: { id: job.id } }), r);
-    assert.equal(r.body.job.state, 'succeeded', JSON.stringify(r.body.job)); assert.equal(r.body.job.result.version, 1);
-    assert.equal(checkCalls, 1);
-    const a = r.body.job.result.artifact; assert.equal(a.objective, BRIEF.objective); assert.equal(a.msg, BRIEF.keyMessage); assert.deepEqual(a.markets, ['UAE']); assert.equal(a.deadline, DEADLINE); assert.equal(a.spec.format.targetDurationS, 15); assert.equal(a.briefVersion, 'hermes/brief'); assert.equal(a.thumbApproved, false); assert.equal(a.madeBy.bot, 'brief');
-    const checks = r.body.job.result.checks;
-    assert.equal(checks.passed, true); assert.ok(checks.codeChecks.every((c) => c.passed)); assert.equal(checks.copy.arabicFluency, 'native');
+    assert.equal(briefCalls, 1); assert.equal(checkCalls, 1); assert.equal(r.body.version, 1); assert.equal(r.body.moodApproved, true); assert.equal(r.body.approvedClaims, 0);
+    assert.match(lastBriefUser, /APPROVED MOODBOARD: /); assert.match(lastBriefUser, /"selectedTiles": \[\s*"variation 2"/); assert.match(lastBriefUser, /keep the rim light/); assert.match(lastBriefUser, /"headline": "Setup\. Pause\. Flip\."/); assert.match(lastBriefUser, /APPROVED CLAIMS \(the only claims allowed\): \[\]/); assert.match(lastBriefUser, /sweet spot 9–30 s, max 5 hashtags/); assert.match(lastBriefUser, /keep it dry/);
+    const a = r.body.artifact; assert.equal(a.objective, BRIEF.objective); assert.equal(a.msg, BRIEF.keyMessage); assert.deepEqual(a.markets, ['UAE']); assert.equal(a.deadline, DEADLINE); assert.equal(a.spec.format.targetDurationS, 15); assert.equal(a.briefVersion, 'brief-v1-2026-10-21'); assert.equal(a.thumbApproved, false);
+    assert.equal(r.body.checks.passed, true); assert.ok(r.body.checks.codeChecks.every((c) => c.passed)); assert.equal(r.body.checks.copy.arabicFluency, 'native');
     const sc = pg.tables.stage_checks.at(-1); assert.equal(sc.kind, 'copy'); assert.equal(sc.passed, true); assert.equal(sc.prompt_version, 'brief-copy-check-v1-2026-10-21'); assert.equal(sc.model, 'claude-sonnet-5-5');
-    assert.ok(pg.tables.generation_records.some((g) => g.prompt_name === 'hermes.brief' && g.kind === 'hermes_brief' && g.status === 'succeeded' && g.model === 'hermes/brief'));
+    assert.ok(pg.tables.generation_records.some((g) => g.prompt_name === 'studio.brief' && g.status === 'succeeded' && g.model === 'claude-opus-5-5'));
     assert.ok(pg.tables.generation_records.some((g) => g.prompt_name === 'studio.brief.check' && g.status === 'succeeded'));
-    const v1 = pg.tables.artifact_versions.find((v) => v.id === r.body.job.result.versionId); assert.equal(v1.produced_by, 'hermes'); assert.equal(v1.kind, 'text'); assert.equal(v1.job_id, job.id);
-    assert.equal(pg.tables.stages.find((s) => s.kind === 'brief').state, 'generated');
+    const v1 = pg.tables.artifact_versions.find((v) => v.id === r.body.versionId); assert.equal(v1.produced_by, 'claude'); assert.equal(v1.kind, 'text');
     r = res(); await studio.handler(req({ method: 'GET', query: { checks: 'gen-br1', stage: 'brief' } }), r); assert.equal(r.body.count, 1); assert.equal(r.body.checks[0].stage, 'brief');
     // a human edit: new manual version, re-checked; an unapproved claim fails the claims check
     const edited = JSON.parse(JSON.stringify(BRIEF)); edited.cta = 'Flip it.'; edited.claims = [{ claim: 'biggest cover screen', approvedWording: 'biggest cover screen', disclaimer: '' }];
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'brief-edit', pieceId: 'gen-br1', spec: edited } }), r);
-    assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(r.body.version, 2); assert.equal(H.state.runs.length, 1, 'no bot rewrite on an edit'); assert.equal(checkCalls, 2, 'the copy check runs again');
+    assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(r.body.version, 2); assert.equal(briefCalls, 1, 'no model rewrite on an edit'); assert.equal(checkCalls, 2, 'the copy check runs again');
     const v2 = pg.tables.artifact_versions.find((v) => v.id === r.body.versionId); assert.equal(v2.produced_by, 'manual'); assert.equal(v2.payload.spec.cta, 'Flip it.'); assert.ok(v2.payload.editedBy);
     assert.equal(r.body.checks.passed, false); assert.equal(r.body.checks.codeChecks.find((c) => c.code === 'claims_approved').passed, false); assert.match(r.body.checks.flags[0], /unmapped claim/);
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'brief-edit', pieceId: 'gen-br1', spec: { ...edited, deadline: 'whenever' } } }), r); assert.equal(r.statusCode, 422);
     // the Creative Spec carries the brief
     const spec = pg.tables.creative_specs.at(-1).spec; assert.equal(spec.stages.brief.current.version, 2);
-  } finally { f.restore(); studio.restore(); pieces.restore(); decisions.restore(); jobs.restore(); }
-});
-
-test('the brief bot\'s reply must meet the brief contract: a malformed brief or a reply without one fails the job with the reason and the stage returns to ready', async () => {
-  const pg = fakePostgrest(); const H = hermesFake({ brief: { ...BRIEF, caption: undefined, deadline: 'soon' } });
-  const f = mockFetch([...H.routes, pg.route]);
-  const studio = api('studio.js', ENV); const pieces = api('pieces.js', ENV); const jobs = api('jobs.js', ENV);
-  try {
-    let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-br2', stage: 'plan', artifact: { title: 'T', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] } } }), r);
-    r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-br2', stage: 'mood', artifact: { imageUrl: 'https://cdn/m0.png', direction: DIRECTION, prompt: 'p', note: 'n' } } }), r);
-    const poll = async () => { const job = pg.tables.jobs.filter((j) => j.kind === 'hermes_brief').at(-1); job.next_poll_at = new Date(Date.now() - 1000).toISOString(); const x = res(); await jobs.handler(req({ method: 'GET', query: { id: job.id } }), x); return x.body.job; };
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'brief', pieceId: 'gen-br2' } }), r); assert.equal(r.statusCode, 200, JSON.stringify(r.body));
-    H.state.status = 'completed';
-    let j = await poll();
-    assert.equal(j.state, 'failed'); assert.match(j.error, /does not match the brief contract: caption: required/);
-    assert.equal(pg.tables.stages.find((s) => s.kind === 'brief').state, 'ready'); assert.equal((pg.tables.artifact_versions || []).filter((v) => v.produced_by === 'hermes').length, 0);
-    H.state.status = 'running'; H.state.output = () => 'I wrote a lovely brief but forgot the JSON.';
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'brief', pieceId: 'gen-br2' } }), r); assert.equal(r.statusCode, 200, JSON.stringify(r.body));
-    H.state.status = 'completed';
-    j = await poll();
-    assert.equal(j.state, 'failed'); assert.match(j.error, /without a "brief" object/);
-  } finally { f.restore(); studio.restore(); pieces.restore(); jobs.restore(); }
+  } finally { f.restore(); studio.restore(); pieces.restore(); decisions.restore(); }
 });
 
 test('thumb-composite: the full 8-byte PNG signature is required and baseAssetPath must be one of this piece\'s stored assets', async () => {

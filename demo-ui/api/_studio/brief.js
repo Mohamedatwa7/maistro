@@ -238,18 +238,4 @@ function artifactFrom(brief, piece, meta) {
   };
 }
 
-/** Store the brief's checks (code + copy) on the version; returns the row shape the page reads.
- *  Shared by the Studio (a human edit) and the job service (a brief from the Hermes brief bot). */
-async function recordChecks({ piece, legacyId, versionId, brief, ctx, memberId = null }) {
-  const checks = codeChecks(brief, ctx);
-  const cc = await copyCheck({ brief, ctx, legacyId, memberId });
-  const copy = cc.copy || null;
-  const flags = [...checks.filter((c) => !c.passed).map((c) => `${c.code}: ${c.detail}`), ...copyFlags(copy)];
-  const passed = checks.every((c) => c.passed) && Boolean(copy) && copy.arabicFluency !== 'literal' && copy.consistentWithMood !== 'no' && copy.followsTrendMechanic !== 'no';
-  const [stage] = await queryRows('stages', `select=id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.brief&limit=1`);
-  const results = { codeChecks: checks, copy, copyError: cc.error || null, flags, passed, version: VERSION };
-  if (stage) await require('../_supabase.js').insertRows('stage_checks', [{ piece_id: piece.id, stage_id: stage.id, artifact_version_id: versionId, kind: 'copy', passed, results, model: cc.model || null, prompt_version: CHECK_VERSION }]);
-  return results;
-}
-
-module.exports = { VERSION, CHECK_VERSION, SYSTEM, SCHEMA, CHECK_SCHEMA, PLATFORM_DEFAULTS, platformRules, validateShape, codeChecks, briefContext, userMessage, writeBrief, copyCheck, copyFlags, artifactFrom, recordChecks };
+module.exports = { VERSION, CHECK_VERSION, SYSTEM, SCHEMA, CHECK_SCHEMA, PLATFORM_DEFAULTS, platformRules, validateShape, codeChecks, briefContext, userMessage, writeBrief, copyCheck, copyFlags, artifactFrom };

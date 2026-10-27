@@ -70,20 +70,17 @@ afterwards the session's member role is used instead.
 
 ## /api/jobs — durable renders and quality checks (ADR-004)
 
-Every render (made by the owner's Hermes bots since 2026-10-27) and F1X8 analysis is a row in `jobs`; the browser
+Every Higgsfield render and F1X8 analysis is a row in `jobs`; the browser
 only reads job state, never a provider. A one-minute cron advances due rows
 (conditional claim, so overlapping ticks never double-submit; submit retried
 up to 3 times with backoff; `timed_out` after 15–45 minutes by kind).
 
 - `POST {pieceId, stage, kind, payload, piece?}` → `{ok, job}`. Kinds:
-  `hermes_image` (mood/thumb/board; payload `{prompt, aspect_ratio,
-  resolution, ref?, batch?, seed?, meta:{prompt,note,ar,res,title?,sub?,anchors?}}`),
-  `hermes_video` (draft/final; payload adds `duration`, `imageUrl` or
-  `imageAssetPath` for the first frame, `meta.dur`, `meta.version`),
-  `hermes_brief` (brief; created by `/api/studio` action `brief`),
-  `f1x8_image` / `f1x8_video` (payload `{assetUrl, title, description}`).
-  `higgsfield_image` / `higgsfield_video` can no longer be created; rows from
-  before the switch still finish. A render sets the stage `generating` through the domain:
+  `higgsfield_image` (mood/thumb/board; payload `{prompt, aspect_ratio,
+  resolution, ref?, meta:{prompt,note,ar,res,title?,sub?}}`),
+  `higgsfield_video` (draft/final; payload adds `duration`, `meta.dur`,
+  `meta.version`), `f1x8_image` / `f1x8_video` (payload `{assetUrl, title,
+  description}`). A render sets the stage `generating` through the domain:
   `409 prerequisites` when the stage's prerequisites do not exist yet
   (`strict:true` in the payload requires them approved), `409
   approved_immutable` on an approved stage.
@@ -95,7 +92,7 @@ up to 3 times with backoff; `timed_out` after 15–45 minutes by kind).
   (reconcile-on-open).
 - Completion: a finished render is copied into the private `assets` bucket
   (`artifact.assetPath`, `sha256`) and recorded as the stage's next version
-  (`produced_by` hermes, `job_id`, `artifact.madeBy {provider, bot, run}`); a finished
+  (`produced_by` higgsfield_soul / higgsfield_seedance, `job_id`); a finished
   check is stored in `qc_results` against the analysed stage's current
   version, its heatmap in `assets`.
 
@@ -380,73 +377,7 @@ captured comments tagged by sentiment.
 
 ---
 
-## The Hermes bots (the Studio's renderer)
-
-Maistro calls the owner's bots on Hermes Agent through its API server's runs
-API. One profile per bot, each at `{HERMES_API_URL}/p/<profile>/v1/runs` with
-`Authorization: Bearer <that profile's API_SERVER_KEY>` (setup: RUNBOOK.md →
-"Connecting the Hermes content bots").
-
-| Studio stage | Job kind | Bot (env) | Asked for |
-|---|---|---|---|
-| Moodboard | `hermes_image` | `HERMES_BOT_MOOD` | 4 image variations of one art direction, 4:3 |
-| Thumbnail | `hermes_image` | `HERMES_BOT_THUMB` | 1 key visual at the platform aspect, no text in the image |
-| Brief | `hermes_brief` | `HERMES_BOT_BRIEF` | the structured brief (the 6.4 contract) |
-| Storyboard | `hermes_image` (one per shot) | `HERMES_BOT_BOARD` | 1 keyframe per shot |
-| First draft / final | `hermes_video` (one per shot) | `HERMES_BOT_VIDEO` | 1 clip per shot from its keyframe |
-
-**What Maistro sends**: `POST …/v1/runs` with `Idempotency-Key: <job id>` (a
-retried submit returns the same run) and
-
-```jsonc
-{
-  "input": "TASK: …\n\nCREATIVE PROMPT (written by Maistro's art director …):\n<prompt>\n\nFORMAT: aspect ratio 9:16, 1080p\n\nPRODUCT REFERENCE PHOTO …: https://…\n\nAPPROVED MOODBOARD IMAGES …:\nhttps://…",
-  "instructions": "<the reply contract below>",
-  "session_id": "maistro-<pieceId>-<stage>"
-}
-```
-
-A clip run adds `FIRST FRAME (image-to-video …): <signed keyframe URL, 24 h>`
-and the duration. The brief run's `instructions` are Maistro's brief rules,
-and its `input` is the approved moodboard, thumbnail, trend, catalog, approved
-claims and platform rules, followed by the brief JSON schema.
-
-**What the bot must reply** (the run's final `output`, last ```json block wins):
-
-```jsonc
-{"images": ["https://…/1.png", "https://…/2.png", "https://…/3.png", "https://…/4.png"], "note": "one line"}  // mood (4) / thumb / board (1)
-{"video": "https://…/clip.mp4", "note": "one line"}                                                            // draft / final clip
-{"brief": { …the brief contract… }}                                                                           // brief
-{"refused": "one-line reason"}                                                                                // declined on policy grounds
-```
-
-URLs must be public https for at least 24 hours, on the gateway's own host or a
-host listed in `QC_ASSET_HOSTS`. Maistro copies every file into its private
-bucket and checks it (vision check, clip check, F1X8 on the hook and the cut),
-exactly as before. A reply without usable media fails the job (`provider
-reported completed without any output`). A brief that does not match the
-contract fails with the field problems. A refusal fails uncharged, with the
-reason and a compliant rewrite suggestion on the job.
-
-Run states: `started`/`running` → polled again; `waiting_for_approval` → still
-running, with the job `error` saying to approve it inside Hermes;
-`completed` → read as above; `failed`/`cancelled`/`interrupted` → the job
-fails with Hermes's reason. HTTP 429/5xx retry with backoff (same key);
-401/403/404/other 4xx fail at once and name the env var to check.
-
-Prices: Hermes returns none, so the budget and the QC fix plan use
-`MAISTRO_UNPRICED_IMAGE_USD` (default $0.05/image) and
-`MAISTRO_UNPRICED_VIDEO_USD_PER_S` (default $0.50/s), labelled "assumed".
-`MAISTRO_NO_RENDER=1` blocks every run (no spend for testing).
-
----
-
-## /api/higgsfield — legacy (Studio no longer uses it)
-
-Kept for the legacy page path only (the `maistro-legacy-providers` switch). The
-Studio's renders go to the Hermes bots above.
-
-### Studio Create video generation (Seedance 2.5)
+## /api/higgsfield — Studio Create video generation (Seedance 2.5)
 
 Backs the Studio Copilot (Content Studio → Pathway 02). Proxies Higgsfield
 with the server-side `HF_CREDENTIALS` (`key-id:key-secret`); the key never

@@ -57,7 +57,7 @@ const findStage = (stages, kind) => {
 };
 
 const VERSION_KINDS = ['text', 'image', 'video', 'qc_report'];
-const PRODUCERS = ['claude', 'hermes', 'higgsfield_soul', 'higgsfield_seedance', 'f1x8', 'external_hermes', 'manual'];
+const PRODUCERS = ['claude', 'higgsfield_soul', 'higgsfield_seedance', 'f1x8', 'external_hermes', 'manual'];
 
 function artifactKind(stage, payload) {
   if (stage === 'qc') return 'qc_report';

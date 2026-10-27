@@ -4,11 +4,11 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
-const { api, req, res, mockFetch, json, loadPage, HERMES_ENV, hermesFake } = require('../helpers');
+const { api, req, res, mockFetch, json, loadPage } = require('../helpers');
 const { fakePostgrest } = require('../fake-postgrest');
 const FM = require('../../api/_studio/final.js');
 
-const ENV = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', ANTHROPIC_API_KEY: 'k', CRON_SECRET: 'cron', ...HERMES_ENV };
+const ENV = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', HF_CREDENTIALS: 'id:secret', ANTHROPIC_API_KEY: 'k', CRON_SECRET: 'cron' };
 const MP4 = Buffer.from([0, 0, 0, 24, 102, 116, 121, 112, 1, 2, 3, 4]);
 const FINALCUT = Buffer.from([0, 0, 0, 24, 102, 116, 121, 112, 7, 7, 7, 7]);
 const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
@@ -40,9 +40,11 @@ test('applyPlan and diffShots: text edits change the shot and mark its overlay s
 
 test('POST /api/studio final → re-render only shot 2 → overlays for shot 1 → verify on the stored final cut (every original risk answered) → package refused until the final is approved with both documents, then a hashed manifest', async () => {
   const pg = fakePostgrest();
-  const H = hermesFake({ status: 'completed' }); const hf = H.state; const puts = [];
+  const hf = { submits: [] }; const puts = [];
   const f = mockFetch([
-    ...H.routes,
+    [/\/bytedance\/seedance-2\.5\/image-to-video$/, (u, init) => { hf.submits.push(JSON.parse(init.body)); return json({ status: 'queued', request_id: `fin000${hf.submits.length}0`, status_url: 'x', cancel_url: 'y' }); }],
+    [/\/requests\/fin\d+\/status/, () => json({ status: 'completed', video: { url: 'https://d3u0tzju9qaucj.cloudfront.net/f2.mp4' } })],
+    [/d3u0tzju9qaucj\.cloudfront\.net\/f2\.mp4$/, () => new Response(MP4, { status: 200, headers: { 'content-type': 'video/mp4' } })],
     [(u, init) => /\/storage\/v1\/object\/sign\/assets\//.test(u) && (init.method || 'GET') === 'POST', (u) => json({ signedURL: `/object/sign/assets/${String(u).split('/object/sign/assets/')[1]}?token=t` })],
     [(u, init) => /\/object\/sign\/assets\/pieces\/gen-fn1\/final\/cut\.mp4/.test(u) && (init.method || 'GET') === 'GET', () => new Response(FINALCUT, { status: 200, headers: { 'content-type': 'video/mp4' } })],
     [(u, init) => /\/storage\/v1\/object\/assets\//.test(u) && init.method === 'POST', (u, init) => { puts.push({ p: decodeURIComponent(String(u).split('/object/assets/')[1]), body: init.body }); return json({ Key: 'ok' }); }],
@@ -63,12 +65,12 @@ test('POST /api/studio final → re-render only shot 2 → overlays for shot 1 �
     r = res(); await decisions.handler(req({ method: 'POST', body: { pieceId: 'gen-fn1', stage: 'qc', decision: 'approved', name: 'N', role: 'reviewer' } }), r); assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'final', pieceId: 'gen-fn1' } }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.deepEqual(r.body.regenShots, [2]); assert.deepEqual(r.body.overlaysToRedraw, [1]); assert.equal(r.body.reusedDraftCut, false); assert.equal(r.body.notApplied[0].fixType, 'audio_swap');
-    assert.equal(hf.runs.length, 1, 'exactly one re-render'); assert.equal(hf.runs[0].profile, 'video'); assert.match(hf.runs[0].body.input, /Fix requested by QC .*faster push-in/); assert.ok(!/dropped by the reviewer/.test(hf.runs[0].body.input));
+    assert.equal(hf.submits.length, 1, 'exactly one re-render'); assert.match(hf.submits[0].prompt, /Fix requested by QC .*faster push-in/); assert.ok(!/dropped by the reviewer/.test(hf.submits[0].prompt));
     const fvId = r.body.versionId; let fv = () => pg.tables.artifact_versions.find((v) => v.id === fvId);
     assert.equal(fv().payload.fromDraftVersionId, dv.versionId); assert.equal(fv().payload.assembled, null);
     assert.deepEqual(fv().payload.shots[2].clip, shot(3).clip, 'shot 3 untouched: same asset, same sha256');
     // the clip lands; assembly refuses while shot 1's overlay is stale and shot 2 is unreviewed
-    const fj = pg.tables.jobs.find((j) => j.kind === 'hermes_video' && j.payload.stage === 'final'); fj.next_poll_at = new Date(Date.now() - 1000).toISOString();
+    const fj = pg.tables.jobs.find((j) => j.kind === 'higgsfield_video' && j.payload.stage === 'final'); fj.next_poll_at = new Date(Date.now() - 1000).toISOString();
     r = res(); await jobs.handler(req({ method: 'GET', query: { id: fj.id } }), r); assert.equal(r.body.job.state, 'succeeded', JSON.stringify(r.body.job));
     assert.equal(fv().payload.shots[1].clip.state, 'rendered'); assert.equal(pg.tables.stages.find((s) => s.kind === 'final').state, 'generated');
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft-assemble', stage: 'final', pieceId: 'gen-fn1' } }), r); assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'overlays_stale');
