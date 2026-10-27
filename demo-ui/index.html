@@ -1337,14 +1337,14 @@ function rankBadge(t){
  return i>=0?badge('gold',`MAISTRO #${i+1} · ${x.score}/100`):badge(x.status==='vetoed'?'alert':'gold',x.status==='vetoed'?'VETOED':'NEEDS REVIEW');
 }
 /* TrendRadar's poster links are signed TikTok CDN URLs that expire after a few days (403 after that), so the tile
-   never depends on them: it falls back to a placeholder and plays the clip itself through TikTok's embed player */
+   loads a fresh cover through /api/thumb; if that fails too it keeps the placeholder and still plays the clip through TikTok's embed player */
 function rClipTile(c){
  if(!c||!c.vid)return '';
  const vid=esc(String(c.vid).replace(/\D/g,''));
  const page=c.handle?`https://www.tiktok.com/${encodeURIComponent(String(c.handle).startsWith('@')?c.handle:'@'+c.handle)}/video/${vid}`:`https://www.tiktok.com/video/${vid}`;
  return `<div class="card" style="overflow:hidden" onclick="event.stopPropagation()">
   <div class="clip-frame" data-vid="${vid}" onclick="clipPlay(this)" title="Play this clip" style="position:relative;aspect-ratio:9/16;cursor:pointer;background:linear-gradient(160deg,#1e293b,#0a0f1c)">
-   ${c.poster&&/^https:\/\//.test(c.poster)?`<img src="${esc(c.poster)}" referrerpolicy="no-referrer" loading="lazy" alt="" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`:''}
+   <img src="/api/thumb?vid=${vid}" loading="lazy" alt="" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">
    <span style="position:absolute;inset:0;display:grid;place-items:center"><span style="width:44px;height:44px;border-radius:99px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.35);display:grid;place-items:center;font-size:16px;color:#fff;padding-left:3px">▶</span></span>
    ${c.views!=null?`<span class="mono" style="position:absolute;left:8px;bottom:8px;font-size:10px;color:#fff;background:rgba(0,0,0,.6);border-radius:99px;padding:2px 8px">${fmt(c.views)} VIEWS</span>`:''}
   </div>
@@ -3550,13 +3550,20 @@ function rAttention(list){
   ${flagged.length?`<button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="pfTab('comments','attention')">Review all ${fmt(flagged.length)} in Comments →</button>`:''}
  </div>`;
 }
+/* TikTok cover links in the tracker expire within days — TikTok posts go through /api/thumb (a fresh cover);
+   any other image that fails is removed so the tile shows its placeholder, never a broken-image icon */
+function postThumb(p){
+ const m=p.metrics||{},v=p.platform==='tiktok'&&/\/video\/(\d{8,25})/.exec(p.url||'');
+ const src=v?'/api/thumb?vid='+v[1]:m.thumb&&/^https:\/\//.test(m.thumb)?m.thumb:'';
+ return src?`<img src="${esc(src)}" referrerpolicy="no-referrer" loading="lazy" alt="" onerror="this.remove()">`:'';
+}
 function rTopPosts(list){
  const ranked=list.filter(p=>(p.metrics||{}).er!=null&&(+(p.metrics||{}).views||0)>=500).sort((a,b)=>b.metrics.er-a.metrics.er);
  const top=(ranked.length?ranked:list.slice().sort((a,b)=>(+(b.metrics||{}).views||0)-(+(a.metrics||{}).views||0))).slice(0,4);
  return `<div class="card p5"><span class="kick accent">Top posts</span>
   <div class="dim" style="font-size:11px;margin-top:4px">${ranked.length?'Highest engagement rate, posts with 500+ views.':'Most viewed.'}</div>
   ${top.map(p=>{const m=p.metrics||{};return `<div class="pf-post-mini">
-    <div class="pf-thumb">${m.thumb?`<img src="${esc(m.thumb)}" referrerpolicy="no-referrer" loading="lazy" alt="">`:''}</div>
+    <div class="pf-thumb">${postThumb(p)}</div>
     <div style="flex:1;min-width:0">
      <div style="font-size:12px;line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" dir="auto">${esc(p.caption||'(no caption)')}</div>
      <div class="mono dim" style="font-size:10px;margin-top:3px">${p.platform&&PLAT[p.platform]?plat(p.platform):''} ${m.views&&!PF_NOVIEWS.includes(p.platform)?' · '+fmt(m.views)+' views':''}${m.er!=null?' · '+pct(m.er)+' ER':''} · ${fmt((p.comments||[]).length)} 💬${p.url?` · <a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:#7dd3fc;text-decoration:none">OPEN ↗</a>`:''}</div>
@@ -3682,7 +3689,7 @@ function rPostsTab(list){
   const preview=playing&&src
    ?`<iframe src="${esc(src)}" style="width:323px;max-width:100%;height:575px;border:0;border-radius:12px;background:#000" allow="fullscreen;autoplay;encrypted-media"></iframe>`
    :`<div onclick="event.stopPropagation();${src?`playVideo('${esc(p.postId)}')`:p.url?`window.open('${esc(p.url)}','_blank')`:''}" title="${src?(video?'Play video':'Preview post'):'Open post'}" class="pf-preview">
-      ${m.thumb?`<img src="${esc(m.thumb)}" referrerpolicy="no-referrer" loading="lazy" alt="">`:''}
+      ${postThumb(p)}
       <span style="position:absolute;inset:0;background:rgba(0,0,0,.25)"></span>
       <span class="pf-play" style="font-size:${video?'14px':'16px'};${video?'padding-left:3px':''}">${video?'▶':'⤢'}</span>
      </div>`;
