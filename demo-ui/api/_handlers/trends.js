@@ -485,7 +485,19 @@ module.exports = async (req, res) => {
       if (!requireSession(req, res)) return;
       res.setHeader('Cache-Control', 'no-store');
       if (!cacheConfigured()) return res.status(503).json({ error: 'storage is not configured' });
-      try { const { latestScores } = require('../_trends/engine.js'); return res.status(200).json(await latestScores()); }
+      try {
+        const { latestScores } = require('../_trends/engine.js');
+        const view = await latestScores();
+        // the page joins the ranking to the curated top 10 for clips and live stats, so every other
+        // ranked trend had no reference videos: carry them from the cached board for all of them
+        const board = await readCache();
+        const byId = new Map(((board && board.raw) || []).map((t) => [String(t.trendId || t.id), t]));
+        for (const x of [...view.ranked, ...view.rejected, ...view.needsReview]) {
+          const t = byId.get(String(x.trendId));
+          if (t) x.live = { clips: t.clips || [], momentumPerDay: t.momentumPerDay, viewsPerWeek: t.viewsPerWeek, avgEngagementPct: t.avgEngagementPct };
+        }
+        return res.status(200).json(view);
+      }
       catch (e) { return res.status(502).json({ error: String(e.message || e) }); }
     }
     let board = null, cache = { hit: false, stale: false, fetchedAt: null, ageS: null };

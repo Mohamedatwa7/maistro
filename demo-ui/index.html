@@ -1328,7 +1328,13 @@ async function recordTrendDecision(x,decision){
 }
 function cssId(s){return String(s).replace(/[^A-Za-z0-9_-]/g,'_')}
 /* the ranking and the live feed are the same trends: join a scored row to its live card (clips, velocity) and back */
-function liveOf(x){return TRENDS.find(t=>t.trendId&&t.trendId===String(x.trendId))||TRENDS.find(t=>t.name===x.name)||null}
+function liveOf(x){
+ const t=TRENDS.find(t=>t.trendId&&t.trendId===String(x.trendId))||TRENDS.find(t=>t.name===x.name);
+ if(t)return t;
+ /* outside the curated top 10: the scored view carries the board's clips and live stats itself */
+ const l=x.live;if(!l)return null;
+ return {vel:l.momentumPerDay==null?0:Math.round(l.momentumPerDay),m:{views:l.viewsPerWeek,er:l.avgEngagementPct==null?null:l.avgEngagementPct/100},clips:l.clips||[]};
+}
 function scoredOf(t){const all=[...SCORED.ranked,...SCORED.needsReview,...SCORED.rejected];return all.find(x=>String(x.trendId)===t.trendId)||all.find(x=>x.name===t.name)||null}
 function rankBadge(t){
  const x=SCORED.at&&scoredOf(t);

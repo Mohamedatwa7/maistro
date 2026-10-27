@@ -113,6 +113,8 @@ test('trend clips: a tile never depends on the expiring TikTok poster (onerror d
     X.TRENDS.length = 0; X.TRENDS.push({ id: 'x', trendId: 'snd-9', name: 'N', vel: 4, m: { views: 1000, er: null }, clips: [1, 2, 3, 4].map((k) => ({ vid: String(k), handle: '@h' + k })) });
     const card = X.rScoredCard({ trendId: 'snd-9', name: 'N', status: 'scored', score: 70, lifecycle: 'rising', criteria: {}, timing: {}, vetoes: [] }, 0);
     assert.match(card, /Sample videos · tap to play/); assert.equal((card.match(/data-vid=/g) || []).length, 3, 'three clips while collapsed'); assert.match(card, /LIVE <b[^>]*>\+4%\/DAY/);
+    const outside = X.rScoredCard({ trendId: 'snd-77', name: 'Not in the top 10', status: 'scored', score: 60, lifecycle: 'rising', criteria: {}, timing: {}, vetoes: [], live: { momentumPerDay: 2.4, viewsPerWeek: 5000, avgEngagementPct: 8, clips: [{ vid: '11', handle: '@a' }, { vid: '12', handle: '@b' }] } }, 3);
+    assert.match(outside, /Sample videos · tap to play/, 'a ranked trend outside the curated feed still shows its reference videos'); assert.equal((outside.match(/data-vid=/g) || []).length, 2); assert.match(outside, /LIVE <b[^>]*>\+2%\/DAY/);
   } finally { X.restore(); }
 });
 

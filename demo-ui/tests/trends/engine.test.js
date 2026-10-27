@@ -128,6 +128,10 @@ test('hourly refresh runs the scoring after the snapshots (MAISTRO_TREND_SCORING
     r = res(); await h.handler(req({ query: { view: 'scored' }, session: false }), r); assert.equal(r.statusCode, 401);
     r = res(); await h.handler(req({ query: { view: 'scored' } }), r);
     assert.equal(r.statusCode, 200); assert.equal(r.body.ranked.length + r.body.rejected.length + r.body.needsReview.length, 12); assert.equal(r.headers['cache-control'], 'no-store');
+    const all = [...r.body.ranked, ...r.body.rejected, ...r.body.needsReview];
+    assert.equal(all.filter((x) => x.live && Array.isArray(x.live.clips)).length, 12, 'every scored trend carries its live clips and stats, not just the curated top 10');
+    const src = feed.trends.find((t) => (t.clips || []).length); const got = all.find((x) => x.trendId === src.id);
+    assert.equal(got.live.clips.length, Math.min(4, src.clips.length)); assert.equal(got.live.clips[0].vid, src.clips[0].vid);
     process.env.MAISTRO_TREND_SCORING = '0';
     r = res(); await h.handler(req({ headers: { authorization: 'Bearer cron' } }), r);
     assert.equal(r.body.scoring, null); assert.equal(pg.tables.trend_scores.length, 24, 'two scored refreshes, the third disabled');
