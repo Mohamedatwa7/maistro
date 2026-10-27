@@ -5,7 +5,7 @@
 const CHECKS = {
   trends_stale: { severity: 'warning', label: 'Trend scores stale' },
   trend_feed_stale: { severity: 'warning', label: 'Trend Radar / kymah feed not fetched' },
-  higgsfield_failures: { severity: 'warning', label: 'Higgsfield job failure rate' },
+  higgsfield_failures: { severity: 'warning', label: 'Render job failure rate (Hermes bots)' },
   higgsfield_refusals: { severity: 'warning', label: 'Higgsfield refusal spike' },
   spend_ceiling: { severity: 'warning', label: 'Daily render spend near the ceiling' },
   f1x8_timeouts: { severity: 'warning', label: 'F1X8 analyses timing out' },
@@ -25,7 +25,7 @@ function evaluate(d, now = Date.now()) {
   const tf = age(d.newestSnapshotAt, now); tf > 2 ? fail('trend_feed_stale', `newest Trend Radar fetch is ${tf === Infinity ? 'missing' : tf.toFixed(1) + ' h old'}`, { newestSnapshotAt: d.newestSnapshotAt }) : pass('trend_feed_stale');
   const hj = d.higgsfieldJobs24h || [];
   const bad = hj.filter((j) => j.state === 'failed' || j.state === 'timed_out').length;
-  hj.length >= 5 && bad / hj.length > 0.2 ? fail('higgsfield_failures', `${bad} of ${hj.length} Higgsfield jobs failed or timed out in 24 h`, { bad, total: hj.length }) : pass('higgsfield_failures');
+  hj.length >= 5 && bad / hj.length > 0.2 ? fail('higgsfield_failures', `${bad} of ${hj.length} render jobs (Hermes bots) failed or timed out in 24 h`, { bad, total: hj.length }) : pass('higgsfield_failures');
   (d.refusals24h || 0) > 3 ? fail('higgsfield_refusals', `${d.refusals24h} renders refused (nsfw) in 24 h`, { refusals: d.refusals24h }) : pass('higgsfield_refusals');
   const sp = d.spend || { usedUsd: 0, ceilingUsd: 0 };
   sp.ceilingUsd > 0 && sp.usedUsd >= 0.8 * sp.ceilingUsd ? fail('spend_ceiling', `today's renders $${sp.usedUsd.toFixed(2)} of the $${sp.ceilingUsd.toFixed(2)} daily ceiling`, sp) : pass('spend_ceiling');
@@ -45,7 +45,7 @@ async function load(q, now = Date.now()) {
   const one = async (t, p) => (await q(t, p))[0] || null;
   const score = await one('trend_scores', 'select=at&order=at.desc&limit=1');
   const snap = await one('trend_snapshots', 'select=fetched_at&order=fetched_at.desc&limit=1');
-  const hj = await q('jobs', `select=state&kind=in.(higgsfield_image,higgsfield_video)&created_at=gte.${since}&limit=1000`);
+  const hj = await q('jobs', `select=state&kind=in.(hermes_image,hermes_video,hermes_brief,higgsfield_image,higgsfield_video)&created_at=gte.${since}&limit=1000`);
   const refusals = await q('generation_records', `select=id&status=eq.refused&at=gte.${since}&limit=1000`);
   const f1 = await q('jobs', `select=id&kind=in.(f1x8_image,f1x8_video)&state=eq.timed_out&created_at=gte.${since}&limit=1000`);
   const rc = await one('reconciliation_reports', 'select=at,ok,report&order=at.desc&limit=1');

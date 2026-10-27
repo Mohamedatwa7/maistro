@@ -9,7 +9,8 @@ const base = () => process.env.MAISTRO_F1X8_BASE_URL || 'https://mohamedymay7--f
 
 // SSRF guard (M1, AUDIT C-14): the asset is fetched server-side, so only the
 // hosts that hold generated media are allowed — the Higgsfield CDN
-// (CloudFront) and Higgsfield itself, S3, and Maistro's own Supabase storage.
+// (CloudFront) and Higgsfield itself, S3, Maistro's own Supabase storage and
+// the Hermes gateway (HERMES_API_URL's host).
 // Extend with QC_ASSET_HOSTS="suffix1,suffix2" when a new provider host appears.
 const DEFAULT_ASSET_HOSTS = ['.cloudfront.net', '.higgsfield.ai', '.amazonaws.com'];
 function assetHostAllowed(assetUrl) {
@@ -18,8 +19,12 @@ function assetHostAllowed(assetUrl) {
   if (u.protocol !== 'https:' || u.username || u.password) return false;
   const host = u.hostname.toLowerCase();
   const extra = String(process.env.QC_ASSET_HOSTS || '').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
-  const supa = (() => { try { return process.env.SUPABASE_URL ? new URL(process.env.SUPABASE_URL).hostname.toLowerCase() : null; } catch { return null; } })();
+  const own = (v) => { try { return v ? new URL(v).hostname.toLowerCase() : null; } catch { return null; } };
+  const supa = own(process.env.SUPABASE_URL);
   if (supa && host === supa) return true;
+  // the owner's Hermes gateway serves what its bots made (the bots' own CDNs go in QC_ASSET_HOSTS)
+  const hermesHost = own(process.env.HERMES_API_URL);
+  if (hermesHost && host === hermesHost) return true;
   return [...DEFAULT_ASSET_HOSTS, ...extra].some((suf) => (suf.startsWith('.') ? host.endsWith(suf) : host === suf));
 }
 

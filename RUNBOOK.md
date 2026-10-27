@@ -69,6 +69,30 @@ Maistro creates Sprinklr **drafts only**; a person schedules them in Sprinklr. N
    Sprinklr error).
 6. To switch back to manual mode, remove `SPRINKLR_DRAFTS` and redeploy.
 
+### Connecting the Hermes content bots (the Studio's renderer, 2026-10-27)
+The Studio no longer calls Higgsfield. The moodboard, thumbnail, brief, storyboard keyframes and video clips are made
+by the owner's bots on Hermes Agent, through its API server's runs API (`POST /v1/runs`, polled by the job tick).
+Maistro still writes the art direction, prompts and checks, and every approval, ADLCP gate and budget cap still applies.
+1. Apply migration 024 (the new job kinds and `produced_by 'hermes'`). Until it is applied, the database refuses
+   the new job rows.
+2. On the Hermes host, run each bot as its own **profile** and turn on the API server with profile routes:
+   `API_SERVER_ENABLED=true` and a separate `API_SERVER_KEY` in each profile's `.env`, `gateway.multiplex_profiles: true`,
+   then `hermes gateway`. The gateway must be reachable from Vercel over **https** (a reverse proxy or tunnel in front of
+   port 8642). Each bot must be able to make its asset and return a public https URL to it (its image/video tools).
+3. In Vercel (Production), set:
+   - `HERMES_API_URL`: the gateway base, e.g. `https://hermes.example.com` (no `/v1`)
+   - `HERMES_BOT_MOOD`, `HERMES_BOT_THUMB`, `HERMES_BOT_BRIEF`, `HERMES_BOT_BOARD`, `HERMES_BOT_VIDEO`: the profile
+     names (unset = the default profile)
+   - `HERMES_KEY_<ROLE>` for each profile's `API_SERVER_KEY`, or one `HERMES_API_KEY` if they share a key
+   - `QC_ASSET_HOSTS`: the host suffixes the bots' files are served from (e.g. `.fal.media`), so Maistro can copy them
+     into its private bucket and run the vision checks. Files served by the gateway host itself are allowed already.
+   Redeploy.
+4. Generate one moodboard in the Studio. The job's `error` says exactly what is wrong (bad key = 401, unknown profile =
+   404, run limit = 429 and retried, a run waiting on an approval inside Hermes stays running with that message).
+5. What each bot receives and must reply with is in `demo-ui/API.md` → "The Hermes bots". The bots are paid for
+   wherever their generators bill. The per-piece budget prices them at `MAISTRO_UNPRICED_IMAGE_USD` (per image, default
+   $0.05) and `MAISTRO_UNPRICED_VIDEO_USD_PER_S` (default $0.50/s) until real prices are set.
+
 ### Trend feed empty or stale
 - Check `/api/trends` (it shows the board date) and whether the newest `trend_scores` row is under 2 h old.
 - Kymah / Trend Radar is upstream (`TRENDRADAR_BASE_URL`). If its board publish failed, see the Trend Radar
@@ -86,12 +110,13 @@ Maistro creates Sprinklr **drafts only**; a person schedules them in Sprinklr. N
 - A partial 60-day read falls back to 14 days for the snapshot and stores no 60-day copy. The page then reads
   live; that is expected.
 
-### Higgsfield failures or refusal spikes
-- Look at the jobs' `error` and the `generation_records` status. An nsfw refusal on a product shot is retried
-  once with the refusal rewrite.
+### Render (Hermes bot) failures or refusal spikes
+- Look at the jobs' `error` and the `generation_records` status. A bot that declines on policy grounds
+  (`{"refused": …}`) is shown with its reason and a compliant rewrite, and is never resubmitted.
+- Rows created before 2026-10-27 may still be Higgsfield jobs. They finish through the old path.
 - A provider outage is visible as `failed` / `timed_out`. Jobs stop at their cap, nothing is charged for failed
   renders, and the Studio shows the error.
-- **No test renders** (owner rule): never "check" Higgsfield by rendering. Free `/estimate` calls are fine.
+- **No test renders** (owner rule): never "check" a bot or Higgsfield by rendering. `MAISTRO_NO_RENDER=1` blocks both.
 
 ### Budget or ceiling reached ("budget cap" or "account daily ceiling" in a job error)
 - Per piece: a line manager or admin uses **Set cap** on the piece (member sign-in).
@@ -121,6 +146,7 @@ of the current production), then update any outside holder:
 | `MAISTRO_DATABASE_URL` | the migrate command; the GitHub secret for backups |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase dashboard: roll the key, update Vercel |
 | `MAISTRO_INGEST_KEY` | the Hermes host; the SamsungSentiment push scripts |
+| `HERMES_API_KEY` / `HERMES_KEY_<ROLE>` | each Hermes profile's `API_SERVER_KEY` (roll it there first, then in Vercel) |
 | `CRON_SECRET` | Vercel sets it for crons; just roll it |
 | `MAISTRO_APP_PASSWORD` | tell the team |
 | `HF_CREDENTIALS`, `F1X8_*`, `ANTHROPIC_API_KEY`, `TRACK_SUPABASE_KEY`, `SPRINKLR_*` | provider dashboards |

@@ -5,6 +5,7 @@
 // "proposed" are advisory until the owner agrees them (then set blocking: true here).
 // owner decision 2026-10-22: the suite never renders with Higgsfield — no credentials, and the adapter refuses submits
 delete process.env.HF_CREDENTIALS;
+delete process.env.HERMES_API_KEY; // the Hermes bots can spend too (their generators are paid)
 process.env.MAISTRO_NO_RENDER = '1';
 const fs = require('node:fs');
 const path = require('node:path');

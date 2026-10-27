@@ -1,5 +1,5 @@
 // Phase 6.7 — QC: F1X8 on the stored assembled cut verified by sha256, the automated checklist, a located fix plan
-// mapped to the smallest regeneration unit, priced with Higgsfield /estimate; edit, send back, and a sign-off bound
+// mapped to the smallest regeneration unit, priced (Hermes: at the assumed render prices); edit, send back, and a sign-off bound
 // to the analysed draft.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -44,7 +44,6 @@ test('POST /api/studio action qc: needs the assembled cut; F1X8 analyses the sto
     [(u, init) => /\/storage\/v1\/object\/sign\/assets\/pieces\/gen-qc1\/draft\/cut\.mp4/.test(u) && (init.method || 'GET') === 'GET', () => new Response(CUT, { status: 200, headers: { 'content-type': 'video/mp4' } })],
     ['/api/analyze/video/submit', () => json({ job_id: 'fx-qc-1' })],
     ['/api/job/fx-qc-1', () => { f1x8Polls++; return json({ status: 'done', result: F1X8 }); }],
-    [/api\.higgsfield\.ai\/estimate\//, (u, init) => { const b = JSON.parse(init.body); return json({ usd: String(u).includes('soul') ? 0.05 : 0.4 * b.duration, credits: 10 }); }],
     ['api.anthropic.com', (u, init) => { const b = JSON.parse(init.body); planUser = b.messages[0].content; return json({ content: [{ type: 'text', text: JSON.stringify(PLAN) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } }); }],
     pg.route,
   ]);
@@ -70,7 +69,7 @@ test('POST /api/studio action qc: needs the assembled cut; F1X8 analyses the sto
     const R = r.body.report; assert.equal(r.body.version, 1); assert.equal(R.draftSha256, SHA); assert.equal(R.draftVersionId, dv.versionId); assert.equal(R.score, 5.8);
     assert.ok(R.checklist.some((c) => c.code === 'clip_product_and_artifacts' && c.shot === 3 && !c.passed)); assert.ok(R.checklist.some((c) => c.code === 'cut_overlays_present' && !c.passed));
     assert.equal(R.fixes[0].shot, 2); assert.equal(R.fixes[1].fixType, 'overlay_edit'); assert.equal(R.coverage.complete, false, 'the failed checks are not covered by this plan');
-    assert.equal(R.cost.totalUsd, 1.6); assert.match(planUser, /"startS": 5\.75/); assert.match(planUser, /FAILED AUTOMATED CHECKS/);
+    assert.equal(R.cost.totalUsd, 2, 'one 4 s re-render at the assumed $0.50/s (Hermes returns no price)'); assert.match(R.cost.items.find((x) => x.usd > 0).basis, /assumed \$0\.50\/s × 4 s/); assert.match(planUser, /"startS": 5\.75/); assert.match(planUser, /FAILED AUTOMATED CHECKS/);
     const qv = pg.tables.artifact_versions.find((v) => v.id === r.body.versionId); assert.equal(qv.produced_by, 'f1x8'); assert.equal(qv.kind, 'qc_report');
     // plan edit: drop the re-render → cost 0, risk 1 uncovered, a manual version
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'qc-plan-edit', pieceId: 'gen-qc1', edits: [{ id: 'fx1', include: false }] } }), r);
