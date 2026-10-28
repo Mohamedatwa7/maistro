@@ -571,14 +571,33 @@ body.bare #view{padding:0}
 .mcp-log .ok{color:var(--go)}.mcp-log .ai{color:var(--ai2)}.mcp-log .dim2{color:rgba(142,153,171,.55)}
 
 /* ---------- production center ---------- */
-.pc-row{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:13px 16px;border-top:1px solid rgba(255,255,255,.06)}
-.pc-row:first-child{border-top:none}
-.pc-ico{width:52px;height:38px;border-radius:9px;display:grid;place-items:center;font-family:var(--font-m);font-size:9px;
-  letter-spacing:.08em;color:rgba(255,255,255,.85);flex:none;border:1px solid rgba(255,255,255,.12)}
+.pc-head{border-bottom:1px solid var(--hairline);display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.pc-filters{display:flex;gap:4px;padding:3px;border:1px solid var(--hairline);border-radius:10px;background:rgba(255,255,255,.02)}
+.pc-filters button{display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:7px;border:0;background:none;color:var(--muted);font-size:12px;cursor:pointer}
+.pc-filters button .mono{font-size:10px;opacity:.75}
+.pc-filters button:hover{color:#fff}
+.pc-filters button.on{background:rgba(255,255,255,.08);color:#fff}
+.pc-filters button.pc-f-pending.on .mono{color:#fbbf24;opacity:1}
+.pc-group{border-top:1px solid var(--hairline)}
+.pc-group:first-of-type{border-top:none}
+.pc-ghead{display:flex;align-items:center;gap:12px;padding:12px 16px;background:rgba(255,255,255,.025);border-bottom:1px solid rgba(255,255,255,.05)}
+.pc-ghead .ttl{font-size:13.5px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-ghead .sub{font-size:11px;color:var(--muted);margin-top:2px}
+.pc-sw{width:30px;height:30px;border-radius:8px;flex:none;border:1px solid rgba(255,255,255,.12)}
+.pc-row{display:grid;grid-template-columns:130px 1fr auto;gap:14px;align-items:center;padding:11px 16px 11px 58px;border-top:1px solid rgba(255,255,255,.05)}
+.pc-ghead+.pc-row{border-top:none}
+.pc-stage{font-size:11.5px;color:var(--muted);display:flex;align-items:baseline;gap:8px;white-space:nowrap}
+.pc-stage b{font-family:var(--font-m);font-size:10px;font-weight:500;color:rgba(255,255,255,.55);letter-spacing:.06em}
+.pc-row.pc-pending .pc-stage b{color:#fbbf24}
 .pc-row .meta{min-width:0}
-.pc-row .meta .ttl{font-size:13.5px;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-row .meta .ttl{font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pc-row .meta .sub{font-size:11px;color:var(--muted);margin-top:2px}
 .pc-row .acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.pc-empty{padding:34px 16px;text-align:center;font-size:12.5px}
+@media (max-width:720px){
+ .pc-row{grid-template-columns:1fr;gap:6px;padding:12px 16px}
+ .pc-row .acts{justify-content:flex-start}
+}
 .pc-note{font-size:11px;color:var(--muted);line-height:1.6;border-left:2px solid rgba(251,113,133,.5);padding-left:10px;margin-top:6px}
 .pc-appr{font-size:11px;color:var(--muted);line-height:1.6;border-left:2px solid rgba(52,211,153,.5);padding-left:10px;margin-top:6px}
 
@@ -4205,30 +4224,56 @@ function rStudio(){
    <div style="margin-top:18px;border-top:1px solid var(--hairline);padding-top:18px">${stageArtifact(p,sel)}</div>
   </div>
 
-  <div class="card" style="overflow:hidden">
-   <div class="p5" style="border-bottom:1px solid var(--hairline);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-    <div><span class="kick accent">Content Production Center</span>
-     <h3 style="font-size:17px;margin-top:8px">Final versions · uploaded one by one</h3>
-     <p class="dim" style="font-size:12px;margin-top:4px">Approve records your details — Final Content additionally requires the line manager's approval and the ADLCP approval. Reject sends a written reason back to the agent.</p></div>
-    <div style="display:flex;gap:8px">${badge('gold',pend+' PENDING')}${badge('go',DELIVS.filter(d=>d.st==='approved').length+' APPROVED')}${badge('alert',DELIVS.filter(d=>d.st==='rejected').length+' REJECTED')}</div>
-   </div>
-   ${DELIVS.map(d=>{
-    const pr=PROJECTS.find(x=>x.id===d.proj);
-    const sg=STAGES.find(s=>s.id===d.stage);
-    return `<div class="pc-row">
-     <span class="pc-ico" style="background:linear-gradient(120deg,${pr.th[0]},${pr.th[1]})">${sg.id.toUpperCase()}</span>
-     <div class="meta"><div class="ttl">${esc(pr.title)} — ${esc(d.title)}</div>
-      <div class="sub">Stage 0${sg.n} · ${sg.l} · uploaded by ${esc(d.by)} · ${esc(d.at)} · ${esc(d.ver)}</div>
-      ${d.st==='approved'?`<div class="pc-appr">Approved by <b style="color:#fff">${esc(d.appr.name)}</b> (${esc(d.appr.info)}) · ${esc(d.appr.at)}${d.appr.lm?`<br>LM approval: <span class="mono">${docLabel(d.appr.lm)}</span><br>ADLCP: <span class="mono">${docLabel(d.appr.adlcp)}</span>`:''}</div>`:''}
-      ${d.st==='rejected'?`<div class="pc-note">Rejected — ${d.rej}</div>`:''}</div>
-     <div class="acts">
-      ${d.st==='pending'?`<button class="btn btn-go btn-sm" onclick="openApprove('${d.id}')">Approve</button><button class="btn btn-alert btn-sm" onclick="openReject('${d.id}')">Reject</button>`:
-        d.st==='approved'?badge('go','APPROVED')+(d.stage==='qc'?`<a class="btn btn-ai btn-sm" href="#/calendar">→ Calendar</a>`:''):
-        badge('alert','REJECTED — BACK TO '+sg.agent.toUpperCase())}
-     </div></div>`}).join('')}
-  </div>
+  ${rProdCenter()}
   ${rCopilot()}
  </section>`;
+}
+
+/* ---------- production center: one group per campaign, rows in stage order, filtered by decision ---------- */
+const PC_FILTERS=[['pending','Pending'],['approved','Approved'],['rejected','Rejected'],['all','All']];
+function pcFilter(f){STATE.pcFilter=f;$('#view').innerHTML=rStudio();reveal()}
+function pcTitle(d,sg){ /* "Moodboard — generated board" → "generated board": the stage column already names it */
+ const i=String(d.title).indexOf(' — ');
+ return i>0&&String(d.title).slice(0,i).toLowerCase().startsWith(sg.l.toLowerCase())?String(d.title).slice(i+3):String(d.title);
+}
+function rPcRow(d){
+ const sg=STAGES.find(s=>s.id===d.stage)||{id:d.stage,n:0,l:d.stage,agent:'agent'};
+ return `<div class="pc-row pc-${d.st}">
+  <div class="pc-stage"><b>0${sg.n}</b>${esc(sg.l)}</div>
+  <div class="meta"><div class="ttl">${esc(pcTitle(d,sg))}</div>
+   <div class="sub">${esc(d.by)} · ${esc(d.ver)} · ${esc(d.at)}</div>
+   ${d.st==='approved'?`<div class="pc-appr">Approved by <b style="color:#fff">${esc(d.appr.name)}</b> (${esc(d.appr.info)}) · ${esc(d.appr.at)}${d.appr.lm?`<br>LM approval: <span class="mono">${docLabel(d.appr.lm)}</span><br>ADLCP: <span class="mono">${docLabel(d.appr.adlcp)}</span>`:''}</div>`:''}
+   ${d.st==='rejected'?`<div class="pc-note">Rejected — ${esc(d.rej)}</div>`:''}</div>
+  <div class="acts">
+   ${d.st==='pending'?`<button class="btn btn-go btn-sm" onclick="openApprove('${d.id}')">Approve</button><button class="btn btn-alert btn-sm" onclick="openReject('${d.id}')">Reject</button>`:
+     d.st==='approved'?badge('go','APPROVED')+(d.stage==='qc'?`<a class="btn btn-ai btn-sm" href="#/calendar">→ Calendar</a>`:''):
+     badge('alert','BACK TO '+esc(sg.agent).toUpperCase())}
+  </div></div>`;
+}
+function rProdCenter(){
+ const n=st=>DELIVS.filter(d=>st==='all'||d.st===st).length;
+ const f=STATE.pcFilter||(n('pending')?'pending':'all');
+ const shown=DELIVS.filter(d=>f==='all'||d.st===f);
+ const groups=PROJECTS.map(pr=>({pr,ds:shown.filter(d=>d.proj===pr.id).sort((x,y)=>((STAGES.find(s=>s.id===x.stage)||{}).n||0)-((STAGES.find(s=>s.id===y.stage)||{}).n||0))}))
+  .filter(g=>g.ds.length)
+  .sort((x,y)=>(y.pr.id===STATE.proj)-(x.pr.id===STATE.proj)||y.ds.filter(d=>d.st==='pending').length-x.ds.filter(d=>d.st==='pending').length);
+ return `<div class="card" style="overflow:hidden">
+  <div class="p5 pc-head">
+   <div><span class="kick accent">Content Production Center</span>
+    <h3 style="font-size:17px;margin-top:8px">Approvals</h3>
+    <p class="dim" style="font-size:12px;margin-top:4px;max-width:640px">Approve records your name. Final Content also needs the line manager's and the ADLCP approval documents. Reject sends a written reason back to the agent.</p></div>
+   <div class="pc-filters">${PC_FILTERS.map(([k,l])=>`<button class="${k===f?'on':''} pc-f-${k}" onclick="pcFilter('${k}')">${l}<span class="mono">${n(k)}</span></button>`).join('')}</div>
+  </div>
+  ${groups.length?groups.map(({pr,ds})=>`<div class="pc-group">
+   <div class="pc-ghead">
+    <span class="pc-sw" style="background:linear-gradient(120deg,${pr.th[0]},${pr.th[1]})"></span>
+    <div style="min-width:0;flex:1"><div class="ttl">${esc(pr.title)}</div>
+     <div class="sub">${esc(pr.product)} · stage 0${pr.stage}/07${ds.filter(d=>d.st==='pending').length?` · <span style="color:#fbbf24">${ds.filter(d=>d.st==='pending').length} awaiting decision</span>`:''}</div></div>
+    ${pr.id===STATE.proj?badge('muted','OPEN ABOVE'):`<button class="btn btn-sm" onclick="projSet('${pr.id}')">Open campaign</button>`}
+   </div>
+   ${ds.map(rPcRow).join('')}</div>`).join(''):
+   `<div class="pc-empty dim">${f==='pending'?'Nothing is waiting for a decision.':'No '+(f==='all'?'':f+' ')+'deliverables yet.'}</div>`}
+ </div>`;
 }
 
 /* ---------- approve / reject modals ---------- */
