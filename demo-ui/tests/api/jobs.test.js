@@ -156,6 +156,23 @@ test('failures: a failed Hermes run fails the job with its reason and returns th
   } finally { W.restore(); }
 });
 
+test('a job being submitted is leased past the submit timeout, so a second tick cannot submit it again mid-POST (2026-10-28)', async () => {
+  const W = world();
+  try {
+    await seedPlan(W);
+    W.H.reject = { status: 502, body: {} };
+    let r = await W.post({ pieceId: 'gen-j1', stage: 'mood', kind: 'hermes_image', payload: { prompt: 'p', meta: {} } });
+    const row = W.pg.tables.jobs.find((j) => j.id === r.body.job.id);
+    W.H.reject = null; due(row);
+    let leaseS = null;
+    W.H.onPost = () => { leaseS = (new Date(row.next_poll_at) - Date.now()) / 1000; };
+    r = await W.get({ id: row.id });
+    assert.equal(r.body.job.state, 'running');
+    assert.ok(leaseS > 30, `while the POST is open the job is leased ${leaseS} s, past the 30 s submit timeout (it was 20 s)`);
+    assert.ok((new Date(row.next_poll_at) - Date.now()) / 1000 <= 20, 'once submitted it is polled on the normal 20 s cadence');
+  } finally { W.restore(); }
+});
+
 test('Hermes error classes: 429 (run limit) and 5xx retry with backoff under the same Idempotency-Key; 401, 404 and a plain 400 fail at once with the reason; a run parked on a Hermes approval is denied and fails with the reason; an interrupted run is submitted again under a fresh key', async () => {
   const W = world();
   try {

@@ -33,6 +33,12 @@ const KIND_STAGE = { hermes_image: ['mood', 'thumb', 'board'], hermes_video: ['d
 const POLL_S = { hermes_image: 20, hermes_video: 45, hermes_brief: 15, higgsfield_image: 20, higgsfield_video: 45, f1x8_image: 60, f1x8_video: 90, vision_check: 150, assemble: 290, clip_check: 200 };
 const TIMEOUT_S = { hermes_image: 20 * 60, hermes_video: 45 * 60, hermes_brief: 15 * 60, higgsfield_image: 15 * 60, higgsfield_video: 20 * 60, f1x8_image: 30 * 60, f1x8_video: 45 * 60, vision_check: 10 * 60, assemble: 15 * 60, clip_check: 10 * 60 };
 const MAX_SUBMIT_ATTEMPTS = 3;
+// A job about to be submitted is leased for longer than the submit itself can take (the 30 s Hermes POST timeout,
+// plus pricing and signing), so no second tick can re-claim and submit it while the first is still waiting.
+// 2026-10-28: hermes_image's 20 s lease let a second poller submit mid-POST; its late timeout then overwrote the
+// real 401 on the failed job.
+const SUBMIT_LEASE_S = 75;
+const LIVE_STATES = 'queued,running'; // a job in any other state is finished and must not be written over
 
 const nowIso = () => new Date().toISOString();
 const plusS = (s) => new Date(Date.now() + s * 1000).toISOString();
@@ -104,7 +110,7 @@ async function getJob(id) {
  *  tick racing a page read never double-submit. */
 async function claim(job) {
   const rows = await patchRows('jobs', `id=eq.${q(job.id)}&state=eq.${q(job.state)}&next_poll_at=lte.${q(nowIso())}`, {
-    next_poll_at: plusS(POLL_S[job.kind] || 60), started_at: job.started_at || nowIso(),
+    next_poll_at: plusS(job.provider_ref || !RENDER_KINDS.includes(job.kind) ? POLL_S[job.kind] || 60 : Math.max(POLL_S[job.kind] || 60, SUBMIT_LEASE_S)), started_at: job.started_at || nowIso(),
   });
   return rows.length ? rows[0] : null;
 }
@@ -163,7 +169,7 @@ async function advance(job) {
           : job.kind.startsWith('higgsfield')
           ? await higgsfield.submit({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }, { idempotencyKey: job.id })
           : await f1x8.submit({ kind: job.kind === 'f1x8_video' ? 'video' : 'image', assetUrl: await assetUrlFor(job.payload), title: job.payload.title, description: job.payload.description, expectSha256: job.payload.expectSha256 || null });
-        await patchRows('jobs', `id=eq.${q(job.id)}`, { provider_ref: String(sub.ref), state: 'running', error: null, payload: { ...job.payload, v: sub.v || 0, ...(sub.bot ? { bot: sub.bot } : {}), ...(sub.correlationId ? { correlationId: sub.correlationId } : {}) } });
+        await patchRows('jobs', `id=eq.${q(job.id)}`, { provider_ref: String(sub.ref), state: 'running', error: null, next_poll_at: plusS(POLL_S[job.kind] || 60), payload: { ...job.payload, v: sub.v || 0, ...(sub.bot ? { bot: sub.bot } : {}), ...(sub.correlationId ? { correlationId: sub.correlationId } : {}) } });
         return 'running';
       } catch (e) {
         // Documented classification (HIGGSFIELD.md §3 H-3): retryable = the
@@ -173,7 +179,8 @@ async function advance(job) {
         const permanent = e && e.retryable === false ? true : Boolean(e && e.status && e.status < 500 && e.status !== 429 && e.retryable !== true);
         if (permanent) { await fail(job, 'failed', e.message); return 'failed'; }
         const wait = Math.round(60 * attempts * (0.75 + Math.random() * 0.5)); // backoff with jitter
-        await patchRows('jobs', `id=eq.${q(job.id)}`, { error: String(e.message || e).slice(0, 300), next_poll_at: plusS(wait) });
+        // only while the job is still live: never write a retry over a job another poller has already finished
+        await patchRows('jobs', `id=eq.${q(job.id)}&state=in.(${LIVE_STATES})`, { error: String(e.message || e).slice(0, 300), next_poll_at: plusS(wait) });
         return 'queued';
       }
     }
@@ -182,7 +189,7 @@ async function advance(job) {
     if (job.kind === 'vision_check') return await runVisionCheck(job);
     return await pollQc(job);
   } catch (e) {
-    await patchRows('jobs', `id=eq.${q(job.id)}`, { error: String(e.message || e).slice(0, 300), attempts: (job.attempts || 0) + 1 });
+    await patchRows('jobs', `id=eq.${q(job.id)}&state=in.(${LIVE_STATES})`, { error: String(e.message || e).slice(0, 300), attempts: (job.attempts || 0) + 1 });
     return job.state;
   }
 }

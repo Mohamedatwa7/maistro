@@ -91,7 +91,8 @@ const anthropicReply = (payload) => json({
 // (default 'running') and, once completed, a reply whose JSON block carries the media the bot
 // "made" under https://hermes.test/files/ (fetchable: PNG / MP4 bytes). `state.reject` = {status, body}
 // fails the next submits; `state.brief` is what the brief bot returns; `state.output(run)` overrides a reply.
-// POST …/runs/{id}/approval records the choice on the run (`run.approval`).
+// POST …/runs/{id}/approval records the choice on the run (`run.approval`). `state.onPost(url, init)` runs
+// as each submit arrives (to inspect the job mid-submit).
 const HERMES_ENV = { HERMES_API_URL: 'https://hermes.test', HERMES_API_KEY: 'hk', HERMES_BOT_MOOD: 'moodboard', HERMES_BOT_THUMB: 'thumbnail', HERMES_BOT_BRIEF: 'brief', HERMES_BOT_BOARD: 'storyboard', HERMES_BOT_VIDEO: 'video' };
 function hermesFake(state = {}) {
   Object.assign(state, { runs: state.runs || [], byKey: state.byKey || {} });
@@ -106,6 +107,7 @@ function hermesFake(state = {}) {
   };
   const routes = [
     [(u, init) => /^https:\/\/hermes\.test\/(p\/[\w-]+\/)?v1\/runs$/.test(u) && init.method === 'POST', (u, init) => {
+      if (state.onPost) state.onPost(u, init);
       if (state.reject) return new Response(JSON.stringify(state.reject.body || {}), { status: state.reject.status });
       const key = init.headers && init.headers['Idempotency-Key'];
       if (key && state.byKey[key]) return json({ run_id: state.byKey[key].id, status: 'started' }, 202, { 'Idempotency-Replayed': 'true' });
