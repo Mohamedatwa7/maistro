@@ -3,11 +3,11 @@
 // per-shot review, only rejected shots regenerate, stage approval needs every shot approved.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { api, req, res, mockFetch, json, loadPage } = require('../helpers');
+const { api, req, res, mockFetch, json, loadPage, HERMES_ENV, hermesFake } = require('../helpers');
 const { fakePostgrest } = require('../fake-postgrest');
 const BD = require('../../api/_studio/board.js');
 
-const ENV = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', HF_CREDENTIALS: 'id:secret', ANTHROPIC_API_KEY: 'k', CRON_SECRET: 'cron', F1X8_API_KEY: 'f' };
+const ENV = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', ANTHROPIC_API_KEY: 'k', CRON_SECRET: 'cron', F1X8_API_KEY: 'f', ...HERMES_ENV };
 const PNG = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2]);
 const DIRECTION = { setting: 'terrace', lighting: 'warm rim light', mood: 'calm', styling: 'matte', wardrobe: 'linen', compositionStyle: 'negative space', cameraFeel: '50 mm', trendAdaptation: 'x', leadingPrinciple: 'Boldly lead', palette: [{ name: 'Samsung Blue', hex: '#1428A0', role: 'dominant' }], tiles: [1, 2, 3, 4].map((i) => ({ tag: `t${i}`, demonstrates: 'd', prompt: 'p' })) };
 const SPEC = { objective: 'o', successMetric: 'm', audience: { description: 'a', markets: ['UAE'] }, trendHook: { mechanic: 'setup, pause, deadpan reveal', samsungAdaptation: 's' }, keyMessage: 'Small enough to disappear, bold enough to turn heads.', products: [{ name: 'Galaxy Z Flip8', features: ['FlexWindow'] }], claims: [], cta: 'Flip the script', tone: 't', format: { platform: 'tiktok', format: 'f', aspectRatio: '9:16', targetDurationS: 15 }, languagePlan: { onScreenText: 'x', voiceoverOrCaptions: 'y', register: 'gulf_arabic', rationale: 'r' }, audio: { direction: 'd', musicReference: '', licensing: 'none' }, mandatories: ['Hero product', 'Samsung logo end-frame', 'Cleared audio only'], doNots: ['x'], hashtags: { en: ['a'], ar: ['ب'] }, caption: { en: 'c', ar: 'ج' }, deadline: '30 Oct 2026' };
@@ -39,15 +39,11 @@ test('validateShape and codeChecks: 3–8 numbered shots; duration within ±10 %
 
 test('POST /api/studio action board: needs the brief; shot list version with checks; one keyframe job per shot with attachTo; completed renders fill the shot slots (no new version), queue vision checks anchored to the mood tiles + the previous keyframe and F1X8 on the hook; per-shot review; only the rejected shot regenerates; the stage approval needs every shot approved', async () => {
   const pg = fakePostgrest();
-  const hf = { status: 'in_progress', submits: [] };
+  const H = hermesFake(); const hf = H.state;
   const visionBodies = [];
   const f = mockFetch([
     ['api.anthropic.com', (u, init) => { const b = JSON.parse(init.body); if (/review a storyboard shot list/.test(b.system)) return json({ content: [{ type: 'text', text: JSON.stringify(MCHECK) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } }); if (/check generated campaign images/.test(b.system)) { visionBodies.push(b); const idx = Number((b.messages[0].content.map((c) => c.text || '').join(' ').match(/IMAGE (\d+):/) || [])[1]); return json({ content: [{ type: 'text', text: JSON.stringify(VCHECK(idx)) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } }); } return json({ content: [{ type: 'text', text: JSON.stringify(SHOTS) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } }); }],
-    // v2 (no reference) and the deprecated v1 reference path (product visible + product photo) both answer
-    [/\/higgsfield-ai\/soul\/v2\/standard$/, (u, init) => { const body = JSON.parse(init.body); hf.submits.push({ v: 2, body }); const id = `req0000${hf.submits.length}`; return json({ status: 'queued', request_id: id, status_url: 'x', cancel_url: 'y' }); }],
-    [/\/requests\/req0000\d\/status/, (u) => { const id = String(u).match(/req0000(\d)/)[1]; return json(hf.status === 'completed' ? { status: 'completed', images: [{ url: `https://d3u0tzju9qaucj.cloudfront.net/k${id}.png` }] } : { status: hf.status }); }],
-    [/\/v1\/text2image\/soul$/, (u, init) => { const body = JSON.parse(init.body); hf.submits.push({ v: 1, body }); return json({ id: `jobset00000${hf.submits.length}` }); }],
-    [/\/v1\/job-sets\/jobset00000\d/, (u) => { const id = String(u).match(/jobset00000(\d)/)[1]; return json(hf.status === 'completed' ? { jobs: [{ status: 'completed', results: { raw: { url: `https://d3u0tzju9qaucj.cloudfront.net/k${id}.png` } } }] } : { jobs: [{ status: 'in_progress' }] }); }],
+    ...H.routes,
     [(u, init) => /\/object\/sign\/assets\//.test(u) && (init.method || 'GET') === 'GET', () => new Response(PNG, { status: 200, headers: { 'content-type': 'image/png' } })],
     [/d3u0tzju9qaucj\.cloudfront\.net\/k\d\.png$/, () => new Response(PNG, { status: 200, headers: { 'content-type': 'image/png' } })],
     [(u, init) => /\/storage\/v1\/object\/sign\/assets\//.test(u) && (init.method || 'GET') === 'POST', (u) => json({ signedURL: `/object/sign/assets/${String(u).split('/object/sign/assets/')[1]}?token=t` })],
@@ -70,12 +66,12 @@ test('POST /api/studio action board: needs the brief; shot list version with che
     assert.equal(r.body.checks.passed, true); assert.ok(r.body.checks.codeChecks.every((c) => c.passed)); assert.equal(r.body.checks.mechanic.hookStrength, 'ok');
     assert.equal(r.body.jobs.length, 4); assert.ok(r.body.jobs.every((j) => j.state === 'running'), JSON.stringify(r.body.jobs.map((j) => [j.state, j.error])));
     const sc = pg.tables.stage_checks.at(-1); assert.equal(sc.kind, 'spec'); assert.equal(sc.passed, true);
-    const kjobs = pg.tables.jobs.filter((j) => j.kind === 'higgsfield_image' && j.payload.stage === 'board');
+    const kjobs = pg.tables.jobs.filter((j) => j.kind === 'hermes_image' && j.payload.stage === 'board');
     assert.equal(kjobs.length, 4); assert.deepEqual(kjobs.map((j) => j.payload.attachTo.shot), [1, 2, 3, 4]); assert.ok(kjobs.every((j) => j.payload.attachTo.versionId === r.body.versionId));
     assert.deepEqual(kjobs[0].payload.meta.anchors.map((a) => a.index), [2], 'only the selected mood tile anchors the keyframes'); assert.equal(kjobs[0].payload.meta.hookCheck, true); assert.equal(kjobs[3].payload.meta.hookCheck, false);
     assert.equal(kjobs[0].payload.ref, 'https://sb.test/storage/v1/object/public/refs/products/flip.jpg', 'product visible → reference path'); assert.equal(kjobs[3].payload.ref, undefined, 'end card: no product, no reference'); assert.equal(kjobs[3].payload.meta.expectProduct, false);
     assert.match(kjobs[1].payload.prompt, /^medium shot, eye level, static\. The caption reveal beat/);
-    assert.ok(kjobs.every((j) => Number.isInteger(j.payload.seed) && j.payload.seed >= 1 && j.payload.seed <= 1000000), 'a seed per keyframe job'); assert.equal(hf.submits.find((x) => x.v === 2).body.seed, kjobs[3].payload.seed, 'the end card (v2 path) sends its seed'); assert.match(kjobs[1].payload.prompt, /exact product from the reference image, showing FlexWindow cover screen/);
+    assert.ok(kjobs.every((j) => Number.isInteger(j.payload.seed) && j.payload.seed >= 1 && j.payload.seed <= 1000000), 'a seed per keyframe job'); assert.equal(JSON.parse(hf.runs[3].body.input).seed, kjobs[3].payload.seed, 'each keyframe run carries its seed'); assert.ok(hf.runs.every((x) => x.profile === 'storyboard'), 'the storyboard bot makes the keyframes'); assert.match(kjobs[1].payload.prompt, /exact product from the reference image, showing FlexWindow cover screen/);
     const stageRow = pg.tables.stages.find((s) => s.kind === 'board'); assert.equal(stageRow.state, 'generating');
     assert.ok(pg.tables.generation_records.some((g) => g.prompt_name === 'studio.storyboard' && g.status === 'succeeded'));
     // renders complete one by one: shot slots fill, the version number stays 1, checks queue with the previous keyframe as an anchor
@@ -111,7 +107,7 @@ test('POST /api/studio action board: needs the brief; shot list version with che
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'board-shot', pieceId: 'gen-bd1', shot: 3, changes: 'device bigger in frame', refImage: 'https://sb.test/storage/v1/object/public/refs/products/flip.jpg' } }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(r.body.job.state, 'running');
     const rj = pg.tables.jobs.find((j) => j.id === r.body.job.id); assert.match(rj.payload.prompt, /Changes requested by the reviewer .*device bigger in frame/); assert.equal(rj.payload.attachTo.shot, 3);
-    assert.equal(pg.tables.jobs.filter((j) => j.kind === 'higgsfield_image' && j.payload.stage === 'board').length, 5, 'one new render, not four');
+    assert.equal(pg.tables.jobs.filter((j) => j.kind === 'hermes_image' && j.payload.stage === 'board').length, 5, 'one new render, not four');
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'board-shot', pieceId: 'gen-bd1', shot: 3 } }), r); assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'busy');
     rj.next_poll_at = new Date(Date.now() - 1000).toISOString();
     r = res(); await jobs.handler(req({ method: 'GET', query: { id: rj.id } }), r); assert.equal(r.body.job.state, 'succeeded');

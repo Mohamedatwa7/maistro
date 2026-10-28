@@ -1,7 +1,7 @@
 // Phase 6.9 — Hermes parity: artifacts pushed through /api/ingest run the same automated checks as Studio ones.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { api, req, res, mockFetch, json } = require('../helpers');
+const { api, req, res, mockFetch, json, HERMES_ENV, hermesFake } = require('../helpers');
 const { fakePostgrest } = require('../fake-postgrest');
 
 const ENV = { MAISTRO_INGEST_KEY: 'k1', SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k' };
@@ -32,26 +32,24 @@ test('ingest parity: a pushed image is copied in and vision-checked like a Studi
   } finally { f.restore(); h.restore(); }
 });
 
-test('policy refusal: a moderated render fails uncharged with an explanation and a compliant rewrite on the job (never resubmitted)', async () => {
+test('policy refusal: a render the bot declines ({"refused": reason}) fails uncharged with the reason, an explanation and a compliant rewrite on the job (never resubmitted)', async () => {
   const pg = fakePostgrest();
-  let submits = 0;
+  const H = hermesFake({ status: 'completed', output: () => '```json\n{"refused": "bare skin breaks the brand content policy"}\n```' });
   const f = mockFetch([
-    [/api\.higgsfield\.ai\/estimate\//, () => json({ usd: 0.1, credits: 1 })],
-    [/\/higgsfield-ai\/soul\/v2\/standard$/, () => { submits++; return json({ status: 'queued', request_id: 'nsfw00001x', status_url: 'x', cancel_url: 'y' }); }],
-    [/\/requests\/nsfw00001x\/status/, () => json({ status: 'nsfw' })],
+    ...H.routes,
     ['api.anthropic.com', () => json({ content: [{ type: 'text', text: JSON.stringify({ reason: '"bare shoulders" reads as body focus.', rewrite: 'A woman in a modest linen abaya holds the foldable on a sunlit terrace.' }) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } })],
     pg.route,
   ]);
-  const env = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', HF_CREDENTIALS: 'id:secret', ANTHROPIC_API_KEY: 'k' };
+  const env = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', ANTHROPIC_API_KEY: 'k', ...HERMES_ENV };
   const jobs = api('jobs.js', env); const pieces = api('pieces.js', env);
   try {
     let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-nsfw', stage: 'plan', artifact: { title: 'N', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] } } }), r);
-    r = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-nsfw', stage: 'thumb', kind: 'higgsfield_image', payload: { prompt: 'a woman with bare shoulders holding the phone', aspect_ratio: '9:16' } } }), r);
+    r = res(); await jobs.handler(req({ method: 'POST', body: { pieceId: 'gen-nsfw', stage: 'thumb', kind: 'hermes_image', payload: { prompt: 'a woman with bare shoulders holding the phone', aspect_ratio: '9:16' } } }), r);
     const j = pg.tables.jobs[0]; j.next_poll_at = new Date(Date.now() - 1000).toISOString();
     r = res(); await jobs.handler(req({ method: 'GET', query: { id: j.id } }), r);
-    assert.equal(r.body.job.state, 'failed'); assert.match(r.body.job.error, /moderated/);
+    assert.equal(r.body.job.state, 'failed'); assert.match(r.body.job.error, /^moderated by the bot \(bare skin breaks the brand content policy\) — nothing was generated$/);
     const row = pg.tables.jobs[0]; assert.match(row.result.refusal.reason, /body focus/); assert.match(row.result.refusal.rewrite, /modest linen abaya/); assert.match(row.result.refusal.refusedPrompt, /bare shoulders/);
-    assert.equal(submits, 1, 'never resubmitted automatically');
+    assert.equal(H.state.runs.length, 1, 'never resubmitted automatically'); assert.match(H.state.runs[0].body.instructions, /\{"refused": "<one-line reason>"\}/, 'the bot is told how to decline');
     const rec = pg.tables.generation_records.find((g) => g.job_id === j.id && g.status === 'refused'); assert.ok(rec); assert.equal(Number(rec.cost_usd), 0, 'moderated renders are not charged');
   } finally { f.restore(); jobs.restore(); pieces.restore(); }
 });

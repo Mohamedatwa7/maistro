@@ -70,17 +70,20 @@ afterwards the session's member role is used instead.
 
 ## /api/jobs — durable renders and quality checks (ADR-004)
 
-Every Higgsfield render and F1X8 analysis is a row in `jobs`; the browser
+Every render (made by the owner's Hermes bots since 2026-10-27) and F1X8 analysis is a row in `jobs`; the browser
 only reads job state, never a provider. A one-minute cron advances due rows
 (conditional claim, so overlapping ticks never double-submit; submit retried
 up to 3 times with backoff; `timed_out` after 15–45 minutes by kind).
 
 - `POST {pieceId, stage, kind, payload, piece?}` → `{ok, job}`. Kinds:
-  `higgsfield_image` (mood/thumb/board; payload `{prompt, aspect_ratio,
-  resolution, ref?, meta:{prompt,note,ar,res,title?,sub?}}`),
-  `higgsfield_video` (draft/final; payload adds `duration`, `meta.dur`,
-  `meta.version`), `f1x8_image` / `f1x8_video` (payload `{assetUrl, title,
-  description}`). A render sets the stage `generating` through the domain:
+  `hermes_image` (mood/thumb/board; payload `{prompt, aspect_ratio,
+  resolution, ref?, batch?, seed?, meta:{prompt,note,ar,res,title?,sub?,anchors?}}`),
+  `hermes_video` (draft/final; payload adds `duration`, `imageUrl` or
+  `imageAssetPath` for the first frame, `meta.dur`, `meta.version`),
+  `hermes_brief` (brief; created by `/api/studio` action `brief`),
+  `f1x8_image` / `f1x8_video` (payload `{assetUrl, title, description}`).
+  `higgsfield_image` / `higgsfield_video` can no longer be created; rows from
+  before the switch still finish. A render sets the stage `generating` through the domain:
   `409 prerequisites` when the stage's prerequisites do not exist yet
   (`strict:true` in the payload requires them approved), `409
   approved_immutable` on an approved stage.
@@ -92,7 +95,7 @@ up to 3 times with backoff; `timed_out` after 15–45 minutes by kind).
   (reconcile-on-open).
 - Completion: a finished render is copied into the private `assets` bucket
   (`artifact.assetPath`, `sha256`) and recorded as the stage's next version
-  (`produced_by` higgsfield_soul / higgsfield_seedance, `job_id`); a finished
+  (`produced_by` hermes, `job_id`, `artifact.madeBy {provider, bot, run}`); a finished
   check is stored in `qc_results` against the analysed stage's current
   version, its heatmap in `assets`.
 
@@ -377,7 +380,91 @@ captured comments tagged by sentiment.
 
 ---
 
-## /api/higgsfield — Studio Create video generation (Seedance 2.5)
+## The Hermes bots (the Studio's renderer)
+
+Maistro calls the owner's content bots on Hermes Agent (v0.22.5) through its
+API server's runs API. Each bot is its own profile at
+`{HERMES_API_URL}/p/<profile>/v1/runs`, with `Authorization: Bearer <that
+profile's key>`. A key answers only on its own profile. The bots' own contract
+is `maistro-bots/MAISTRO_INTEGRATION.md`; setup is in RUNBOOK.md → "Connecting
+the Hermes content bots". This is separate from the dispatch to Hermes
+(`/api/hermes`, `/api/ingest`), which is unchanged.
+
+| Studio stage | Job kind | Bot profile (override env) | Key env | Asked for |
+|---|---|---|---|---|
+| Moodboard | `hermes_image` | `maistro-moodboard` (`HERMES_BOT_MOOD`) | `HERMES_KEY_MAISTRO_MOODBOARD` | 4 image variations of one art direction, 4:3 |
+| Thumbnail | `hermes_image` | `maistro-thumbnail` (`HERMES_BOT_THUMB`) | `HERMES_KEY_MAISTRO_THUMBNAIL` | 1 key visual at the platform aspect, no headline text (Maistro sets the type) |
+| Brief | `hermes_brief` | `maistro-brief` (`HERMES_BOT_BRIEF`) | `HERMES_KEY_MAISTRO_BRIEF` | the structured brief (the 6.4 contract, sent as the schema) |
+| Storyboard | `hermes_image` (one per shot) | `maistro-storyboard` (`HERMES_BOT_BOARD`) | `HERMES_KEY_MAISTRO_STORYBOARD` | 1 keyframe for the given shot (Maistro writes the shot list) |
+| First draft / final | `hermes_video` (one per shot) | `maistro-video` (`HERMES_BOT_VIDEO`) | `HERMES_KEY_MAISTRO_VIDEO` | 1 image-to-video clip per shot from its keyframe |
+
+`HERMES_KEY_<ROLE>` (e.g. `HERMES_KEY_VIDEO`) overrides the key, and
+`HERMES_API_KEY` is the last fallback.
+
+**What Maistro sends**: `POST …/v1/runs` with `Idempotency-Key: <job id>` (a
+retried submit returns the same run; after an `interrupted` run it is
+`<job id>:<n>`) and
+
+```jsonc
+{
+  "input": "{\"task\":\"…\",\"prompt\":\"<Maistro's art-director prompt>\",\"aspect\":\"9:16\",\"resolution\":\"2k\",\"count\":1,\"product_image_urls\":[\"https://…\"],\"moodboard_image_urls\":[\"https://…\"],\"seed\":4242,\"max_credits\":4}",
+  "instructions": "<rules for the reference fields> + <the reply contract below>",
+  "session_id": "maistro-<pieceId>-<stage>"
+}
+```
+
+`input` is a JSON string in the field names the bots understand. Image
+resolutions are 1k/2k/4k (Maistro's 1080p maps to 2k). A clip always carries
+`resolution` (480p/720p/1080p/4k, default 720p), `duration` (4–15 s, the
+Seedance 2.0 limit) and `aspect`, because the video bot refuses a run without
+them. It also carries `audio` and `first_frame_url` (the keyframe, signed for
+24 h). `reviewer_changes` is added on a re-render. `max_credits` is the priced
+cost plus 25 %, never above the bots' 150 default. The brief run's
+`instructions` are Maistro's brief rules, and its `input` is the approved
+moodboard, thumbnail, trend, catalog, claims and platform rules, followed by the
+brief JSON schema.
+
+**What the bot must reply** (the run's final `output`, last ```json block wins):
+
+```jsonc
+{"images": ["https://…/1.png", "…"], "note": "one line"}                                  // mood (4) / thumb
+{"frames": [{"index": 1, "image": "https://…", "duration_s": 3, "shot": "…", "camera": "…", "vo": "…"}], "note": "…"}  // board
+{"video": "https://…/clip.mp4", "duration_s": 5, "resolution": "720p", "aspect": "9:16", "note": "…"}  // draft / final clip
+{"brief": { …the brief contract… }}                                                          // brief
+{"refused": "one-line reason"}                                                               // declined on policy grounds
+{"error": "…", "note": "…"}                                                                  // any other failure
+```
+
+The bots' files are public CloudFront URLs (`d8j0ntlcm91z4.cloudfront.net`),
+which are allowed already (`.cloudfront.net`). Other hosts go in
+`QC_ASSET_HOSTS`. Maistro copies every file into its private bucket and checks
+it (vision check, clip check, F1X8 on the hook and the cut), as before. A reply
+without usable media fails the job. A brief that does not match the contract
+fails with the field problems. `{error}` fails with the bot's reason. A refusal
+fails uncharged, with the reason and a compliant rewrite suggestion on the job.
+
+Run states: `queued`/`running` → polled again; `completed` → read as above;
+`waiting_for_approval` → Maistro answers `{"choice": "deny"}` (fail closed:
+nothing extra runs or is spent) and the job fails saying to check the bot on
+the Hermes PC; `interrupted` (the gateway restarted) → the same request is
+submitted again, at most twice; `failed`/`cancelled` → the job fails with
+Hermes's reason. HTTP 429/5xx retry with backoff (same key); 401/403/404/other
+4xx fail at once and name the env var to check.
+
+Prices: the bots return none. The budget and the QC fix plan price them from
+the bots' Higgsfield credit table: Nano Banana Pro 2 credits per image (4 at 4k),
+and Seedance 2.0 at 4.5 credits/s at 720p or 12 credits/s at 1080p. Credits are
+converted at `MAISTRO_HERMES_USD_PER_CREDIT` (default $0.06, "assumed").
+`MAISTRO_NO_RENDER=1` blocks every run (no spend for testing).
+
+---
+
+## /api/higgsfield — legacy (Studio no longer uses it)
+
+Kept for the legacy page path only (the `maistro-legacy-providers` switch). The
+Studio's renders go to the Hermes bots above.
+
+### Studio Create video generation (Seedance 2.5)
 
 Backs the Studio Copilot (Content Studio → Pathway 02). Proxies Higgsfield
 with the server-side `HF_CREDENTIALS` (`key-id:key-secret`); the key never

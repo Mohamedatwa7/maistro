@@ -85,6 +85,52 @@ const anthropicReply = (payload) => json({
   stop_reason: 'end_turn', usage: { input_tokens: 10, output_tokens: 10 },
 });
 
+// Hermes Agent API server double (the owner's content bots; api/_adapters/hermes.js).
+// HERMES_ENV points the adapter at it. POST …/v1/runs records the run (role from the profile in the
+// path, Idempotency-Key replays the same run); GET …/v1/runs/{id} answers with `state.status`
+// (default 'running') and, once completed, a reply whose JSON block carries the media the bot
+// "made" under https://hermes.test/files/ (fetchable: PNG / MP4 bytes). `state.reject` = {status, body}
+// fails the next submits; `state.brief` is what the brief bot returns; `state.output(run)` overrides a reply.
+// POST …/runs/{id}/approval records the choice on the run (`run.approval`).
+const HERMES_ENV = { HERMES_API_URL: 'https://hermes.test', HERMES_API_KEY: 'hk', HERMES_BOT_MOOD: 'moodboard', HERMES_BOT_THUMB: 'thumbnail', HERMES_BOT_BRIEF: 'brief', HERMES_BOT_BOARD: 'storyboard', HERMES_BOT_VIDEO: 'video' };
+function hermesFake(state = {}) {
+  Object.assign(state, { runs: state.runs || [], byKey: state.byKey || {} });
+  const PNG = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, 1, 2]);
+  const MP4 = new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112, 105, 115, 111, 109]);
+  const reply = (run) => {
+    if (state.output) return state.output(run);
+    const n = Number((/exactly (\d+) https URLs/.exec(run.body.instructions || '') || [])[1] || 1);
+    if (run.profile === 'brief') return 'Here it is.\n```json\n' + JSON.stringify({ brief: state.brief || {} }) + '\n```';
+    if (run.profile === 'video') return '```json\n' + JSON.stringify({ video: `https://hermes.test/files/${run.id}.mp4`, note: 'clip made' }) + '\n```';
+    return '```json\n' + JSON.stringify({ images: Array.from({ length: n }, (_, i) => `https://hermes.test/files/${run.id}-${i + 1}.png`), note: 'made by the bot' }) + '\n```';
+  };
+  const routes = [
+    [(u, init) => /^https:\/\/hermes\.test\/(p\/[\w-]+\/)?v1\/runs$/.test(u) && init.method === 'POST', (u, init) => {
+      if (state.reject) return new Response(JSON.stringify(state.reject.body || {}), { status: state.reject.status });
+      const key = init.headers && init.headers['Idempotency-Key'];
+      if (key && state.byKey[key]) return json({ run_id: state.byKey[key].id, status: 'started' }, 202, { 'Idempotency-Replayed': 'true' });
+      const profile = (/\/p\/([\w-]+)\//.exec(u) || [])[1] || 'default';
+      const run = { id: `run_${String(state.runs.length + 1).padStart(4, '0')}`, profile, body: JSON.parse(init.body), headers: init.headers, url: u };
+      state.runs.push(run); if (key) state.byKey[key] = run; state.last = run;
+      return json({ run_id: run.id, status: 'started' });
+    }],
+    [(u, init) => /^https:\/\/hermes\.test\/(p\/[\w-]+\/)?v1\/runs\/run_\d+\/approval$/.test(u) && init.method === 'POST', (u, init) => {
+      const run = state.runs.find((r) => u.endsWith(`/${r.id}/approval`));
+      if (run) { run.approval = JSON.parse(init.body).choice; run.status = 'failed'; }
+      return json({ ok: true });
+    }],
+    [/^https:\/\/hermes\.test\/(p\/[\w-]+\/)?v1\/runs\/run_\d+$/, (u) => {
+      const run = state.runs.find((r) => u.endsWith('/' + r.id));
+      if (!run) return json({ error: 'not found' }, 404);
+      const st = typeof state.status === 'function' ? state.status(run) : (run.status || state.status || 'running');
+      return json({ object: 'hermes.run', run_id: run.id, status: st, ...(st === 'completed' ? { output: reply(run), usage: { input_tokens: 5, output_tokens: 7 } } : {}), ...(st === 'failed' ? { error: { message: 'tool crashed' } } : {}) });
+    }],
+    [/^https:\/\/hermes\.test\/files\/.+\.png$/, () => new Response(PNG, { status: 200, headers: { 'content-type': 'image/png' } })],
+    [/^https:\/\/hermes\.test\/files\/.+\.mp4$/, () => new Response(MP4, { status: 200, headers: { 'content-type': 'video/mp4' } })],
+  ];
+  return { state, routes };
+}
+
 // ---- page harness ----
 // Golden tests must not drift with the wall clock: `now` freezes Date for the page.
 const FROZEN_NOW = '2026-10-21T10:00:00.000Z';
@@ -143,4 +189,4 @@ function loadPage({ fetchImpl, hash = '#/', now = FROZEN_NOW } = {}) {
   return X;
 }
 
-module.exports = { ROOT, FIXTURES, fixture, req, res, api, mockFetch, json, text, anthropicReply, loadPage, sessionCookie, TEST_SESSION_SECRET };
+module.exports = { ROOT, FIXTURES, fixture, req, res, api, mockFetch, json, text, anthropicReply, loadPage, sessionCookie, TEST_SESSION_SECRET, HERMES_ENV, hermesFake };

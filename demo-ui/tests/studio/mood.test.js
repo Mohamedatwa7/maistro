@@ -1,12 +1,12 @@
-// Phase 6.2 — Moodboard: structured direction → Soul set → automated vision check → human selection.
+// Phase 6.2 — Moodboard: structured direction → Hermes moodboard-bot set → automated vision check → human selection.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { api, req, res, mockFetch, json, loadPage } = require('../helpers');
+const { api, req, res, mockFetch, json, loadPage, HERMES_ENV, hermesFake } = require('../helpers');
 const { fakePostgrest } = require('../fake-postgrest');
 const { validateDirection, tilePrompt } = require('../../api/_studio/mood.js');
 const { verdict } = require('../../api/_studio/checks.js');
 
-const ENV = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', HF_CREDENTIALS: 'id:secret', ANTHROPIC_API_KEY: 'k', CRON_SECRET: 'cron' };
+const ENV = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', ANTHROPIC_API_KEY: 'k', CRON_SECRET: 'cron', ...HERMES_ENV };
 const PNG = new Uint8Array([137, 80, 78, 71, 9, 9]);
 const DIRECTION = {
   setting: 'sunlit Dubai apartment terrace', lighting: 'warm late-afternoon rim light', mood: 'calm confidence', styling: 'minimal, matte materials', wardrobe: 'modest neutral linen',
@@ -18,12 +18,10 @@ const CHECK = { images: [0, 1, 2, 3].map((i) => ({ index: i, productPresent: i =
 
 function world() {
   const pg = fakePostgrest();
-  const hf = { status: 'in_progress' };
+  const H = hermesFake(); const hf = H.state;
   const f = mockFetch([
     ['api.anthropic.com', (u, init) => { const b = JSON.parse(init.body); const isCheck = /check generated campaign images/.test(b.system); return json({ content: [{ type: 'text', text: JSON.stringify(isCheck ? CHECK : DIRECTION) }], stop_reason: 'end_turn', usage: { input_tokens: 5, output_tokens: 5 } }); }],
-    [/\/higgsfield-ai\/soul\/v2\/standard$/, (u, init) => { hf.body = JSON.parse(init.body); return json({ status: 'queued', request_id: 'req00000002', status_url: 'x', cancel_url: 'y' }); }],
-    ['/requests/req00000002/status', () => json(hf.status === 'completed' ? { status: 'completed', images: [1, 2, 3, 4].map((n) => ({ url: `https://d3u0tzju9qaucj.cloudfront.net/t${n}.png` })) } : { status: hf.status })],
-    [/d3u0tzju9qaucj\.cloudfront\.net\/t\d\.png$/, () => new Response(PNG, { status: 200, headers: { 'content-type': 'image/png' } })],
+    ...H.routes,
     [(u, init) => /\/storage\/v1\/object\/sign\/assets\//.test(u) && (init.method || 'GET') === 'POST', () => json({ signedURL: '/object/sign/assets/x?token=t' })],
     [/\/storage\/v1\/object\/assets\//, () => json({ Key: 'ok' })],
     pg.route,
@@ -49,15 +47,15 @@ test('verdict: hard failures fail, "unsure" on safety needs review, off-directio
   assert.equal(verdict({ ...CHECK.images[1], competitorOrLogo: 'yes' }, true).pass, false);
 });
 
-test('POST /api/studio action mood: direction from Claude with the catalog look and the brand palette, one Soul batch job with the direction on it; completion lists four copied images and queues the vision check; the tick stores stage_checks; the pieces list carries the set', async () => {
+test('POST /api/studio action mood: direction from Claude with the catalog look and the brand palette, one Hermes moodboard-bot job (four variations) with the direction on it; completion lists four copied images and queues the vision check; the tick stores stage_checks; the pieces list carries the set', async () => {
   const W = world();
   try {
     let r = res(); await W.pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-mood1', stage: 'plan', artifact: { title: 'Deadpan Flip', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] }, piece: { title: 'Deadpan Flip', product: 'Galaxy Z Flip8', msg: 'm', trendName: 'Deadpan caption reveal' } } }), r);
     r = res(); await W.studio.handler(req({ method: 'POST', body: { action: 'mood', pieceId: 'gen-mood1', userInput: 'warm, calm' } }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     assert.equal(r.body.direction.leadingPrinciple, 'Authentically grounded'); assert.equal(r.body.promptVersion, 'mood-direction-v1-2026-10-21');
-    assert.equal(r.body.job.kind, 'higgsfield_image'); assert.equal(r.body.job.state, 'running');
-    assert.equal(W.hf.body.batch_size, 4); assert.equal(W.hf.body.aspect_ratio, '4:3'); assert.match(W.hf.body.prompt, /clamshell flip foldable/, 'the catalog look line is the product description'); assert.match(W.hf.body.prompt, /^sunlit Dubai apartment terrace, featuring the device/, 'the set prompt is the whole direction, not tile 1');
+    assert.equal(r.body.job.kind, 'hermes_image'); assert.equal(r.body.job.state, 'running');
+    const run = W.hf.last; assert.equal(run.profile, 'moodboard'); assert.match(run.body.instructions, /exactly 4 https URLs/); assert.equal(JSON.parse(run.body.input).aspect, '4:3'); assert.match(run.body.input, /clamshell flip foldable/, 'the catalog look line is the product description'); assert.match(JSON.parse(run.body.input).prompt, /^sunlit Dubai apartment terrace, featuring the device/, 'the set prompt is the whole direction, not tile 1');
     const job = W.pg.tables.jobs[0];
     assert.equal(job.payload.meta.setMode, 'variations');
     assert.equal(job.payload.autoCheck, true); assert.equal(job.payload.meta.direction.setting, DIRECTION.setting); assert.equal(job.payload.meta.productLook, '2026 clamshell flip foldable, large FlexWindow cover screen when closed');
@@ -66,7 +64,7 @@ test('POST /api/studio action mood: direction from Claude with the catalog look 
     W.hf.status = 'completed'; job.next_poll_at = new Date(Date.now() - 1000).toISOString();
     r = res(); await W.jobs.handler(req({ method: 'GET', query: { id: job.id } }), r);
     assert.equal(r.body.job.state, 'succeeded'); const art = r.body.job.result.artifact;
-    assert.equal(art.images.length, 4); assert.ok(art.images.every((im) => im.assetPath && im.sha256)); assert.deepEqual(art.images.map((im) => im.tag), ['variation 1', 'variation 2', 'variation 3', 'variation 4'], 'a Soul batch is four variations of one prompt'); assert.equal(art.setMode, 'variations'); assert.equal(art.imageUrl, art.images[0].url); assert.equal(art.direction.mood, 'calm confidence');
+    assert.equal(art.images.length, 4); assert.ok(art.images.every((im) => im.assetPath && im.sha256)); assert.deepEqual(art.images.map((im) => im.tag), ['variation 1', 'variation 2', 'variation 3', 'variation 4'], 'the bot set is four variations of one prompt'); assert.equal(art.setMode, 'variations'); assert.equal(art.imageUrl, art.images[0].url); assert.equal(art.direction.mood, 'calm confidence');
     const check = W.pg.tables.jobs.find((j) => j.kind === 'vision_check');
     assert.ok(check, 'vision check queued'); assert.equal(check.payload.images.length, 4); assert.equal(check.payload.versionId, r.body.job.result.versionId);
     // the tick runs the check

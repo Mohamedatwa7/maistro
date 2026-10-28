@@ -9,23 +9,29 @@
 const { queryRows, insertRows, patchRows } = require('./_supabase.js');
 const { ensurePiece, recordVersion, StoreError } = require('./_store.js');
 const { prerequisitesMet, transition } = require('../src/domain/stages.js');
-const higgsfield = require('./_adapters/higgsfield.js');
+const higgsfield = require('./_adapters/higgsfield.js'); // legacy rows only: new renders go to Hermes
+const hermes = require('./_adapters/hermes.js');
 const f1x8 = require('./_adapters/f1x8.js');
 const storage = require('./_adapters/storage.js');
 const { recordGeneration } = require('./_records.js');
-const jobRecord = (job, extra) => recordGeneration({ kind: job.kind.startsWith('higgsfield') ? job.kind : job.kind === 'assemble' ? 'assemble' : 'f1x8', legacyPieceId: job.payload && job.payload.pieceId, pieceId: job.piece_id || null, stage: job.payload && job.payload.stage, promptName: job.kind.startsWith('higgsfield') ? 'director.prompt' : job.kind === 'assemble' ? 'assemble.ffmpeg' : 'f1x8.analysis', promptVersion: null, resolvedPrompt: job.payload && (job.payload.prompt || job.payload.description) || null, params: { aspect_ratio: job.payload && job.payload.aspect_ratio, resolution: job.payload && job.payload.resolution, duration: job.payload && job.payload.duration, ref: Boolean(job.payload && job.payload.ref), v: job.payload && job.payload.v, seed: job.payload && job.payload.seed != null ? job.payload.seed : null }, inputAssets: job.payload && (job.payload.ref || job.payload.assetUrl || job.payload.assetPath) ? [job.payload.ref || job.payload.assetPath || job.payload.assetUrl] : [], jobId: job.id, memberId: job.payload && job.payload.generatedBy, correlationId: job.payload && job.payload.correlationId, latencyMs: job.started_at ? Date.now() - new Date(job.started_at).getTime() : null, costUsd: job.estimate_usd != null ? (extra && extra.status === 'succeeded' ? Number(job.estimate_usd) : 0) : undefined, ...extra });
+const isRenderKind = (k) => /^(higgsfield|hermes)_/.test(String(k));
+const isVideoKind = (k) => k === 'higgsfield_video' || k === 'hermes_video';
+const jobRecord = (job, extra) => recordGeneration({ kind: isRenderKind(job.kind) ? job.kind : job.kind === 'assemble' ? 'assemble' : 'f1x8', legacyPieceId: job.payload && job.payload.pieceId, pieceId: job.piece_id || null, stage: job.payload && job.payload.stage, promptName: job.kind.startsWith('hermes') ? `hermes.${hermes.roleFor(job.kind, job.payload && job.payload.stage)}` : job.kind.startsWith('higgsfield') ? 'director.prompt' : job.kind === 'assemble' ? 'assemble.ffmpeg' : 'f1x8.analysis', promptVersion: null, ...(job.payload && job.payload.bot ? { model: `hermes/${job.payload.bot}` } : {}), resolvedPrompt: job.payload && (job.payload.prompt || job.payload.description) || null, params: { aspect_ratio: job.payload && job.payload.aspect_ratio, resolution: job.payload && job.payload.resolution, duration: job.payload && job.payload.duration, ref: Boolean(job.payload && job.payload.ref), v: job.payload && job.payload.v, seed: job.payload && job.payload.seed != null ? job.payload.seed : null }, inputAssets: job.payload && (job.payload.ref || job.payload.assetUrl || job.payload.assetPath) ? [job.payload.ref || job.payload.assetPath || job.payload.assetUrl] : [], jobId: job.id, memberId: job.payload && job.payload.generatedBy, correlationId: job.payload && job.payload.correlationId, latencyMs: job.started_at ? Date.now() - new Date(job.started_at).getTime() : null, costUsd: job.estimate_usd != null ? (extra && extra.status === 'succeeded' ? Number(job.estimate_usd) : 0) : undefined, ...extra });
 
 const q = (v) => encodeURIComponent(String(v));
-const KINDS = ['higgsfield_image', 'higgsfield_video', 'f1x8_image', 'f1x8_video', 'vision_check', 'assemble', 'clip_check'];
-const RENDER_KINDS = ['higgsfield_image', 'higgsfield_video'];
-const KIND_STAGE = { higgsfield_image: ['mood', 'thumb', 'board'], higgsfield_video: ['draft', 'final'], f1x8_image: ['mood', 'thumb', 'board'], f1x8_video: ['draft', 'final'], vision_check: ['mood', 'thumb', 'board', 'draft', 'final'], assemble: ['draft', 'final'], clip_check: ['draft', 'final'] };
+// Renders are made by the owner's Hermes bots (moodboard, thumbnail, brief, storyboard, video);
+// higgsfield_* rows created before the switch still finish through the legacy path, but no new
+// ones can be created.
+const KINDS = ['hermes_image', 'hermes_video', 'hermes_brief', 'f1x8_image', 'f1x8_video', 'vision_check', 'assemble', 'clip_check'];
+const RENDER_KINDS = ['hermes_image', 'hermes_video', 'hermes_brief', 'higgsfield_image', 'higgsfield_video'];
+const KIND_STAGE = { hermes_image: ['mood', 'thumb', 'board'], hermes_video: ['draft', 'final'], hermes_brief: ['brief'], higgsfield_image: ['mood', 'thumb', 'board'], higgsfield_video: ['draft', 'final'], f1x8_image: ['mood', 'thumb', 'board'], f1x8_video: ['draft', 'final'], vision_check: ['mood', 'thumb', 'board', 'draft', 'final'], assemble: ['draft', 'final'], clip_check: ['draft', 'final'] };
 // How long to wait before asking again, and when to give up (seconds).
 // the vision_check claim window must exceed the bounded model call (90 s) so a
 // second tick cannot re-claim a check that is still running
 // assemble and clip_check run ffmpeg inside one invocation: their claim windows exceed the
 // longest run (the function limit is 300 s) so a second tick can never double-claim them
-const POLL_S = { higgsfield_image: 20, higgsfield_video: 45, f1x8_image: 60, f1x8_video: 90, vision_check: 150, assemble: 290, clip_check: 200 };
-const TIMEOUT_S = { higgsfield_image: 15 * 60, higgsfield_video: 20 * 60, f1x8_image: 30 * 60, f1x8_video: 45 * 60, vision_check: 10 * 60, assemble: 15 * 60, clip_check: 10 * 60 };
+const POLL_S = { hermes_image: 20, hermes_video: 45, hermes_brief: 15, higgsfield_image: 20, higgsfield_video: 45, f1x8_image: 60, f1x8_video: 90, vision_check: 150, assemble: 290, clip_check: 200 };
+const TIMEOUT_S = { hermes_image: 20 * 60, hermes_video: 45 * 60, hermes_brief: 15 * 60, higgsfield_image: 15 * 60, higgsfield_video: 20 * 60, f1x8_image: 30 * 60, f1x8_video: 45 * 60, vision_check: 10 * 60, assemble: 15 * 60, clip_check: 10 * 60 };
 const MAX_SUBMIT_ATTEMPTS = 3;
 
 const nowIso = () => new Date().toISOString();
@@ -131,7 +137,7 @@ async function advance(job) {
       await patchRows('jobs', `id=eq.${q(job.id)}`, { attempts });
       try {
         // 6.9: price the exact body before submitting and hold the piece to its budget
-        if (job.kind.startsWith('higgsfield') && job.estimate_usd == null && !job.payload.budgetChecked) {
+        if ((job.kind.startsWith('higgsfield') || job.kind === 'hermes_image' || job.kind === 'hermes_video') && job.estimate_usd == null && !job.payload.budgetChecked) {
           const gate = await budgetGate(job);
           if (gate.refuse) { if (gate.estimateUsd != null) { const pl = { ...job.payload, budgetChecked: true, estimateBasis: gate.basis }; await patchRows('jobs', `id=eq.${q(job.id)}`, { estimate_usd: gate.estimateUsd, payload: pl }); job = { ...job, estimate_usd: gate.estimateUsd, payload: pl }; } await fail(job, 'failed', gate.refuse); return 'failed'; }
           job = { ...job, estimate_usd: gate.estimateUsd, payload: { ...job.payload, budgetChecked: true, estimateBasis: gate.basis, ...(gate.warning ? { budgetWarning: gate.warning } : {}) } };
@@ -139,15 +145,25 @@ async function advance(job) {
         }
         // 6.6: a clip job names its keyframe by private path; the signed URL is minted once
         // (24 h) and kept on the job so the idempotent body is identical on every retry
-        if (job.kind === 'higgsfield_video' && job.payload.imageAssetPath && !job.payload.imageUrl) {
+        if (isVideoKind(job.kind) && job.payload.imageAssetPath && !job.payload.imageUrl) {
           const imageUrl = await storage.signedUrl(job.payload.imageAssetPath, 24 * 3600);
           job = { ...job, payload: { ...job.payload, imageUrl } };
           await patchRows('jobs', `id=eq.${q(job.id)}`, { payload: job.payload });
         }
-        const sub = job.kind.startsWith('higgsfield')
+        // the bots see the approved mood tiles as style anchors: signed once (24 h) and kept on the job
+        if (job.kind === 'hermes_image' && !job.payload.anchorUrls && job.payload.meta && Array.isArray(job.payload.meta.anchors) && job.payload.meta.anchors.length) {
+          const anchorUrls = [];
+          for (const a of job.payload.meta.anchors.slice(0, 4)) { try { anchorUrls.push(a.assetPath ? await storage.signedUrl(a.assetPath, 24 * 3600) : a.url); } catch (e) { if (a.url) anchorUrls.push(a.url); } }
+          job = { ...job, payload: { ...job.payload, anchorUrls: anchorUrls.filter(Boolean) } };
+          await patchRows('jobs', `id=eq.${q(job.id)}`, { payload: job.payload });
+        }
+        const role = job.kind.startsWith('hermes') ? hermes.roleFor(job.kind, job.payload.stage) : null;
+        const sub = role
+          ? await hermes.submit(role, job.kind === 'hermes_brief' ? hermes.briefRun(job.payload) : hermes.renderRun(job.payload, role), { idempotencyKey: job.payload.resubmits ? `${job.id}:${job.payload.resubmits}` : job.id, sessionId: `maistro-${job.payload.pieceId}-${job.payload.stage}` })
+          : job.kind.startsWith('higgsfield')
           ? await higgsfield.submit({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }, { idempotencyKey: job.id })
           : await f1x8.submit({ kind: job.kind === 'f1x8_video' ? 'video' : 'image', assetUrl: await assetUrlFor(job.payload), title: job.payload.title, description: job.payload.description, expectSha256: job.payload.expectSha256 || null });
-        await patchRows('jobs', `id=eq.${q(job.id)}`, { provider_ref: String(sub.ref), state: 'running', error: null, payload: { ...job.payload, v: sub.v || 0, ...(sub.correlationId ? { correlationId: sub.correlationId } : {}) } });
+        await patchRows('jobs', `id=eq.${q(job.id)}`, { provider_ref: String(sub.ref), state: 'running', error: null, payload: { ...job.payload, v: sub.v || 0, ...(sub.bot ? { bot: sub.bot } : {}), ...(sub.correlationId ? { correlationId: sub.correlationId } : {}) } });
         return 'running';
       } catch (e) {
         // Documented classification (HIGGSFIELD.md §3 H-3): retryable = the
@@ -161,7 +177,8 @@ async function advance(job) {
         return 'queued';
       }
     }
-    if (job.kind.startsWith('higgsfield')) return await pollRender(job);
+    if (job.kind === 'hermes_brief') return await pollBrief(job);
+    if (isRenderKind(job.kind)) return await pollRender(job);
     if (job.kind === 'vision_check') return await runVisionCheck(job);
     return await pollQc(job);
   } catch (e) {
@@ -186,7 +203,7 @@ async function fail(job, state, error) {
     // 6.5: a failed keyframe marks its shot; the other shots keep rendering
     try {
       const { versionId, shot } = job.payload.attachTo;
-      const slot = job.kind === 'higgsfield_video' ? 'clip' : 'keyframe';
+      const slot = isVideoKind(job.kind) ? 'clip' : 'keyframe';
       await updateShots(versionId, (payload) => {
         if (!Array.isArray(payload.shots) || !payload.shots[shot - 1]) return null;
         const shots = payload.shots.map((s) => ({ ...s }));
@@ -205,8 +222,25 @@ async function fail(job, state, error) {
   }
 }
 
+/** A Hermes run cut off by a gateway restart is submitted again (a fresh Idempotency-Key so the
+ *  gateway does not replay the dead run), at most HERMES_RESUBMITS times. */
+const HERMES_RESUBMITS = 2;
+async function resubmitInterrupted(job, st) {
+  const n = (job.payload.resubmits || 0) + 1;
+  if (n > HERMES_RESUBMITS) { await fail(job, 'failed', `${st.error} ${HERMES_RESUBMITS + 1} times; try again when the Hermes PC is stable`); return 'failed'; }
+  await patchRows('jobs', `id=eq.${q(job.id)}`, { provider_ref: null, state: 'queued', attempts: 0, error: `${st.error}; submitting again (${n}/${HERMES_RESUBMITS})`, next_poll_at: plusS(30), payload: { ...job.payload, resubmits: n } });
+  return 'queued';
+}
+
 async function pollRender(job) {
-  const st = await higgsfield.status(job.provider_ref, job.payload.v || 0);
+  const viaHermes = job.kind.startsWith('hermes');
+  const st = viaHermes ? await hermes.status(job.provider_ref) : await higgsfield.status(job.provider_ref, job.payload.v || 0);
+  if (st.status === 'interrupted') return resubmitInterrupted(job, st);
+  if (st.status === 'waiting') {
+    // parked on an approval inside Hermes: keep polling, and say why it is slow
+    await patchRows('jobs', `id=eq.${q(job.id)}`, { state: 'running', error: st.error });
+    return 'running';
+  }
   if (st.status === 'completed' && !(st.video || (st.images && st.images.length))) {
     // the provider says done but handed back no media: that never improves with polling
     await fail(job, 'failed', 'provider reported completed without any output');
@@ -215,8 +249,9 @@ async function pollRender(job) {
   if (st.status === 'completed') {
     const meta = job.payload.meta || {};
     const stage = job.payload.stage;
-    const isVideo = job.kind === 'higgsfield_video';
+    const isVideo = isVideoKind(job.kind);
     const sourceUrl = isVideo ? st.video : st.images[0];
+    const by = viaHermes ? `the Hermes ${job.payload.bot || 'video'} bot` : 'Seedance 2.5';
     // ADR-006: the finished asset is copied into the private bucket with its
     // checksum; the provider URL stays on the artifact for rendering in the
     // legacy page (the new pages read signed URLs from assetPath).
@@ -224,8 +259,9 @@ async function pollRender(job) {
     try { copy = await storage.copyIn(sourceUrl, `pieces/${job.payload.pieceId}/${stage}`, isVideo ? 'video/mp4' : 'image/png'); }
     catch (e) { console.warn('[jobs] asset copy-in failed:', e.message); }
     const artifact = isVideo
-      ? { version: meta.version || 'v1', dur: `${meta.dur || 5}s`, audio: 'Native audio — generated by Seedance 2.5', variants: [{ a: meta.ar || '16:9', l: meta.res || '720p', k: 'seedance', st: 'ready' }], videoUrl: sourceUrl, prompt: meta.prompt || '', note: meta.note || '', ...(stage === 'final' ? { qcRevised: true } : {}) }
-      : { imageUrl: sourceUrl, prompt: meta.prompt || '', note: meta.note || '', ...(meta.title ? { title: meta.title, sub: meta.sub || '' } : {}) };
+      ? { version: meta.version || 'v1', dur: `${meta.dur || job.payload.duration || 5}s`, audio: `Native audio — generated by ${by}`, variants: [{ a: meta.ar || job.payload.aspect_ratio || '16:9', l: meta.res || job.payload.resolution || '720p', k: viaHermes ? 'original' : 'seedance', st: 'ready' }], videoUrl: sourceUrl, prompt: meta.prompt || '', note: meta.note || (viaHermes ? st.note : '') || '', ...(stage === 'final' ? { qcRevised: true } : {}) }
+      : { imageUrl: sourceUrl, prompt: meta.prompt || '', note: meta.note || (viaHermes ? st.note : '') || '', ...(meta.title ? { title: meta.title, sub: meta.sub || '' } : {}) };
+    if (viaHermes) artifact.madeBy = { provider: 'hermes', bot: job.payload.bot || null, run: job.provider_ref };
     if (copy) { artifact.assetPath = copy.path; artifact.sha256 = copy.sha256; artifact.size = copy.size; }
     // 6.2: an image SET (Soul batch) — every image copied in and listed. A batch
     // renders ONE prompt, so the images are variations of it: tagged as such
@@ -247,7 +283,7 @@ async function pollRender(job) {
     let recorded;
     try {
       // the stage is `generating`; recordVersion needs a non-approved stage and sets `generated`
-      recorded = await recordVersion(job.payload.pieceId, stage, artifact, { producedBy: isVideo ? 'higgsfield_seedance' : 'higgsfield_soul', kind: isVideo ? 'video' : 'image', jobId: job.id, generatedBy: job.payload.generatedBy || null });
+      recorded = await recordVersion(job.payload.pieceId, stage, artifact, { producedBy: viaHermes ? 'hermes' : isVideo ? 'higgsfield_seedance' : 'higgsfield_soul', kind: isVideo ? 'video' : 'image', jobId: job.id, generatedBy: job.payload.generatedBy || null });
     } catch (e) {
       await finish(job, { state: 'failed', error: `result could not be recorded: ${String(e.message || e).slice(0, 200)}`, result: { artifact } });
       return 'failed';
@@ -268,7 +304,7 @@ async function pollRender(job) {
     return 'succeeded';
   }
   if (['failed', 'nsfw', 'canceled'].includes(st.status)) {
-    await fail(job, 'failed', st.status === 'nsfw' ? 'moderated (nsfw) — nothing was generated' : `provider reported ${st.status}`);
+    await fail(job, 'failed', st.status === 'nsfw' ? (viaHermes && st.error ? `moderated by the bot (${st.error}) — nothing was generated` : 'moderated (nsfw) — nothing was generated') : st.error ? String(st.error) : `provider reported ${st.status}`);
     if (st.status === 'nsfw') {
       // 6.9: explain the refusal and suggest a compliant rewrite (never resubmitted automatically)
       try {
@@ -280,6 +316,41 @@ async function pollRender(job) {
   }
   await patchRows('jobs', `id=eq.${q(job.id)}`, { state: 'running', error: null });
   return 'running';
+}
+
+/** The Hermes brief bot's run: the structured brief it returns is validated against the same contract
+ *  as a Studio brief, recorded as a version (produced by Hermes) and put through the same code + copy
+ *  checks (6.4). A brief that fails the contract fails the job with the field problems. */
+async function pollBrief(job) {
+  const st = await hermes.status(job.provider_ref);
+  if (st.status === 'interrupted') return resubmitInterrupted(job, st);
+  if (st.status === 'waiting' || st.status === 'running') {
+    await patchRows('jobs', `id=eq.${q(job.id)}`, { state: 'running', error: st.status === 'waiting' ? st.error : null });
+    return 'running';
+  }
+  if (st.status !== 'completed') { await fail(job, 'failed', st.error || `Hermes run ${st.raw_status || st.status}`); return 'failed'; }
+  const briefMod = require('./_studio/brief.js');
+  if (!st.brief) { await fail(job, 'failed', 'the brief bot replied without a "brief" object'); return 'failed'; }
+  const problems = briefMod.validateShape(st.brief);
+  if (problems.length) { await fail(job, 'failed', `the brief bot's brief does not match the brief contract: ${problems.slice(0, 4).join('; ')}`); return 'failed'; }
+  const legacyId = job.payload.pieceId;
+  const [piece] = await queryRows('content_pieces', `select=*&id=eq.${q(job.piece_id)}&limit=1`);
+  if (!piece) { await fail(job, 'failed', 'piece not found'); return 'failed'; }
+  const ctx = await briefMod.briefContext(piece, legacyId);
+  const artifact = briefMod.artifactFrom(st.brief, piece, { promptVersion: `hermes/${job.payload.bot || 'brief'}`, moodApproved: ctx.mood.approved, thumbApproved: Boolean(ctx.thumb && ctx.thumb.approved) });
+  artifact.madeBy = { provider: 'hermes', bot: job.payload.bot || null, run: job.provider_ref };
+  let recorded;
+  try { recorded = await recordVersion(legacyId, 'brief', artifact, { producedBy: 'hermes', kind: 'text', jobId: job.id, generatedBy: job.payload.generatedBy || null }); }
+  catch (e) { await finish(job, { state: 'failed', error: `result could not be recorded: ${String(e.message || e).slice(0, 200)}`, result: { artifact } }); return 'failed'; }
+  // finish FIRST: the copy check below is a model call, and a finished row can never be re-claimed
+  await finish(job, { state: 'succeeded', error: null, result: { artifact, version: recorded.version, versionId: recorded.versionId } });
+  await jobRecord(job, { status: 'succeeded', usage: st.usage || null, outputAssets: [{ type: 'artifact', stage: 'brief', versionId: recorded.versionId }] });
+  try {
+    const checks = await briefMod.recordChecks({ piece, legacyId, versionId: recorded.versionId, brief: st.brief, ctx, memberId: job.payload.generatedBy || null });
+    await patchRows('jobs', `id=eq.${q(job.id)}`, { result: { artifact, version: recorded.version, versionId: recorded.versionId, checks } });
+  } catch (e) { await patchRows('jobs', `id=eq.${q(job.id)}`, { error: `brief checks: ${String(e.message || e).slice(0, 240)}` }); }
+  try { const { syncSpec } = require('./_spec.js'); await syncSpec(legacyId, { memberId: job.payload.generatedBy || null, note: 'brief written by Hermes' }); } catch (e) { /* best effort */ }
+  return 'succeeded';
 }
 
 /** 6.9: the piece's budget. The cap is the piece's own (set by a line manager or admin), else the default for
@@ -297,7 +368,7 @@ function defaultCap(resolution) {
 }
 async function pieceBudget(pieceId) {
   const [p] = await queryRows('content_pieces', `select=id,budget_usd,budget_warn_pct&id=eq.${q(pieceId)}&limit=1`);
-  const [first] = await queryRows('jobs', `select=id,payload&piece_id=eq.${q(pieceId)}&kind=eq.higgsfield_video&order=created_at.asc&limit=1`);
+  const [first] = await queryRows('jobs', `select=id,payload&piece_id=eq.${q(pieceId)}&kind=in.(hermes_video,higgsfield_video)&order=created_at.asc&limit=1`);
   const resolution = first && first.payload && first.payload.resolution === '1080p' ? '1080p' : '720p';
   const own = p && p.budget_usd != null;
   const capUsd = own ? Number(p.budget_usd) : defaultCap(resolution);
@@ -326,13 +397,19 @@ async function budgetGate(job) {
   // fails, the last observed estimate for the same kind, else MAISTRO_UNPRICED_USD (default $1.00) —
   // an unpriced render never escapes the cap
   let estimateUsd = null, basis = 'provider estimate';
-  try { const e = await higgsfield.estimateRequest({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }); estimateUsd = e ? Math.round(e.usd * 10000) / 10000 : null; if (!e) basis = 'no estimate endpoint (v1 reference path)'; else if (e.basis) basis = e.basis; }
-  catch (e) { basis = `estimate failed: ${String(e.message || e).slice(0, 80)}`; console.warn('[jobs] estimate failed:', e.message); }
+  if (job.kind.startsWith('hermes')) {
+    // the bots spend Higgsfield credits at known rates: priced from that table (hermes.priceRender)
+    const e = hermes.priceRender(hermes.roleFor(job.kind, job.payload.stage), job.payload);
+    estimateUsd = e.usd; basis = e.basis;
+  } else {
+    try { const e = await higgsfield.estimateRequest({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }); estimateUsd = e ? Math.round(e.usd * 10000) / 10000 : null; if (!e) basis = 'no estimate endpoint (v1 reference path)'; else if (e.basis) basis = e.basis; }
+    catch (e) { basis = `estimate failed: ${String(e.message || e).slice(0, 80)}`; console.warn('[jobs] estimate failed:', e.message); }
+  }
   if (estimateUsd == null) {
     // ASSUMPTION (2026-10-22, owner to replace with real prices): Seedance /estimate returns no USD, so video is
     // budgeted per second of clip at MAISTRO_UNPRICED_VIDEO_USD_PER_S ($0.50/s); images at MAISTRO_UNPRICED_IMAGE_USD
     // ($0.05). A provider-priced job of the same kind (never a fallback) is preferred when one exists.
-    const isVideo = job.kind === 'higgsfield_video';
+    const isVideo = isVideoKind(job.kind);
     const secs = Math.min(30, Math.max(4, Math.ceil(Number(job.payload.duration) || 5)));
     const fallback = isVideo ? Math.round(secs * Number(process.env.MAISTRO_UNPRICED_VIDEO_USD_PER_S || 0.5) * 10000) / 10000 : Number(process.env.MAISTRO_UNPRICED_IMAGE_USD || 0.05);
     const last = await queryRows('jobs', `select=estimate_usd,payload&kind=eq.${q(job.kind)}&estimate_usd=not.is.null&order=created_at.desc&limit=20`).catch(() => []);
@@ -575,7 +652,7 @@ async function pollQc(job) {
       try {
         const qc = require('./_studio/qc.js');
         const { recordVersion } = require('./_store.js');
-        const report = await qc.buildReport({ analysis: R, heatmapPath, pieceId: job.piece_id, legacyId: job.payload.pieceId, draftVersionId: job.payload.versionId, draftSha256: job.payload.expectSha256, memberId: job.payload.generatedBy || null, estimate: higgsfield.estimate });
+        const report = await qc.buildReport({ analysis: R, heatmapPath, pieceId: job.piece_id, legacyId: job.payload.pieceId, draftVersionId: job.payload.versionId, draftSha256: job.payload.expectSha256, memberId: job.payload.generatedBy || null, estimate: hermes.estimate });
         const rec = await recordVersion(job.payload.pieceId, 'qc', { real: true, report, runs: { draft: { score: report.score, verdict: { summary: report.summary, risks: report.f1x8.risks, revision_brief: report.f1x8.revisionBrief } } }, avg: report.score }, { producedBy: 'f1x8', kind: 'qc_report', jobId: job.id, generatedBy: job.payload.generatedBy || null });
         await patchRows('jobs', `id=eq.${q(job.id)}`, { result: { analysis: R, heatmapPath, score: report.score, report: { versionId: rec.versionId, version: rec.version } } });
         try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: 'QC report' }); } catch (e) { /* best effort */ }

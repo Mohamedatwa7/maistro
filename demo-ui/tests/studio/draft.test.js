@@ -1,22 +1,19 @@
-// Phase 6.6a — First draft: one Seedance image-to-video clip per APPROVED storyboard shot, from its keyframe, through the
+// Phase 6.6a — First draft: one image-to-video clip (the Hermes video bot) per APPROVED storyboard shot, from its keyframe, through the
 // job service (signed once, idempotent body), attached to the draft version's shot slot; per-clip review; one clip re-renders alone.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { api, req, res, mockFetch, json, loadPage } = require('../helpers');
+const { api, req, res, mockFetch, json, loadPage, HERMES_ENV, hermesFake } = require('../helpers');
 const { fakePostgrest } = require('../fake-postgrest');
 
-const ENV = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', HF_CREDENTIALS: 'id:secret', ANTHROPIC_API_KEY: 'k', CRON_SECRET: 'cron' };
+const ENV = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', ANTHROPIC_API_KEY: 'k', CRON_SECRET: 'cron', ...HERMES_ENV };
 const MP4 = new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112, 105, 115, 111, 109]);
 const shot = (n, durationS, visible, type = 'medium') => ({ n, durationS, type, camera: `camera ${n}`, action: `action ${n}`, product: { visible, feature: visible ? 'FlexWindow' : '' }, onScreenText: { en: n === 1 ? 'Hook' : '', ar: n === 1 ? 'هوك' : '' }, line: { en: '', ar: '' }, audioCue: 'ambient', transition: n === 4 ? 'none' : 'cut', keyframe: { state: 'rendered', url: `https://cdn/k${n}.png`, assetPath: `pieces/gen-dr1/board/k${n}.png`, sha256: 'a'.repeat(64), jobId: `kj${n}` }, review: { decision: 'approved', by: 'N' } });
 
-test('POST /api/studio action draft: refused until every storyboard shot is approved; then one image-to-video job per shot (keyframe signed once and kept on the job, duration clamped to Seedance 4–30 s, no aspect on the body); clips attach to the draft version; per-clip review; one clip re-renders alone', async () => {
+test('POST /api/studio action draft: refused until every storyboard shot is approved; then one image-to-video job per shot (keyframe signed once and kept on the job, duration clamped to 4–30 s, the keyframe URL as the first frame); clips attach to the draft version; per-clip review; one clip re-renders alone', async () => {
   const pg = fakePostgrest();
-  const hf = { status: 'in_progress', submits: [] };
+  const H = hermesFake(); const hf = H.state;
   const f = mockFetch([
-    [/\/bytedance\/seedance-2\.5\/image-to-video$/, (u, init) => { hf.submits.push({ body: JSON.parse(init.body), idem: init.headers['Idempotency-Key'] }); return json({ status: 'queued', request_id: `vid0000${hf.submits.length}`, status_url: 'x', cancel_url: 'y' }); }],
-    [/\/bytedance\/seedance-2\.5\/text-to-video$/, () => { throw new Error('text-to-video must not be used for a keyframe clip'); }],
-    [/\/requests\/vid0000\d\/status/, (u) => { const id = String(u).match(/vid0000(\d)/)[1]; return json(hf.status === 'completed' ? { status: 'completed', video: { url: `https://d3u0tzju9qaucj.cloudfront.net/c${id}.mp4` } } : { status: hf.status }); }],
-    [/d3u0tzju9qaucj\.cloudfront\.net\/c\d\.mp4$/, () => new Response(MP4, { status: 200, headers: { 'content-type': 'video/mp4' } })],
+    ...H.routes,
     [(u, init) => /\/storage\/v1\/object\/sign\/assets\//.test(u) && (init.method || 'GET') === 'POST', (u) => json({ signedURL: `/object/sign/assets/${String(u).split('/object/sign/assets/')[1]}?token=t${Date.now()}` })],
     [/\/storage\/v1\/object\/assets\//, () => json({ Key: 'ok' })],
     pg.route,
@@ -38,11 +35,11 @@ test('POST /api/studio action draft: refused until every storyboard shot is appr
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     assert.equal(r.body.version, 1); assert.equal(r.body.artifact.version, 'v1'); assert.equal(r.body.artifact.totalS, 15); assert.equal(r.body.artifact.resolution, '1080p'); assert.equal(r.body.artifact.boardVersionId, bv.versionId); assert.equal(r.body.artifact.videoUrl, null); assert.equal(r.body.artifact.shots[0].clip, null); assert.equal(r.body.artifact.shots[0].keyframe.assetPath, 'pieces/gen-dr1/board/k1.png');
     assert.equal(r.body.jobs.length, 4); assert.ok(r.body.jobs.every((j) => j.state === 'running'), JSON.stringify(r.body.jobs.map((j) => [j.state, j.error])));
-    const cj = pg.tables.jobs.filter((j) => j.kind === 'higgsfield_video');
-    assert.equal(cj.length, 4); assert.deepEqual(cj.map((j) => j.payload.duration), [4, 4, 5, 4], 'Seedance minimum 4 s; the assembly trims to the shot');
+    const cj = pg.tables.jobs.filter((j) => j.kind === 'hermes_video');
+    assert.equal(cj.length, 4); assert.deepEqual(cj.map((j) => j.payload.duration), [4, 4, 5, 4], '4 s minimum clip; the assembly trims to the shot');
     assert.deepEqual(cj.map((j) => j.payload.imageAssetPath), [1, 2, 3, 4].map((n) => `pieces/gen-dr1/board/k${n}.png`));
     assert.ok(cj.every((j) => /^https:\/\/sb\.test\/storage\/v1\/object\/sign\/assets\/pieces\/gen-dr1\/board\/k\d\.png\?token=/.test(j.payload.imageUrl)), 'the keyframe was signed once and kept on the job: ' + cj[0].payload.imageUrl);
-    assert.equal(hf.submits.length, 4); assert.equal(hf.submits[0].body.image_url, cj[0].payload.imageUrl); assert.equal(hf.submits[0].body.aspect_ratio, undefined, 'image-to-video takes no aspect'); assert.equal(hf.submits[0].body.duration, 4); assert.equal(hf.submits[0].body.resolution, '1080p'); assert.equal(hf.submits[0].body.generate_audio, true); assert.equal(hf.submits[0].idem, cj[0].id);
+    assert.equal(hf.runs.length, 4); assert.ok(hf.runs.every((x) => x.profile === 'video')); assert.equal(JSON.parse(hf.runs[0].body.input).first_frame_url, cj[0].payload.imageUrl, 'the keyframe is the first frame'); assert.deepEqual((({ aspect, resolution, duration, audio }) => ({ aspect, resolution, duration, audio }))(JSON.parse(hf.runs[0].body.input)), { aspect: '9:16', resolution: '1080p', duration: 4, audio: true }); assert.equal(hf.runs[0].headers['Idempotency-Key'], cj[0].id);
     assert.match(cj[0].payload.prompt, /^camera 1\. action 1 The device stays exactly as in the first frame/); assert.match(cj[3].payload.prompt, /^camera 4\. action 4 Present tense/);
     assert.equal(pg.tables.stages.find((s) => s.kind === 'draft').state, 'generating');
     // the clips land one by one on the SAME version; no vision check for clips (frame checks come with assembly)
@@ -56,13 +53,13 @@ test('POST /api/studio action draft: refused until every storyboard shot is appr
     // review a clip; re-render one clip with changes (only that one), its approval cleared, history kept
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'shot-decide', stage: 'draft', pieceId: 'gen-dr1', shot: 1, decision: 'approved', name: 'N' } }), r); assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft-shot', pieceId: 'gen-dr1', shot: 2, changes: 'slower push-in' } }), r);
-    assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(hf.submits.length, 5); assert.match(hf.submits[4].body.prompt, /Changes requested by the reviewer .*slower push-in/);
+    assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(hf.runs.length, 5); assert.match(hf.runs[4].body.input, /Changes requested by the reviewer .*slower push-in/);
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft-shot', pieceId: 'gen-dr1', shot: 2 } }), r); assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'busy');
-    const rj = pg.tables.jobs.filter((j) => j.kind === 'higgsfield_video').at(-1); rj.next_poll_at = new Date(Date.now() - 1000).toISOString();
+    const rj = pg.tables.jobs.filter((j) => j.kind === 'hermes_video').at(-1); rj.next_poll_at = new Date(Date.now() - 1000).toISOString();
     r = res(); await jobs.handler(req({ method: 'GET', query: { id: rj.id } }), r); assert.equal(r.body.job.state, 'succeeded');
     const dv2 = pg.tables.artifact_versions.find((v) => v.id === dv.id);
     assert.equal(dv2.payload.shots[1].clip.jobId, rj.id); assert.equal(dv2.payload.shots[1].clipHistory.length, 1); assert.equal(dv2.payload.shots[1].review, null); assert.equal(dv2.payload.shots[0].review.decision, 'approved');
-    assert.ok(pg.tables.generation_records.filter((g) => g.kind === 'higgsfield_video' && g.status === 'succeeded').length >= 5);
+    assert.ok(pg.tables.generation_records.filter((g) => g.kind === 'hermes_video' && g.status === 'succeeded').length >= 5);
     assert.equal(pg.tables.stages.find((s) => s.kind === 'draft').state, 'generated');
   } finally { f.restore(); studio.restore(); jobs.restore(); pieces.restore(); delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; }
 });

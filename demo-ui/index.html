@@ -1758,7 +1758,7 @@ function cpSend(){
       Seedance 2.5; brief + QC come from the agent chain (/api/hermes).
    4. The finished media fills the stage placeholder and queues a deliverable. */
 const GEN={busy:{},err:{},timer:{}};
-const GEN_AGENT={mood:'Muse',thumb:'Pixel',brief:'Quill',board:'Frame',draft:'Seedance 2.5',final:'Seedance 2.5',qc:'Sentinel'};
+const GEN_AGENT={mood:'Muse',thumb:'Pixel',brief:'Quill',board:'Frame',draft:'Hermes video bot',final:'Hermes video bot',qc:'Sentinel'};
 const GEN_ASPECT={mood:'4:3',thumb:'16:9',board:'16:9'};
 const GEN_VIDEO=sid=>sid==='draft'||sid==='final';
 /* F1X8's findings on the first draft, distilled for the revision pass */
@@ -1952,7 +1952,7 @@ function genBox(p,sid){
   <span class="kick accent">Create this piece — plain words are fine</span>
   <p class="hint">${ai
     ?`${sg.agent} writes this from the campaign plan${prior?' and everything generated so far':''}. Add wishes below if you have any.`
-    :`Describe what you want and the <b style="color:#ffe3a3">AI Creative Director</b> turns it into a professional ${sg.l.toLowerCase()} prompt${prior?' — matched to the look of the pieces you already made':''}, then ${sid==='draft'?'Seedance 2.5 renders the first cut':'Higgsfield renders the image'}.`}</p>
+    :`Describe what you want and the <b style="color:#ffe3a3">AI Creative Director</b> turns it into a professional ${sg.l.toLowerCase()} prompt${prior?' — matched to the look of the pieces you already made':''}, then ${sid==='draft'?'your Hermes video bot renders the first cut':'your Hermes '+({mood:'moodboard',thumb:'thumbnail',board:'storyboard'}[sid]||'')+' bot makes the image'}.`}</p>
   <textarea id="gen-in-${sid}" placeholder="${hints[sid]}"></textarea>
   ${sid==='thumb'?`<div class="grid-2f" style="margin-top:8px"><div class="f-field"><label>Headline (English, overlaid in code — never inside the image)</label><input class="inp-l" id="gen-head-en" maxlength="120" placeholder="e.g. Slimness check: passed."></div>
    <div class="f-field"><label>Headline (Arabic, optional)</label><input class="inp-l" id="gen-head-ar" dir="rtl" maxlength="120" placeholder="عنوان بالعربية"></div></div>
@@ -1989,7 +1989,7 @@ async function stageGen(pid,sid,changes){
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
    attachTo(p,'final',sd.artifact,'Forge',{recorded:{version:sd.version}});FINAL_DIFF[p.id]=undefined;
-   if(sd.regenShots.length){p.jobs=p.jobs||{};p.jobs['b:final']={board:true};saveGenerated();GEN.busy[key]='Seedance 2.5 is re-rendering shot '+sd.regenShots.join(', ')+'…';shotsPoll(p.id,'final',0)}
+   if(sd.regenShots.length){p.jobs=p.jobs||{};p.jobs['b:final']={board:true};saveGenerated();GEN.busy[key]='The Hermes video bot is re-rendering shot '+sd.regenShots.join(', ')+'…';shotsPoll(p.id,'final',0)}
    else delete GEN.busy[key];
    studioRefresh();
    toast(`<span style="font-size:12.5px"><b style="color:#6ee7b9">Final v${sd.version}</b>: ${sd.applied.length} fix(es) applied${sd.notApplied.length?`, ${sd.notApplied.length} not applied (shown on the stage)`:''}${sd.reusedDraftCut?' — nothing to rebuild, the draft cut is the final':sd.overlaysToRedraw.length||sd.regenShots.length?' — approve any re-rendered clip, then compose and assemble':''}.</span>`);
@@ -2009,11 +2009,11 @@ async function stageGen(pid,sid,changes){
   if(sid==='draft'&&useJobs()&&p.board&&p.board.shots&&!changes){
    const pendingShots=p.board.shots.filter(s=>!s.review||s.review.decision!=='approved').map(s=>s.n);
    if(pendingShots.length)throw new Error('Approve every storyboard shot first — shot '+pendingShots.join(', ')+' pending.');
-   GEN.busy[key]='Seedance 2.5 is rendering '+p.board.shots.length+' clips from the approved keyframes…';studioRefresh();
+   GEN.busy[key]='The Hermes video bot is rendering '+p.board.shots.length+' clips from the approved keyframes…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',pieceId:p.id,resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
-   attachTo(p,'draft',sd.artifact,'Seedance 2.5',{recorded:{version:sd.version}});
+   attachTo(p,'draft',sd.artifact,'Hermes video bot',{recorded:{version:sd.version}});
    p.jobs=p.jobs||{};p.jobs['b:draft']={board:true};saveGenerated();
    studioRefresh();shotsPoll(p.id,'draft',0);
    return;
@@ -2027,7 +2027,7 @@ async function stageGen(pid,sid,changes){
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
    attachTo(p,'board',{...sd.artifact,version:'v'+sd.version},'Frame',{recorded:{version:sd.version}});
    CHECKS[p.id+':board']=sd.checks&&sd.checks.codeChecks?{stage:'board',kind:'spec',passed:sd.checks.passed,results:sd.checks}:null;CHECKS[p.id+':board:all']=undefined;
-   GEN.busy[key]='Soul is rendering '+(sd.artifact.shots||[]).length+' keyframes — each shot appears as it lands…';
+   GEN.busy[key]='The Hermes storyboard bot is rendering '+(sd.artifact.shots||[]).length+' keyframes — each shot appears as it lands…';
    p.jobs=p.jobs||{};p.jobs['b:board']={board:true};saveGenerated();
    studioRefresh();boardPoll(p.id,0);
    return;
@@ -2035,14 +2035,13 @@ async function stageGen(pid,sid,changes){
   /* 6.4: the brief is written from the approved moodboard + thumbnail and checked in code */
   if(sid==='brief'&&useJobs()){
    if(!p.mood){throw new Error('Generate and approve the moodboard first — the brief is written from its direction.')}
-   GEN.busy[key]='Quill is writing the brief from the approved moodboard and thumbnail…';studioRefresh();
+   GEN.busy[key]='Your Hermes brief bot is writing the brief from the approved moodboard and thumbnail…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'brief',pieceId:p.id,userInput,piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
-   if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
-   attachTo(p,'brief',sd.artifact,'Quill',{recorded:{version:sd.version}});
-   CHECKS[p.id+':brief']=sd.checks&&sd.checks.codeChecks?{stage:'brief',passed:sd.checks.passed,results:sd.checks}:null;
-   delete GEN.busy[key];studioRefresh();
-   toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Quill',1)}<div style="font-size:12.5px"><b>Quill</b> delivered the brief (v${sd.version}) — ${sd.checks&&sd.checks.passed?'all checks passed':'some checks need a look'}.</div></div>`);
+   if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
+   if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the brief bot could not be reached');
+   p.jobs=p.jobs||{};p.jobs['g:brief']={jobId:sd.job.id};saveGenerated();
+   jobPoll(p.id,'brief',sd.job.id,0);
    return;
   }
   if(sid==='brief'||sid==='qc'){
@@ -2066,7 +2065,7 @@ async function stageGen(pid,sid,changes){
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
    if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the render could not be submitted');
-   GEN.busy[key]='Soul is rendering the '+sd.aspect+' cover'+(p.refImage?' from your product photo':'')+'…';
+   GEN.busy[key]='The Hermes thumbnail bot is rendering the '+sd.aspect+' cover'+(p.refImage?' from your product photo':'')+'…';
    p.jobs=p.jobs||{};p.jobs['g:thumb']={jobId:sd.job.id,meta:{}};saveGenerated();
    delete CHECKS[p.id+':thumb'];
    jobPoll(p.id,'thumb',sd.job.id,0);
@@ -2079,7 +2078,7 @@ async function stageGen(pid,sid,changes){
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
    if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the render could not be submitted');
-   GEN.busy[key]='Soul is rendering the four-tile set…';
+   GEN.busy[key]='The Hermes moodboard bot is making the four-image set…';
    p.jobs=p.jobs||{};p.jobs['g:mood']={jobId:sd.job.id,meta:{}};saveGenerated();
    delete CHECKS[p.id+':mood'];
    jobPoll(p.id,'mood',sd.job.id,0);
@@ -2112,13 +2111,13 @@ async function stageGen(pid,sid,changes){
      storyboard into single product shots), so it is used ONLY for the
      thumbnail, which is a single hero visual by design */
   const useRef=!isVideo&&p.refImage&&sid==='thumb';
-  GEN.busy[key]=(isVideo?'Seedance 2.5 is rendering the '+(sid==='final'?'revised cut':'first cut'):'Higgsfield is rendering the image'+(useRef?' from your product photo':''))+'…';studioRefresh();
+  GEN.busy[key]=(isVideo?'The Hermes video bot is rendering the '+(sid==='final'?'revised cut':'first cut'):'Your Hermes bot is making the image'+(useRef?' from your product photo':''))+'…';studioRefresh();
   if(useJobs()){
    const prevArt=p[sid];
    const version=isVideo?(prevArt&&prevArt.version?'v'+((parseInt(prevArt.version.slice(1),10)||1)+1):(sid==='final'?'v2':'v1')):undefined;
    const meta={prompt:dd.prompt,note:dd.note,ar,dur,res,...(version?{version}:{}),...(sid==='thumb'?{title:p.title,sub:p.map.msg}:{})};
    const jr=await authFetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({pieceId:p.id,stage:sid,kind:isVideo?'higgsfield_video':'higgsfield_image',piece:storeMeta(p),
+    body:JSON.stringify({pieceId:p.id,stage:sid,kind:isVideo?'hermes_video':'hermes_image',piece:storeMeta(p),
      payload:{prompt:dd.prompt,aspect_ratio:ar,resolution:res,duration:dur,...(useRef?{ref:p.refImage}:{}),meta}})});
    const jd=await jr.json().catch(()=>({}));
    if(!jr.ok||!jd.job)throw new Error(jd.error||('jobs responded '+jr.status));
@@ -2156,9 +2155,10 @@ function jobPoll(pid,sid,jobId,tries){
     if(!p){delete GEN.busy[key];return}
     if(p.jobs)delete p.jobs['g:'+sid];
     attachTo(p,sid,j.result.artifact,GEN_AGENT[sid],{recorded:{version:j.result.version}});
+    if(sid==='brief'){const c=j.result.checks;CHECKS[pid+':brief']=c&&c.codeChecks?{stage:'brief',passed:c.passed,results:c}:undefined}
     delete GEN.busy[key];studioRefresh();
     const sg=STAGES[BOT_STAGE_IDX[sid]-1];
-    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip(sg.agent,1)}<div style="font-size:12.5px"><b>${GEN_VIDEO(sid)?'Seedance 2.5':'Higgsfield'}</b> delivered the ${sg.l.toLowerCase()} for <b>${esc(p.title)}</b>${sid==='final'?' — F1X8 fixes implemented':''}${j.result.copiedIn?' · stored':''}.</div></div>`);
+    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip(sg.agent,1)}<div style="font-size:12.5px"><b>${j.result.artifact.madeBy&&j.result.artifact.madeBy.bot?'Hermes · '+esc(j.result.artifact.madeBy.bot):'Hermes'}</b> delivered the ${sg.l.toLowerCase()} for <b>${esc(p.title)}</b>${sid==='final'?' — F1X8 fixes implemented':''}${j.result.copiedIn?' · stored':''}.</div></div>`);
     return;
    }
    if(j.state==='failed'||j.state==='timed_out'){
@@ -2373,7 +2373,7 @@ function resumeJobs(){
   Object.entries(p.jobs).forEach(([k,v])=>{
    const sid=k.slice(2);
    if(k.startsWith('g:')&&v&&v.jobId){
-    GEN.busy[genKey(p,sid)]='Resuming — '+(GEN_VIDEO(sid)?'Seedance render':'image render')+' in progress…';
+    GEN.busy[genKey(p,sid)]='Resuming — '+(sid==='brief'?'the brief bot':GEN_VIDEO(sid)?'video render':'image render')+' in progress…';
     jobPoll(p.id,sid,v.jobId,0);
    }else if(k.startsWith('g:')&&v&&v.reqId){
     GEN.busy[genKey(p,sid)]='Resuming — '+(GEN_VIDEO(sid)?'Seedance render':'image render')+' in progress…';
@@ -2823,7 +2823,7 @@ async function shotRegen(pid,n,stage){
   const sd=await sr.json().catch(()=>({}));if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
   if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the render could not be submitted');
   const sh=p[stage].shots.find(x=>x.n===n);if(sh){sh[slot]={state:'pending',jobId:sd.job.id};sh.review=null}saveGenerated();
-  GEN.busy[pid+':'+stage]=(slot==='clip'?'Seedance 2.5 is re-rendering shot ':'Soul is re-rendering shot ')+n+'…';studioRefresh();shotsPoll(pid,stage,0);
+  GEN.busy[pid+':'+stage]=(slot==='clip'?'The Hermes video bot is re-rendering shot ':'The Hermes storyboard bot is re-rendering shot ')+n+'…';studioRefresh();shotsPoll(pid,stage,0);
  }catch(e){toast(`<b style="color:#fb7185">Shot ${n}:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
 }
 /* 6.4 — the brief: every field shown, checks as badges, human edits saved as a new version */

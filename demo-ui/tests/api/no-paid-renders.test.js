@@ -24,10 +24,24 @@ test('the adapter refuses a submit when MAISTRO_NO_RENDER=1 — before any reque
   }
 });
 
-test('the eval runner drops HF_CREDENTIALS and sets MAISTRO_NO_RENDER before anything else', () => {
+test('the Hermes adapter refuses a run when MAISTRO_NO_RENDER=1 too (its bots call paid generators) — before any request leaves', async () => {
+  const saved = { u: process.env.HERMES_API_URL, k: process.env.HERMES_API_KEY, n: process.env.MAISTRO_NO_RENDER };
+  process.env.HERMES_API_URL = 'https://hermes.test'; process.env.HERMES_API_KEY = 'hk'; process.env.MAISTRO_NO_RENDER = '1';
+  const f = mockFetch([[/hermes\.test/, () => json({ run_id: 'run_x', status: 'started' })]]);
+  try {
+    const hermes = require(path.join(ROOT, 'api', '_adapters', 'hermes.js'));
+    for (const role of hermes.ROLES) await assert.rejects(hermes.submit(role, { input: 'p' }), (e) => e.code === 'renders_disabled' && e.status === 403);
+    assert.equal(f.calls.length, 0, 'nothing was sent');
+  } finally {
+    f.restore();
+    for (const [k, v] of [['HERMES_API_URL', saved.u], ['HERMES_API_KEY', saved.k], ['MAISTRO_NO_RENDER', saved.n]]) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
+});
+
+test('the eval runner drops HF_CREDENTIALS and HERMES_API_KEY and sets MAISTRO_NO_RENDER before anything else', () => {
   const s = fs.readFileSync(path.join(ROOT, 'scripts', 'evals.js'), 'utf8');
-  const first = s.indexOf("delete process.env.HF_CREDENTIALS"), flag = s.indexOf("process.env.MAISTRO_NO_RENDER = '1'"), firstRequire = s.indexOf('require(');
-  assert.ok(first > 0 && flag > 0 && first < firstRequire && flag < firstRequire);
+  const first = s.indexOf("delete process.env.HF_CREDENTIALS"), hermes = s.indexOf('delete process.env.HERMES_API_KEY'), flag = s.indexOf("process.env.MAISTRO_NO_RENDER = '1'"), firstRequire = s.indexOf('require(');
+  assert.ok(first > 0 && hermes > 0 && flag > 0 && first < firstRequire && hermes < firstRequire && flag < firstRequire);
 });
 
 test('every script that can reach a Higgsfield render endpoint refuses to run', () => {
