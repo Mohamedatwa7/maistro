@@ -95,3 +95,34 @@ test('page: rDraft renders each clip with its state, review badges and per-clip 
     assert.ok(X.BOARD_POLL['gen-d:draft'], 'pending clips start the draft poll'); clearTimeout(X.BOARD_POLL['gen-d:draft']);
   } finally { X.restore(); }
 });
+
+test('POST /api/studio action draft: a FAILED storyboard keyframe does not stop the first draft — that shot is left out and the rest renumber 1..k (boardShot kept); all failed → 409', async () => {
+  const pg = fakePostgrest();
+  const H = hermesFake(); const hf = H.state;
+  const f = mockFetch([
+    ...H.routes,
+    [(u, init) => /\/storage\/v1\/object\/sign\/assets\//.test(u) && (init.method || 'GET') === 'POST', (u) => json({ signedURL: `/object/sign/assets/${String(u).split('/object/sign/assets/')[1]}?token=t${Date.now()}` })],
+    [/\/storage\/v1\/object\/assets\//, () => json({ Key: 'ok' })],
+    pg.route,
+  ]);
+  const studio = api('studio.js', ENV); const jobs = api('jobs.js', ENV); const pieces = api('pieces.js', ENV);
+  process.env.SUPABASE_URL = ENV.SUPABASE_URL; process.env.SUPABASE_SERVICE_ROLE_KEY = ENV.SUPABASE_SERVICE_ROLE_KEY;
+  try {
+    let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-dr1', stage: 'plan', artifact: { title: 'Deadpan Flip', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] }, piece: { title: 'Deadpan Flip', product: 'Galaxy Z Flip8', msg: 'm', platforms: ['tiktok'], markets: ['UAE'] } } }), r);
+    const store = require('../../api/_store.js');
+    const shots = [shot(1, 2, true, 'close_up'), shot(2, 4, true), shot(3, 5, true, 'wide'), shot(4, 4, false, 'end_card')];
+    shots[1].keyframe = { state: 'failed', error: 'the storyboard bot: generator error' }; shots[1].review = null;
+    await store.recordVersion('gen-dr1', 'board', { shots, hookShot: 1, totalS: 15, aspect: '9:16', prompt: 'p', note: 'n', rev: 0 }, { producedBy: 'claude', kind: 'text' });
+    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft', pieceId: 'gen-dr1' } }), r);
+    assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+    assert.deepEqual(r.body.artifact.shots.map((x) => [x.n, x.boardShot]), [[1, 1], [2, 3], [3, 4]]); assert.deepEqual(r.body.artifact.skippedShots, [2]);
+    assert.equal(r.body.artifact.totalS, 11); assert.match(r.body.artifact.note, /shot 2 left out: the keyframe failed/);
+    const cj = pg.tables.jobs.filter((j) => j.kind === 'hermes_video');
+    assert.deepEqual(cj.map((j) => [j.payload.attachTo.shot, j.payload.imageAssetPath]), [[1, 'pieces/gen-dr1/board/k1.png'], [2, 'pieces/gen-dr1/board/k3.png'], [3, 'pieces/gen-dr1/board/k4.png']]);
+    // every keyframe failed: nothing to animate
+    for (const x of shots) x.keyframe = { state: 'failed' };
+    await store.recordVersion('gen-dr1', 'board', { shots, hookShot: 1, totalS: 15, aspect: '9:16', prompt: 'p', note: 'n', rev: 1 }, { producedBy: 'claude', kind: 'text' });
+    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft', pieceId: 'gen-dr1' } }), r);
+    assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'prerequisites'); assert.match(r.body.error, /every storyboard keyframe failed/);
+  } finally { f.restore(); studio.restore(); jobs.restore(); pieces.restore(); delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; }
+});

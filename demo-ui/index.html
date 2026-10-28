@@ -2024,9 +2024,12 @@ async function stageGen(pid,sid,changes){
   }
   /* 6.6: the first draft is one clip per storyboard shot — it needs the keyframes, not the storyboard's approval */
   if(sid==='draft'&&useJobs()&&p.board&&p.board.shots&&!changes){
-   const pendingShots=p.board.shots.filter(s=>!s.keyframe||s.keyframe.state!=='rendered').map(s=>s.n);
+   const kst=s=>s.keyframe&&s.keyframe.state;
+   const pendingShots=p.board.shots.filter(s=>kst(s)!=='rendered'&&kst(s)!=='failed').map(s=>s.n);
    if(pendingShots.length)throw new Error('The storyboard keyframes are still rendering — shot '+pendingShots.join(', ')+' pending.');
-   GEN.busy[key]='The Hermes video bot is rendering '+p.board.shots.length+' clips from the storyboard keyframes…';studioRefresh();
+   const okShots=p.board.shots.filter(s=>kst(s)==='rendered'),failedShots=p.board.shots.filter(s=>kst(s)==='failed').map(s=>s.n);
+   if(!okShots.length)throw new Error('Every storyboard keyframe failed — regenerate at least one shot first.');
+   GEN.busy[key]='The Hermes video bot is rendering '+okShots.length+' clips from the storyboard keyframes'+(failedShots.length?' (shot '+failedShots.join(', ')+' left out: its keyframe failed)':'')+'…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',pieceId:p.id,resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
