@@ -61,6 +61,7 @@ async function details(list) {
   return by;
 }
 
+let lastRaw = null;
 /** { items, from, to, fetchedAt } — items newest first; cached 10 minutes per window */
 async function feed({ from, to, now = Date.now() } = {}) {
   const f = Number.isFinite(from) ? from : now - 14 * 864e5, t = Number.isFinite(to) ? to : now + 45 * 864e5;
@@ -74,6 +75,7 @@ async function feed({ from, to, now = Date.now() } = {}) {
     const d = by.get(r.id) || {};
     const c = d.content || {}, a = c.attachment || {};
     const tx = d.taxonomy || {};
+    if (!lastRaw && d.id != null) lastRaw = d;
     return { id: r.id, platform: accounts[r.accountId] || null, accountId: r.accountId, status: r.status, at: r.at, text: String(c.text || c.title || '').slice(0, 280), permalink: d.permalink || null, media: a.type || null, campaignId: tx.campaignId ? String(tx.campaignId) : null, accountGroupId: d.accountGroupId != null ? String(d.accountGroupId) : null };
   }).filter((x) => x.platform).sort((a, b) => String(b.at).localeCompare(String(a.at)));
   const value = { items, from: new Date(f).toISOString(), to: new Date(t).toISOString(), fetchedAt: new Date(now).toISOString() };
@@ -116,8 +118,18 @@ async function campaigns({ days = 90, now = Date.now() } = {}) {
     const g = groups.get(k) || { platform: i.platform, accountId: i.accountId, accountGroupId: i.accountGroupId, posts: 0 };
     g.posts++; groups.set(k, g);
   }
+  // where Sprinklr keeps the account group: the keys of one post and any field naming a group, and a report grouped by it
+  const find = (o, path = '', out = []) => { if (o && typeof o === 'object') for (const [k, v] of Object.entries(o)) { const p = path ? `${path}.${k}` : k; if (/group/i.test(k)) out.push([p, v]); if (v && typeof v === 'object' && out.length < 20) find(v, p, out); } return out; };
+  const probe = { postKeys: lastRaw ? Object.keys(lastRaw) : null, groupFields: lastRaw ? find(lastRaw) : null, report: null };
+  for (const dn of ['ACCOUNT_GROUP_ID', 'ACCOUNT_GROUP']) {
+    try {
+      const r = await sprinklr.report({ reportingEngine: 'OUTBOUND_MESSAGE', report: 'OUTBOUND_MESSAGE', timeZone: 'Asia/Dubai', page: 0, pageSize: 50, startTime: now - days * 864e5, endTime: now,
+        filters: [{ dimensionName: 'ACCOUNT_ID', filterType: 'IN', values: Object.keys(feedAccounts()) }], groupBys: [dim('ACCOUNT_ID'), dim(dn)], projections: [{ heading: 'n', measurementName: 'OUTBOUND_MESSAGE_COUNT12829', aggregateFunction: 'SUM' }] });
+      probe.report = { dimension: dn, rows: r.rows.slice(0, 30) }; break;
+    } catch (e) { probe.report = { dimension: dn, error: String(e.message || e).slice(0, 200) }; }
+  }
   const list = [...by.values()].map((c) => ({ ...c, platforms: [...c.platforms] })).sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
-  return { days, campaigns: list, accountGroups: [...groups.values()].sort((a, b) => a.platform.localeCompare(b.platform) || b.posts - a.posts), postsWithoutCampaign: f.items.filter((i) => !i.campaignId).length, report: names, fetchedAt: f.fetchedAt };
+  return { days, probe, campaigns: list, accountGroups: [...groups.values()].sort((a, b) => a.platform.localeCompare(b.platform) || b.posts - a.posts), postsWithoutCampaign: f.items.filter((i) => !i.campaignId).length, report: names, fetchedAt: f.fetchedAt };
 }
 
 module.exports = { feed, feedAccounts, campaigns, STATUS };
