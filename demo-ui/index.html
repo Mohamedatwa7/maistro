@@ -1535,25 +1535,34 @@ async function hermesCall(stage,trend,project){
    Higgsfield output URLs expire after seven days (HIGGSFIELD.md H-4), so an
    artifact with an assetPath renders from Maistro's own copy; the provider
    URL is only the fallback when the signing call fails. */
-const ASSET_URLS={};
+const ASSET_URLS={},ASSET_PENDING={};
+const assetFresh=(path)=>ASSET_URLS[path]&&ASSET_URLS[path].exp>Date.now()?ASSET_URLS[path].url:null;
+function signAsset(path){
+ // one signing call per path, however many tiles or re-renders ask for it at once
+ if(!ASSET_PENDING[path])ASSET_PENDING[path]=(async()=>{
+  const r=await authFetch('/api/jobs?asset='+encodeURIComponent(path));const d=await r.json().catch(()=>({}));
+  if(!r.ok||!d.url)throw new Error(d.error||('HTTP '+r.status));
+  ASSET_URLS[path]={url:d.url,exp:Date.now()+((d.expiresIn||3600)-120)*1000};
+  return d.url;
+ })().finally(()=>{delete ASSET_PENDING[path]});
+ return ASSET_PENDING[path];
+}
 async function hydrateAssets(root){
  const els=[...((root||document).querySelectorAll('[data-asset]:not([data-hydrated])'))];
- for(const el of els){
+ await Promise.all(els.map(async(el)=>{
   el.dataset.hydrated='1';
   const path=el.dataset.asset;
-  try{
-   if(!ASSET_URLS[path]||ASSET_URLS[path].exp<Date.now()){
-    const r=await authFetch('/api/jobs?asset='+encodeURIComponent(path));const d=await r.json().catch(()=>({}));
-    if(!r.ok||!d.url)throw new Error(d.error||('HTTP '+r.status));
-    ASSET_URLS[path]={url:d.url,exp:Date.now()+((d.expiresIn||3600)-120)*1000};
-   }
-   el.src=ASSET_URLS[path].url;
-  }catch(e){if(el.dataset.fallback)el.src=el.dataset.fallback}
- }
+  try{el.src=assetFresh(path)||await signAsset(path)}
+  catch(e){if(el.dataset.fallback)el.src=el.dataset.fallback}
+ }));
 }
-/* src attributes for a generated artifact: the stored copy when there is one */
+/* Many paths re-render the view (stage switch, job polling, server sync) without calling
+   hydrateAssets, which left stored images with no src: hydrate whatever gets drawn. */
+if(typeof MutationObserver!=='undefined'&&document.body)new MutationObserver(()=>{if(document.querySelector('[data-asset]:not([data-hydrated])'))hydrateAssets()}).observe(document.body,{childList:true,subtree:true});
+/* src attributes for a generated artifact: the stored copy when there is one
+   (an already-signed URL goes straight in, so a re-render never blanks the image) */
 function mediaAttrs(a,key){
- if(a&&a.assetPath)return `data-asset="${esc(a.assetPath)}"${a[key]?` data-fallback="${esc(a[key])}"`:''}`;
+ if(a&&a.assetPath){const u=assetFresh(a.assetPath);return `data-asset="${esc(a.assetPath)}"${u?` src="${esc(u)}" data-hydrated="1"`:''}${a[key]?` data-fallback="${esc(a[key])}"`:''}`}
  return a&&a[key]?`src="${esc(a[key])}"`:'';
 }
 function studioRefresh(){

@@ -121,5 +121,9 @@ test('stored assets (H-4): an artifact with an assetPath renders without a provi
     await X.hydrateAssets({ querySelectorAll: () => [a, b] });
     assert.equal(a.src, 'https://sb.test/storage/v1/object/sign/assets/x?token=t'); assert.equal(b.src, a.src); assert.equal(signs.length, 1, 'cached');
     assert.ok(X.ASSET_URLS['pieces/gen-test/thumb/a-b.png'].exp > Date.now());
+    // a re-render that never calls hydrateAssets (stage switch, job polling) still has the image
+    assert.equal(X.mediaAttrs(stored, 'imageUrl'), 'data-asset="pieces/gen-test/thumb/a-b.png" src="https://sb.test/storage/v1/object/sign/assets/x?token=t" data-hydrated="1" data-fallback="https://cdn/t.png"');
+    X.ASSET_URLS['pieces/gen-test/thumb/a-b.png'].exp = Date.now() - 1;
+    assert.equal(X.mediaAttrs(stored, 'imageUrl'), 'data-asset="pieces/gen-test/thumb/a-b.png" data-fallback="https://cdn/t.png"', 'an expired URL is signed again, not reused');
   } finally { X.restore(); }
 });
