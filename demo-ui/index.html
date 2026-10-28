@@ -677,11 +677,11 @@ select.inp option{background:var(--panel-solid);color:var(--text)}
 .cal .day .dn{font-family:var(--font-m);font-size:10.5px;color:var(--muted);margin-bottom:4px}
 .cal .day.opt{background:rgba(125,211,252,.05);box-shadow:inset 0 0 0 1px rgba(125,211,252,.14)}
 .optlab{font-family:var(--font-m);font-size:7.5px;letter-spacing:.13em;color:#7dd3fc;margin-left:6px;white-space:nowrap}
-.cal .ev{display:flex;align-items:center;gap:4px;width:100%;min-width:0;text-align:left;cursor:pointer;
+.cal .ev,.evlist .ev{display:flex;align-items:center;gap:4px;width:100%;min-width:0;text-align:left;cursor:pointer;
   border:none;border-left:2.5px solid;border-radius:6px;padding:3.5px 6px;margin-bottom:3px;
   font-family:var(--font-d);font-size:10.8px;color:var(--text);transition:.15s}
-.cal .ev .tm{font-family:var(--font-m);font-size:9px;color:var(--muted);flex:none}
-.cal .ev .ti{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal .ev .tm,.evlist .ev .tm{font-family:var(--font-m);font-size:9px;color:var(--muted);flex:none}
+.cal .ev .ti,.evlist .ev .ti{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ev-priority{background:rgba(255,255,255,.14);border-left-color:#fff}
 .ev-seasonal{background:rgba(96,165,250,.12);border-left-color:var(--signal)}
 .ev-always-on{background:rgba(255,255,255,.05);border-left-color:var(--muted)}
@@ -693,6 +693,26 @@ select.inp option{background:var(--panel-solid);color:var(--text)}
 .cal .evmore{all:unset;cursor:pointer;font-family:var(--font-m);font-size:9px;color:var(--muted);margin-top:2px}
 .cal .evmore:hover{color:#fff}
 .cal .ev.sel{outline:1.5px solid var(--ai2)}
+.cal .ev:hover,.evlist .ev:hover{filter:brightness(1.25)}
+.evlist{display:flex;flex-direction:column;gap:6px;margin-top:10px;max-height:560px;overflow-y:auto;padding-right:2px}
+.evlist .ev{margin:0;padding:8px 10px;align-items:flex-start;gap:8px;font-size:12px;line-height:1.45}
+.evlist .ev .tm{font-size:10px;padding-top:2px}
+.evlist .ev .ti{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.evlist .ev .pl{font-family:var(--font-m);font-size:9px;letter-spacing:.08em;color:var(--muted);flex:none;padding-top:2px;min-width:22px}
+.calback{all:unset;cursor:pointer;font-family:var(--font-m);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:inline-flex;gap:6px;align-items:center;margin-bottom:12px}
+.calback:hover{color:#fff}
+.mpick{position:relative}
+.mpick-pop{position:absolute;top:calc(100% + 6px);left:0;z-index:30;width:236px;padding:12px;border-radius:14px;
+  background:var(--panel-solid);border:1px solid var(--hairline);box-shadow:0 18px 40px rgba(0,0,0,.55)}
+.mpick-y{display:flex;justify-content:space-between;align-items:center;font-family:var(--font-m);font-size:12px;color:#fff;margin-bottom:10px}
+.mpick-y button{all:unset;cursor:pointer;color:var(--muted);padding:2px 8px;border-radius:8px}
+.mpick-y button:hover{color:#fff;background:rgba(255,255,255,.06)}
+.mpick-g{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.mpick-g button{all:unset;cursor:pointer;text-align:center;padding:7px 0;border-radius:9px;font-family:var(--font-m);font-size:10.5px;letter-spacing:.08em;
+  color:var(--text);border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02)}
+.mpick-g button:hover{border-color:rgba(125,211,252,.4);color:#fff}
+.mpick-g button.on{background:rgba(125,211,252,.14);border-color:rgba(125,211,252,.55);color:#bae6fd}
+.mpick-g button.now{box-shadow:inset 0 -2px 0 rgba(125,211,252,.5)}
 .legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center;font-size:11.5px;color:var(--muted)}
 .legend i{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
 
@@ -4423,7 +4443,7 @@ function rCalendar(){
    month shown, loaded after the page so its few seconds never hold it; cached 10 minutes on the server) together
    with Maistro's own planned posts. Any month can be opened; the platform chips filter both. */
 const FEEDV={months:{},busy:{}};
-const CALM={month:null,plat:'all',sel:null,day:null};
+const CALM={month:null,plat:'all',sel:null,day:null,pick:false,pickY:null};
 const FEED_PLAT={instagram:'Instagram',tiktok:'TikTok',facebook:'Facebook',x:'X',youtube:'YouTube'};
 const FEED_SHORT={instagram:'IG',tiktok:'TT',facebook:'FB',x:'X',youtube:'YT'};
 const FEED_TONE={posted:'go',scheduled:'gold',in_approval:'muted',draft:'muted',failed:'alert'};
@@ -4442,10 +4462,17 @@ async function loadSprinklrFeed(m){
  finally{FEEDV.busy[m]=false;if(location.hash.replace(/^#\//,'').split('/')[0]==='calendar'&&!document.body.classList.contains('locked'))calRedraw()}
 }
 function calGo(delta){const b=monthBounds(calMonth());CALM.month=new Date(Date.UTC(b.y,b.mo-1+delta,1)).toISOString().slice(0,7);CALM.sel=null;CALM.day=null;calRedraw()}
-function calPick(v){if(/^\d{4}-\d{2}$/.test(v||'')){CALM.month=v;CALM.sel=null;CALM.day=null;calRedraw()}}
+function calPick(v){if(/^\d{4}-\d{2}$/.test(v||'')){CALM.month=v;CALM.sel=null;CALM.day=null;CALM.pick=false;calRedraw()}}
+function calPickToggle(){CALM.pick=!CALM.pick;CALM.pickY=+calMonth().slice(0,4);calRedraw()}
+function calPickYear(d){CALM.pickY+=d;calRedraw()}
+/* back out of a post to the day it came from, then to the month overview */
+function calBack(){if(CALM.sel)CALM.sel=null;else CALM.day=null;calRedraw()}
+document.addEventListener('keydown',e=>{if(e.key!=='Escape'||location.hash.replace(/^#\//,'').split('/')[0]!=='calendar')return;
+ if(CALM.pick){CALM.pick=false;calRedraw()}else if(CALM.sel||CALM.day)calBack()});
+document.addEventListener('click',e=>{if(CALM.pick&&!(e.target.closest&&e.target.closest('.mpick'))){CALM.pick=false;calRedraw()}});
 function calToday(){CALM.month=null;CALM.sel=null;CALM.day=gstDay(Date.now());calRedraw()}
 function calPlat(p){CALM.plat=p;CALM.sel=null;calRedraw()}
-function calSelect(k){CALM.sel=k;calRedraw()}
+function calSelect(k){CALM.sel=CALM.sel===k?null:k;calRedraw()}
 function calDay(iso){CALM.day=iso;CALM.sel=null;calRedraw()}
 /* one list for the month: Sprinklr posts and Maistro's planned posts (canceled ones left out) */
 function calEvents(d,f){
@@ -4491,8 +4518,9 @@ function rMonth(d){
  const count=s=>ev.filter(e=>e.status===s).length;
  const sel=ev.find(e=>e.key===CALM.sel);
  const dayList=CALM.day&&CALM.day.startsWith(m)?(byDay[CALM.day]||[]):null;
- const side=sel?calDetail(sel)
-  :dayList?`<span class="kick accent">${esc(new Date(CALM.day+'T12:00:00Z').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'}))}</span>${dayList.map(e=>`<button class="ev ${e.cls}" style="margin-top:6px" onclick="calSelect('${esc(e.key)}')"><span class="tm">${gstTime(e.at)}</span><span class="ti">${esc(FEED_PLAT[e.platform]||e.platform||'')} · ${esc(e.label)}</span></button>`).join('')||'<div class="dim" style="font-size:12px;margin-top:8px">Nothing on this day.</div>'}`
+ const back=t=>`<button class="calback" onclick="calBack()">← ${t}</button><br>`;
+ const side=sel?back(dayList?'Back to the day':'Back to the month')+calDetail(sel)
+  :dayList?`${back('Back to the month')}<span class="kick accent">${esc(new Date(CALM.day+'T12:00:00Z').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'}))}</span><span class="mono dim" style="font-size:10px;margin-left:8px">${dayList.length} POST${dayList.length===1?'':'S'}</span>${dayList.length?`<div class="evlist">${dayList.map(e=>`<button class="ev ${e.cls}" onclick="calSelect('${esc(e.key)}')"><span class="tm">${gstTime(e.at)}</span><span class="pl">${esc(FEED_SHORT[e.platform]||e.platform||'')}</span><span class="ti" dir="auto">${esc(e.label)}</span></button>`).join('')}</div>`:'<div class="dim" style="font-size:12px;margin-top:8px">Nothing on this day.</div>'}`
   :`<span class="kick accent">${esc(label)}</span>
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
     ${[['posted','Posted'],['scheduled','Scheduled'],['in_approval','In approval'],['draft','Drafts']].map(([k,l])=>`<div><div class="mono" style="font-size:20px;color:#fff">${count(k)}</div><div class="dim" style="font-size:11px">${l}</div></div>`).join('')}
@@ -4514,7 +4542,9 @@ function rMonth(d){
       <h3 style="font-size:16px;min-width:150px;text-align:center">${esc(label)}</h3>
       <button class="btn btn-ghost btn-sm" onclick="calGo(1)" aria-label="Next month">›</button>
       <button class="btn btn-ghost btn-sm" style="font-size:10.5px" onclick="calToday()">Today</button>
-      <input type="month" value="${esc(m)}" onchange="calPick(this.value)" style="font-size:11.5px" aria-label="Go to month">
+      <div class="mpick"><button class="btn btn-ghost btn-sm" style="font-size:10.5px" onclick="event.stopPropagation();calPickToggle()" aria-haspopup="true" aria-expanded="${CALM.pick}">Jump to month ▾</button>
+       ${CALM.pick?`<div class="mpick-pop" onclick="event.stopPropagation()"><div class="mpick-y"><button onclick="calPickYear(-1)" aria-label="Previous year">‹</button>${CALM.pickY}<button onclick="calPickYear(1)" aria-label="Next year">›</button></div>
+        <div class="mpick-g">${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((l,i)=>{const v=`${CALM.pickY}-${String(i+1).padStart(2,'0')}`;return `<button class="${v===m?'on':''} ${v===today.slice(0,7)?'now':''}" onclick="calPick('${v}')">${l.toUpperCase()}</button>`}).join('')}</div></div>`:''}</div>
      </div>${status}</div>
     <div class="chips" style="margin-bottom:10px">${plats.map(p=>`<button class="${CALM.plat===p?'on':''}" onclick="calPlat('${p}')">${p==='all'?'All platforms':esc(FEED_PLAT[p])} · ${n(p)}</button>`).join('')}</div>
     <div class="cal"><div class="dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>

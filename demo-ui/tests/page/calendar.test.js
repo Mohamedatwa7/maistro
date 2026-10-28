@@ -52,7 +52,19 @@ test('month view: a grid for the month with Sprinklr posts and Maistro slots by 
     X.calPlat('instagram'); html = X.rCalendar();
     assert.ok(html.includes("calSelect('f:501')") && !html.includes("calSelect('f:401')") && !html.includes("calSelect('s:9')"), 'the chip filters Sprinklr and Maistro posts alike');
     assert.ok(!/Post now|Publish via Sprinklr/.test(html));
-    X.calPick('2026-11'); html = X.rCalendar();
+    // a day's list on the right is styled like the grid (readable), a post opens from it, and Back returns to the day, then the month
+    X.calPlat('all'); X.calDay('2026-10-21'); html = X.rCalendar();
+    assert.match(html, /<button class="calback" onclick="calBack\(\)">← Back to the month/); assert.match(html, /<div class="evlist"><button class="ev ev-live" onclick="calSelect\('f:401'\)">/);
+    X.calSelect('f:401'); html = X.rCalendar();
+    assert.match(html, /← Back to the day/); assert.match(html, /Open the post ↗/);
+    X.calBack(); html = X.rCalendar(); assert.match(html, /class="evlist"/, 'back to the day list');
+    X.calBack(); html = X.rCalendar(); assert.ok(!html.includes('calback'), 'back to the month overview');
+    X.calSelect('f:501'); X.calSelect('f:501'); assert.ok(!X.rCalendar().includes('Back to the'), 'clicking the open post again closes it');
+    // the month picker is the site's own popover, not the browser's native month input
+    assert.ok(!/type="month"/.test(html)); X.calPickToggle(); html = X.rCalendar();
+    assert.match(html, /class="mpick-pop"/); assert.match(html, /<button class="on [^"]*" onclick="calPick\('2026-10'\)">OCT<\/button>/);
+    X.calPickYear(1); assert.match(X.rCalendar(), /calPick\('2027-01'\)/);
+    X.calPick('2026-11'); html = X.rCalendar(); assert.ok(!html.includes('mpick-pop'), 'picking a month closes the picker');
     assert.match(html, /<h3[^>]*>November 2026<\/h3>/);
     X.calGo(-2); html = X.rCalendar();
     assert.match(html, /<h3[^>]*>September 2026<\/h3>/);
