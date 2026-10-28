@@ -74,7 +74,7 @@ async function feed({ from, to, now = Date.now() } = {}) {
     const d = by.get(r.id) || {};
     const c = d.content || {}, a = c.attachment || {};
     const tx = d.taxonomy || {};
-    return { id: r.id, platform: accounts[r.accountId] || null, accountId: r.accountId, status: r.status, at: r.at, text: String(c.text || c.title || '').slice(0, 280), permalink: d.permalink || null, media: a.type || null, campaignId: tx.campaignId ? String(tx.campaignId) : null };
+    return { id: r.id, platform: accounts[r.accountId] || null, accountId: r.accountId, status: r.status, at: r.at, text: String(c.text || c.title || '').slice(0, 280), permalink: d.permalink || null, media: a.type || null, campaignId: tx.campaignId ? String(tx.campaignId) : null, accountGroupId: d.accountGroupId != null ? String(d.accountGroupId) : null };
   }).filter((x) => x.platform).sort((a, b) => String(b.at).localeCompare(String(a.at)));
   const value = { items, from: new Date(f).toISOString(), to: new Date(t).toISOString(), fetchedAt: new Date(now).toISOString() };
   cache.set(key, { at: now, value });
@@ -108,8 +108,16 @@ async function campaigns({ days = 90, now = Date.now() } = {}) {
       if (id && by.has(id) && name) by.get(id).name = name;
     }
   } catch (e) { names = { error: String(e.message || e).slice(0, 300) }; }
+  // the account group each owned account posts through (SPRINKLR_ACCOUNT_GROUPS needs one per account)
+  const groups = new Map();
+  for (const i of f.items) {
+    if (!i.accountGroupId) continue;
+    const k = `${i.platform}:${i.accountGroupId}`;
+    const g = groups.get(k) || { platform: i.platform, accountId: i.accountId, accountGroupId: i.accountGroupId, posts: 0 };
+    g.posts++; groups.set(k, g);
+  }
   const list = [...by.values()].map((c) => ({ ...c, platforms: [...c.platforms] })).sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
-  return { days, campaigns: list, postsWithoutCampaign: f.items.filter((i) => !i.campaignId).length, report: names, fetchedAt: f.fetchedAt };
+  return { days, campaigns: list, accountGroups: [...groups.values()].sort((a, b) => a.platform.localeCompare(b.platform) || b.posts - a.posts), postsWithoutCampaign: f.items.filter((i) => !i.campaignId).length, report: names, fetchedAt: f.fetchedAt };
 }
 
 module.exports = { feed, feedAccounts, campaigns, STATUS };
