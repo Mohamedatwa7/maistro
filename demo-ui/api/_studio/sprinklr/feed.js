@@ -73,7 +73,8 @@ async function feed({ from, to, now = Date.now() } = {}) {
   const items = list.map((r) => {
     const d = by.get(r.id) || {};
     const c = d.content || {}, a = c.attachment || {};
-    return { id: r.id, platform: accounts[r.accountId] || null, accountId: r.accountId, status: r.status, at: r.at, text: String(c.text || c.title || '').slice(0, 280), permalink: d.permalink || null, media: a.type || null };
+    const tx = d.taxonomy || {};
+    return { id: r.id, platform: accounts[r.accountId] || null, accountId: r.accountId, status: r.status, at: r.at, text: String(c.text || c.title || '').slice(0, 280), permalink: d.permalink || null, media: a.type || null, campaignId: tx.campaignId ? String(tx.campaignId) : null };
   }).filter((x) => x.platform).sort((a, b) => String(b.at).localeCompare(String(a.at)));
   const value = { items, from: new Date(f).toISOString(), to: new Date(t).toISOString(), fetchedAt: new Date(now).toISOString() };
   cache.set(key, { at: now, value });
@@ -81,4 +82,34 @@ async function feed({ from, to, now = Date.now() } = {}) {
   return value;
 }
 
-module.exports = { feed, feedAccounts, STATUS };
+/** The campaigns the owned accounts' posts were filed under (the spec has no campaign list): ids from each post's
+ *  taxonomy over the window, with counts and an example, plus Sprinklr's resolved names when its report gives them. */
+async function campaigns({ days = 90, now = Date.now() } = {}) {
+  const f = await feed({ from: now - days * 864e5, to: now + 45 * 864e5, now });
+  const by = new Map();
+  for (const i of f.items) {
+    if (!i.campaignId) continue;
+    const c = by.get(i.campaignId) || { id: i.campaignId, name: null, posts: 0, lastAt: null, platforms: new Set(), example: null };
+    c.posts++; c.platforms.add(i.platform);
+    if (!c.lastAt || String(i.at) > c.lastAt) { c.lastAt = i.at; c.example = i.text || c.example; }
+    by.set(i.campaignId, c);
+  }
+  let names = null;
+  try {
+    const r = await sprinklr.report({
+      reportingEngine: 'OUTBOUND_MESSAGE', report: 'OUTBOUND_MESSAGE', timeZone: 'Asia/Dubai', page: 0, pageSize: 200, startTime: now - days * 864e5, endTime: now + 45 * 864e5,
+      filters: [{ dimensionName: 'ACCOUNT_ID', filterType: 'IN', values: Object.keys(feedAccounts()) }],
+      groupBys: [dim('CAMPAIGN_ID')], projections: [{ heading: 'n', measurementName: 'OUTBOUND_MESSAGE_COUNT12829', aggregateFunction: 'SUM' }],
+    });
+    names = r.rows.slice(0, 200);
+    for (const x of names) {
+      const id = String(x.CAMPAIGN_ID && typeof x.CAMPAIGN_ID === 'object' ? x.CAMPAIGN_ID.id || '' : x.CAMPAIGN_ID || '');
+      const name = x.CAMPAIGN_ID && typeof x.CAMPAIGN_ID === 'object' ? x.CAMPAIGN_ID.name || x.CAMPAIGN_ID.displayName || null : null;
+      if (id && by.has(id) && name) by.get(id).name = name;
+    }
+  } catch (e) { names = { error: String(e.message || e).slice(0, 300) }; }
+  const list = [...by.values()].map((c) => ({ ...c, platforms: [...c.platforms] })).sort((a, b) => String(b.lastAt).localeCompare(String(a.lastAt)));
+  return { days, campaigns: list, postsWithoutCampaign: f.items.filter((i) => !i.campaignId).length, report: names, fetchedAt: f.fetchedAt };
+}
+
+module.exports = { feed, feedAccounts, campaigns, STATUS };

@@ -77,3 +77,24 @@ test('feed route: session-gated JSON; not configured says so; a Sprinklr failure
     assert.equal(r.statusCode, 200); assert.equal(r.body.configured, true); assert.match(r.body.error, /answered 401: token\.expired/);
   } finally { f.restore(); studio.restore(); }
 });
+
+test('campaigns: the campaign ids the owned accounts\' posts were filed under, with counts and an example; reads only; session-gated', async () => {
+  const sp = double();
+  const route = [SP, (u, init) => {
+    const url = new URL(u); const key = `${init.method || 'GET'} ${url.pathname.replace('/prod/api/v3', '')}`;
+    if (key === 'GET /publishing/post') return json({ data: url.searchParams.get('id').split(',').map((id) => ({ id: Number(id), content: { text: `post ${id}` }, taxonomy: { campaignId: 'cmp-9' } })) });
+    if (key === 'POST /reports/query' && JSON.parse(init.body).groupBys.some((g) => g.dimensionName === 'CAMPAIGN_ID')) { sp.s.calls.push({ key }); return json({ data: { data: [{ CAMPAIGN_ID: { id: 'cmp-9', name: 'Fold8 launch' } }], hasMore: false } }); }
+    return sp.route[1](u, init);
+  }];
+  const f = mockFetch([route, fakePostgrest().route]);
+  const studio = api('studio.js', ENV);
+  try {
+    const F = require('../../api/_studio/sprinklr/feed.js');
+    const out = await F.campaigns({ now: NOW });
+    assert.deepEqual(out.campaigns.map((c) => [c.id, c.name, c.posts]), [['cmp-9', 'Fold8 launch', 2]], 'two posts filed under cmp-9; drafts carry no taxonomy here');
+    assert.equal(out.postsWithoutCampaign, 1);
+    const C = require('../../api/_studio/sprinklr/client.js');
+    assert.ok(sp.s.calls.every((c) => C.ALLOWED.has(c.key) && !C.WRITES.has(c.key)), 'reads only');
+    const r = res(); await studio.handler(req({ query: { sprinklr: 'campaigns' }, session: false }), r); assert.equal(r.statusCode, 401);
+  } finally { f.restore(); studio.restore(); }
+});

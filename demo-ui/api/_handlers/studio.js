@@ -137,6 +137,11 @@ module.exports = async (req, res) => {
         const out = await require('../_studio/publishing.js').sprinklrFeed({ from: q.from ? String(q.from) : null, to: q.to ? String(q.to) : null });
         return res.status(out.status).json(out.body);
       }
+      if (q.sprinklr === 'campaigns') {
+        // read-only: the campaigns the owned accounts' posts were filed under, for choosing SPRINKLR_CAMPAIGN_ID
+        try { return res.status(200).json(await require('../_studio/sprinklr/feed.js').campaigns({ days: Math.min(365, Math.max(7, Number(q.days) || 90)) })); }
+        catch (e) { return res.status(e.status || 502).json({ error: String(e.message || e), code: e.code || null }); }
+      }
       if (q.sprinklr === 'check') {
         // ADR-008: read-only credential check (GET /me), admin only
         if (!memberOnly(req, res, ['admin'])) return;
