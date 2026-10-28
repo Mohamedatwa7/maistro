@@ -1565,8 +1565,16 @@ function mediaAttrs(a,key){
  if(a&&a.assetPath){const u=assetFresh(a.assetPath);return `data-asset="${esc(a.assetPath)}"${u?` src="${esc(u)}" data-hydrated="1"`:''}${a[key]?` data-fallback="${esc(a[key])}"`:''}`}
  return a&&a[key]?`src="${esc(a[key])}"`:'';
 }
+/* Studio re-renders on every job poll and server sync; redrawing identical markup rebuilt every
+   image and video (and the blurred modal backdrop over them), which made the page lag. Skip it
+   unless the markup changed or another view replaced it. */
+function setView(html){
+ const v=$('#view');
+ if(v.__html===html&&v.firstChild&&v.__first===v.firstChild)return false;
+ v.innerHTML=html;v.__html=html;v.__first=v.firstChild;hydrateAssets(v);reveal();return true;
+}
 function studioRefresh(){
- if(location.hash.replace(/^#\//,'').split('/')[0]==='studio'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rStudio();hydrateAssets($('#view'));reveal()}
+ if(location.hash.replace(/^#\//,'').split('/')[0]==='studio'&&!document.body.classList.contains('locked')){setView(rStudio())}
 }
 function delivTitle(sid,a){
  switch(sid){
@@ -1869,7 +1877,7 @@ async function loadPieces(){
   const r=await fetch('/api/pieces');
   if(!r.ok)return;
   const d=await r.json();
-  if(applyServerPieces(d.pieces)&&location.hash.replace(/^#\//,'').split('/')[0]==='studio'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rStudio();reveal()}
+  if(applyServerPieces(d.pieces)&&location.hash.replace(/^#\//,'').split('/')[0]==='studio'&&!document.body.classList.contains('locked')){setView(rStudio())}
  }catch(e){/* offline or storage not configured — the cache stands */}
 }
 /* M3 flag: renders and F1X8 checks go through the job service (/api/jobs —
@@ -2014,11 +2022,11 @@ async function stageGen(pid,sid,changes){
    qcReportPoll(p.id,0);
    return;
   }
-  /* 6.6: the first draft is one Seedance clip per approved storyboard shot */
+  /* 6.6: the first draft is one clip per storyboard shot — it needs the keyframes, not the storyboard's approval */
   if(sid==='draft'&&useJobs()&&p.board&&p.board.shots&&!changes){
-   const pendingShots=p.board.shots.filter(s=>!s.review||s.review.decision!=='approved').map(s=>s.n);
-   if(pendingShots.length)throw new Error('Approve every storyboard shot first — shot '+pendingShots.join(', ')+' pending.');
-   GEN.busy[key]='The Hermes video bot is rendering '+p.board.shots.length+' clips from the approved keyframes…';studioRefresh();
+   const pendingShots=p.board.shots.filter(s=>!s.keyframe||s.keyframe.state!=='rendered').map(s=>s.n);
+   if(pendingShots.length)throw new Error('The storyboard keyframes are still rendering — shot '+pendingShots.join(', ')+' pending.');
+   GEN.busy[key]='The Hermes video bot is rendering '+p.board.shots.length+' clips from the storyboard keyframes…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',pieceId:p.id,resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
@@ -3140,7 +3148,7 @@ async function loadExternalProjects(){
    });
   });
   if(fresh>0){
-   if(location.hash.replace(/^#\//,'').split('/')[0]==='studio'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rStudio();reveal()}
+   if(location.hash.replace(/^#\//,'').split('/')[0]==='studio'&&!document.body.classList.contains('locked')){setView(rStudio())}
    if(EXT_LOADED)toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Hermes',1)}<div style="font-size:12.5px"><b>Hermes</b> pushed ${fresh} new deliverable${fresh>1?'s':''}${lastTitle?` for <b>${esc(lastTitle)}</b>`:''} into Maistro.</div></div>`);
   }
   EXT_LOADED=true;
@@ -4087,8 +4095,8 @@ function rTrends(){
 }
 
 /* ================= 02 CONTENT STUDIO ================= */
-function projSet(id){STATE.proj=id;STATE.stageSel=null;$('#view').innerHTML=rStudio();reveal()}
-function stageSet(n){STATE.stageSel=n;$('#view').innerHTML=rStudio();reveal()}
+function projSet(id){STATE.proj=id;STATE.stageSel=null;setView(rStudio())}
+function stageSet(n){STATE.stageSel=n;setView(rStudio())}
 function dirNote(a){
  return a&&a.note?`<div class="dir-note">✦<div><b>AI Creative Director</b> — ${esc(a.note)}</div></div>`:'';
 }
@@ -4240,7 +4248,7 @@ function rStudio(){
 
 /* ---------- production center: one group per campaign, rows in stage order, filtered by decision ---------- */
 const PC_FILTERS=[['pending','Pending'],['approved','Approved'],['rejected','Rejected'],['all','All']];
-function pcFilter(f){STATE.pcFilter=f;$('#view').innerHTML=rStudio();reveal()}
+function pcFilter(f){STATE.pcFilter=f;setView(rStudio())}
 function pcTitle(d,sg){ /* "Moodboard — generated board" → "generated board": the stage column already names it */
  const i=String(d.title).indexOf(' — ');
  return i>0&&String(d.title).slice(0,i).toLowerCase().startsWith(sg.l.toLowerCase())?String(d.title).slice(i+3):String(d.title);
@@ -4371,7 +4379,7 @@ async function confirmApprove(id){
  if(docs){d.appr.lm=docs.line_manager;d.appr.adlcp=docs.adlcp}
  if(details){const pp=PROJECTS.find(x=>x.id===d.proj);if(pp&&pp.mood)pp.mood.selection=details}
  saveGenerated();
- closeModal();$('#view').innerHTML=rStudio();reveal();
+ closeModal();setView(rStudio());
  const isQC=d.stage==='qc';
  toast(`<b style="color:#6ee7b9">Approved.</b> <span style="font-size:12.5px">${d.title} recorded under ${esc(name)}${d.appr.lm?' with LM + ADLCP sign-off':''}.${isQC?' The piece moves to the <a href="#/calendar" style="color:#7dd3fc">Calendar</a> at its optimized slot.':''}</span>`);
 }
@@ -4414,7 +4422,7 @@ async function confirmReject(id){
  }
  d.st='rejected';d.rej=esc(r);
  saveGenerated();
- closeModal();$('#view').innerHTML=rStudio();reveal();
+ closeModal();setView(rStudio());
  toast(`<b style="color:#fda4af">Rejected.</b> <span style="font-size:12.5px">The reason is recorded on this version; the next version re-enters the Production Center for review.</span>`);
 }
 $('#modal-back').addEventListener('click',e=>{if(e.target.id==='modal-back')closeModal()});

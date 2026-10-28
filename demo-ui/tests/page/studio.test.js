@@ -127,3 +127,15 @@ test('stored assets (H-4): an artifact with an assetPath renders without a provi
     assert.equal(X.mediaAttrs(stored, 'imageUrl'), 'data-asset="pieces/gen-test/thumb/a-b.png" data-fallback="https://cdn/t.png"', 'an expired URL is signed again, not reused');
   } finally { X.restore(); }
 });
+
+test('setView: an identical Studio re-render (job polling, server sync) leaves the DOM alone; changed markup or another view in #view redraws', () => {
+  const X = loadPage({ fetchImpl: async () => new Promise(() => {}) });
+  try {
+    let writes = 0; let html = '';
+    const view = { get innerHTML() { return html; }, set innerHTML(h) { writes++; html = h; view.firstChild = { h }; }, firstChild: null, querySelectorAll: () => [] };
+    const qs = X.document.querySelector; X.document.querySelector = (s) => (s === '#view' ? view : qs.call(X.document, s));
+    assert.equal(X.setView('<div>a</div>'), true); assert.equal(X.setView('<div>a</div>'), false); assert.equal(writes, 1, 'same markup → no redraw');
+    assert.equal(X.setView('<div>b</div>'), true); assert.equal(writes, 2);
+    view.innerHTML = '<div>calendar</div>'; assert.equal(X.setView('<div>b</div>'), true, 'another view replaced #view → redraw'); assert.equal(writes, 4);
+  } finally { X.restore(); }
+});

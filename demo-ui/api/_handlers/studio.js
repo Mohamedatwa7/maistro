@@ -472,14 +472,15 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true, job: jobsSvc.publicJob(job, legacyId) });
     }
     if (b.action === 'draft' || b.action === 'draft-shot') {
-      // 6.6: one image-to-video clip per APPROVED storyboard shot, from its keyframe (the Hermes video bot)
+      // 6.6: one image-to-video clip per storyboard shot, from its keyframe (the Hermes video bot).
+      // Owner 2026-10-28: the first draft does not wait for the storyboard's approval — a shot only needs its keyframe.
       const [bs] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.board&limit=1`);
       if (!bs || !bs.current_version_id) return res.status(409).json({ error: 'the first draft needs the storyboard first', code: 'prerequisites' });
       const [bv] = await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(bs.current_version_id)}&limit=1`);
       const bshots = bv && bv.payload && Array.isArray(bv.payload.shots) ? bv.payload.shots : [];
       if (!bshots.length) return res.status(409).json({ error: 'the storyboard has no shot list — regenerate it in the Studio first', code: 'prerequisites' });
-      const pendingShots = bshots.filter((x) => !x.review || x.review.decision !== 'approved' || !x.keyframe || x.keyframe.state !== 'rendered').map((x) => x.n);
-      if (pendingShots.length) return res.status(409).json({ error: `approve every storyboard shot first — shot${pendingShots.length > 1 ? 's' : ''} ${pendingShots.join(', ')} pending`, code: 'prerequisites', pending: pendingShots });
+      const pendingShots = bshots.filter((x) => !x.keyframe || x.keyframe.state !== 'rendered').map((x) => x.n);
+      if (pendingShots.length) return res.status(409).json({ error: `the storyboard keyframes are still rendering — shot${pendingShots.length > 1 ? 's' : ''} ${pendingShots.join(', ')} pending`, code: 'prerequisites', pending: pendingShots });
       const resolution = ['480p', '720p', '1080p'].includes(b.resolution) ? b.resolution : '720p';
       const motion = (x) => `${x.camera}. ${x.action} ${x.product && x.product.visible ? 'The device stays exactly as in the first frame — no morphing, no extra buttons, no logos.' : ''} Present tense, one continuous motion, no cuts, no on-screen text, no captions.`.replace(/\s+/g, ' ').trim();
       const clipDuration = (x) => Math.min(30, Math.max(4, Math.ceil(Number(x.durationS) || 4))); // 4–30 s clips; the assembly trims to the shot
@@ -505,7 +506,7 @@ module.exports = async (req, res) => {
       const aspect = ['9:16', '16:9', '1:1'].includes(bv.payload.aspect) ? bv.payload.aspect : '9:16';
       const shots = bshots.map((x) => ({ n: x.n, durationS: x.durationS, type: x.type, camera: x.camera, action: x.action, product: x.product, onScreenText: x.onScreenText, line: x.line, audioCue: x.audioCue, transition: x.transition, keyframe: { url: x.keyframe.url || null, assetPath: x.keyframe.assetPath || null, sha256: x.keyframe.sha256 || null, jobId: x.keyframe.jobId || null }, clipDurationS: clipDuration(x), clip: null, review: null }));
       const totalS = Math.round(shots.reduce((a, x) => a + (Number(x.durationS) || 0), 0) * 10) / 10;
-      const artifact = { shots, totalS, aspect, resolution, boardVersionId: bv.id, boardVersion: bv.version, boardApproved: bs.state === 'approved', dur: `${totalS}s`, audio: 'Native audio per clip (Hermes video bot); loudness normalised at assembly', variants: [{ a: aspect, l: resolution, k: 'original', st: 'rendering' }], videoUrl: null, assembled: null, prompt: `first draft from storyboard v${bv.version}: ${shots.length} clips`, note: 'One clip per approved shot from the Hermes video bot, driven by its keyframe; the cut is assembled once every clip is approved.', draftVersion: 'draft-v1-2026-10-21', rev: 0 };
+      const artifact = { shots, totalS, aspect, resolution, boardVersionId: bv.id, boardVersion: bv.version, boardApproved: bs.state === 'approved', dur: `${totalS}s`, audio: 'Native audio per clip (Hermes video bot); loudness normalised at assembly', variants: [{ a: aspect, l: resolution, k: 'original', st: 'rendering' }], videoUrl: null, assembled: null, prompt: `first draft from storyboard v${bv.version}: ${shots.length} clips`, note: 'One clip per storyboard shot from the Hermes video bot, driven by its keyframe; the cut is assembled once every clip is approved.', draftVersion: 'draft-v1-2026-10-21', rev: 0 };
       const out = await recordVersion(legacyId, 'draft', artifact, { piece: b.piece || {}, producedBy: 'hermes', kind: 'video', generatedBy: req.member ? req.member.id : null });
       const inserted = await insertRows('jobs', shots.map((x) => clipJob(out.versionId, x, '')), { returning: true });
       await patchRows('stages', `id=eq.${encodeURIComponent(ds.id)}`, { state: 'generating' });
