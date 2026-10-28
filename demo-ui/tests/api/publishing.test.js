@@ -28,6 +28,7 @@ test('manual mode: the calendar says so; an approved final waits with its post-b
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     assert.equal(r.body.mode, 'manual_export'); assert.equal(r.body.connected, false); assert.match(r.body.label, /Sprinklr: not connected — manual mode/);
     assert.deepEqual(r.body.unscheduled.map((u) => [u.pieceId, u.postBy]), [['gen-p1', '2026-10-28T00:00:00Z']], 'only the approved final, with its trend\'s post-by');
+    assert.deepEqual(r.body.unscheduled[0].media, { videoUrl: null, thumbUrl: null }, 'the composer gets the final media (none stored here)');
     r = await post(studio, { action: 'slot-plan', pieceId: 'gen-p1', platform: 'tiktok', account: '@SamsungGulf', slotAt: '2026-10-25T16:00:00+04:00', caption: 'Wait for it… #GalaxyZFlip8' });
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     assert.deepEqual([r.body.slot.status, r.body.slot.account, r.body.slot.slotAt, r.body.slot.mode], ['planned', 'samsunggulf', '2026-10-25T12:00:00.000Z', 'manual_export']);

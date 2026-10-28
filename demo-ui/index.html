@@ -606,7 +606,18 @@ textarea,select.inp{width:100%;background:rgba(255,255,255,.04);border:1px solid
   color:var(--text);font-family:var(--font-m);font-size:12px;padding:10px 12px;resize:vertical;color-scheme:dark}
 textarea:focus,select.inp:focus{outline:none;border-color:rgba(125,211,252,.55)}
 select.inp option{background:var(--panel-solid);color:var(--text)}
-.mrow{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.mrow{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+input.inp{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--hairline);border-radius:11px;color:var(--text);font-family:var(--font-m);font-size:12px;padding:9px 12px;color-scheme:dark}
+input.inp:focus{outline:none;border-color:rgba(125,211,252,.55)}
+.modal:has(.cc-grid){width:min(760px,96vw)}
+.cc-grid{display:grid;grid-template-columns:250px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:640px){.cc-grid{grid-template-columns:1fr}}
+.cc-phone{width:220px;aspect-ratio:9/16;margin:0 auto;border-radius:18px;overflow:hidden;position:relative;border:1px solid var(--hairline)}
+.cc-feed{width:240px;margin:0 auto;border:1px solid var(--hairline);border-radius:14px;overflow:hidden;background:#05070c}
+.cc-plat{cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:99px;border:1px solid var(--hairline);background:rgba(255,255,255,.02);color:var(--muted);font-size:12px;font-family:var(--font-d)}
+.cc-plat i{width:7px;height:7px;border-radius:50%;display:inline-block}
+.cc-plat.on{border-color:rgba(125,211,252,.6);background:rgba(125,211,252,.1);color:#fff}
+.btn[disabled]{opacity:.45;pointer-events:none}
 
 /* ---------- studio copilot — step-by-step creation chatbot ---------- */
 #copilot{position:fixed;top:68px;right:18px;bottom:18px;z-index:120;width:min(400px,92vw);
@@ -4380,11 +4391,6 @@ async function calAction(pid,body,after){
   CALV.data=null;loadCalendar();
  }catch(e){CALV.msg[pid]='not saved'}
 }
-function calPlan(pid){
- const g=k=>document.querySelector(`[data-cal="${CSS.escape(pid)}:${k}"]`);
- const [platform,account]=(g('acc').value||':').split(':');
- calAction(pid,{action:'slot-plan',platform,account,slotAt:gulfToIso(g('when').value),caption:g('cap').value});
-}
 function calExport(pid,id){calAction(pid,{action:'slot-export',id},d=>{
  const sp=d.sprinklr;
  toast(`<span style="font-size:12.5px"><b>Exported.</b> ${sp?(sp.draftId?`Sprinklr draft ${esc(sp.draftId)} ${sp.reused?'already exists':'created'} — schedule it in Sprinklr, then link the post on the final.`:`The Sprinklr draft was not created: ${esc(sp.error||'unknown error')}`):esc(d.instruction||'')}</span>`);
@@ -4402,6 +4408,118 @@ async function calPreview(pid,id){
  $('#view').innerHTML=rCalendar();reveal();
 }
 function calCancel(pid,id){calAction(pid,{action:'slot-cancel',id,reason:'canceled from the calendar'})}
+const sprIco=(d,sz=17)=>`<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+const SPR_ICO={heart:'M12 21s-7.6-4.9-10-9.4C.5 8 2.3 4.5 5.8 4.5c2 0 3.3 1 4.2 2.4.9-1.4 2.2-2.4 4.2-2.4 3.5 0 5.3 3.5 3.8 7.1C19.6 16.1 12 21 12 21z',cmt:'M21 11.5c0 4.1-4 7.5-9 7.5-1 0-2-.1-2.9-.4L3 20l1.6-3.8C3.6 15 3 13.3 3 11.5 3 7.4 7 4 12 4s9 3.4 9 7.5z',share:'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',save:'M19 21l-7-5-7 5V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1z'};
+/* the composer (the original "Post via Sprinklr" layout): preview of the real final, platform, account, Gulf time and
+   caption; "Add to calendar" plans the slot, "push" also creates the Sprinklr draft (drafts only: never scheduled or
+   published from Maistro). Only approved finals can be added; an existing Maistro slot opens read-only with its push. */
+const CALC={pid:null,slotId:null,plat:null,acc:null,when:'',cap:'',busy:false,err:null};
+const calOwned=()=>(CALV.data&&CALV.data.owned)||{};
+function calCompose(pid,slotId,day){
+ const d=CALV.data||{},un=d.unscheduled||[];
+ if(slotId){const s=(d.slots||[]).find(x=>x.id===slotId);if(!s)return;
+  Object.assign(CALC,{pid:s.pieceId,slotId,plat:s.platform,acc:s.account,when:new Date(Date.parse(s.slotAt)+GST).toISOString().slice(0,16),cap:s.caption||'',busy:false,err:null})}
+ else{const u=un.find(x=>x.pieceId===pid)||un[0];
+  const plats=u?calPlatsFor(u):[];
+  Object.assign(CALC,{pid:u?u.pieceId:null,slotId:null,plat:plats[0]||null,acc:null,cap:'',busy:false,err:null,when:(day||gstDay(Date.now()+864e5))+'T18:00'});
+  CALC.acc=((calOwned()[CALC.plat])||[])[0]||null}
+ calModal();$('#modal-back').classList.add('open');
+}
+function calPlatsFor(u){const own=Object.keys(calOwned()).filter(p=>(calOwned()[p]||[]).length);const want=((u&&u.platforms)||[]).map(p=>String(p).toLowerCase()).filter(p=>own.includes(p));return want.length?want:own}
+function calSync(){const c=$('#cc-cap'),w=$('#cc-when'),a=$('#cc-acc');if(c)CALC.cap=c.value;if(w)CALC.when=w.value;if(a)CALC.acc=a.value}
+function calComposePiece(pid){calSync();const u=((CALV.data||{}).unscheduled||[]).find(x=>x.pieceId===pid);CALC.pid=pid;const ps=calPlatsFor(u);if(!ps.includes(CALC.plat))CALC.plat=ps[0]||null;CALC.acc=((calOwned()[CALC.plat])||[])[0]||null;calModal()}
+function calComposePlat(p){calSync();CALC.plat=p;CALC.acc=((calOwned()[p])||[])[0]||null;calModal()}
+function calPrevRefresh(){calSync();const e=$('#cc-prev');if(e)e.innerHTML=calPostPreview(((CALV.data||{}).unscheduled||[]).find(x=>x.pieceId===CALC.pid),CALC.plat,CALC.acc,CALC.cap,CALC.when)}
+function calPostPreview(item,plat,acc,cap,when){
+ const m=(item&&item.media)||{},title=esc((item&&item.title)||'Maistro post');
+ const media=m.videoUrl?`<video src="${esc(m.videoUrl)}" ${m.thumbUrl?`poster="${esc(m.thumbUrl)}"`:''} muted loop autoplay playsinline style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video>`
+  :m.thumbUrl?`<img src="${esc(m.thumbUrl)}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`
+  :`<div style="position:absolute;inset:0;display:grid;place-items:center;padding:16px;text-align:center;color:#fff;font-weight:600;font-size:14px">${title}</div>`;
+ const bg='background:linear-gradient(165deg,#1c2740,#3d5aa8)';
+ const at=when?`${esc(when.slice(8,10))}/${esc(when.slice(5,7))} · ${esc(when.slice(11,16))} GST`:'';
+ const ic=k=>sprIco(SPR_ICO[k]);
+ if(plat==='tiktok'||plat==='youtube')return `<div class="cc-phone" style="${bg}">${media}
+   <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.7))"></div>
+   <div style="position:absolute;top:10px;left:0;right:0;text-align:center;font-family:var(--font-m);font-size:9px;letter-spacing:.12em;color:rgba(255,255,255,.75)">${plat==='youtube'?'<b style="color:#fff">Shorts</b>':'Following · <b style="color:#fff">For You</b>'}</div>
+   <div style="position:absolute;right:9px;bottom:70px;display:flex;flex-direction:column;gap:14px">${ic('heart')}${ic('cmt')}${ic('share')}</div>
+   <div style="position:absolute;left:10px;right:48px;bottom:12px;color:#fff">
+    <div style="font-size:11.5px;font-weight:600">@${esc(acc||'account')}</div>
+    <div id="cc-prev-cap" dir="auto" style="font-size:10px;line-height:1.5;color:rgba(255,255,255,.92);margin-top:4px;max-height:45px;overflow:hidden;white-space:pre-wrap">${esc(cap)}</div>
+    <div style="font-family:var(--font-m);font-size:8.5px;color:rgba(255,255,255,.7);margin-top:5px;letter-spacing:.08em">${at}</div></div></div>`;
+ return `<div class="cc-feed">
+   <div style="display:flex;align-items:center;gap:9px;padding:9px 11px"><span style="width:27px;height:27px;border-radius:50%;flex:none;${bg};border:1px solid rgba(255,255,255,.25)"></span>
+    <div><div style="color:#fff;font-size:12px;font-weight:600">${esc(acc||'account')}</div><div style="font-size:9.5px;color:var(--muted)">${esc(FEED_PLAT[plat]||plat||'')}</div></div><span style="margin-left:auto;color:var(--muted);letter-spacing:2px">···</span></div>
+   <div style="position:relative;aspect-ratio:4/5;${bg}">${media}</div>
+   <div style="padding:9px 11px 12px"><div style="display:flex;gap:12px;align-items:center">${ic('heart')}${ic('cmt')}${ic('share')}<span style="margin-left:auto">${ic('save')}</span></div>
+    <div dir="auto" style="font-size:10.5px;line-height:1.5;color:rgba(255,255,255,.9);margin-top:7px;max-height:46px;overflow:hidden"><b>${esc(acc||'')}</b> <span id="cc-prev-cap" style="white-space:pre-wrap">${esc(cap)}</span></div>
+    <div style="font-family:var(--font-m);font-size:8.5px;color:var(--muted);margin-top:6px;letter-spacing:.08em">${at}</div></div></div>`;
+}
+function calModal(){
+ const d=CALV.data||{},un=d.unscheduled||[],drafts=Boolean(d.sprinklr&&d.sprinklr.drafts);
+ const slot=CALC.slotId?(d.slots||[]).find(x=>x.id===CALC.slotId):null;
+ const item=slot||un.find(x=>x.pieceId===CALC.pid);
+ const pushNote=drafts?'Push creates the post as a <b>draft</b> in Sprinklr: schedule or publish it in Sprinklr.'
+  :'Sprinklr drafts are off on the server (SPRINKLR_DRAFTS), so the post is added to the calendar only.';
+ if(!item){$('#modal').innerHTML=`<h3>Add a Maistro post</h3><p class="msub">Only approved finals can go on the calendar, and none is waiting for a slot. Approve a final in the <a href="#/studio" onclick="closeModal()" style="color:#7dd3fc">Content Studio</a> first.</p><div class="mrow"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button></div>`;return}
+ if(slot){
+  const canPush=slot.status==='planned'||slot.status==='exported';
+  $('#modal').innerHTML=`<h3>${esc(slot.title||slot.pieceId||'Maistro post')}</h3>
+   <p class="msub">${badge(slot.status==='posted'?'go':slot.status==='exported'?'gold':'muted',esc(slot.status.toUpperCase()))} ${esc(FEED_PLAT[slot.platform]||slot.platform)} · @${esc(slot.account)} · ${esc(fmtStamp(Date.parse(slot.slotAt)))}${slot.sprinklrDraftId?` · <span class="mono">SPRINKLR DRAFT ${esc(slot.sprinklrDraftId)}</span>`:''}</p>
+   <div class="cc-grid"><div>${calPostPreview(slot,slot.platform,slot.account,slot.caption||'',CALC.when)}</div>
+    <div><span class="kick">Caption</span><p dir="auto" style="font-size:12.5px;line-height:1.6;margin-top:6px;white-space:pre-wrap">${esc(slot.caption||'—')}</p>
+     ${slot.sprinklrError&&!slot.sprinklrDraftId?`<div style="font-size:11px;color:var(--alert);margin-top:8px">Sprinklr draft not created: ${esc(slot.sprinklrError)}</div>`:''}
+     <div class="dim" style="font-size:11px;margin-top:12px;line-height:1.6">${canPush?pushNote:'This post is closed.'}</div></div></div>
+   ${CALC.err?`<div style="font-size:11.5px;color:var(--alert);margin-top:10px">${esc(CALC.err)}</div>`:''}
+   <div class="mrow"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button>
+    ${canPush?`<button class="btn btn-ghost btn-sm" onclick="closeModal();calCancel('${esc(slot.pieceId)}',${Number(slot.id)})">Cancel post</button>
+    <button class="btn btn-ai btn-sm" ${CALC.busy||!drafts?'disabled':''} onclick="calPushSlot()">${slot.sprinklrDraftId?'↻ Push draft again':'▶ Push draft to Sprinklr'}</button>`:''}</div>`;
+  return;
+ }
+ const plats=calPlatsFor(item),accs=(calOwned()[CALC.plat])||[];
+ $('#modal').innerHTML=`<h3>Add a Maistro post</h3>
+  <p class="msub">Review the post, choose the platform, account and time, and write the caption.</p>
+  <div class="cc-grid"><div><span class="kick accent">Post preview</span><div id="cc-prev" style="margin-top:10px">${calPostPreview(item,CALC.plat,CALC.acc,CALC.cap,CALC.when)}</div>
+    <p class="dim" style="font-size:11px;margin-top:8px;text-align:center">${esc([item.product,(item.markets||[]).join(' · ')].filter(Boolean).join(' · '))}</p></div>
+   <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+    <div class="f-field"><label>Approved final</label><select class="inp" onchange="calComposePiece(this.value)">${un.map(u=>`<option value="${esc(u.pieceId)}" ${u.pieceId===CALC.pid?'selected':''}>${esc(u.title||u.pieceId)}${u.postBy?' · post by '+esc(fmtStamp(Date.parse(u.postBy)).split(',')[0]):''}</option>`).join('')}</select></div>
+    <div class="f-field"><label>Platform</label><div style="display:flex;gap:6px;flex-wrap:wrap">${plats.map(p=>`<button type="button" class="cc-plat ${p===CALC.plat?'on':''}" onclick="calComposePlat('${esc(p)}')"><i style="background:${(PLAT[p]||{}).c||'#9aa3b5'}"></i>${esc(FEED_PLAT[p]||p)}</button>`).join('')||'<span class="dim" style="font-size:11.5px">No owned accounts configured.</span>'}</div></div>
+    <div class="f-field"><label>Account</label><select class="inp" id="cc-acc" onchange="calPrevRefresh()">${accs.map(a=>`<option value="${esc(a)}" ${a===CALC.acc?'selected':''}>@${esc(a)}</option>`).join('')}</select></div>
+    <div class="f-field"><label>Date &amp; time (Gulf, GST)</label><input class="inp" id="cc-when" type="datetime-local" value="${esc(CALC.when)}" onchange="calPrevRefresh()"></div>
+   </div></div>
+  <div class="f-field" style="margin-top:14px"><label>Caption</label>
+   <textarea id="cc-cap" rows="4" dir="auto" maxlength="2200" placeholder="Write the caption that goes out with the post…" oninput="CALC.cap=this.value;const e=document.getElementById('cc-prev-cap');if(e)e.textContent=this.value">${esc(CALC.cap)}</textarea></div>
+  <div class="dim" style="font-size:11px;margin-top:8px;line-height:1.6">${pushNote}</div>
+  ${CALC.err?`<div style="font-size:11.5px;color:var(--alert);margin-top:10px">${esc(CALC.err)}</div>`:''}
+  <div class="mrow"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
+   <button class="btn btn-sm" ${CALC.busy?'disabled':''} onclick="calSave(false)">Add to calendar</button>
+   <button class="btn btn-ai btn-sm" ${CALC.busy||!drafts?'disabled':''} onclick="calSave(true)">▶ Add &amp; push draft to Sprinklr</button></div>`;
+}
+async function calPost(body){
+ const r=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('not saved ('+r.status+')'));return d;
+}
+function calPushedToast(d){const sp=d&&d.sprinklr;
+ toast(`<span style="font-size:12.5px">${sp&&sp.draftId?`<b style="color:#6ee7b9">Sprinklr draft ${esc(sp.draftId)}</b> ${sp.reused?'already exists':'created'}: schedule or publish it in Sprinklr.`:sp?`<b style="color:#fb7185">The Sprinklr draft was not created:</b> ${esc(sp.error||'unknown error')}`:'<b>Exported.</b> '+esc((d&&d.instruction)||'')}</span>`)}
+async function calSave(push){
+ calSync();
+ if(!CALC.pid||!CALC.plat||!CALC.acc){CALC.err='Choose a final, a platform and an account.';calModal();return}
+ if(!CALC.when){CALC.err='Choose the date and time.';calModal();return}
+ if(!CALC.cap.trim()){CALC.err='Write the caption.';calModal();return}
+ CALC.busy=true;CALC.err=null;calModal();
+ try{
+  const d=await calPost({pieceId:CALC.pid,action:'slot-plan',platform:CALC.plat,account:CALC.acc,slotAt:gulfToIso(CALC.when),caption:CALC.cap.trim()});
+  const x=push&&d.slot?await calPost({pieceId:CALC.pid,action:'slot-export',id:d.slot.id}):null;
+  closeModal();CALC.busy=false;CALM.month=CALC.when.slice(0,7);CALM.day=CALC.when.slice(0,10);CALM.sel=null;
+  if(x)calPushedToast(x);else toast(`<span style="font-size:12.5px"><b style="color:#6ee7b9">Added to the calendar.</b> ${esc(FEED_PLAT[CALC.plat]||CALC.plat)} · @${esc(CALC.acc)} · ${esc(CALC.when.replace('T',' '))} GST</span>`);
+  CALV.data=null;loadCalendar();
+ }catch(e){CALC.err=e.message;CALC.busy=false;calModal()}
+}
+async function calPushSlot(){
+ const s=((CALV.data||{}).slots||[]).find(x=>x.id===CALC.slotId);if(!s)return;
+ CALC.busy=true;CALC.err=null;calModal();
+ try{const d=await calPost({pieceId:s.pieceId,action:'slot-export',id:s.id});closeModal();CALC.busy=false;calPushedToast(d);CALV.data=null;loadCalendar()}
+ catch(e){CALC.err=e.message;CALC.busy=false;calModal()}
+}
 function rCalendar(){
  if(!CALV.data){loadCalendar()}
  const d=CALV.data;
@@ -4410,15 +4528,10 @@ function rCalendar(){
  if(!d)return `<section>${head}<div class="card p5 dim" style="font-size:12.5px">Loading the publishing calendar…</div></section>`;
  if(d.code==='not_migrated')return `<section>${head}<div class="card p5"><div class="pc-note">The calendar is not available yet: the publishing table (migration 019) has not been applied.</div></div></section>`;
  if(d.error)return `<section>${head}<div class="card p5 dim" style="font-size:12.5px">${esc(d.error)}</div></section>`;
- const accOpts=Object.entries(d.owned||{}).flatMap(([p,as])=>as.map(a=>`<option value="${esc(p)}:${esc(a)}">${esc(p)} · @${esc(a)}</option>`)).join('');
- const wait=d.unscheduled.map(u=>`<div style="padding:10px 0;border-top:1px solid var(--hairline)">
-   <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b style="font-size:13px">${esc(u.title||u.pieceId)}</b><span class="mono dim" style="font-size:10.5px">${u.postBy?'POST BY '+esc(fmtStamp(Date.parse(u.postBy))):'no post-by date'}${u.trend?' · '+esc(u.trend):''}</span></div>
-   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
-    <select data-cal="${esc(u.pieceId)}:acc" style="font-size:11.5px">${accOpts}</select>
-    <input type="datetime-local" data-cal="${esc(u.pieceId)}:when" style="font-size:11.5px" title="Gulf time (GST, UTC+4)">
-    <input type="text" data-cal="${esc(u.pieceId)}:cap" placeholder="Caption" style="flex:1;min-width:180px;font-size:11.5px">
-    <button class="btn btn-sm" onclick="calPlan('${esc(u.pieceId)}')">Plan post</button></div>
-   ${CALV.msg[u.pieceId]?`<div style="font-size:11px;color:var(--alert);margin-top:4px">${esc(CALV.msg[u.pieceId])}</div>`:''}
+ const wait=d.unscheduled.map(u=>`<div style="padding:10px 0;border-top:1px solid var(--hairline);display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+   <div style="min-width:0"><b style="font-size:13px">${esc(u.title||u.pieceId)}</b><div class="mono dim" style="font-size:10.5px;margin-top:3px">${u.postBy?'POST BY '+esc(fmtStamp(Date.parse(u.postBy))):'no post-by date'}${u.trend?' · '+esc(u.trend):''}</div>
+    ${CALV.msg[u.pieceId]?`<div style="font-size:11px;color:var(--alert);margin-top:4px">${esc(CALV.msg[u.pieceId])}</div>`:''}</div>
+   <button class="btn btn-ai btn-sm" onclick="calCompose('${esc(u.pieceId)}')">Add to calendar →</button>
   </div>`).join('')||'<div class="dim" style="font-size:12px;margin-top:6px">No approved finals are waiting for a slot.</div>';
  const tone={planned:'muted',exported:'gold',posted:'go',canceled:'alert'};
  const byDay={};for(const s of d.slots){const k=fmtStamp(Date.parse(s.slotAt)).split(',')[0];(byDay[k]=byDay[k]||[]).push(s)}
@@ -4486,7 +4599,7 @@ function calDetail(e){
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">${badge(s.status==='posted'?'go':s.status==='exported'?'gold':'muted',esc(s.status.toUpperCase()))}<b>${esc(FEED_PLAT[s.platform]||s.platform)}</b><span class="dim">@${esc(s.account)}</span></div>
   <div class="mono dim" style="font-size:11px;margin-top:8px">${esc(fmtStamp(e.at))}</div>
   ${s.caption?`<p style="font-size:12.5px;line-height:1.6;margin-top:10px" dir="auto">${esc(s.caption)}</p>`:''}
-  <div class="dim" style="font-size:11px;margin-top:10px">Export, cancel and the Sprinklr draft are under Planned posts below.</div>`}
+  <button class="btn btn-ai btn-sm" style="margin-top:12px" onclick="calCompose(null,${Number(s.id)})">Open post · push to Sprinklr</button>`}
  const i=e.item;
  return `<span class="kick accent">Sprinklr · Samsung Gulf</span>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px">${badge(FEED_TONE[i.status]||'muted',esc(i.status.replace('_',' ').toUpperCase()))}<b>${esc(FEED_PLAT[i.platform]||i.platform)}</b>${i.media?`<span class="dim" style="font-size:11px">${esc(i.media.toLowerCase().replace('_',' '))}</span>`:''}</div>
@@ -4520,7 +4633,7 @@ function rMonth(d){
  const dayList=CALM.day&&CALM.day.startsWith(m)?(byDay[CALM.day]||[]):null;
  const back=t=>`<button class="calback" onclick="calBack()">← ${t}</button><br>`;
  const side=sel?back(dayList?'Back to the day':'Back to the month')+calDetail(sel)
-  :dayList?`${back('Back to the month')}<span class="kick accent">${esc(new Date(CALM.day+'T12:00:00Z').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'}))}</span><span class="mono dim" style="font-size:10px;margin-left:8px">${dayList.length} POST${dayList.length===1?'':'S'}</span>${dayList.length?`<div class="evlist">${dayList.map(e=>`<button class="ev ${e.cls}" onclick="calSelect('${esc(e.key)}')"><span class="tm">${gstTime(e.at)}</span><span class="pl">${esc(FEED_SHORT[e.platform]||e.platform||'')}</span><span class="ti" dir="auto">${esc(e.label)}</span></button>`).join('')}</div>`:'<div class="dim" style="font-size:12px;margin-top:8px">Nothing on this day.</div>'}`
+  :dayList?`${back('Back to the month')}<span class="kick accent">${esc(new Date(CALM.day+'T12:00:00Z').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'}))}</span><span class="mono dim" style="font-size:10px;margin-left:8px">${dayList.length} POST${dayList.length===1?'':'S'}</span><button class="btn btn-ghost btn-sm" style="font-size:10px;margin-left:8px" onclick="calCompose(null,null,'${esc(CALM.day)}')">+ Add on this day</button>${dayList.length?`<div class="evlist">${dayList.map(e=>`<button class="ev ${e.cls}" onclick="calSelect('${esc(e.key)}')"><span class="tm">${gstTime(e.at)}</span><span class="pl">${esc(FEED_SHORT[e.platform]||e.platform||'')}</span><span class="ti" dir="auto">${esc(e.label)}</span></button>`).join('')}</div>`:'<div class="dim" style="font-size:12px;margin-top:8px">Nothing on this day.</div>'}`
   :`<span class="kick accent">${esc(label)}</span>
    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
     ${[['posted','Posted'],['scheduled','Scheduled'],['in_approval','In approval'],['draft','Drafts']].map(([k,l])=>`<div><div class="mono" style="font-size:20px;color:#fff">${count(k)}</div><div class="dim" style="font-size:11px">${l}</div></div>`).join('')}
@@ -4542,6 +4655,7 @@ function rMonth(d){
       <h3 style="font-size:16px;min-width:150px;text-align:center">${esc(label)}</h3>
       <button class="btn btn-ghost btn-sm" onclick="calGo(1)" aria-label="Next month">›</button>
       <button class="btn btn-ghost btn-sm" style="font-size:10.5px" onclick="calToday()">Today</button>
+      <button class="btn btn-ai btn-sm" style="font-size:10.5px" onclick="calCompose()">+ Add Maistro post</button>
       <div class="mpick"><button class="btn btn-ghost btn-sm" style="font-size:10.5px" onclick="event.stopPropagation();calPickToggle()" aria-haspopup="true" aria-expanded="${CALM.pick}">Jump to month ▾</button>
        ${CALM.pick?`<div class="mpick-pop" onclick="event.stopPropagation()"><div class="mpick-y"><button onclick="calPickYear(-1)" aria-label="Previous year">‹</button>${CALM.pickY}<button onclick="calPickYear(1)" aria-label="Next year">›</button></div>
         <div class="mpick-g">${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((l,i)=>{const v=`${CALM.pickY}-${String(i+1).padStart(2,'0')}`;return `<button class="${v===m?'on':''} ${v===today.slice(0,7)?'now':''}" onclick="calPick('${v}')">${l.toUpperCase()}</button>`}).join('')}</div></div>`:''}</div>

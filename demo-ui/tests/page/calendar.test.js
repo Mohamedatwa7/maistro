@@ -72,3 +72,30 @@ test('month view: a grid for the month with Sprinklr posts and Maistro slots by 
   const html = await render(cal({ sprinklr: { configured: false, drafts: false, livePublishing: false } }));
   assert.match(html, /SPRINKLR NOT CONNECTED — MAISTRO POSTS ONLY/);
 });
+
+test('composer: "+ Add Maistro post" opens the original post layout for an approved final; Add to calendar plans the slot, push also creates the Sprinklr draft; a Maistro slot opens with its push', async () => {
+  const sent = [];
+  const data = cal({ unscheduled: [{ pieceId: 'gen-p1', title: 'Deadpan', product: 'Galaxy Z Flip8', platforms: ['tiktok'], markets: ['UAE'], postBy: null, media: { videoUrl: 'https://sb.test/final.mp4', thumbUrl: 'https://sb.test/t.png' } }], sprinklr: { configured: true, drafts: true, livePublishing: false }, owned: { tiktok: ['samsunggulf'], instagram: ['samsunggulf'] } });
+  const X = loadPage({ fetchImpl: async (u, init) => { if (init && init.method === 'POST') { const b = JSON.parse(init.body); sent.push(b); return json(b.action === 'slot-plan' ? { ok: true, slot: { id: 41 } } : { ok: true, sprinklr: { draftId: 'D-1' } }); } return String(u).includes('calendar=1') ? json(data) : new Promise(() => {}); }, hash: '#/calendar' });
+  try {
+    const modal = { innerHTML: '' }; const q0 = X.document.querySelector; // one modal element; the form fields are read from CALC
+    X.document.querySelector = (sel) => (sel === '#modal' ? modal : /^#cc-/.test(sel) ? null : q0(sel));
+    X.rCalendar(); await new Promise((r) => setTimeout(r, 30));
+    assert.match(X.rCalendar(), /onclick="calCompose\(\)">\+ Add Maistro post/); assert.match(X.rCalendar(), /onclick="calCompose\('gen-p1'\)">Add to calendar →/);
+    X.calCompose(null, null, '2026-10-30');
+    let m = modal.innerHTML;
+    assert.match(m, /Post preview/); assert.match(m, /class="cc-phone"/); assert.match(m, /<video src="https:\/\/sb\.test\/final\.mp4"/, 'the real final plays in the preview');
+    assert.match(m, /cc-plat on/); assert.match(m, /@samsunggulf/); assert.match(m, /value="2026-10-30T18:00"/); assert.match(m, /Add &amp; push draft to Sprinklr/);
+    X.calComposePlat('instagram'); m = modal.innerHTML; assert.match(m, /class="cc-feed"/, 'Instagram shows the feed layout');
+    X.CALC.cap = ''; await X.calSave(false); assert.match(modal.innerHTML, /Write the caption/); assert.equal(sent.length, 0);
+    X.CALC.cap = 'Wait for it'; await X.calSave(true);
+    assert.deepEqual(sent.map((b) => b.action), ['slot-plan', 'slot-export']);
+    assert.deepEqual([sent[0].pieceId, sent[0].platform, sent[0].account, sent[0].slotAt, sent[0].caption], ['gen-p1', 'instagram', 'samsunggulf', '2026-10-30T14:00:00.000Z', 'Wait for it']); assert.equal(sent[1].id, 41);
+    await new Promise((r) => setTimeout(r, 30)); // the calendar reloads after the save
+    X.CALV.data.sprinklr.drafts = false; X.calCompose('gen-p1'); m = modal.innerHTML;
+    assert.match(m, /<button class="btn btn-ai btn-sm" disabled onclick="calSave\(true\)">/, 'push is off while Sprinklr drafts are off'); assert.match(m, /SPRINKLR_DRAFTS/);
+    X.CALV.data.sprinklr.drafts = true; X.CALV.data.slots = [{ id: 7, pieceId: 'gen-p1', title: 'Deadpan', platform: 'tiktok', account: 'samsunggulf', slotAt: '2026-10-25T12:00:00.000Z', caption: 'c', status: 'planned', media: null }];
+    X.calCompose(null, 7); m = modal.innerHTML;
+    assert.match(m, /▶ Push draft to Sprinklr/); assert.match(m, /Cancel post/);
+  } finally { X.restore(); }
+});

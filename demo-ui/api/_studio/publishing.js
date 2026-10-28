@@ -84,9 +84,12 @@ async function calendar({ from, to }) {
     const tids = [...new Set(pieces.map((p) => p.trend_id).filter(Boolean))];
     const scores = tids.length ? await queryAll('trend_scores', `select=trend_id,post_by,at&trend_id=in.(${tids.map(encodeURIComponent).join(',')})&order=at.desc,id.desc`) : [];
     const postBy = {}; for (const s of scores) if (s.post_by && !postBy[s.trend_id]) postBy[s.trend_id] = s.post_by;
-    const unscheduled = finals.filter((f) => !open.has(f.piece_id)).map((f) => { const p = byId.get(f.piece_id) || {}; return { pieceId: p.legacy_id, title: p.title, product: p.product, platforms: p.platforms || [], markets: p.markets || [], trend: p.trend_name, postBy: postBy[p.trend_id] || null }; })
+    // the composer previews the real post: the final's video and the thumbnail, signed for this read
+    const media = new Map(await Promise.all([...new Set([...finals.map((f) => f.piece_id), ...slots.filter((s) => s.status !== 'canceled').map((s) => s.piece_id)])]
+      .map(async (id) => { try { const m = await finalMedia(id); return [id, { videoUrl: m.videoUrl, thumbUrl: m.thumbUrl }]; } catch (e) { return [id, null]; } })));
+    const unscheduled = finals.filter((f) => !open.has(f.piece_id)).map((f) => { const p = byId.get(f.piece_id) || {}; return { pieceId: p.legacy_id, title: p.title, product: p.product, platforms: p.platforms || [], markets: p.markets || [], trend: p.trend_name, postBy: postBy[p.trend_id] || null, media: media.get(f.piece_id) || null }; })
       .sort((a, b) => String(a.postBy || '9').localeCompare(String(b.postBy || '9')));
-    return { status: 200, body: { mode: adapter().mode, connected: adapter().connected, label: modeLabel(), sprinklrConfigured: SprinklrAdapter.connected, sprinklr: sprinklrView(), owned: Object.fromEntries(Object.entries(ownedByPlatform()).map(([k, v]) => [k, [...v]])), slots: slots.map((s) => slotView(s, byId.get(s.piece_id))), unscheduled } };
+    return { status: 200, body: { mode: adapter().mode, connected: adapter().connected, label: modeLabel(), sprinklrConfigured: SprinklrAdapter.connected, sprinklr: sprinklrView(), owned: Object.fromEntries(Object.entries(ownedByPlatform()).map(([k, v]) => [k, [...v]])), slots: slots.map((s) => ({ ...slotView(s, byId.get(s.piece_id)), media: media.get(s.piece_id) || null })), unscheduled } };
   } catch (e) { if (storageMissing(e)) return MISSING; throw e; }
 }
 
