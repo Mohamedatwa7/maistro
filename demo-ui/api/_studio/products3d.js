@@ -19,7 +19,7 @@ async function readIndex({ fresh = false } = {}) {
   if (!fresh && cache && Date.now() - cache.at < TTL_MS) return cache.value;
   let value;
   try { value = JSON.parse((await storage.readObject(INDEX, 2 * 1024 * 1024)).toString('utf8')); }
-  catch (e) { if (e.status === 404) value = { models: {} }; else throw e; }
+  catch (e) { if (e.status === 404 || /sign failed \((400|404)\)/.test(e.message)) value = { models: {} }; else throw e; } // Supabase signs a missing object with a 400
   if (!value || typeof value.models !== 'object') value = { models: {} };
   cache = { at: Date.now(), value };
   return value;

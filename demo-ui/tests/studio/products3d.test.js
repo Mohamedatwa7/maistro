@@ -13,6 +13,7 @@ function storageFake() {
   const objects = {};
   const route = [
     [/\/storage\/v1\/object\/upload\/sign\/assets\//, (u) => json({ url: `/object/upload/sign/assets/${String(u).split('/upload/sign/assets/')[1]}?token=up` })],
+    [(u, init) => /\/storage\/v1\/object\/sign\/assets\/products\/index\.json/.test(u) && (init.method || 'GET') === 'POST' && !objects['products/index.json'], () => json({ statusCode: '404', error: 'not_found', message: 'Object not found' }, 400)], // as Supabase answers
     [(u, init) => /\/storage\/v1\/object\/sign\/assets\//.test(u) && (init.method || 'GET') === 'POST', (u) => json({ signedURL: `/object/sign/assets/${String(u).split('/object/sign/assets/')[1]}?token=t` })],
     [(u, init) => /\/storage\/v1\/object\/sign\/assets\//.test(u) && (init.method || 'GET') === 'GET', (u) => { const p = decodeURIComponent(String(u).split('/object/sign/assets/')[1].split('?')[0]); return objects[p] ? new Response(objects[p], { status: 200 }) : new Response('nf', { status: 404 }); }],
     [(u, init) => /\/storage\/v1\/object\/assets\//.test(u) && init.method === 'POST', async (u, init) => { objects[String(u).split('/object/assets/')[1]] = Buffer.from(init.body); return json({ Key: 'ok' }); }],
