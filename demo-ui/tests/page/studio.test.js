@@ -154,20 +154,20 @@ test('steps are optional: the tick row skips a step for the campaign, the pipeli
   } finally { X.restore(); }
 });
 
-test('create your own: the form needs an idea, then starts a campaign with the chosen markets, platforms and skipped steps (no trend)', async () => {
+test('create your own: the form needs an idea, then starts a campaign with the chosen platforms and skipped steps (no trend)', async () => {
   const X = loadPage({ fetchImpl: async (u) => (String(u).includes('/api/hermes') ? Promise.reject(new Error('offline in tests')) : new Promise(() => {})) });
   try {
     const els = { '#own-idea': { value: '' }, '#own-product': { value: 'Galaxy Z Flip8' }, '#own-err': { textContent: '' } };
     const qs = X.document.querySelector; X.document.querySelector = (s) => els[s] || qs.call(X.document, s);
-    const form = X.rOwnForm(); assert.match(form, /id="own-idea"/); assert.match(form, /ownToggle\('markets','Kuwait'\)/); assert.match(form, /ownToggle\('skip','qc'\)/); assert.match(form, /ownCreate\(\)/);
+    const form = X.rOwnForm(); assert.match(form, /id="own-idea"/); assert.doesNotMatch(form, /Markets|ownToggle\('markets'/); assert.match(form, /ownToggle\('skip','qc'\)/); assert.match(form, /ownCreate\(\)/);
     X.ownCreate(); assert.match(els['#own-err'].textContent, /Describe the idea first/); assert.equal(X.PROJECTS.length, 0);
-    X.ownToggle('markets', 'Kuwait'); X.ownToggle('platforms', 'instagram'); X.ownToggle('skip', 'qc'); X.ownToggle('skip', 'thumb');
+    X.ownToggle('platforms', 'instagram'); X.ownToggle('skip', 'qc'); X.ownToggle('skip', 'thumb');
     els['#own-idea'].value = 'Ramadan nights with the family, warm and premium';
     X.ownCreate();
     const p = X.PROJECTS[0];
     assert.ok(p && p.studio && p.planning, 'a draft campaign shows at once while it is planned'); assert.equal(p.trend, ''); assert.equal(p.ownIdea, true);
     assert.deepEqual(p.platforms, ['tiktok', 'instagram']); assert.deepEqual(Object.keys(p.skip).sort(), ['qc', 'thumb']);
-    assert.deepEqual(p.src.userMarkets, ['UAE', 'KSA', 'Kuwait']); assert.equal(p.src.userProduct, 'Galaxy Z Flip8');
+    assert.equal(p.src.userMarkets, undefined); assert.deepEqual(p.src.markets, ['Gulf']); assert.equal(p.src.userProduct, 'Galaxy Z Flip8');
     assert.deepEqual(X.OWN.skip, {}, 'the form resets its step choice');
     await new Promise((r) => setTimeout(r, 30)); // let the (failing, offline) planning call settle
   } finally { X.restore(); }

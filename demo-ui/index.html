@@ -4382,8 +4382,8 @@ function stageArtifactInner(p,n){
  }
  return '';
 }
-const OWN={markets:['UAE','KSA'],platforms:['tiktok'],skip:{}};
-const OWN_MARKETS=['UAE','KSA','Kuwait','Qatar','Bahrain','Oman'],OWN_PLATS=[['tiktok','TikTok'],['instagram','Instagram'],['youtube','YouTube'],['facebook','Facebook'],['x','X']];
+const OWN={platforms:['tiktok'],skip:{}};
+const OWN_PLATS=[['tiktok','TikTok'],['instagram','Instagram'],['youtube','YouTube'],['facebook','Facebook'],['x','X']];
 function ownToggle(kind,v){
  if(kind==='skip'){if(OWN.skip[v])delete OWN.skip[v];else OWN.skip[v]=true;return}
  const a=OWN[kind],i=a.indexOf(v);if(i>-1){if(a.length>1)a.splice(i,1)}else a.push(v);
@@ -4393,7 +4393,6 @@ function rOwnForm(){
  return `<div class="own-form">
   <div><div class="lab">Your idea</div><textarea id="own-idea" placeholder="e.g. “Galaxy Z Flip8 for Ramadan nights: family moments, warm and premium”"></textarea></div>
   <div><div class="lab">Product (optional)</div><input type="text" id="own-product" maxlength="80" placeholder="e.g. Galaxy Z Flip8 — or leave empty and Maistro picks"></div>
-  <div><div class="lab">Markets</div><div class="steps-pick" style="margin-top:0">${OWN_MARKETS.map(m=>box('markets',m,m,OWN.markets.includes(m))).join('')}</div></div>
   <div><div class="lab">Platforms</div><div class="steps-pick" style="margin-top:0">${OWN_PLATS.map(([v,l])=>box('platforms',v,l,OWN.platforms.includes(v))).join('')}</div></div>
   <div><div class="lab">Steps (untick any you don't need)</div><div class="steps-pick" style="margin-top:0">${STAGES.map(s=>box('skip',s.id,s.l,!OWN.skip[s.id])).join('')}</div></div>
   <div><button class="btn btn-gold btn-sm" onclick="ownCreate()">Create my campaign →</button> <span class="dim" id="own-err" style="font-size:11.5px;margin-left:6px"></span></div>
@@ -4403,8 +4402,8 @@ function ownCreate(){
  const idea=(($('#own-idea')||{}).value||'').trim(),product=(($('#own-product')||{}).value||'').trim();
  if(!idea){const e=$('#own-err');if(e)e.textContent='Describe the idea first.';return}
  if(BOT.busy){const e=$('#own-err');if(e)e.textContent='Another campaign is being planned — try again in a moment.';return}
- const payload={...cpPayloadFromText(idea),type:'own idea',markets:OWN.markets.slice(),platform:OWN.platforms[0],
-  userMarkets:OWN.markets.slice(),userPlatforms:OWN.platforms.slice(),...(product?{userProduct:product}:{})};
+ const payload={...cpPayloadFromText(idea),type:'own idea',markets:['Gulf'],platform:OWN.platforms[0],
+  userPlatforms:OWN.platforms.slice(),...(product?{userProduct:product}:{})};
  Object.assign(BOT,{step:'menu',msgs:[],chips:[],proj:null,payload:null,pendingPayload:payload,busy:false});
  const p=cpDraft(idea,payload);p.platforms=OWN.platforms.slice();p.trend='';p.ownIdea=true;
  if(Object.keys(OWN.skip).length)p.skip={...OWN.skip};
@@ -4437,7 +4436,7 @@ function rPathways(){
        <h3 style="font-size:15.5px;margin-top:7px">Studio Copilot — create each piece yourself</h3></div></div>
      ${badge('gold','SEEDANCE 2.5')}
     </div>
-    <p class="dim" style="font-size:12px;line-height:1.65;margin-top:10px"><b style="color:#ffe3a3">Create your own — no trend needed.</b> Describe the idea, pick the markets, platforms and the steps you want, and Maistro plans the campaign. Then generate each step in place; every piece queues in the Production Center.</p>
+    <p class="dim" style="font-size:12px;line-height:1.65;margin-top:10px"><b style="color:#ffe3a3">Create your own — no trend needed.</b> Describe the idea, pick the platforms and the steps you want, and Maistro plans the campaign. Then generate each step in place; every piece queues in the Production Center.</p>
     ${rOwnForm()}
     <div style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="cpOpen()">Or talk it through with the Studio Copilot →</button></div>
    </div>
