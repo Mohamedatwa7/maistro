@@ -570,6 +570,23 @@ body.bare #view{padding:0}
   border:1px solid var(--hairline);border-radius:12px;background:rgba(0,0,0,.5);padding:12px 14px;overflow-x:auto}
 .mcp-log .ok{color:var(--go)}.mcp-log .ai{color:var(--ai2)}.mcp-log .dim2{color:rgba(142,153,171,.55)}
 
+/* ---------- moments ---------- */
+.mo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px;align-items:start}
+.mo-head{border-bottom:1px solid var(--hairline)}
+.mo-row{display:flex;gap:14px;align-items:flex-start;padding:13px 16px;border-top:1px solid rgba(255,255,255,.05)}
+.mo-head+.mo-row,.mo-head+div+.mo-row{border-top:none}
+.mo-date{width:44px;flex:none;text-align:center;border:1px solid var(--hairline);border-radius:9px;padding:5px 0;background:rgba(255,255,255,.025)}
+.mo-date b{display:block;font-size:17px;color:#fff;font-weight:600;line-height:1.1}
+.mo-date span{font-family:var(--font-m);font-size:9px;letter-spacing:.08em;color:var(--muted)}
+.mo-ttl{font-size:13.5px;font-weight:600;color:#fff}
+.mo-sub{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5}
+.mo-note{font-size:11.5px;color:rgba(255,255,255,.72);margin-top:5px;line-height:1.55}
+.mo-angle{font-size:11.5px;color:#ffe3a3;margin-top:5px;line-height:1.55}
+.mo-news{display:inline-block;font-size:11px;color:#7dd3fc;margin-top:5px;text-decoration:none}
+.mo-acts{display:flex;flex-direction:column;gap:7px;align-items:flex-end;flex:none}
+.mo-foot{font-size:11px;padding:12px 16px;border-top:1px solid var(--hairline);line-height:1.6}
+@media (max-width:720px){.mo-grid{grid-template-columns:1fr}.mo-row{flex-wrap:wrap}.mo-acts{flex-direction:row;align-items:center;width:100%}}
+
 /* ---------- production center ---------- */
 .pc-head{border-bottom:1px solid var(--hairline);display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
 .pc-filters{display:flex;gap:4px;padding:3px;border:1px solid var(--hairline);border-radius:10px;background:rgba(255,255,255,.02)}
@@ -1036,7 +1053,7 @@ function doLogin(){
  $('#login').classList.add('out');
  document.body.classList.remove('locked');
  const sm=$('#sb-members');if(sm)sm.style.display=AUTH.member&&AUTH.member.role==='admin'?'':'none';
- loadPieces();loadScored();loadKb();
+ loadPieces();loadScored();loadMoments();loadKb();
  // the sentiment reads need the session (2026-10-22), so load them once signed in
  if(!SENTI.track&&!SENTI.snap)loadSentiment();
  if(!location.hash||location.hash==='#')location.hash='#/';
@@ -1334,6 +1351,17 @@ function radarToTrend(t,i){
 }
 /* ---------- 5.5 the scored board (TREND_FRAMEWORK.md) ---------- */
 const SCORED={at:null,boardAt:null,ranked:[],rejected:[],needsReview:[],loaded:false,error:null,open:{}};
+/* moments (api/_trends/moments.js): the planned calendar + what is spiking in the Gulf now */
+const MOMENTS={loaded:false,upcoming:[],breaking:null,error:null};
+async function loadMoments(){
+ try{
+  const r=await fetch('/api/moments');
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||('api '+r.status));
+  Object.assign(MOMENTS,{upcoming:d.upcoming||[],breaking:d.breaking||null,loaded:true,error:null});
+ }catch(e){MOMENTS.error=e.message;MOMENTS.loaded=true}
+ if(location.hash.replace(/^#\//,'').split('/')[0]==='trends'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rTrends();reveal()}
+}
 async function loadScored(){
  try{
   const r=await fetch('/api/trends?view=scored');
@@ -3975,6 +4003,72 @@ function trendStalePill(){
  if(h==null)return '';
  return h>TREND_STALE_H?`<span class="pill" style="border-color:rgba(251,113,133,.5);color:#fda4af"><span class="dot" style="background:#fb7185"></span>STALE · ${Math.round(h)}H OLD</span>`:'';
 }
+const MKT={AE:'UAE',SA:'KSA',KW:'Kuwait',QA:'Qatar',BH:'Bahrain',OM:'Oman'};
+const MO_CAT={national:'c',religious:'gold',retail:'go',sport:'ai',tech:'v',culture:'muted',entertainment:'v',holiday:'gold',lifestyle:'muted',other:'muted'};
+const moDate=s=>{const d=new Date(s+'T00:00:00Z');return{d:d.getUTCDate(),m:d.toLocaleString('en',{month:'short',timeZone:'UTC'}).toUpperCase()}};
+const moNum=n=>n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n>=1e3?Math.round(n/1e3)+'K':String(n);
+function rMomentUp(m){
+ const dt=moDate(m.from);
+ const when=m.status==='live'?badge('go','UNDER WAY'):m.daysUntil===0?badge('go','TODAY'):badge(m.status==='prep'?'gold':'muted','IN '+m.daysUntil+' DAY'+(m.daysUntil===1?'':'S'));
+ const prep=m.status==='live'?`Under way until ${esc(m.to)}`:m.status==='prep'?`<b style="color:#fbbf24">Production window is open</b>: start now (${m.leadDays}-day lead time)`:`Start production by <b style="color:#fff">${esc(m.prepBy)}</b>`;
+ return `<div class="mo-row">
+  <div class="mo-date"><b>${dt.d}</b><span>${dt.m}</span></div>
+  <div style="min-width:0;flex:1">
+   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="mo-ttl">${esc(m.label)}</span>${badge(MO_CAT[m.category]||'muted',esc(String(m.category).toUpperCase()))}${m.estimate?badge('muted','DATE TO CONFIRM'):''}</div>
+   <div class="mo-sub">${m.markets.map(c=>esc(MKT[c]||c)).join(' · ')} · ${prep}</div>
+   <div class="mo-note">${esc(m.note||'')}</div>
+  </div>
+  <div class="mo-acts">${when}<button class="btn btn-sm" onclick="cpFromMoment('up','${esc(m.id)}')">Plan in Studio</button></div>
+ </div>`;
+}
+function rMomentNow(m){
+ const reach=[m.traffic?moNum(m.traffic)+'+ searches':'',m.wikiViews?moNum(m.wikiViews)+' Wikipedia views':''].filter(Boolean).join(' · ');
+ const n=(m.news||[])[0];
+ return `<div class="mo-row">
+  <div style="min-width:0;flex:1">
+   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="mo-ttl">${esc(m.label)}</span>${m.category?badge(MO_CAT[m.category]||'muted',esc(String(m.category).toUpperCase())):''}${m.scale==='macro'?badge('gold','REGION-WIDE'):''}${m.brandSafe==null?badge('alert','NOT BRAND-CHECKED'):''}</div>
+   <div class="mo-sub">${m.markets.length?m.markets.map(c=>esc(MKT[c]||c)).join(' · '):'Wikipedia'}${reach?' · '+reach:''}</div>
+   ${m.why?`<div class="mo-note">${esc(m.why)}</div>`:''}
+   ${m.samsungAngle?`<div class="mo-angle">✦ ${esc(m.samsungAngle)}</div>`:''}
+   ${n&&/^https:\/\//.test(n.url)?`<a class="mo-news" href="${esc(n.url)}" target="_blank" rel="noopener noreferrer">${esc(n.title)}${n.source?' · '+esc(n.source):''} ↗</a>`:''}
+  </div>
+  <div class="mo-acts"><button class="btn btn-sm" onclick="cpFromMoment('now','${esc(m.id)}')">Plan in Studio</button></div>
+ </div>`;
+}
+function rMoments(){
+ if(!MOMENTS.loaded)return `<div class="card p5"><p class="dim" style="font-size:12.5px">Loading moments…</p></div>`;
+ if(MOMENTS.error&&!MOMENTS.upcoming.length)return `<div class="card p5"><div class="pc-note">Moments could not be loaded (${esc(MOMENTS.error)}). Reload to try again.</div></div>`;
+ const b=MOMENTS.breaking||{items:[],hidden:[]};
+ const src=b.sources?`Google Trends in ${b.sources.googleMarkets.length} Gulf markets${b.sources.wikipediaDay?' + Wikipedia (English and Arabic, '+esc(b.sources.wikipediaDay)+')':''}`:'';
+ return `<div class="mo-grid">
+  <div class="card" style="overflow:hidden">
+   <div class="p5 mo-head"><span class="kick accent">Coming up</span><h3 style="font-size:17px;margin-top:8px">Plan for these</h3>
+    <p class="dim" style="font-size:12px;margin-top:4px">Holidays, national days, sales seasons and big events over the next five months, with the date production should start.</p></div>
+   ${MOMENTS.upcoming.map(rMomentUp).join('')||'<div class="pc-empty dim">Nothing in the next five months.</div>'}
+  </div>
+  <div class="card" style="overflow:hidden">
+   <div class="p5 mo-head"><span class="kick accent">Breaking now</span><h3 style="font-size:17px;margin-top:8px">What the Gulf is searching</h3>
+    <p class="dim" style="font-size:12px;margin-top:4px">Finals, award nights, launches and other shared moments spiking right now${src?': '+src:''}. Routine searches and anything off-brand are left out.</p></div>
+   ${b.error?`<div class="p5"><div class="pc-note">The live sources could not be reached (${esc(b.error)}).</div></div>`:''}
+   ${!b.error&&b.classifiedBy==='none'?`<div class="p5" style="padding-top:0"><div class="pc-note">The brand check was unavailable, so these are unchecked. Review each one before using it.</div></div>`:''}
+   ${(b.items||[]).map(rMomentNow).join('')||(!b.error?'<div class="pc-empty dim">No region-wide moment is spiking right now.</div>':'')}
+   ${(b.hidden||[]).length||b.routine?`<div class="mo-foot dim">${b.hidden.length?`Screened out as off-brand: ${b.hidden.map(h=>esc(h.label)+(h.category?' ('+esc(h.category)+')':'')).join(', ')}. `:''}${b.routine?`${b.routine} routine searches (fixtures, weather, portals) skipped.`:''}</div>`:''}
+  </div>
+ </div>`;
+}
+function cpFromMoment(kind,id){
+ const m=kind==='up'?MOMENTS.upcoming.find(x=>x.id===id):((MOMENTS.breaking&&MOMENTS.breaking.items)||[]).find(x=>x.id===id);if(!m)return;
+ const when=kind==='up'?` (${m.from===m.to?m.from:m.from+' to '+m.to})`:' (happening now)';
+ const payload={...cpPayloadFromText(`${m.label}${when}: ${m.samsungAngle||m.note||m.why||''}`.trim()),name:m.label,type:'moment',markets:(m.markets||[]).map(c=>MKT[c]||c)};
+ if(!payload.markets.length)payload.markets=['UAE','KSA'];
+ Object.assign(BOT,{step:'direction',msgs:[],chips:[],proj:null,payload:null,pendingPayload:payload,busy:false});
+ cpDraft(m.label,BOT.pendingPayload);
+ cpSay(`I've pulled the moment <b>“${esc(m.label)}”</b> into the studio. Tell me what you want this campaign to be (product, angle, market) or tap <b>Plan it</b> and I'll decide.`);
+ BOT.chips=[{t:'⚡ Plan it — you decide',a:'plango',gold:true}];
+ STATE.copilot=true;
+ if(location.hash!=='#/studio')location.hash='#/studio';
+ cpRender();
+}
 function rTrends(){
  if(!TRENDS.length){
   const when=LIVE.fetchedAt?fmtClock(LIVE.fetchedAt):null;
@@ -4007,9 +4101,11 @@ function rTrends(){
  const lens=(k,n,h,d,count)=>`<button onclick="trViewSet('${k}')" class="card${trView===k?' on':''}" style="text-align:left;padding:14px 16px;cursor:pointer;border:1px solid ${trView===k?'rgba(125,211,252,.6)':'var(--hairline)'};background:${trView===k?'rgba(125,211,252,.07)':'transparent'};color:inherit;font:inherit">
    <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span class="kick${trView===k?' accent':''}">${n} · ${h}</span><span class="num" style="font-size:18px;color:#fff">${count}</span></div>
    <div class="dim" style="font-size:12px;line-height:1.55;margin-top:6px">${d}</div></button>`;
- const lenses=SCORED.loaded?`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:18px">
+ const momentCount=MOMENTS.upcoming.filter(m=>m.status!=='later').length+((MOMENTS.breaking&&MOMENTS.breaking.items)||[]).length;
+ const lenses=SCORED.loaded||MOMENTS.loaded?`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:18px">
    ${lens('ranked','①','What to make','Maistro’s shortlist: each live trend scored on 10 criteria (timing, Gulf relevance, product fit…), with brand-safety vetoes. Start here — pick a trend and send it to the Studio.',hasRank?SCORED.ranked.length:'—')}
    ${lens('live','②','Live feed','Everything TrendRadar is tracking today, before Maistro’s judgement: raw momentum, views and the trend sound. Use it to browse or spot something the ranking missed.',TRENDS.length)}
+   ${lens('moments','③','Moments','The big occasions to plan around (Halloween, National Days, Ramadan) and what the whole Gulf is searching right now (finals, award nights, launches).',MOMENTS.loaded?momentCount:'—')}
   </div>`:'';
  const kpi2=LIVE.on
   ?`<div class="card kpi p4"><span class="kick">Strong Samsung fit</span><div class="v num">${strong}</div><div class="hint">of ${TRENDS.length} gated · via TrendRadar</div></div>`
@@ -4023,6 +4119,7 @@ function rTrends(){
    ${trendStalePill()}<span class="pill"><span class="dot"></span>${LIVE.on?`LIVE · TRENDRADAR · BOARD ${fmtStamp(LIVE.boardAt||LIVE.fetchedAt)}`:'SCANNING 4 PLATFORMS · 4 MARKETS · REFRESH 15M'}</span></div>
   ${lenses}
   ${trView==='ranked'?rScoredBoard():''}
+  ${trView==='moments'?rMoments():''}
   ${trView==='live'?`<div class="kpis c4" style="margin-bottom:18px">
    <div class="card kpi p4"><span class="kick">Live trends</span><div class="v num">${TRENDS.length}</div><div class="hint">${rising} rising · ${TRENDS.length-rising} flat or declining</div></div>
    ${kpi2}
