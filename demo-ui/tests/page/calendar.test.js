@@ -100,3 +100,23 @@ test('composer: "+ Add Maistro post" opens the original post layout for an appro
     assert.match(m, /▶ Push draft to Sprinklr/); assert.match(m, /Cancel post/);
   } finally { X.restore(); }
 });
+
+test('Studio post maker: an approved final shows the phone preview with the brief\'s caption and opens the composer; once planned it shows the slot', () => {
+  const X = loadPage({ fetchImpl: async () => new Promise(() => {}), hash: '#/studio' });
+  try {
+    const modal = { innerHTML: '' }; const q0 = X.document.querySelector;
+    X.document.querySelector = (sel) => (sel === '#modal' ? modal : /^#cc-/.test(sel) ? null : q0(sel));
+    X.PROJECTS.push({ id: 'gen-p9', studio: true, title: 'Deadpan', brief: { spec: { caption: { en: 'Wait for it', ar: 'انتظر' }, hashtags: { en: ['GalaxyZFlip8', '#Samsung'] } } } });
+    X.CALV.data = { slots: [], owned: { tiktok: ['samsunggulf'] }, sprinklr: { drafts: true, accounts: {} }, unscheduled: [{ pieceId: 'gen-p9', title: 'Deadpan', platforms: ['tiktok'], markets: ['Gulf'], media: { videoUrl: 'https://sb.test/final.mp4' } }] };
+    const p = X.PROJECTS.find((x) => x.id === 'gen-p9');
+    assert.equal(X.briefCaption('gen-p9'), 'Wait for it\n\n#GalaxyZFlip8 #Samsung');
+    let html = X.rStudioPost(p);
+    assert.match(html, /Post maker/); assert.match(html, /class="cc-phone"/); assert.match(html, /<video src="https:\/\/sb\.test\/final\.mp4"/);
+    assert.match(html, /@samsunggulf/); assert.match(html, /Wait for it/); assert.match(html, /onclick="calCompose\('gen-p9'\)">Make the post →/);
+    X.calCompose('gen-p9'); assert.match(modal.innerHTML, /Wait for it\n\n#GalaxyZFlip8 #Samsung<\/textarea>/, 'the composer starts from the brief\'s caption');
+    X.CALV.data.unscheduled = []; X.CALV.data.slots = [{ id: 7, pieceId: 'gen-p9', title: 'Deadpan', platform: 'tiktok', account: 'samsunggulf', slotAt: '2026-10-30T14:00:00.000Z', caption: 'Planned caption', status: 'exported', sprinklrDraftId: 'D-1', media: null }];
+    html = X.rStudioPost(p);
+    assert.match(html, /EXPORTED/); assert.match(html, /Planned caption/); assert.match(html, /SPRINKLR DRAFT D-1/); assert.match(html, /calCompose\(null,7\)">Open the post/);
+    X.CALV.data.slots = []; assert.equal(X.rStudioPost(p), '', 'nothing for a piece that is neither approved nor planned');
+  } finally { X.restore(); }
+});

@@ -2967,6 +2967,7 @@ function rFinal(p,locked){
   ${v?`<span class="kick">Each QC risk after the fixes</span><div style="margin:6px 0 12px">${v.risks.map(r=>`<div style="font-size:12px;margin-top:4px">${badge(r.resolved==='yes'?'go':r.resolved==='partial'?'gold':'alert',esc(r.ref)+' · '+r.resolved.toUpperCase())} <span class="dim">${esc(r.evidence)}</span></div>`).join('')}</div>`:''}
   ${p.studio&&!locked&&f.assembled&&!v?`<div style="margin-bottom:10px"><button class="btn btn-ai btn-sm" onclick="finalVerify('${p.id}')">Re-run F1X8 and verify every risk</button></div>`:''}
   ${f.assembled&&locked?`<div style="margin-bottom:10px"><button class="btn btn-go btn-sm" onclick="finalPackage('${p.id}')">Export the delivery package</button> <span class="dim" style="font-size:11px">Video, thumbnail, captions per language, hashtags, disclaimers and metadata, for Sprinklr or manual posting.</span>${p.studio?` <a href="#/calendar" style="font-size:11px;color:#7dd3fc">Plan it in the Calendar and push it to Sprinklr as a draft →</a>`:''}</div>`:''}
+  ${f.assembled&&locked&&p.studio?rStudioPost(p):''}
   ${f.assembled&&locked?rPostLinks(p):''}
   ${rDraft(p,locked,'final')}`;
 }
@@ -4832,7 +4833,7 @@ async function loadCalendar(){
  if(CALV.busy)return;CALV.busy=true;
  try{const r=await authFetch('/api/studio?calendar=1');const d=await r.json().catch(()=>({}));CALV.data=r.ok&&d.slots?d:{error:d.error||('calendar unavailable ('+r.status+')'),code:d.code}}
  catch(e){CALV.data={error:'calendar unavailable'}}
- finally{CALV.busy=false;if(location.hash.replace(/^#\//,'').split('/')[0]==='calendar'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rCalendar();reveal()}}
+ finally{CALV.busy=false;const r=location.hash.replace(/^#\//,'').split('/')[0];if(r==='calendar'&&!document.body.classList.contains('locked')){$('#view').innerHTML=rCalendar();reveal()}else if(r==='studio')studioRefresh()}
 }
 /* a datetime-local value is read as Gulf time (Asia/Dubai, UTC+4, no DST — ADR-011) */
 const gulfToIso=v=>v?new Date(v+':00+04:00').toISOString():null;
@@ -4876,9 +4877,35 @@ function calCompose(pid,slotId,day){
   Object.assign(CALC,{pid:s.pieceId,slotId,plat:s.platform,acc:s.account,when:new Date(Date.parse(s.slotAt)+GST).toISOString().slice(0,16),cap:s.caption||'',busy:false,err:null})}
  else{const u=un.find(x=>x.pieceId===pid)||un[0];
   const plats=u?calPlatsFor(u):[];
-  Object.assign(CALC,{pid:u?u.pieceId:null,slotId:null,plat:plats[0]||null,acc:null,cap:'',busy:false,err:null,when:(day||gstDay(Date.now()+864e5))+'T18:00'});
+  Object.assign(CALC,{pid:u?u.pieceId:null,slotId:null,plat:plats[0]||null,acc:null,cap:u?briefCaption(u.pieceId):'',busy:false,err:null,when:(day||gstDay(Date.now()+864e5))+'T18:00'});
   CALC.acc=((calOwned()[CALC.plat])||[])[0]||null}
  calModal();$('#modal-back').classList.add('open');
+}
+/* the brief's English caption and hashtags, as the composer's starting caption (edited before it is saved) */
+function briefCaption(pid){
+ const sp=(((PROJECTS.find(x=>x.id===pid)||{}).brief)||{}).spec;if(!sp)return '';
+ const tags=((sp.hashtags&&sp.hashtags.en)||[]).map(t=>'#'+String(t).replace(/^#/,'')).join(' ');
+ return [(sp.caption&&sp.caption.en)||'',tags].filter(Boolean).join('\n\n');
+}
+/* the composer inside the Studio, on an approved final: the same phone preview as the Calendar, and the button that opens it */
+function rStudioPost(p){
+ const d=CALV.data;
+ if(!d){if(!CALV.busy)loadCalendar();return `<div class="dim" style="font-size:11.5px;margin-bottom:12px">Loading the post maker…</div>`}
+ if(d.error)return `<div class="dim" style="font-size:11.5px;margin-bottom:12px">The post maker is unavailable: ${esc(d.error)}</div>`;
+ const u=(d.unscheduled||[]).find(x=>x.pieceId===p.id);
+ const slots=(d.slots||[]).filter(x=>x.pieceId===p.id&&x.status!=='canceled');
+ if(!u&&!slots.length)return '';
+ const s=slots[0],plat=s?s.platform:calPlatsFor(u)[0],acc=s?s.account:((calOwned()[plat])||[])[0];
+ const when=s?new Date(Date.parse(s.slotAt)+GST).toISOString().slice(0,16):'';
+ return `<div class="card p5" style="margin-bottom:14px"><span class="kick accent">Post maker</span>
+  <div class="cc-grid" style="margin-top:12px"><div>${calPostPreview(s||u,plat,acc,s?s.caption||'':briefCaption(p.id),when)}</div>
+   <div style="min-width:0">
+    ${s?`<div style="font-size:12.5px">${badge(s.status==='exported'?'gold':s.status==='posted'?'go':'muted',esc(s.status.toUpperCase()))} ${esc(FEED_PLAT[s.platform]||s.platform)} · @${esc(s.account)} · ${esc(fmtStamp(Date.parse(s.slotAt)))}</div>
+     ${s.sprinklrDraftId?`<div class="mono dim" style="font-size:10.5px;margin-top:6px">SPRINKLR DRAFT ${esc(s.sprinklrDraftId)}</div>`:''}
+     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-sm" onclick="calCompose(null,${Number(s.id)})">Open the post</button><a class="btn btn-ghost btn-sm" href="#/calendar">Calendar →</a></div>`
+    :`<p class="dim" style="font-size:12px;line-height:1.6">The approved final is ready to post. Choose the platform, account and Gulf time, write the caption (it starts from the brief's), and add it to the calendar or push it to Sprinklr as a draft.</p>
+     <div style="margin-top:12px"><button class="btn btn-ai btn-sm" onclick="calCompose('${esc(p.id)}')">Make the post →</button></div>`}
+   </div></div></div>`;
 }
 function calPlatsFor(u){const own=Object.keys(calOwned()).filter(p=>(calOwned()[p]||[]).length);const want=((u&&u.platforms)||[]).map(p=>String(p).toLowerCase()).filter(p=>own.includes(p));return want.length?want:own}
 function calSync(){const c=$('#cc-cap'),w=$('#cc-when'),a=$('#cc-acc');if(c)CALC.cap=c.value;if(w)CALC.when=w.value;if(a)CALC.acc=a.value}
