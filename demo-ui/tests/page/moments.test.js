@@ -59,5 +59,8 @@ test('part 3: the live feed hides niche and unmeasured trends unless on-brand, l
     X.STATE.trView = 'moments'; html = X.rTrends();
     assert.match(html, /③ · Moments/); assert.match(html, /Plan for these/); assert.match(html, /What the Gulf is searching/);
     assert.match(html, /Production window is open/); assert.match(html, /DATE TO CONFIRM/); assert.match(html, /3 routine searches/);
+    X.MOMENTS.breaking = { classifiedBy: 'none', items: [{ id: 'x', label: 'liverpool vs chelsea', markets: ['AE', 'KW'], sources: ['google'], news: [], keywords: [] }], hidden: [], routine: 0, errors: ['brand check: 400 Your credit balance is too low'] };
+    html = X.rTrends();
+    assert.ok(!html.includes('liverpool vs chelsea'), 'unchecked searches are not listed'); assert.match(html, /out of credit/);
   } finally { X.restore(); }
 });
