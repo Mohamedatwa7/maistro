@@ -164,3 +164,32 @@ test('the hourly cron prepares the breaking read and stores it; a signed-in read
     assert.ok(Date.now() - new Date(pg.tables.trends_cache.find((x) => x.id === 'moments').fetched_at).getTime() < 60e3, 'and stored');
   } finally { s.f.restore(); h.restore(); }
 });
+
+test('when the brand check fails, a checked copy under a day old is kept (not replaced by unchecked searches), and the refresh says why', async () => {
+  const { fakePostgrest } = require('../fake-postgrest');
+  const pg = fakePostgrest();
+  const ENV = { ANTHROPIC_API_KEY: 'k', SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', CRON_SECRET: 'cron' };
+  let claudeUp = true;
+  const s = sources({ claude: (b) => (claudeUp ? screen(b) : null), extra: [pg.route] });
+  let h = api('moments.js', ENV);
+  try {
+    let r = res(); await h.handler(req({ method: 'GET', headers: { authorization: 'Bearer cron' }, session: false }), r);
+    assert.equal(r.body.classifiedBy, 'claude');
+  } finally { h.restore(); }
+  claudeUp = false; // the mock now answers 500, like the credit running out
+  h = api('moments.js', ENV);
+  try {
+    let r = res(); await h.handler(req({ method: 'GET', headers: { authorization: 'Bearer cron' }, session: false }), r);
+    assert.equal(r.body.kept, true); assert.match(r.body.refreshSkipped, /brand check/);
+    const row = pg.tables.trends_cache.find((x) => x.id === 'moments');
+    assert.equal(row.payload.breaking.classifiedBy, 'claude', 'the checked copy stays stored');
+    row.fetched_at = new Date(Date.now() - 2 * 3600e3).toISOString(); // past 75 min: a signed-in read refreshes, fails the check, keeps the copy
+  } finally { h.restore(); }
+  h = api('moments.js', ENV);
+  try {
+    const r = res(); await h.handler(req({ method: 'GET' }), r);
+    assert.equal(r.body.breaking.classifiedBy, 'claude'); assert.equal(r.body.breaking.items[0].label, "Ballon d'Or 2026");
+    assert.match(r.body.breaking.refreshSkipped, /brand check/);
+    assert.ok(Date.now() - new Date(r.body.breaking.preparedAt).getTime() > 3600e3, 'preparedAt is the kept copy\'s time');
+  } finally { s.f.restore(); h.restore(); }
+});

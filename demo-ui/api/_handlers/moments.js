@@ -12,7 +12,7 @@ const { requireSession, isCron } = require('../_auth.js');
 const { queryRows, upsertRows } = require('../_supabase.js');
 
 const CACHE_KEY = 'moments';
-const STALE_MS = 75 * 60e3, MEMO_MS = 10 * 60e3, FAILED_MS = 2 * 60e3;
+const STALE_MS = 75 * 60e3, MEMO_MS = 10 * 60e3, FAILED_MS = 2 * 60e3, KEEP_CHECKED_MS = 24 * 3600e3;
 let memo = null; // { at, breaking }
 
 const dbConfigured = () => Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -32,6 +32,16 @@ async function fresh(now) {
   let breaking;
   try { breaking = await moments.fetchBreaking({ now }); }
   catch (e) { breaking = { error: String(e.message || e), items: [], hidden: [], routine: 0, classifiedBy: 'none', errors: [] }; }
+  if (breaking.classifiedBy !== 'claude') {
+    // the brand check failed (2026-10-29: the Anthropic credit ran out): a checked copy under a day old
+    // is better than unchecked searches, so keep serving it and say why the refresh was skipped
+    const stored = await readStored();
+    if (stored && stored.breaking.classifiedBy === 'claude' && Date.now() - stored.at < KEEP_CHECKED_MS) {
+      const kept = { ...stored.breaking, refreshSkipped: (breaking.errors || []).concat(breaking.error ? [breaking.error] : []).join('; ').slice(0, 300) || 'the brand check was unavailable' };
+      memo = { at: Date.now(), breaking: kept, keptFrom: stored.at };
+      return kept;
+    }
+  }
   memo = { at: Date.now(), breaking };
   await store(breaking);
   return breaking;
@@ -46,7 +56,7 @@ module.exports = async (req, res) => {
   if (isCron(req)) {
     const b = await fresh(now);
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(b.error ? 502 : 200).json({ ok: !b.error, items: b.items.length, hidden: b.hidden.length, routine: b.routine, classifiedBy: b.classifiedBy, errors: b.errors, error: b.error || null });
+    return res.status(b.error ? 502 : 200).json({ ok: !b.error, kept: Boolean(b.refreshSkipped), refreshSkipped: b.refreshSkipped || null, items: b.items.length, hidden: b.hidden.length, routine: b.routine, classifiedBy: b.classifiedBy, errors: b.errors, error: b.error || null });
   }
   if (!requireSession(req, res)) return;
   const q = req.query || {};
@@ -57,7 +67,7 @@ module.exports = async (req, res) => {
     else {
       const stored = await readStored();
       if (stored && Date.now() - stored.at < STALE_MS) { breaking = stored.breaking; preparedAt = stored.at; memo = { at: Date.now(), breaking }; }
-      else { breaking = await fresh(now); preparedAt = Date.now(); }
+      else { breaking = await fresh(now); preparedAt = memo && memo.keptFrom ? memo.keptFrom : Date.now(); }
     }
   }
   res.setHeader('Cache-Control', breaking && breaking.error ? 'private, max-age=60' : 'private, max-age=600');

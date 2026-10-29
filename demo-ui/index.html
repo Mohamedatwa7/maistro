@@ -4051,6 +4051,7 @@ function rMoments(){
     <p class="dim" style="font-size:12px;margin-top:4px">Finals, award nights, launches and other shared moments spiking right now${src?': '+src:''}. Routine searches and anything off-brand are left out.</p></div>
    ${b.error?`<div class="p5"><div class="pc-note">The live sources could not be reached (${esc(b.error)}).</div></div>`:''}
    ${!b.error&&b.classifiedBy==='none'?`<div class="p5" style="padding-top:0"><div class="pc-note">The brand check was unavailable, so these are unchecked. Review each one before using it.</div></div>`:''}
+   ${b.refreshSkipped?`<div class="p5" style="padding-top:0"><div class="pc-note" style="border-color:rgba(251,191,36,.45)">Showing the last checked list${b.preparedAt?' from '+esc(fmtClock(b.preparedAt)):''}: the latest refresh could not run its brand check, so it was not used.</div></div>`:''}
    ${(b.items||[]).map(rMomentNow).join('')||(!b.error?'<div class="pc-empty dim">No region-wide moment is spiking right now.</div>':'')}
    ${(b.hidden||[]).length||b.routine?`<div class="mo-foot dim">${b.hidden.length?`Screened out as off-brand: ${b.hidden.map(h=>esc(h.label)+(h.category?' ('+esc(h.category)+')':'')).join(', ')}. `:''}${b.routine?`${b.routine} routine searches (fixtures, weather, portals) skipped.`:''}</div>`:''}
   </div>
