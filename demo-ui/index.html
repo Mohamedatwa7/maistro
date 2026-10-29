@@ -540,6 +540,14 @@ body.bare #view{padding:0}
 .steps-pick label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
 .steps-pick input{accent-color:#7dd3fc;width:14px;height:14px}
 .own-form{display:grid;gap:10px;margin-top:12px}
+.p3d-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:14px}
+.p3d-card{display:flex;gap:12px;padding:12px;border:1px solid var(--hairline);border-radius:12px;background:rgba(255,255,255,.02);min-width:0}
+.p3d-card>img{width:76px;height:76px;border-radius:10px;object-fit:cover;flex:none;background:#eef0f3}
+.p3d-views{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.p3d-views img{width:28px;height:28px;border-radius:6px;object-fit:cover;cursor:pointer;border:2px solid rgba(203,213,225,.2);background:#eef0f3}
+.p3d-views img.on{border-color:#6ee7b9}
+.p3d-up{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.p3d-up input[type=text]{flex:1 1 220px;min-width:0;background:rgba(255,255,255,.04);border:1px solid var(--hairline);border-radius:10px;color:#fff;padding:8px 11px;font:inherit;font-size:12.5px}
 .own-form textarea,.own-form input[type=text]{width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid var(--hairline);border-radius:10px;color:#fff;padding:9px 11px;font:inherit;font-size:12.5px}
 .own-form textarea{min-height:64px;resize:vertical}
 .own-form .lab{font-family:var(--font-m);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
@@ -2514,8 +2522,10 @@ function refRemove(pid,i){
 function rRefControl(p){
  if(p.refImages&&!Array.isArray(p.refImages))delete p.refImages;
  const refs=p.refImages||(p.refImage?[p.refImage]:[]);
+ const m3=p3dFor(p.product);
  return `
  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap" onclick="event.stopPropagation()">
+  ${m3?`<span class="pill" style="border-color:rgba(110,231,185,.45);color:#6ee7b9" title="Every thumbnail, storyboard picture and video clip of this campaign is held to the ${esc(m3.product)} 3D model (${m3.views.length} views)"><img src="${esc(p3dHeroUrl(m3))}" alt="" style="width:16px;height:16px;border-radius:4px;object-fit:cover;margin-right:6px;vertical-align:-3px">3D MODEL · ${m3.views.length} VIEWS</span>`:''}
   ${refs.map((u,i)=>`
    <span style="position:relative;display:inline-block">
     <img src="${u}" onclick="refSelect('${p.id}',${i})" title="${u===p.refImage?'Active reference — used for generation':'Click to make this the active reference'}"
@@ -2527,8 +2537,145 @@ function rRefControl(p){
    ${refs.length?'＋ PHOTO':'📷 ADD REAL PRODUCT PHOTOS'}
    <input type="file" accept="image/*" multiple style="display:none" onchange="refUpload('${p.id}',this)">
   </label>
-  ${refs.length?`<span class="mono" style="font-size:9px;color:#6ee7b9;letter-spacing:.06em" title="Used on the thumbnail (a single hero visual). Moodboards and storyboards are multi-panel layouts — a product reference collapses them into one product shot, so they generate without it">GOLD = USED ON THUMBNAIL</span>`:''}
+  ${m3&&refs.length?`<span class="mono" style="font-size:9px;color:#6ee7b9;letter-spacing:.06em">GOLD PHOTO GOES WITH THE 3D VIEWS</span>`:!m3&&refs.length?`<span class="mono" style="font-size:9px;color:#6ee7b9;letter-spacing:.06em" title="Used on the thumbnail (a single hero visual). Moodboards and storyboards are multi-panel layouts — a product reference collapses them into one product shot, so they generate without it">GOLD = USED ON THUMBNAIL</span>`:''}
  </div>`;
+}
+/* ---------- product 3D models (owner 2026-10-29) ----------
+   A product's model is uploaded once, as a .glb exported from Blender. The page shows it with <model-viewer>,
+   photographs it from fixed angles and stores those views; the server sends them with every thumbnail,
+   storyboard keyframe and video clip of that product's campaigns, so the device generated is the modelled one. */
+const P3D={models:null,loading:false,busy:null,err:null,confirm:null};
+const P3D_ANGLES=[['front ¾','35deg 78deg',true],['front','0deg 82deg'],['side','90deg 82deg'],['back','180deg 82deg'],['back ¾','215deg 78deg'],['top','0deg 18deg']];
+const MV_SRC='https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js';
+const p3dSlug=s=>String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);
+/* the same match as the server: the product's own model, else the longest model name inside the product name */
+function p3dFor(product){const ms=P3D.models||[],s=p3dSlug(product);if(!s)return null;return ms.find(m=>m.slug===s)||ms.filter(m=>s.includes(m.slug)).sort((a,b)=>b.slug.length-a.slug.length)[0]||null}
+const p3dHeroUrl=m=>((m.views||[]).find(v=>v.hero)||(m.views||[])[0]||{}).url||'';
+async function loadP3d(){
+ if(P3D.loading)return;P3D.loading=true;
+ try{const r=await authFetch('/api/studio?products3d=1');const d=await r.json().catch(()=>({}));P3D.models=r.ok?(d.models||[]):[];if(!r.ok)P3D.err=d.error||'the 3D models could not be loaded'}
+ catch(e){P3D.models=[];P3D.err=e.message}
+ P3D.loading=false;studioRefresh();
+}
+async function p3dPost(body){
+ const r=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('studio responded '+r.status));return d;
+}
+let MV_LOAD=null;
+function mvReady(){
+ if(window.customElements&&customElements.get('model-viewer'))return Promise.resolve();
+ if(!MV_LOAD)MV_LOAD=new Promise((res,rej)=>{const s=document.createElement('script');s.type='module';s.src=MV_SRC;
+  s.onload=()=>customElements.whenDefined('model-viewer').then(res);s.onerror=()=>{MV_LOAD=null;rej(new Error('the 3D viewer could not load'))};document.head.appendChild(s)});
+ return MV_LOAD;
+}
+function rP3dCard(m){
+ const used=PROJECTS.filter(p=>p3dFor(p.product)===m).length,sl=esc(m.slug);
+ return `<div class="p3d-card"><img src="${esc(p3dHeroUrl(m))}" alt="">
+  <div style="min-width:0;flex:1"><b style="font-size:13px">${esc(m.product)}</b>
+   <div class="dim mono" style="font-size:9.5px;margin-top:3px">${m.views.length} VIEWS · ${used} CAMPAIGN${used===1?'':'S'}</div>
+   <div class="p3d-views">${m.views.map((v,i)=>`<img src="${esc(v.url)}" class="${v.hero?'on':''}" title="${esc(v.angle)}${v.hero?' — main view':' — click to make it the main view'}" onclick="p3dHero('${sl}',${i})" alt="">`).join('')}</div>
+   <div style="display:flex;gap:6px;margin-top:9px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="p3dView('${sl}')">View in 3D · add an angle</button>
+    <button class="btn btn-ghost btn-sm" onclick="p3dRemove('${sl}')">${P3D.confirm===m.slug?'Click again to remove':'Remove'}</button></div></div></div>`;
+}
+function rP3d(){
+ if(P3D.models===null&&!P3D.loading)loadP3d();
+ const ms=P3D.models||[],prods=[...new Set(PROJECTS.map(p=>p.product).filter(Boolean))];
+ return `<div class="card p5" style="margin-bottom:16px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+   <div><span class="kick accent">Product 3D models</span><h3 style="font-size:15.5px;margin-top:7px">The exact product in every render</h3></div>
+   ${P3D.models===null?badge('muted','LOADING…'):badge(ms.length?'go':'muted',ms.length?`${ms.length} MODEL${ms.length>1?'S':''}`:'NO MODELS YET')}</div>
+  <p class="dim" style="font-size:12px;line-height:1.65;margin-top:10px">Upload a product's 3D model from Blender (<b style="color:#e5e7eb">File → Export → glTF 2.0</b>, format <b style="color:#e5e7eb">glTF Binary (.glb)</b>, up to 50 MB). Maistro photographs it from six angles and sends those views with every thumbnail, storyboard picture and video clip of the campaigns for that product, so the device on screen is your model.</p>
+  ${ms.length?`<div class="p3d-grid">${ms.map(rP3dCard).join('')}</div>`:''}
+  <div class="p3d-up">
+   <input type="text" id="p3d-product" list="p3d-prods" maxlength="80" placeholder="Product name, e.g. Galaxy Z Flip8"><datalist id="p3d-prods">${prods.map(x=>`<option value="${esc(x)}">`).join('')}</datalist>
+   <label class="btn btn-gold btn-sm" style="cursor:pointer${P3D.busy?';opacity:.5;pointer-events:none':''}">⬆ Upload .glb model<input type="file" accept=".glb,model/gltf-binary" style="display:none" onchange="p3dUpload(this)"></label>
+   <span id="p3d-status" style="font-size:11.5px;${P3D.err&&!P3D.busy?'color:var(--alert)':''}" class="${P3D.err&&!P3D.busy?'':'dim'}">${esc(P3D.busy||P3D.err||'')}</span>
+  </div></div>`;
+}
+/* one view: frame the model, render it, flatten it on the studio grey, store it as a public reference */
+async function p3dShot(mv,orbit){
+ if(orbit){mv.cameraOrbit=orbit;mv.fieldOfView='auto';mv.jumpCameraToGoal()}
+ await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,150))));
+ const bmp=await createImageBitmap(await mv.toBlob({mimeType:'image/png',idealAspect:false}));
+ const S=Math.min(1600,Math.max(bmp.width,bmp.height)),cv=document.createElement('canvas');cv.width=S;cv.height=S;const g=cv.getContext('2d');
+ g.fillStyle='#eef0f3';g.fillRect(0,0,S,S);const sc=Math.min(S/bmp.width,S/bmp.height);
+ g.drawImage(bmp,(S-bmp.width*sc)/2,(S-bmp.height*sc)/2,bmp.width*sc,bmp.height*sc);
+ const r=await authFetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:cv.toDataURL('image/jpeg',.9).split(',')[1],contentType:'image/jpeg'})});
+ const d=await r.json().catch(()=>({}));if(!r.ok||!d.url)throw new Error(d.error||'a view could not be saved');return d.url;
+}
+function p3dViewer(src,controls){return `<model-viewer id="p3d-mv" src="${esc(src)}" ${controls?'camera-controls':'interaction-prompt="none"'} environment-image="neutral" shadow-intensity="1" exposure="1" camera-orbit="35deg 78deg 105%" style="display:block;width:100%;height:400px;background:#eef0f3;border-radius:12px;margin-top:12px"></model-viewer>`}
+function p3dLoaded(mv){
+ return new Promise((res,rej)=>{if(mv.loaded)return res();const t=setTimeout(()=>rej(new Error('the model took too long to load')),60000);
+  mv.addEventListener('load',()=>{clearTimeout(t);res()},{once:true});
+  mv.addEventListener('error',()=>{clearTimeout(t);rej(new Error('the model could not be read — export it again from Blender as glTF Binary (.glb)'))},{once:true})});
+}
+async function p3dCapture(src,product){
+ await mvReady();
+ $('#modal').innerHTML=`<h3>Photographing ${esc(product)}</h3><p class="msub" id="p3d-cap-msg">Loading the model…</p>${p3dViewer(src,false)}`;
+ $('#modal-back').classList.add('open');
+ const mv=$('#p3d-mv');await p3dLoaded(mv);const views=[];
+ for(const [angle,orbit,hero] of P3D_ANGLES){
+  const m=$('#p3d-cap-msg');if(m)m.textContent=`Capturing the ${angle} view (${views.length+1} of ${P3D_ANGLES.length})…`;
+  views.push({angle,url:await p3dShot(mv,orbit),...(hero?{hero:true}:{})});
+ }
+ closeModal();return views;
+}
+async function p3dUpload(input){
+ const file=input.files&&input.files[0];input.value='';if(!file)return;
+ const product=(($('#p3d-product')||{}).value||'').trim();
+ const say=t=>{P3D.busy=t;const e=$('#p3d-status');if(e){e.textContent=t;e.className='dim';e.style.color=''}};
+ if(!product){P3D.err='Type the product name first, then choose the file.';studioRefresh();return}
+ if(!/\.glb$/i.test(file.name)){P3D.err='Choose a .glb file — in Blender: File → Export → glTF 2.0, format glTF Binary (.glb).';studioRefresh();return}
+ P3D.err=null;
+ try{
+  say('Uploading the model…');
+  const sd=await p3dPost({action:'product3d-sign',product});
+  if(file.size>sd.maxBytes)throw new Error(`the model is larger than ${Math.round(sd.maxBytes/1048576)} MB — export it with Draco compression or smaller textures`);
+  const up=await fetch(sd.uploadUrl,{method:'PUT',headers:{'Content-Type':'model/gltf-binary'},body:file});if(!up.ok)throw new Error('upload failed ('+up.status+')');
+  say('Photographing the model from six angles…');
+  const local=URL.createObjectURL(file);let views;try{views=await p3dCapture(local,product)}finally{URL.revokeObjectURL(local)}
+  say('Saving…');
+  const d=await p3dPost({action:'product3d-save',product,path:sd.path,views});
+  P3D.busy=null;P3D.models=[...(P3D.models||[]).filter(m=>m.slug!==d.model.slug),d.model];loadP3d();
+  toast(`<span style="font-size:12.5px"><b style="color:#6ee7b9">${esc(d.model.product)} 3D model saved.</b> Every render of its campaigns now uses the ${d.model.views.length} views.</span>`);
+ }catch(e){P3D.busy=null;P3D.err=e.message;closeModal();studioRefresh()}
+}
+async function p3dView(slug){
+ const m=(P3D.models||[]).find(x=>x.slug===slug);if(!m)return;
+ if(!m.modelUrl){toast('<span style="font-size:12.5px">The model file could not be opened — reload and try again.</span>');return}
+ try{await mvReady()}catch(e){toast(`<b style="color:#fb7185">3D viewer:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`);return}
+ $('#modal').innerHTML=`<h3>${esc(m.product)} · 3D model</h3>
+  <p class="msub">Drag to turn it, scroll to zoom. To add an angle a shot needs (say, a close-up of the cameras), frame it and press <b>Add this angle</b>.</p>
+  ${p3dViewer(m.modelUrl,true)}
+  <div class="mrow" style="align-items:center"><input type="text" class="inp" id="p3d-angle" maxlength="40" placeholder="Name the angle, e.g. camera close-up" style="flex:1 1 200px;min-width:0">
+   <button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button><button class="btn btn-gold btn-sm" id="p3d-add" onclick="p3dAddAngle('${esc(slug)}')">＋ Add this angle</button></div>`;
+ $('#modal-back').classList.add('open');
+}
+async function p3dAddAngle(slug){
+ const m=(P3D.models||[]).find(x=>x.slug===slug),mv=$('#p3d-mv'),btn=$('#p3d-add');if(!m||!mv)return;
+ if(btn)btn.disabled=true;
+ try{
+  if(m.views.length>=12)throw new Error('a model keeps at most 12 views');
+  const angle=(($('#p3d-angle')||{}).value||'').trim()||'custom angle';
+  const url=await p3dShot(mv,null);
+  const d=await p3dPost({action:'product3d-views',product:m.product,views:[...m.views,{angle,url}]});
+  Object.assign(m,d.model);studioRefresh();
+  toast(`<span style="font-size:12.5px"><b style="color:#6ee7b9">Added the “${esc(angle)}” view</b> to ${esc(m.product)}.</span>`);
+ }catch(e){toast(`<b style="color:#fb7185">Add angle:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
+ if(btn)btn.disabled=false;
+}
+async function p3dHero(slug,i){
+ const m=(P3D.models||[]).find(x=>x.slug===slug);if(!m||!m.views[i]||m.views[i].hero)return;
+ try{const d=await p3dPost({action:'product3d-views',product:m.product,views:m.views.map((v,j)=>({angle:v.angle,url:v.url,...(j===i?{hero:true}:{})}))});Object.assign(m,d.model);studioRefresh()}
+ catch(e){toast(`<b style="color:#fb7185">Main view:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
+}
+async function p3dRemove(slug){
+ const m=(P3D.models||[]).find(x=>x.slug===slug);if(!m)return;
+ if(P3D.confirm!==slug){P3D.confirm=slug;studioRefresh();return}
+ P3D.confirm=null;
+ try{await p3dPost({action:'product3d-remove',product:m.product});P3D.models=P3D.models.filter(x=>x.slug!==slug);studioRefresh();
+  toast(`<span style="font-size:12.5px">Removed the ${esc(m.product)} 3D model. Its campaigns use their product photos again.</span>`)}
+ catch(e){toast(`<b style="color:#fb7185">Remove:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
 }
 /* ---------- regeneration chat — under every generated piece ---------- */
 /* 6.2 — a moodboard SET: the visual direction, four tiles, the automated check flags, the human's selection */
@@ -4440,7 +4587,8 @@ function rPathways(){
     ${rOwnForm()}
     <div style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="cpOpen()">Or talk it through with the Studio Copilot →</button></div>
    </div>
-  </div>`;
+  </div>
+  ${rP3d()}`;
 }
 function rStudio(){
  const p=PROJECTS.find(x=>x.id===STATE.proj)||PROJECTS[0];

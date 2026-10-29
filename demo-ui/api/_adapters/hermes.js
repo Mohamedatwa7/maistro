@@ -76,6 +76,8 @@ const videoRes = (r) => (VIDEO_RES.includes(String(r)) ? String(r) : '720p');
  *  the field names the bots understand (aspect, resolution, count, duration, audio, product_image_urls,
  *  moodboard_image_urls, first_frame_url, max_credits); the video bot refuses a run missing
  *  resolution, duration or aspect, so those are always set. */
+// the product reference: the 3D model's views (payload.refs, hero first) or the one campaign photo (payload.ref)
+const productRefs = (payload) => [...new Set([payload.ref, ...(Array.isArray(payload.refs) ? payload.refs : [])].filter(isHttps))].slice(0, 4);
 function renderRun(payload, role) {
   const n = role === 'mood' && Number(payload.batch) > 1 ? Math.min(8, Number(payload.batch)) : 1;
   const task = role === 'video' ? 'Make one video clip (image-to-video when first_frame_url is given: the clip starts exactly on that keyframe, keeping its product, character, setting and lighting).'
@@ -91,7 +93,7 @@ function renderRun(payload, role) {
     count: n,
     ...(role === 'video' ? { duration: clipSeconds(payload.duration), audio: payload.generateAudio !== false } : {}),
     ...(role === 'video' && isHttps(payload.imageUrl) ? { first_frame_url: payload.imageUrl } : {}),
-    ...(isHttps(payload.ref) ? { product_image_urls: [payload.ref] } : {}),
+    ...(productRefs(payload).length ? { product_image_urls: productRefs(payload) } : {}),
     ...(anchors.length ? { moodboard_image_urls: anchors } : {}),
     ...(Number.isInteger(payload.seed) ? { seed: payload.seed } : {}),
     ...(payload.meta && payload.meta.changes ? { reviewer_changes: String(payload.meta.changes) } : {}),
@@ -100,6 +102,7 @@ function renderRun(payload, role) {
   const rules = [
     'The prompt was written by Maistro\'s art director from the approved earlier stages: follow it closely.',
     req.product_image_urls ? 'The device shown MUST be exactly the product in product_image_urls (same form factor, cameras, colours and finish); never invent a different device.' : null,
+    payload.productModel ? 'product_image_urls are renders of the exact 3D model of the product from several angles: reproduce that geometry, camera layout, buttons, colour and finish precisely, from whatever angle the shot needs.' : null,
     req.moodboard_image_urls ? 'Match the palette, light and styling of moodboard_image_urls (the approved moodboard).' : null,
     req.seed != null ? 'Use the seed if your generator takes one, so this can be re-rendered the same way.' : null,
     req.reviewer_changes ? 'Apply only the reviewer_changes; keep everything else.' : null,

@@ -48,6 +48,7 @@ const briefMod = require('../_studio/brief.js');
 const boardMod = require('../_studio/board.js');
 const jobsSvc = require('../_jobs.js');
 const storage = require('../_adapters/storage.js');
+const products3d = require('../_studio/products3d.js');
 const { recordVersion } = require('../_store.js');
 const { activeDocuments, getDocument } = require('../_kb/index.js');
 const { queryRows, insertRows } = require('../_supabase.js');
@@ -117,6 +118,11 @@ module.exports = async (req, res) => {
         const days = Math.min(90, Math.max(1, parseInt(q.days, 10) || 30));
         return res.status(200).json(O.ops({ ...(await O.load(queryRows, days)), days }));
       }
+      if (q.products3d) {
+        // the product 3D models (Blender .glb) and the views every render of that product is held to
+        try { return res.status(200).json({ models: await products3d.list(), maxBytes: products3d.MAX_BYTES }); }
+        catch (e) { return res.status(e.status || 502).json({ error: String(e.message || e), code: e.code || null }); }
+      }
       if (q.calendar) {
         // 8b: planned posts and approved finals waiting for a slot (manual/export mode until Sprinklr)
         const out = await require('../_studio/publishing.js').calendar({ from: q.from ? String(q.from) : null, to: q.to ? String(q.to) : null });
@@ -185,8 +191,18 @@ module.exports = async (req, res) => {
     }
     if (!(await refreshMember(req, res))) return;
     const b = req.body || {};
-    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package', 'budget', 'override-sign', 'override', 'post-link', 'post-unlink', 'slot-plan', 'slot-export', 'slot-cancel', 'slot-draft-check'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
+    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package', 'budget', 'override-sign', 'override', 'post-link', 'post-unlink', 'slot-plan', 'slot-export', 'slot-cancel', 'slot-draft-check', 'product3d-sign', 'product3d-save', 'product3d-views', 'product3d-remove'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
     const legacyId = String(b.pieceId || '');
+    if (b.action.startsWith('product3d-')) {
+      // a product's 3D model: sign the browser's upload, then save it with the views the page photographed
+      try {
+        const out = b.action === 'product3d-sign' ? await products3d.sign({ product: b.product })
+          : b.action === 'product3d-save' ? { model: await products3d.save({ product: b.product, path: b.path, views: b.views, member: req.member || null }) }
+          : b.action === 'product3d-views' ? { model: await products3d.setViews({ product: b.product, views: b.views }) }
+          : await products3d.remove({ product: b.product });
+        return res.status(200).json({ ok: true, ...out });
+      } catch (e) { return res.status(e.status || 502).json({ error: String(e.message || e), code: e.code || null }); }
+    }
     if (['slot-plan', 'slot-export', 'slot-cancel', 'slot-draft-check', 'post-link', 'post-unlink'].includes(b.action) && !claimActor(req, res)) return; // interim claim; closed by MAISTRO_REQUIRE_MEMBER=1
     if (b.action === 'slot-plan' || b.action === 'slot-export' || b.action === 'slot-cancel' || b.action === 'slot-draft-check') {
       // 8b: plan / export / cancel a post (manual mode: the operator posts and then links the post); in Sprinklr
@@ -261,13 +277,14 @@ module.exports = async (req, res) => {
       const liveRows = await queryRows('jobs', `select=id,kind,payload&stage_id=eq.${encodeURIComponent(stage.id)}&state=in.(queued,running)&limit=50`);
       if (liveRows.some((j) => j.kind === 'hermes_image' && j.payload && j.payload.attachTo && Number(j.payload.attachTo.shot) === n)) return res.status(409).json({ error: `shot ${n} is already rendering`, code: 'busy' });
       const mood = await thumb.moodContext(piece.id);
-      const refImage = typeof b.refImage === 'string' && /^https:\/\//.test(b.refImage) ? b.refImage : null;
+      const pr = await products3d.renderRefs(piece.product, b.refImage); // the product's 3D views, then the campaign photo
+      const refImage = pr.ref;
       const shot = v.payload.shots[n - 1];
       const useRef = Boolean(refImage && shot.product.visible);
       const changes = String(b.changes || '').trim();
       const prompt = `${boardMod.keyframePrompt(shot, mood.direction, bits.productLook, useRef)}${changes ? ` Changes requested by the reviewer (apply only these, keep everything else): ${changes}.` : ''}`;
       const anchors = mood.tiles.filter((t) => t.assetPath || t.url).slice(0, 4).map((t) => ({ index: t.index, url: t.url || null, assetPath: t.assetPath || null }));
-      const [job] = await insertRows('jobs', [{ piece_id: piece.id, stage_id: stage.id, kind: 'hermes_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: v.payload.aspect || '9:16', resolution: '1080p', seed: newSeed(), ...(useRef ? { ref: refImage } : {}), autoCheck: true, attachTo: { versionId: v.id, shot: n }, generatedBy: req.member ? req.member.id : null, meta: { shot: n, prompt, changes: changes || null, anchors, direction: mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: n === v.payload.hookShot, title: piece.title } } }], { returning: true });
+      const [job] = await insertRows('jobs', [{ piece_id: piece.id, stage_id: stage.id, kind: 'hermes_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: v.payload.aspect || '9:16', resolution: '1080p', seed: newSeed(), ...(useRef ? { ref: refImage, refs: pr.refs, ...(pr.model ? { productModel: pr.model } : {}) } : {}), autoCheck: true, attachTo: { versionId: v.id, shot: n }, generatedBy: req.member ? req.member.id : null, meta: { shot: n, prompt, changes: changes || null, anchors, direction: mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: n === v.payload.hookShot, title: piece.title } } }], { returning: true });
       const { patchRows } = require('../_supabase.js');
       if (stage.state !== 'generating') await patchRows('stages', `id=eq.${encodeURIComponent(stage.id)}`, { state: 'generating' });
       await jobsSvc.advance(job).catch(() => null);
@@ -496,7 +513,10 @@ module.exports = async (req, res) => {
       const clipDuration = (x) => Math.min(30, Math.max(4, Math.ceil(Number(x.durationS) || 4))); // 4–30 s clips; the assembly trims to the shot
       const [ds] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.draft&limit=1`);
       const draftAspect = bv && bshots.length && ['9:16', '16:9', '1:1'].includes(bv.payload.aspect) ? bv.payload.aspect : thumb.aspectFor(piece.platforms);
-      const clipJob = (versionId, x, extra) => ({ piece_id: piece.id, stage_id: ds.id, kind: 'hermes_video', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'draft', prompt: `${x.textPrompt || motion(x)}${extra ? ` Changes requested by the reviewer (apply only these, keep everything else): ${extra}.` : ''}`, ...(!x.keyframe ? {} : x.keyframe.assetPath ? { imageAssetPath: x.keyframe.assetPath } : { imageUrl: x.keyframe.url }), duration: clipDuration(x), resolution, aspect_ratio: draftAspect, generateAudio: true, attachTo: { versionId, shot: x.n }, generatedBy: req.member ? req.member.id : null, meta: { shot: x.n, prompt: x.textPrompt || motion(x), title: piece.title, shotDurationS: x.durationS, expectProduct: Boolean(x.product && x.product.visible), fromKeyframeJob: (x.keyframe && x.keyframe.jobId) || null } } });
+      // the product's 3D views go with every clip that shows the device (a text-to-video clip has no keyframe to hold it)
+      const pr = await products3d.renderRefs(piece.product, b.refImage);
+      const clipRefs = (x) => (pr.refs.length && (!x.keyframe || (x.product && x.product.visible)) ? { ref: pr.ref, refs: pr.refs, ...(pr.model ? { productModel: pr.model } : {}) } : {});
+      const clipJob = (versionId, x, extra) => ({ piece_id: piece.id, stage_id: ds.id, kind: 'hermes_video', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'draft', prompt: `${x.textPrompt || motion(x)}${extra ? ` Changes requested by the reviewer (apply only these, keep everything else): ${extra}.` : ''}`, ...(!x.keyframe ? {} : x.keyframe.assetPath ? { imageAssetPath: x.keyframe.assetPath } : { imageUrl: x.keyframe.url }), duration: clipDuration(x), resolution, aspect_ratio: draftAspect, generateAudio: true, ...clipRefs(x), attachTo: { versionId, shot: x.n }, generatedBy: req.member ? req.member.id : null, meta: { shot: x.n, prompt: x.textPrompt || motion(x), title: piece.title, shotDurationS: x.durationS, expectProduct: Boolean(x.product && x.product.visible), fromKeyframeJob: (x.keyframe && x.keyframe.jobId) || null } } });
       const { patchRows } = require('../_supabase.js');
       if (b.action === 'draft-shot') {
         const n = Number(b.shot);
@@ -562,13 +582,14 @@ module.exports = async (req, res) => {
         if (stage) await insertRows('stage_checks', [{ piece_id: piece.id, stage_id: stage.id, artifact_version_id: out.versionId, kind: 'spec', passed, results: checks, model: mc.model || null, prompt_version: boardMod.CHECK_VERSION }]);
       } catch (e) { checks = { error: String(e.message || e).slice(0, 200) }; }
       // one keyframe per shot through the job service
-      const refImage = typeof b.refImage === 'string' && /^https:\/\//.test(b.refImage) ? b.refImage : null;
+      const pr = await products3d.renderRefs(piece.product, b.refImage); // the product's 3D views, then the campaign photo
+      const refImage = pr.ref;
       const anchors = bctx.mood.tiles.filter((t) => t.assetPath || t.url).slice(0, 4).map((t) => ({ index: t.index, url: t.url || null, assetPath: t.assetPath || null }));
       const [stageRow] = await queryRows('stages', `select=id,state&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.board&limit=1`);
       const rows = w.list.shots.map((shot) => {
         const useRef = Boolean(refImage && shot.product.visible);
         const prompt = boardMod.keyframePrompt(shot, bctx.mood.direction, bits.productLook, useRef);
-        return { piece_id: piece.id, stage_id: stageRow.id, kind: 'hermes_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: aspect, resolution: '1080p', seed: newSeed(), ...(useRef ? { ref: refImage } : {}), autoCheck: true, attachTo: { versionId: out.versionId, shot: shot.n }, generatedBy: req.member ? req.member.id : null, meta: { shot: shot.n, prompt, anchors, direction: bctx.mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: shot.n === w.list.hookShot, title: piece.title } } };
+        return { piece_id: piece.id, stage_id: stageRow.id, kind: 'hermes_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: aspect, resolution: '1080p', seed: newSeed(), ...(useRef ? { ref: refImage, refs: pr.refs, ...(pr.model ? { productModel: pr.model } : {}) } : {}), autoCheck: true, attachTo: { versionId: out.versionId, shot: shot.n }, generatedBy: req.member ? req.member.id : null, meta: { shot: shot.n, prompt, anchors, direction: bctx.mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: shot.n === w.list.hookShot, title: piece.title } } };
       });
       const inserted = await insertRows('jobs', rows, { returning: true });
       const { patchRows } = require('../_supabase.js');
@@ -600,12 +621,13 @@ module.exports = async (req, res) => {
     if (b.action === 'thumb') {
       const mood = await thumb.moodContext(piece.id);
       const aspect = thumb.aspectFor(piece.platforms);
-      const refImage = typeof b.refImage === 'string' && /^https:\/\//.test(b.refImage) ? b.refImage : null;
+      const pr = await products3d.renderRefs(piece.product, b.refImage); // the product's 3D views, then the campaign photo
+      const refImage = pr.ref;
       const tp = await thumb.thumbPrompt({ piece: meta, mood, productLook: bits.productLook, rules: bits.rules, userInput: b.userInput, refAttached: Boolean(refImage), aspect, memberId: req.member ? req.member.id : null });
       if (!tp.prompt) return res.status(502).json({ error: tp.error, problems: tp.problems || [] });
       const overlay = { headline: String(b.headline || '').slice(0, 120), headlineAr: String(b.headlineAr || '').slice(0, 120), side: tp.textSide, box: thumb.overlayBox(aspect, tp.textSide), aspect };
       const anchors = mood.tiles.filter((t) => t.assetPath || t.url).slice(0, 4).map((t) => ({ index: t.index, url: t.url || null, assetPath: t.assetPath || null }));
-      const job = await createJob({ legacyId, stage: 'thumb', kind: 'hermes_image', payload: { prompt: tp.prompt, aspect_ratio: aspect, resolution: '1080p', ...(refImage ? { ref: refImage } : {}), autoCheck: true, meta: { prompt: tp.prompt, note: tp.note, title: piece.title, sub: piece.key_message || '', textSide: tp.textSide, overlay, promptVersion: tp.promptVersion, product: piece.product, productLook: bits.productLook, rules: bits.rules, anchors, moodApproved: mood.approved } }, piece: b.piece || {}, member: req.member });
+      const job = await createJob({ legacyId, stage: 'thumb', kind: 'hermes_image', payload: { prompt: tp.prompt, aspect_ratio: aspect, resolution: '1080p', ...(refImage ? { ref: refImage, refs: pr.refs, ...(pr.model ? { productModel: pr.model } : {}) } : {}), autoCheck: true, meta: { prompt: tp.prompt, note: tp.note, title: piece.title, sub: piece.key_message || '', textSide: tp.textSide, overlay, promptVersion: tp.promptVersion, product: piece.product, productLook: bits.productLook, rules: bits.rules, anchors, moodApproved: mood.approved } }, piece: b.piece || {}, member: req.member });
       return res.status(200).json({ ok: true, prompt: tp.prompt, textSide: tp.textSide, note: tp.note, aspect, overlay, moodApproved: mood.approved, anchors: anchors.length, job });
     }
     const trend = piece.trend_name ? { name: piece.trend_name, id: piece.trend_id } : null;
