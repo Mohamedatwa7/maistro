@@ -52,8 +52,6 @@ test('POST /api/studio action brief: needs a moodboard; the Hermes brief bot get
   const studio = api('studio.js', ENV); const pieces = api('pieces.js', ENV); const decisions = api('decisions.js', ENV); const jobs = api('jobs.js', ENV);
   try {
     let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-br1', stage: 'plan', artifact: { title: 'Deadpan Flip', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] }, piece: { title: 'Deadpan Flip', product: 'Galaxy Z Flip8', msg: 'm', platforms: ['tiktok'], markets: ['UAE'], trendId: 'snd-1', trendName: 'Deadpan caption reveal' } } }), r);
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'brief', pieceId: 'gen-br1' } }), r);
-    assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'prerequisites');
     r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-br1', stage: 'mood', artifact: { imageUrl: 'https://cdn/m0.png', images: [0, 1, 2, 3].map((i) => ({ url: `https://cdn/m${i}.png`, assetPath: `pieces/gen-br1/mood/m${i}.png`, tag: `variation ${i + 1}` })), direction: DIRECTION, prompt: 'p', note: 'n' } } }), r);
     r = res(); await decisions.handler(req({ method: 'POST', body: { pieceId: 'gen-br1', stage: 'mood', decision: 'approved', name: 'N', role: 'reviewer', details: { selectedImages: [1], annotations: 'keep the rim light' } } }), r); assert.equal(r.statusCode, 200);
     r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-br1', stage: 'thumb', artifact: { imageUrl: 'https://cdn/c.png', overlay: { headline: 'Setup. Pause. Flip.', headlineAr: 'يلا', side: 'left' }, prompt: 'p' } } }), r);

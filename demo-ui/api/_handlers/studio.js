@@ -338,16 +338,18 @@ module.exports = async (req, res) => {
       const ver = async (k) => { const s0 = S(k); if (!s0 || !s0.current_version_id) return null; const [v] = await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(s0.current_version_id)}&limit=1`); return v || null; };
       if (b.action === 'final') {
         // apply ONLY the approved QC plan
-        if (!S('qc') || S('qc').state !== 'approved') return res.status(409).json({ error: 'approve the QC fix plan first', code: 'prerequisites' });
-        const qv = await ver('qc');
-        const report = qv && qv.payload && qv.payload.report;
-        if (!report) return res.status(409).json({ error: 'the approved QC has no fix plan', code: 'prerequisites' });
-        const [dv] = await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(report.draftVersionId)}&limit=1`);
-        if (!dv || !dv.payload || !Array.isArray(dv.payload.shots)) return res.status(409).json({ error: 'the analysed draft is missing', code: 'prerequisites' });
+        // owner 2026-10-29: the final does not wait for the QC; with no approved QC plan it is the current draft's cut as it stands
+        const qcApproved = Boolean(S('qc') && S('qc').state === 'approved');
+        const qv = qcApproved ? await ver('qc') : null;
+        const report = (qv && qv.payload && qv.payload.report) || null;
+        if (qcApproved && !report) return res.status(409).json({ error: 'the approved QC has no fix plan', code: 'prerequisites' });
+        const dv = report ? (await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(report.draftVersionId)}&limit=1`))[0] : await ver('draft');
+        if (!dv || !dv.payload || !Array.isArray(dv.payload.shots)) return res.status(409).json({ error: report ? 'the analysed draft is missing' : 'the final needs a first draft video', code: 'prerequisites' });
+        if (!report && !(dv.payload.assembled && dv.payload.assembled.assetPath)) return res.status(409).json({ error: 'the first draft video is still being made', code: 'prerequisites' });
         if (S('final') && S('final').state === 'approved') return res.status(409).json({ error: 'the final is approved; reopen it first', code: 'approved_immutable' });
-        const ap = finalMod.applyPlan(dv.payload, report);
+        const ap = report ? finalMod.applyPlan(dv.payload, report) : { shots: dv.payload.shots, applied: [], notApplied: [], regenShots: [] };
         const nothingToRebuild = !ap.regenShots.length && !ap.applied.length;
-        const artifact = { ...dv.payload, shots: ap.shots, fromDraftVersionId: dv.id, fromDraftVersion: dv.version, fromDraftSha256: report.draftSha256, fromQcVersionId: qv.id, applied: ap.applied, notApplied: ap.notApplied, verification: null, finalVersion: finalMod.VERSION, rev: 0,
+        const artifact = { ...dv.payload, shots: ap.shots, fromDraftVersionId: dv.id, fromDraftVersion: dv.version, fromDraftSha256: report ? report.draftSha256 : dv.payload.assembled.sha256, fromQcVersionId: qv ? qv.id : null, qcSkipped: !report, applied: ap.applied, notApplied: ap.notApplied, verification: null, finalVersion: finalMod.VERSION, rev: 0,
           // nothing changed → the draft's cut IS the final (same bytes); otherwise it is re-assembled
           assembled: nothingToRebuild ? dv.payload.assembled : null, assetPath: nothingToRebuild ? dv.payload.assetPath : null, sha256: nothingToRebuild ? dv.payload.sha256 : null, assembledChecks: nothingToRebuild ? dv.payload.assembledChecks : null,
           version: undefined, qcRevised: true, variants: (dv.payload.variants || []).map((x) => ({ ...x, st: nothingToRebuild ? 'ready' : 'rendering' })) };
@@ -461,8 +463,10 @@ module.exports = async (req, res) => {
       }
       const stale = dv.payload.shots.filter((s) => s.overlayStale).map((s) => s.n);
       if (stale.length) return res.status(409).json({ error: `redraw the text overlays first — shot${stale.length > 1 ? 's' : ''} ${stale.join(', ')} changed`, code: 'overlays_stale', pending: stale });
-      const notReady = dv.payload.shots.filter((s) => !(s.clip && s.clip.state === 'rendered') || !(s.review && s.review.decision === 'approved')).map((s) => s.n);
-      if (notReady.length) return res.status(409).json({ error: `approve every clip first — shot${notReady.length > 1 ? 's' : ''} ${notReady.join(', ')} pending`, code: 'prerequisites', pending: notReady });
+      // owner 2026-10-29: the cut needs no per-clip approval, and a failed clip is left out (one full video)
+      const notReady = dv.payload.shots.filter((s) => !(s.clip && ['rendered', 'failed'].includes(s.clip.state))).map((s) => s.n);
+      if (notReady.length) return res.status(409).json({ error: `clips still rendering — shot${notReady.length > 1 ? 's' : ''} ${notReady.join(', ')}`, code: 'prerequisites', pending: notReady });
+      if (!dv.payload.shots.some((s) => s.clip && s.clip.state === 'rendered')) return res.status(409).json({ error: 'every clip failed — re-render at least one shot first', code: 'prerequisites' });
       const liveRows = await queryRows('jobs', `select=id,kind&stage_id=eq.${encodeURIComponent(ds.id)}&state=in.(queued,running)&limit=50`);
       if (liveRows.some((j) => j.kind === 'assemble')) return res.status(409).json({ error: 'the cut is already being assembled', code: 'busy' });
       const brief = await boardMod.briefFor(piece.id);
@@ -476,22 +480,23 @@ module.exports = async (req, res) => {
       // Owner 2026-10-28: the first draft does not wait for the storyboard's approval, and a keyframe that FAILED
       // does not hold it up either — that shot is left out (the draft renumbers 1..k, keeping boardShot). It only
       // waits while a keyframe is still rendering, and needs at least one rendered keyframe.
+      // Owner 2026-10-29: the storyboard is optional too. Without one (skipped, or no shot list) the draft is ONE
+      // text-to-video clip written from the brief / campaign plan. Either way the clips join into one video by themselves.
       const [bs] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.board&limit=1`);
-      if (!bs || !bs.current_version_id) return res.status(409).json({ error: 'the first draft needs the storyboard first', code: 'prerequisites' });
-      const [bv] = await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(bs.current_version_id)}&limit=1`);
-      const bshots = bv && bv.payload && Array.isArray(bv.payload.shots) ? bv.payload.shots : [];
-      if (!bshots.length) return res.status(409).json({ error: 'the storyboard has no shot list — regenerate it in the Studio first', code: 'prerequisites' });
+      const [bv] = bs && bs.current_version_id ? await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(bs.current_version_id)}&limit=1`) : [];
+      const bshots = b.noBoard ? [] : bv && bv.payload && Array.isArray(bv.payload.shots) ? bv.payload.shots : [];
       const kfRendered = (x) => x.keyframe && x.keyframe.state === 'rendered';
       const kfFailed = (x) => x.keyframe && x.keyframe.state === 'failed';
       const pendingShots = bshots.filter((x) => !kfRendered(x) && !kfFailed(x)).map((x) => x.n);
       if (pendingShots.length) return res.status(409).json({ error: `the storyboard keyframes are still rendering — shot${pendingShots.length > 1 ? 's' : ''} ${pendingShots.join(', ')} pending`, code: 'prerequisites', pending: pendingShots });
       const skippedShots = bshots.filter(kfFailed).map((x) => x.n);
-      if (skippedShots.length === bshots.length) return res.status(409).json({ error: 'every storyboard keyframe failed — regenerate at least one shot first', code: 'prerequisites', pending: skippedShots });
+      if (bshots.length && skippedShots.length === bshots.length) return res.status(409).json({ error: 'every storyboard keyframe failed — regenerate at least one shot first', code: 'prerequisites', pending: skippedShots });
       const resolution = ['480p', '720p', '1080p'].includes(b.resolution) ? b.resolution : '720p';
       const motion = (x) => `${x.camera}. ${x.action} ${x.product && x.product.visible ? 'The device stays exactly as in the first frame — no morphing, no extra buttons, no logos.' : ''} Present tense, one continuous motion, no cuts, no on-screen text, no captions.`.replace(/\s+/g, ' ').trim();
       const clipDuration = (x) => Math.min(30, Math.max(4, Math.ceil(Number(x.durationS) || 4))); // 4–30 s clips; the assembly trims to the shot
       const [ds] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.draft&limit=1`);
-      const clipJob = (versionId, x, extra) => ({ piece_id: piece.id, stage_id: ds.id, kind: 'hermes_video', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'draft', prompt: `${motion(x)}${extra ? ` Changes requested by the reviewer (apply only these, keep everything else): ${extra}.` : ''}`, ...(x.keyframe.assetPath ? { imageAssetPath: x.keyframe.assetPath } : { imageUrl: x.keyframe.url }), duration: clipDuration(x), resolution, aspect_ratio: ['9:16', '16:9', '1:1'].includes(bv.payload.aspect) ? bv.payload.aspect : '9:16', generateAudio: true, attachTo: { versionId, shot: x.n }, generatedBy: req.member ? req.member.id : null, meta: { shot: x.n, prompt: motion(x), title: piece.title, shotDurationS: x.durationS, expectProduct: Boolean(x.product && x.product.visible), fromKeyframeJob: x.keyframe.jobId || null } } });
+      const draftAspect = bv && bshots.length && ['9:16', '16:9', '1:1'].includes(bv.payload.aspect) ? bv.payload.aspect : thumb.aspectFor(piece.platforms);
+      const clipJob = (versionId, x, extra) => ({ piece_id: piece.id, stage_id: ds.id, kind: 'hermes_video', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'draft', prompt: `${x.textPrompt || motion(x)}${extra ? ` Changes requested by the reviewer (apply only these, keep everything else): ${extra}.` : ''}`, ...(!x.keyframe ? {} : x.keyframe.assetPath ? { imageAssetPath: x.keyframe.assetPath } : { imageUrl: x.keyframe.url }), duration: clipDuration(x), resolution, aspect_ratio: draftAspect, generateAudio: true, attachTo: { versionId, shot: x.n }, generatedBy: req.member ? req.member.id : null, meta: { shot: x.n, prompt: x.textPrompt || motion(x), title: piece.title, shotDurationS: x.durationS, expectProduct: Boolean(x.product && x.product.visible), fromKeyframeJob: (x.keyframe && x.keyframe.jobId) || null } } });
       const { patchRows } = require('../_supabase.js');
       if (b.action === 'draft-shot') {
         const n = Number(b.shot);
@@ -502,18 +507,32 @@ module.exports = async (req, res) => {
         const liveRows = await queryRows('jobs', `select=id,kind,payload&stage_id=eq.${encodeURIComponent(ds.id)}&state=in.(queued,running)&limit=50`);
         if (liveRows.some((j) => j.kind === 'hermes_video' && j.payload && j.payload.attachTo && Number(j.payload.attachTo.shot) === n)) return res.status(409).json({ error: `shot ${n} is already rendering`, code: 'busy' });
         const bn = dv.payload.shots[n - 1].boardShot || n;
-        const x = { ...dv.payload.shots[n - 1], keyframe: dv.payload.shots[n - 1].keyframe || (bshots[bn - 1] && bshots[bn - 1].keyframe) };
-        if (!x.keyframe) return res.status(409).json({ error: `shot ${n} has no keyframe`, code: 'no_keyframe' });
+        const x = { ...dv.payload.shots[n - 1], keyframe: dv.payload.shots[n - 1].keyframe || (dv.payload.shots[n - 1].textPrompt ? null : bshots[bn - 1] && bshots[bn - 1].keyframe) };
+        if (!x.keyframe && !x.textPrompt) return res.status(409).json({ error: `shot ${n} has no keyframe`, code: 'no_keyframe' });
         const [job] = await insertRows('jobs', [clipJob(dv.id, x, String(b.changes || '').trim())], { returning: true });
         if (ds.state !== 'generating') await patchRows('stages', `id=eq.${encodeURIComponent(ds.id)}`, { state: 'generating' });
         await jobsSvc.advance(job).catch(() => null);
         const fresh = await jobsSvc.getJob(job.id);
         return res.status(200).json({ ok: true, shot: n, job: jobsSvc.publicJob(fresh || job, legacyId) });
       }
-      const aspect = ['9:16', '16:9', '1:1'].includes(bv.payload.aspect) ? bv.payload.aspect : '9:16';
-      const shots = bshots.filter(kfRendered).map((x, i) => ({ n: i + 1, boardShot: x.n, durationS: x.durationS, type: x.type, camera: x.camera, action: x.action, product: x.product, onScreenText: x.onScreenText, line: x.line, audioCue: x.audioCue, transition: x.transition, keyframe: { url: x.keyframe.url || null, assetPath: x.keyframe.assetPath || null, sha256: x.keyframe.sha256 || null, jobId: x.keyframe.jobId || null }, clipDurationS: clipDuration(x), clip: null, review: null }));
+      const aspect = draftAspect;
+      let shots = bshots.filter(kfRendered).map((x, i) => ({ n: i + 1, boardShot: x.n, durationS: x.durationS, type: x.type, camera: x.camera, action: x.action, product: x.product, onScreenText: x.onScreenText, line: x.line, audioCue: x.audioCue, transition: x.transition, keyframe: { url: x.keyframe.url || null, assetPath: x.keyframe.assetPath || null, sha256: x.keyframe.sha256 || null, jobId: x.keyframe.jobId || null }, clipDurationS: clipDuration(x), clip: null, review: null }));
+      if (!shots.length) {
+        // no storyboard: one clip for the whole video, from the brief (or the campaign plan when there is no brief)
+        const brief0 = await boardMod.briefFor(piece.id);
+        const sp = brief0 && brief0.payload && brief0.payload.spec;
+        const hook = sp && sp.trendHook ? sp.trendHook.mechanic || sp.trendHook.description || '' : '';
+        const targetS = Math.min(15, Math.max(5, Math.round(Number(sp && sp.format && sp.format.targetDurationS) || 10)));
+        const textPrompt = [
+          `A ${targetS}-second ${aspect === '9:16' ? 'vertical ' : ''}social video for Samsung ${piece.product || ''}.`,
+          sp ? `Key message: ${sp.keyMessage || ''}.${hook ? ` Hook: ${hook}.` : ''}${sp.cta ? ` End on: ${sp.cta}.` : ''}` : `Key message: ${piece.key_message || piece.title || ''}.${piece.angle ? ` Angle: ${piece.angle}.` : ''}`,
+          piece.trend_name ? `Inspired by the trend "${piece.trend_name}".` : '',
+          'The device looks exactly like the real product: no morphing, no extra buttons, no invented logos. No on-screen text, no captions.',
+        ].filter(Boolean).join(' ');
+        shots = [{ n: 1, boardShot: null, durationS: targetS, type: 'full', camera: '', action: '', product: { visible: true }, onScreenText: null, line: null, audioCue: null, transition: 'none', keyframe: null, textPrompt, clipDurationS: targetS, clip: null, review: null }];
+      }
       const totalS = Math.round(shots.reduce((a, x) => a + (Number(x.durationS) || 0), 0) * 10) / 10;
-      const artifact = { shots, totalS, aspect, resolution, boardVersionId: bv.id, boardVersion: bv.version, boardApproved: bs.state === 'approved', skippedShots, dur: `${totalS}s`, audio: 'Native audio per clip (Hermes video bot); loudness normalised at assembly', variants: [{ a: aspect, l: resolution, k: 'original', st: 'rendering' }], videoUrl: null, assembled: null, prompt: `first draft from storyboard v${bv.version}: ${shots.length} clips`, note: `One clip per storyboard shot from the Hermes video bot, driven by its keyframe; the cut is assembled once every clip is approved.${skippedShots.length ? ` Storyboard shot${skippedShots.length > 1 ? 's' : ''} ${skippedShots.join(', ')} left out: the keyframe failed.` : ''}`, draftVersion: 'draft-v1-2026-10-21', rev: 0 };
+      const artifact = { shots, totalS, aspect, resolution, fromStoryboard: bshots.length > 0, boardVersionId: bshots.length ? bv.id : null, boardVersion: bshots.length ? bv.version : null, boardApproved: bshots.length ? bs.state === 'approved' : null, skippedShots, dur: `${totalS}s`, audio: 'Native audio per clip (Hermes video bot); loudness normalised at assembly', variants: [{ a: aspect, l: resolution, k: 'original', st: 'rendering' }], videoUrl: null, assembled: null, prompt: bshots.length ? `first draft from storyboard v${bv.version}: ${shots.length} clips` : shots[0].textPrompt, note: `${bshots.length ? 'One clip per storyboard shot from the Hermes video bot, driven by its keyframe; the clips join into one video by themselves.' : 'One clip for the whole video from the Hermes video bot (no storyboard).'}${skippedShots.length ? ` Storyboard shot${skippedShots.length > 1 ? 's' : ''} ${skippedShots.join(', ')} left out: the keyframe failed.` : ''}`, draftVersion: 'draft-v1-2026-10-21', rev: 0 };
       const out = await recordVersion(legacyId, 'draft', artifact, { piece: b.piece || {}, producedBy: 'hermes', kind: 'video', generatedBy: req.member ? req.member.id : null });
       const inserted = await insertRows('jobs', shots.map((x) => clipJob(out.versionId, x, '')), { returning: true });
       await patchRows('stages', `id=eq.${encodeURIComponent(ds.id)}`, { state: 'generating' });
@@ -523,10 +542,9 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true, artifact: { ...artifact, version: `v${out.version}` }, version: out.version, versionId: out.versionId, jobs });
     }
     if (b.action === 'board') {
-      const brief = await boardMod.briefFor(piece.id);
-      if (!brief) return res.status(409).json({ error: 'the storyboard needs the brief first — the shot list is written from the approved brief', code: 'prerequisites' });
+      // owner 2026-10-29: no step waits for another; without a brief the shot list is written from the campaign plan
+      const brief = (await boardMod.briefFor(piece.id)) || { approved: false, versionId: null, version: null, payload: { objective: piece.title, msg: piece.key_message || '', mandatories: [] }, fromPlan: true };
       const bctx = await briefMod.briefContext(piece, legacyId);
-      if (!bctx.mood.direction && !bctx.mood.tiles.length && !bctx.mood.note) return res.status(409).json({ error: 'the storyboard needs the moodboard first', code: 'prerequisites' });
       const w = await boardMod.shotList({ piece, brief, mood: bctx.mood, trend: bctx.trend, judgement: bctx.judgement, productLook: bits.productLook, rules: bits.rules, userInput: b.userInput, memberId: req.member ? req.member.id : null, legacyId });
       if (!w.list) return res.status(502).json({ error: w.error, problems: w.problems || [] });
       const aspect = thumb.aspectFor(piece.platforms);
@@ -562,7 +580,6 @@ module.exports = async (req, res) => {
     }
     if (b.action === 'brief' || b.action === 'brief-edit') {
       const ctx = await briefMod.briefContext(piece, legacyId);
-      if (!ctx.mood.direction && !ctx.mood.tiles.length && !ctx.mood.note) return res.status(409).json({ error: 'the brief needs the moodboard first — the brief is written from its approved direction', code: 'prerequisites' });
       if (b.action === 'brief') {
         // the Hermes brief bot writes it: Maistro's brief rules + the approved context + the contract to fill;
         // the job validates, records and checks the result exactly like a Studio brief
@@ -582,7 +599,6 @@ module.exports = async (req, res) => {
     }
     if (b.action === 'thumb') {
       const mood = await thumb.moodContext(piece.id);
-      if (!mood.direction && !mood.tiles.length) return res.status(409).json({ error: 'the thumbnail needs a moodboard first — generate and approve the moodboard', code: 'prerequisites' });
       const aspect = thumb.aspectFor(piece.platforms);
       const refImage = typeof b.refImage === 'string' && /^https:\/\//.test(b.refImage) ? b.refImage : null;
       const tp = await thumb.thumbPrompt({ piece: meta, mood, productLook: bits.productLook, rules: bits.rules, userInput: b.userInput, refAttached: Boolean(refImage), aspect, memberId: req.member ? req.member.id : null });

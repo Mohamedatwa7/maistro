@@ -22,7 +22,6 @@ test('POST /api/studio action draft: refused only while a keyframe is missing, n
   process.env.SUPABASE_URL = ENV.SUPABASE_URL; process.env.SUPABASE_SERVICE_ROLE_KEY = ENV.SUPABASE_SERVICE_ROLE_KEY;
   try {
     let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-dr1', stage: 'plan', artifact: { title: 'Deadpan Flip', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] }, piece: { title: 'Deadpan Flip', product: 'Galaxy Z Flip8', msg: 'm', platforms: ['tiktok'], markets: ['UAE'] } } }), r);
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft', pieceId: 'gen-dr1' } }), r); assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'prerequisites');
     // a storyboard with shots (through the store, as the Studio writes it): shot 3's keyframe still rendering
     const store = require('../../api/_store.js');
     const shots = [shot(1, 2, true, 'close_up'), shot(2, 4, true), shot(3, 5, true, 'wide'), shot(4, 4, false, 'end_card')];
@@ -48,7 +47,9 @@ test('POST /api/studio action draft: refused only while a keyframe is missing, n
     hf.status = 'completed'; for (const j of cj) j.next_poll_at = new Date(Date.now() - 1000).toISOString();
     for (const j of cj) { r = res(); await jobs.handler(req({ method: 'GET', query: { id: j.id } }), r); assert.equal(r.body.job.state, 'succeeded', JSON.stringify(r.body.job)); assert.equal(r.body.job.result.artifact, undefined); assert.equal(r.body.job.result.attached.slot, 'clip'); }
     const dv = pg.tables.artifact_versions.find((v) => v.id === r.body.job.result.attached.versionId);
-    assert.ok(dv.payload.shots.every((s) => s.clip && s.clip.state === 'rendered' && s.clip.assetPath && s.clip.sha256)); assert.equal(dv.payload.shots[0].clip.durationS, 4); assert.equal(dv.payload.shots[0].clip.fromKeyframe, 'pieces/gen-dr1/board/k1.png'); assert.equal(dv.payload.rev, 4);
+    assert.ok(dv.payload.shots.every((s) => s.clip && s.clip.state === 'rendered' && s.clip.assetPath && s.clip.sha256)); assert.equal(dv.payload.shots[0].clip.durationS, 4); assert.equal(dv.payload.shots[0].clip.fromKeyframe, 'pieces/gen-dr1/board/k1.png'); assert.equal(dv.payload.rev, 5, '4 clips + the auto-assembly key');
+    // owner 2026-10-29: the last clip settling queues the assembly by itself, once — the draft is ONE video
+    const auto = pg.tables.jobs.filter((j) => j.kind === 'assemble'); assert.equal(auto.length, 1); assert.equal(auto[0].payload.auto, true); assert.equal(auto[0].payload.versionId, dv.id); auto[0].state = 'succeeded';
     assert.equal(pg.tables.jobs.filter((j) => j.kind === 'vision_check').length, 0); assert.equal(pg.tables.artifact_versions.filter((v) => v.stage_id === pg.tables.stages.find((s) => s.kind === 'draft').id).length, 1);
     assert.equal(pg.tables.stages.find((s) => s.kind === 'draft').state, 'generated');
     r = res(); await studio.handler(req({ method: 'GET', query: { shots: 'gen-dr1', stage: 'draft' } }), r); assert.equal(r.statusCode, 200); assert.equal(r.body.stage, 'draft'); assert.equal(r.body.live, 0); assert.equal(r.body.payload.shots.length, 4);
@@ -79,7 +80,7 @@ test('adapter: a video request with imageUrl goes to image-to-video with no aspe
   } finally { f.restore(); if (saved === undefined) delete process.env.HF_CREDENTIALS; else process.env.HF_CREDENTIALS = saved; }
 });
 
-test('page: rDraft renders each clip with its state, review badges and per-clip actions; the draft is requested from the approved storyboard', async () => {
+test('page: the first draft shows one video — its parts render and join by themselves, a failed part is left out, no per-clip approval', async () => {
   const X = loadPage({ fetchImpl: async () => new Promise(() => {}) });
   try {
     const shots = [1, 2, 3].map((n) => ({ n, durationS: 4, type: 'medium', camera: `cam ${n}`, action: `act ${n}`, product: { visible: n < 3, feature: '' }, onScreenText: { en: n === 1 ? 'Hook' : '', ar: '' }, line: { en: '', ar: '' }, audioCue: 'a', transition: 'cut', keyframe: {}, clip: null, review: null }));
@@ -89,9 +90,13 @@ test('page: rDraft renders each clip with its state, review badges and per-clip 
       draft: { shots, totalS: 12, aspect: '9:16', resolution: '720p', version: 'v1', boardApproved: true, variants: [{ a: '9:16', l: '720p', k: 'seedance', st: 'rendering' }], dur: '12s', audio: 'x' } };
     X.PROJECTS.unshift(p);
     const html = X.stageArtifact(p, 5);
-    assert.match(html, /FIRST DRAFT v1 · 3 CLIPS · 12 s · 720p/); assert.match(html, /1\/3 CLIPS RENDERED/); assert.match(html, /1\/3 CLIPS APPROVED/);
-    assert.match(html, /<video controls playsinline muted data-asset="pieces\/gen-d\/draft\/c1\.mp4"/); assert.match(html, /SHOT 1 · 4 s \(clip 4 s\)/); assert.match(html, /Render failed — moderated/); assert.match(html, /Seedance is rendering the clip…/);
-    assert.match(html, /Overlay at assembly: <b style="color:#fff">Hook<\/b>/); assert.match(html, /shotRejectForm\('gen-d',1,'draft'\)/); assert.match(html, /shotRegenForm\('gen-d',2,'draft'\)/);
+    // owner 2026-10-29: the first draft is ONE video; its parts render and join by themselves (no per-clip approval)
+    assert.match(html, /FIRST DRAFT v1 · 12 s · 720p/); assert.match(html, /Rendering 1\/3 parts…/); assert.match(html, /join into one video by themselves/); assert.match(html, /PART 2 LEFT OUT/);
+    assert.match(html, /<video controls playsinline muted data-asset="pieces\/gen-d\/draft\/c1\.mp4"/); assert.match(html, /Render failed — left out of the video\. moderated/);
+    assert.match(html, /shotRegenForm\('gen-d',2,'draft'\)/); assert.ok(!/shotDecide\('gen-d',\d,'approved','draft'\)|Approve clip/.test(html), 'no per-clip approval');
+    // assembled → the one video leads
+    p.draft = { ...p.draft, shots: shots.map((s) => ({ ...s, clip: { state: 'rendered', url: 'https://cdn/c.mp4', assetPath: 'pieces/gen-d/draft/c.mp4' } })), assembled: { assetPath: 'pieces/gen-d/draft/cut.mp4', sha256: 'a'.repeat(64), durationS: 12, width: 720, height: 1280 } };
+    const one = X.stageArtifact(p, 5); assert.match(one, /ONE VIDEO · 720×1280/); assert.match(one, /<video controls playsinline data-asset="pieces\/gen-d\/draft\/cut\.mp4"/);
     assert.ok(X.BOARD_POLL['gen-d:draft'], 'pending clips start the draft poll'); clearTimeout(X.BOARD_POLL['gen-d:draft']);
   } finally { X.restore(); }
 });

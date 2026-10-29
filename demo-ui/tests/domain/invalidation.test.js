@@ -40,7 +40,9 @@ test('store: versions record their inputs; an admin reopen + new moodboard makes
     const list = await store.listPieces();
     const pc = list.find((x) => x.id === 'gen-inv');
     assert.deepEqual(pc.stages.thumb.stale, ['mood']); assert.deepEqual(pc.stages.brief.stale, ['mood', 'thumb'], 'the brief: directly (old moodboard) and through the stale thumbnail'); assert.equal(pc.stages.mood.stale, undefined);
-    let r = await approve('brief'); assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'stale_inputs'); assert.match(r.body.error, /older mood and thumb/);
+    // owner 2026-10-29: no approval depends on the step before — a stale brief can still be approved (the page says it is out of date)
+    let r = await approve('brief'); assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+    await store.reopen('gen-inv', 'brief', 'admin');
     // regenerate the thumbnail from the current moodboard (admin reopens the approved one first) → fresh; the brief is now directly stale
     await store.reopen('gen-inv', 'thumb', 'admin');
     const t2 = await store.recordVersion('gen-inv', 'thumb', { imageUrl: 'https://cdn/t2.png' }, {});
@@ -53,12 +55,12 @@ test('store: versions record their inputs; an admin reopen + new moodboard makes
   } finally { f.restore(); pieces.restore(); decisions.restore(); delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; }
 });
 
-test('page: a stale stage shows why and that approval is refused', () => {
+test('page: a stale stage shows why, and that it can still be approved', () => {
   const X = loadPage({ fetchImpl: async () => new Promise(() => {}) });
   try {
     const p = { id: 'gen-st', generated: true, studio: true, stage: 4, title: 'T', platforms: ['tiktok'], markets: ['UAE'], th: ['#000000', '#111111'], map: { product: 'p', msg: 'm', angle: 'a' }, brief: { objective: 'o', msg: 'k', markets: ['UAE'], platforms: [], mandatories: ['x'], deadline: '30 Oct 2026' }, stale: { brief: ['thumb'] } };
     X.PROJECTS.unshift(p);
     const html = X.stageArtifact(p, 3);
-    assert.match(html, /Out of date\.<\/b> This detailed brief was built from an older thumbnail — regenerate it/i);
+    assert.match(html, /Out of date\.<\/b> This detailed brief was built from an older thumbnail — regenerate it/i); assert.match(html, /you can still approve it as it is/);
   } finally { X.restore(); }
 });

@@ -535,6 +535,14 @@ body.bare #view{padding:0}
 .pnode{position:relative;padding:14px;border-radius:14px;border:1px solid rgba(203,213,225,.12);background:rgba(255,255,255,.02);
   cursor:pointer;transition:.2s;text-align:left}
 .pnode:hover{border-color:rgba(203,213,225,.4)}
+.pnode.skip{opacity:.42;border-style:dashed}
+.steps-pick{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-top:12px;font-size:12px;color:var(--muted)}
+.steps-pick label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
+.steps-pick input{accent-color:#7dd3fc;width:14px;height:14px}
+.own-form{display:grid;gap:10px;margin-top:12px}
+.own-form textarea,.own-form input[type=text]{width:100%;box-sizing:border-box;background:rgba(255,255,255,.04);border:1px solid var(--hairline);border-radius:10px;color:#fff;padding:9px 11px;font:inherit;font-size:12.5px}
+.own-form textarea{min-height:64px;resize:vertical}
+.own-form .lab{font-family:var(--font-m);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
 .pnode .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .pnode .st-lab{font-family:var(--font-m);font-size:9px;letter-spacing:.12em;text-transform:uppercase}
 .pnode h4{font-size:13px;font-weight:600;color:#fff}
@@ -1744,8 +1752,8 @@ async function cpPlan(payload,direction){
   const plan=await hermesCall('plan',payload,null);
   let p=cpProj();
   if(!p||!p.planning){p=cpDraft(payload.name||plan.title,payload)}
-  Object.assign(p,{title:plan.title,product:plan.product,markets:plan.markets,
-   platforms:plan.platforms,th:plan.th,src:payload,
+  Object.assign(p,{title:plan.title,product:payload.userProduct||plan.product,markets:payload.userMarkets||plan.markets,
+   platforms:payload.userPlatforms||plan.platforms,th:plan.th,src:payload,
    map:{product:plan.product,msg:plan.msg,angle:plan.angle}});
   delete p.planning;delete PLAN.busy[p.id];
   syncStage(p,'plan',plan);
@@ -1962,11 +1970,20 @@ function genBox(p,sid){
  /* Final Content is the QC-revision pass: it needs the first draft + its F1X8 report */
  if(sid==='final'&&p.qc&&p.qc.report&&useJobs())return `
   <div class="genbox"><span class="kick accent">Apply the approved QC fix plan</span>
-   <p class="hint">${p.qc.report.fixes.filter(f=>f.include).length} fix(es) at their smallest unit; untouched shots stay byte-identical. The QC must be approved first.</p>
+   <p class="hint">${p.qc.report.fixes.filter(f=>f.include).length} fix(es) at their smallest unit; untouched shots stay byte-identical. If the QC isn't approved, the final is the first draft as it stands.</p>
    <div class="row"><button class="btn btn-gold btn-sm" onclick="stageGen('${p.id}','final')">Apply fixes →</button></div>
    ${GEN.err[key]?`<div class="pc-note" style="margin-top:10px">${esc(GEN.err[key])}</div>`:''}</div>`;
  if(sid==='final'){
   const fx=qcFixes(p);
+  /* owner 2026-10-29: the QC is optional — with the job service the final starts from the draft video */
+  if(useJobs()&&(skipOf(p,'qc')||!p.draft||!p.draft.videoUrl||!fx))return p.draft&&p.draft.assembled?`
+  <div class="genbox"><span class="kick accent">Make the final from the first draft</span>
+   <p class="hint">No QC fix plan to apply${skipOf(p,'qc')?' (the Quality Check is skipped)':''}, so the final is the first draft video as it stands. Run the Quality Check first if you want F1X8's fixes applied.</p>
+   <div class="row"><button class="btn btn-gold btn-sm" onclick="stageGen('${p.id}','final')">Make the final →</button></div>
+   ${GEN.err[key]?`<div class="pc-note" style="margin-top:10px">${esc(GEN.err[key])}</div>`:''}</div>`:`
+  <div class="gen-busy" style="border-color:rgba(240,179,94,.35)"><span style="font-size:16px">🎬</span>
+   <div style="font-size:12.5px;line-height:1.6"><b style="color:#ffe3a3">The final starts from the first draft video</b>
+    <div class="dim" style="font-size:11px;margin-top:2px">Make the <b>First Draft</b> (stage 05) first. The Quality Check (stage 06) is optional: with it, the final applies its fixes; without it, the draft video becomes the final.</div></div></div>`;
   if(!p.draft||!p.draft.videoUrl||!fx)return `
   <div class="gen-busy" style="border-color:rgba(240,179,94,.35)"><span style="font-size:16px">🔒</span>
    <div style="font-size:12.5px;line-height:1.6"><b style="color:#ffe3a3">Unlocks after the Quality Check</b>
@@ -2032,8 +2049,8 @@ async function stageGen(pid,sid,changes){
   ...(p.refImage&&sid==='thumb'?{referenceImageAttached:true}:{})};
  try{
   /* 6.8: the final applies ONLY the approved QC plan, at each fix's unit */
-  if(sid==='final'&&useJobs()&&p.qc&&p.qc.report&&!changes){
-   GEN.busy[key]='Applying the approved fix plan (only the shots it names)…';studioRefresh();
+  if(sid==='final'&&useJobs()&&!changes&&((p.qc&&p.qc.report&&!skipOf(p,'qc'))||(p.draft&&p.draft.assembled))){
+   GEN.busy[key]=p.qc&&p.qc.report&&!skipOf(p,'qc')?'Applying the approved fix plan (only the shots it names)…':'Making the final from the first draft video…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'final',pieceId:p.id,piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
@@ -2055,13 +2072,24 @@ async function stageGen(pid,sid,changes){
    return;
   }
   /* 6.6: the first draft is one clip per storyboard shot — it needs the keyframes, not the storyboard's approval */
+  if(sid==='draft'&&useJobs()&&!changes&&!(p.board&&p.board.shots&&!skipOf(p,'board'))){
+   /* no storyboard (skipped or not made): one text-to-video clip for the whole video */
+   GEN.busy[key]='The Hermes video bot is making the first draft as one video'+(p.brief&&!skipOf(p,'brief')?' from the brief':' from the campaign plan')+'…';studioRefresh();
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',noBoard:true,pieceId:p.id,resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));
+   if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
+   attachTo(p,'draft',sd.artifact,'Hermes video bot',{recorded:{version:sd.version}});
+   p.jobs=p.jobs||{};p.jobs['b:draft']={board:true};saveGenerated();
+   studioRefresh();shotsPoll(p.id,'draft',0);
+   return;
+  }
   if(sid==='draft'&&useJobs()&&p.board&&p.board.shots&&!changes){
    const kst=s=>s.keyframe&&s.keyframe.state;
    const pendingShots=p.board.shots.filter(s=>kst(s)!=='rendered'&&kst(s)!=='failed').map(s=>s.n);
    if(pendingShots.length)throw new Error('The storyboard keyframes are still rendering — shot '+pendingShots.join(', ')+' pending.');
    const okShots=p.board.shots.filter(s=>kst(s)==='rendered'),failedShots=p.board.shots.filter(s=>kst(s)==='failed').map(s=>s.n);
    if(!okShots.length)throw new Error('Every storyboard keyframe failed — regenerate at least one shot first.');
-   GEN.busy[key]='The Hermes video bot is rendering '+okShots.length+' clips from the storyboard keyframes'+(failedShots.length?' (shot '+failedShots.join(', ')+' left out: its keyframe failed)':'')+'…';studioRefresh();
+   GEN.busy[key]='The Hermes video bot is rendering '+okShots.length+' clips from the storyboard keyframes'+(failedShots.length?' (shot '+failedShots.join(', ')+' left out: its keyframe failed)':'')+' — they join into one video by themselves…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',pieceId:p.id,resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
@@ -2072,8 +2100,7 @@ async function stageGen(pid,sid,changes){
   }
   /* 6.5: the storyboard is a shot list from the approved brief + one keyframe per shot */
   if(sid==='board'&&useJobs()){
-   if(!p.brief){throw new Error('Write and approve the brief first — the storyboard is built from it.')}
-   GEN.busy[key]='Frame is writing the shot list from the approved brief…';studioRefresh();
+   GEN.busy[key]='Frame is writing the shot list'+(p.brief&&!skipOf(p,'brief')?' from the brief':' from the campaign plan')+'…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',pieceId:p.id,userInput,refImage:p.refImage||null,piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
@@ -2086,8 +2113,7 @@ async function stageGen(pid,sid,changes){
   }
   /* 6.4: the brief is written from the approved moodboard + thumbnail and checked in code */
   if(sid==='brief'&&useJobs()){
-   if(!p.mood){throw new Error('Generate and approve the moodboard first — the brief is written from its direction.')}
-   GEN.busy[key]='Your Hermes brief bot is writing the brief from the approved moodboard and thumbnail…';studioRefresh();
+   GEN.busy[key]='Your Hermes brief bot is writing the brief'+(p.mood?' from the moodboard'+(p.thumb?' and thumbnail':''):' from the campaign plan')+'…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'brief',pieceId:p.id,userInput,piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
@@ -2110,8 +2136,7 @@ async function stageGen(pid,sid,changes){
   }
   /* 6.3: the thumbnail continues the approved moodboard; headlines are overlays */
   if(sid==='thumb'&&useJobs()&&!changes){
-   if(!p.mood){throw new Error('Generate and approve the moodboard first — the thumbnail continues its direction.')}
-   GEN.busy[key]='Art director is writing the cover prompt from the moodboard…';studioRefresh();
+   GEN.busy[key]='Art director is writing the cover prompt'+(p.mood?' from the moodboard':' from the campaign plan')+'…';studioRefresh();
    const head=(($('#gen-head-en')||{}).value||'').trim(),headAr=(($('#gen-head-ar')||{}).value||'').trim();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'thumb',pieceId:p.id,userInput,headline:head,headlineAr:headAr,refImage:p.refImage||null,piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
@@ -2528,7 +2553,7 @@ function shotsPoll(pid,stage,tries){
     delete GEN.busy[pk];if(p.jobs)delete p.jobs['b:'+stage];saveGenerated();
     CHECKS[pk+':all']=undefined;loadChecks(pid,stage);studioRefresh();
     const sh=(p[stage]&&p[stage].shots)||[];const n=sh.filter(s=>s[slot]&&s[slot].state==='rendered').length,f=sh.filter(s=>s[slot]&&s[slot].state==='failed').length;
-    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip(slot==='clip'?'Forge':'Frame',1)}<div style="font-size:12.5px"><b>${slot==='clip'?'Draft clips':'Storyboard keyframes'} landed</b> — ${n} rendered${f?`, ${f} failed (regenerate those shots)`:''}. Review each shot.</div></div>`);
+    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip(slot==='clip'?'Forge':'Frame',1)}<div style="font-size:12.5px"><b>${slot==='clip'?(stage==='draft'?(p.draft&&p.draft.assembled?'The first draft video is ready':'First draft parts rendered'):'Final clips landed'):'Storyboard keyframes landed'}</b> — ${n} rendered${f?`, ${f} failed (${slot==='clip'?'left out of the video':'regenerate those shots'})`:''}.${slot==='clip'&&stage==='draft'?'':' Review each shot.'}</div></div>`);
     return;
    }
    studioRefresh();shotsPoll(pid,stage,tries+1);
@@ -2820,6 +2845,7 @@ function rDraft(p,locked,stg){
  stg=stg||'draft';const b=p[stg],key=p.id+':'+stg;
  const pending=(b.shots||[]).some(s=>!s.clip||s.clip.state==='pending');
  if(pending&&!BOARD_POLL[p.id+':'+stg]&&!GEN.busy[key])shotsPoll(p.id,stg,0);
+ if(stg==='draft')return rDraftOne(p,locked,b,key,pending);
  const rendered=(b.shots||[]).filter(s=>s.clip&&s.clip.state==='rendered').length,approved=(b.shots||[]).filter(s=>s.review&&s.review.decision==='approved').length;
  const allApproved=(b.shots||[]).length&&approved===(b.shots||[]).length;
  return `
@@ -2852,6 +2878,34 @@ function rDraft(p,locked,stg){
     </div></div>`}).join('')}</div>
   ${GEN.err[key]?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[key])}</div>`:''}
   ${p.studio&&stg==='draft'?regenBox(p,'draft'):''}`;
+}
+/* Owner 2026-10-29: the first draft is ONE video. Its clips render (from the storyboard keyframes, or one clip
+   with no storyboard) and join by themselves; a failed clip is left out. The clips stay below for re-renders. */
+function rDraftOne(p,locked,b,key,pending){
+ const sh=b.shots||[],ok=sh.filter(s=>s.clip&&s.clip.state==='rendered').length,bad=sh.filter(s=>s.clip&&s.clip.state==='failed').map(s=>s.n);
+ const joining=!pending&&ok>0&&!b.assembled;
+ if(joining&&!BOARD_POLL[key]&&!GEN.busy[key])shotsPoll(p.id,'draft',0);
+ const vid=b.assembled&&b.assembled.assetPath?`<video controls playsinline ${mediaAttrs(b.assembled,'url')} style="width:100%;max-width:${(b.aspect||'9:16')==='9:16'?'340px':'680px'};border-radius:14px;border:1px solid var(--hairline);background:#000;display:block"></video>`:'';
+ const status=b.assembled?'':pending?`<div class="gen-busy"><span class="gen-spin"></span><div style="font-size:12.5px;line-height:1.6"><b style="color:#bae6fd">Rendering ${sh.length>1?`${ok}/${sh.length} parts`:'the video'}…</b><div class="dim" style="font-size:11px;margin-top:2px">${sh.length>1?'The parts join into one video by themselves when they are done.':'Usually 1–3 minutes.'}</div></div></div>`
+  :joining?`<div class="gen-busy"><span class="gen-spin"></span><div style="font-size:12.5px;line-height:1.6"><b style="color:#bae6fd">Joining ${ok} part${ok>1?'s':''} into one video…</b><div class="dim" style="font-size:11px;margin-top:2px">Usually within two minutes.</div></div></div>`
+  :`<div class="pc-note">Every part failed to render — re-render a part below or regenerate the first draft.</div>`;
+ return `
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+   ${badge('muted','FIRST DRAFT '+esc(b.version||'v1')+' · '+esc(String(b.assembled?b.assembled.durationS:b.totalS||''))+' s · '+esc(b.resolution||''))}${b.fromStoryboard===false?badge('c','NO STORYBOARD'):''}
+   ${b.assembled?badge('go','ONE VIDEO · '+b.assembled.width+'×'+b.assembled.height):''}
+   ${bad.length?badge('gold',`PART${bad.length>1?'S':''} ${bad.join(', ')} LEFT OUT`):''}
+   ${b.assembledChecks?(b.assembledChecks.every(c=>c.passed)?badge('go','CHECKS PASSED'):badge('alert','CHECKS NEED A LOOK')):''}
+  </div>
+  ${vid}${status}
+  ${b.assembledChecks&&!b.assembledChecks.every(c=>c.passed)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${b.assembledChecks.filter(c=>!c.passed).map(c=>`<span title="${esc(c.detail)}">${badge('alert','✗ '+c.code.replace(/_/g,' ').toUpperCase())}</span>`).join('')}</div>`:''}
+  ${p.studio&&!locked&&b.assembled&&sh.some(s=>s.onScreenText&&(s.onScreenText.en||s.onScreenText.ar))&&!GEN.busy[key]?`<div style="margin:12px 0 0"><button class="btn btn-ghost btn-sm" onclick="assembleDraft('${p.id}','draft')">Add the on-screen text &amp; rebuild the video</button> <span class="dim" style="font-size:11px">Text is drawn in your browser (Arabic shaped correctly) and burnt into the video.</span></div>`:''}
+  ${sh.length>1||(sh[0]&&sh[0].clip&&sh[0].clip.state==='failed')?`<details style="margin-top:14px"><summary class="dim" style="cursor:pointer;font-size:12px">The ${sh.length} part${sh.length>1?'s':''} this video is made of — re-render one or use your own clip</summary>
+  <div class="frames" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-top:10px">${sh.map(s=>{const c=s.clip;
+   const art=c&&c.state==='rendered'?`<video controls playsinline muted ${mediaAttrs(c,'url')} style="width:100%;height:100%;object-fit:cover;background:#000"></video>`:c&&c.state==='failed'?`<div class="dim" style="font-size:11px;padding:10px">Render failed — left out of the video. ${esc(c.error||'')}</div>`:`<div style="display:flex;align-items:center;gap:8px;padding:10px"><span class="gen-spin"></span><span class="dim" style="font-size:11px">Rendering…</span></div>`;
+   return `<div class="frame card" style="overflow:hidden"><div class="art" style="height:auto;aspect-ratio:${(b.aspect||'9:16')==='9:16'?'9/12':'16/9'};background:#000;padding:0;position:relative;display:block">${art}<span class="tc" style="position:absolute;left:8px;bottom:8px">PART ${s.n} · ${s.durationS} s</span></div>
+    ${p.studio&&!locked?`<div class="p3" style="display:flex;gap:6px;flex-wrap:wrap">${c&&c.state!=='pending'?`<button class="btn btn-gold btn-sm" onclick="shotRegenForm('${p.id}',${s.n},'draft')">↻ Re-render</button>`:''}<button class="btn btn-ghost btn-sm" onclick="overrideUpload('${p.id}','draft',${s.n})">⬆ Own clip</button></div><div id="shot-form-draft-${s.n}"></div>`:''}</div>`}).join('')}</div></details>`:''}
+  ${GEN.err[key]?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[key])}</div>`:''}
+  ${p.studio?regenBox(p,'draft'):''}`;
 }
 async function shotDecide(pid,n,decision,stage){
  stage=stage||'board';
@@ -4242,16 +4296,28 @@ function rTrends(){
 
 /* ================= 02 CONTENT STUDIO ================= */
 function projSet(id){STATE.proj=id;STATE.stageSel=null;setView(rStudio())}
+/* Owner 2026-10-29: every step is optional. An unticked step is skipped for that campaign; the later steps
+   work from whatever exists (falling back to the campaign plan). Kept with the campaign in this browser. */
+function skipOf(p,id){return Boolean(p&&p.skip&&p.skip[id])}
+function stageSkip(pid,id,skip){
+ const p=PROJECTS.find(x=>x.id===pid);if(!p)return;
+ p.skip=p.skip||{};if(skip)p.skip[id]=true;else delete p.skip[id];
+ saveGenerated();setView(rStudio());
+}
+function stepsPick(p){
+ return `<div class="steps-pick"><span class="kick" style="font-size:9px">Steps in this campaign</span>${STAGES.map(s=>`<label><input type="checkbox" ${skipOf(p,s.id)?'':'checked'} onchange="stageSkip('${p.id}','${s.id}',!this.checked)">${esc(s.l)}</label>`).join('')}</div>`;
+}
 function stageSet(n){STATE.stageSel=n;setView(rStudio())}
 function dirNote(a){
  return a&&a.note?`<div class="dir-note">✦<div><b>AI Creative Director</b> — ${esc(a.note)}</div></div>`:'';
 }
 function stageArtifact(p,n){
  const s=STAGES[n-1];
+ if(skipOf(p,s.id))return `<div class="pc-note" style="border-color:rgba(125,211,252,.35)"><b style="color:#bae6fd">${esc(s.l)} is skipped for this campaign.</b> The later steps work from what exists${s.id==='board'?' — without a storyboard the first draft is one video written from the brief or plan':s.id==='qc'?' — without a QC the final is the first draft as it stands':''}. <button class="btn btn-ghost btn-sm" style="margin-left:6px" onclick="stageSkip('${p.id}','${s.id}',false)">Include this step</button></div>`;
  const head=(extra='')=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
    <div style="display:flex;align-items:center;gap:10px">${agentChip(s.agent,n===p.stage)}<div><h3 style="font-size:15.5px">0${n} · ${s.l}</h3><span class="dim" style="font-size:11px">${s.d}</span></div></div>${extra}</div>`;
  /* Studio-built campaigns: every piece is creatable in place, in any order */
- const staleNote=p.stale&&p.stale[s.id]?`<div class="pc-note" style="margin-bottom:10px;border-color:rgba(251,113,133,.45)"><b style="color:#fda4af">Out of date.</b> This ${esc(s.l.toLowerCase())} was built from an older ${p.stale[s.id].map(k=>esc((STAGES[BOT_STAGE_IDX[k]-1]||{l:k}).l||k).toLowerCase()).join(' and ')} — regenerate it from the current version before approving (approval is refused while it is stale).</div>`:'';
+ const staleNote=p.stale&&p.stale[s.id]?`<div class="pc-note" style="margin-bottom:10px;border-color:rgba(251,113,133,.45)"><b style="color:#fda4af">Out of date.</b> This ${esc(s.l.toLowerCase())} was built from an older ${p.stale[s.id].map(k=>esc((STAGES[BOT_STAGE_IDX[k]-1]||{l:k}).l||k).toLowerCase()).join(' and ')} — regenerate it from the current version if it should follow those changes (you can still approve it as it is).</div>`:'';
  const reopenNote=!staleNote&&p.reopened&&p.reopened[s.id]?`<div class="pc-note" style="margin-bottom:10px;border-color:rgba(251,191,36,.45)"><b style="color:#fbbf24">Upstream reopened.</b> The ${p.reopened[s.id].map(k=>esc((STAGES[BOT_STAGE_IDX[k]-1]||{l:k}).l||k).toLowerCase()).join(' and ')} this was built from is being changed — expect to regenerate this once the new version lands.</div>`:'';
  if(staleNote)return staleNote+stageArtifactInner(p,n);
  if(reopenNote)return reopenNote+stageArtifactInner(p,n);
@@ -4315,6 +4381,37 @@ function stageArtifactInner(p,n){
  }
  return '';
 }
+const OWN={markets:['UAE','KSA'],platforms:['tiktok'],skip:{}};
+const OWN_MARKETS=['UAE','KSA','Kuwait','Qatar','Bahrain','Oman'],OWN_PLATS=[['tiktok','TikTok'],['instagram','Instagram'],['youtube','YouTube'],['facebook','Facebook'],['x','X']];
+function ownToggle(kind,v){
+ if(kind==='skip'){if(OWN.skip[v])delete OWN.skip[v];else OWN.skip[v]=true;return}
+ const a=OWN[kind],i=a.indexOf(v);if(i>-1){if(a.length>1)a.splice(i,1)}else a.push(v);
+}
+function rOwnForm(){
+ const box=(kind,v,l,on)=>`<label><input type="checkbox" ${on?'checked':''} onchange="ownToggle('${kind}','${v}')">${esc(l)}</label>`;
+ return `<div class="own-form">
+  <div><div class="lab">Your idea</div><textarea id="own-idea" placeholder="e.g. “Galaxy Z Flip8 for Ramadan nights: family moments, warm and premium”"></textarea></div>
+  <div><div class="lab">Product (optional)</div><input type="text" id="own-product" maxlength="80" placeholder="e.g. Galaxy Z Flip8 — or leave empty and Maistro picks"></div>
+  <div><div class="lab">Markets</div><div class="steps-pick" style="margin-top:0">${OWN_MARKETS.map(m=>box('markets',m,m,OWN.markets.includes(m))).join('')}</div></div>
+  <div><div class="lab">Platforms</div><div class="steps-pick" style="margin-top:0">${OWN_PLATS.map(([v,l])=>box('platforms',v,l,OWN.platforms.includes(v))).join('')}</div></div>
+  <div><div class="lab">Steps (untick any you don't need)</div><div class="steps-pick" style="margin-top:0">${STAGES.map(s=>box('skip',s.id,s.l,!OWN.skip[s.id])).join('')}</div></div>
+  <div><button class="btn btn-gold btn-sm" onclick="ownCreate()">Create my campaign →</button> <span class="dim" id="own-err" style="font-size:11.5px;margin-left:6px"></span></div>
+ </div>`;
+}
+function ownCreate(){
+ const idea=(($('#own-idea')||{}).value||'').trim(),product=(($('#own-product')||{}).value||'').trim();
+ if(!idea){const e=$('#own-err');if(e)e.textContent='Describe the idea first.';return}
+ if(BOT.busy){const e=$('#own-err');if(e)e.textContent='Another campaign is being planned — try again in a moment.';return}
+ const payload={...cpPayloadFromText(idea),type:'own idea',markets:OWN.markets.slice(),platform:OWN.platforms[0],
+  userMarkets:OWN.markets.slice(),userPlatforms:OWN.platforms.slice(),...(product?{userProduct:product}:{})};
+ Object.assign(BOT,{step:'menu',msgs:[],chips:[],proj:null,payload:null,pendingPayload:payload,busy:false});
+ const p=cpDraft(idea,payload);p.platforms=OWN.platforms.slice();p.trend='';p.ownIdea=true;
+ if(Object.keys(OWN.skip).length)p.skip={...OWN.skip};
+ OWN.skip={};
+ const direction=product?`${idea}\nProduct: ${product}`:idea;
+ studioRefresh();cpPlan(payload,direction);
+ window.scrollTo&&window.scrollTo({top:0,behavior:'smooth'});
+}
 function rPathways(){
  const ext=PROJECTS.filter(x=>x.external).length;
  return `
@@ -4339,8 +4436,9 @@ function rPathways(){
        <h3 style="font-size:15.5px;margin-top:7px">Studio Copilot — create each piece yourself</h3></div></div>
      ${badge('gold','SEEDANCE 2.5')}
     </div>
-    <p class="dim" style="font-size:12px;line-height:1.65;margin-top:10px">A step-by-step chatbot: describe the campaign (or pick a live trend), then generate each artifact separately — moodboard, thumbnail, brief and storyboard by the agent chain, and the <b style="color:#ffe3a3">final video rendered by Higgsfield Seedance&nbsp;2.5</b>. Every piece queues in the Production Center for approval.</p>
-    <div style="margin-top:14px"><button class="btn btn-gold btn-sm" onclick="cpOpen()">Open Studio Copilot →</button></div>
+    <p class="dim" style="font-size:12px;line-height:1.65;margin-top:10px"><b style="color:#ffe3a3">Create your own — no trend needed.</b> Describe the idea, pick the markets, platforms and the steps you want, and Maistro plans the campaign. Then generate each step in place; every piece queues in the Production Center.</p>
+    ${rOwnForm()}
+    <div style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="cpOpen()">Or talk it through with the Studio Copilot →</button></div>
    </div>
   </div>`;
 }
@@ -4373,17 +4471,18 @@ function rStudio(){
     <div class="pipe-item"><span class="thumb" style="background:linear-gradient(120deg,${p.th[0]},${p.th[1]})"></span>
      <div><h3 style="font-size:17px">${esc(p.title)}</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:5px;align-items:center">
-       ${badge('ai','TREND · '+esc(p.trend.toUpperCase()))}<span class="dim mono" style="font-size:10.5px">${esc(p.product)} · ${p.markets.map(esc).join(' · ')}</span>${p.platforms.map(plat).join(' ')}</div></div></div>
+       ${p.trend?badge('ai','TREND · '+esc(p.trend.toUpperCase())):badge('gold','OWN IDEA')}<span class="dim mono" style="font-size:10.5px">${esc(p.product)} · ${p.markets.map(esc).join(' · ')}</span>${p.platforms.map(plat).join(' ')}</div></div></div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
      ${p.studio?rRefControl(p):''}
      <div class="stage-dots">${STAGES.map(s=>`<i class="${s.n<p.stage?'done':s.n===p.stage?'cur':''}"></i>`).join('')}</div>
     </div>
    </div>
    <div class="pipe">
-    ${STAGES.map(s=>`<button class="pnode ${s.n<p.stage?'done':s.n===p.stage?'cur':'todo'} ${s.n===sel?'on':''}" onclick="stageSet(${s.n})">
-      <div class="top"><span class="st-lab">${s.n<p.stage?'✓ Final':s.n===p.stage?'● Working':'Queued'}</span><span class="mono dim" style="font-size:9px">0${s.n}</span></div>
+    ${STAGES.map(s=>`<button class="pnode ${s.n<p.stage?'done':s.n===p.stage?'cur':'todo'} ${s.n===sel?'on':''} ${skipOf(p,s.id)?'skip':''}" onclick="stageSet(${s.n})">
+      <div class="top"><span class="st-lab">${skipOf(p,s.id)?'Skipped':s.n<p.stage?'✓ Final':s.n===p.stage?'● Working':'Queued'}</span><span class="mono dim" style="font-size:9px">0${s.n}</span></div>
       <h4>${s.l}</h4><div class="role">${s.agent}</div></button>`).join('')}
    </div>
+   ${p.studio||p.generated?stepsPick(p):''}
    <div style="margin-top:18px;border-top:1px solid var(--hairline);padding-top:18px">${stageArtifact(p,sel)}</div>
   </div>
 
@@ -4512,7 +4611,7 @@ async function confirmApprove(id){
  const sels=[...document.querySelectorAll('#modal .ap-sel')].filter(c=>c.checked).map(c=>+c.value);
  const details=d.stage==='mood'&&sels.length?{selectedImages:sels,annotations:(($('#ap-annot')||{}).value||'').trim()||null}:undefined;
  if(d.stage==='mood'&&document.querySelectorAll('#modal .ap-sel').length&&!sels.length){const err=$('#ap-err');if(err)err.textContent='Select at least one tile.';return}
- if(d.stage==='board'){const pb=PROJECTS.find(x=>x.id===d.proj);const sh=pb&&pb.board&&pb.board.shots;if(sh&&sh.some(x=>!x.review||x.review.decision!=='approved')){const err=$('#ap-err');if(err)err.textContent='Approve every shot first — '+sh.filter(x=>!x.review||x.review.decision!=='approved').map(x=>'shot '+x.n).join(', ')+' pending.';if(go){go.disabled=false;go.textContent='Record approval'}return}}
+ if(d.stage==='board'){const pb=PROJECTS.find(x=>x.id===d.proj);const sh=pb&&pb.board&&pb.board.shots&&pb.board.shots.filter(x=>!(x.keyframe&&x.keyframe.state==='failed'));if(sh&&sh.some(x=>!x.review||x.review.decision!=='approved')){const err=$('#ap-err');if(err)err.textContent='Approve every rendered shot first (failed shots don\'t count) — '+sh.filter(x=>!x.review||x.review.decision!=='approved').map(x=>'shot '+x.n).join(', ')+' pending.';if(go){go.disabled=false;go.textContent='Record approval'}return}}
  const srv=await recordDecision(d,{decision:'approved',name,role,info,documents:docs,details});
  if(!srv.ok){
   if(go){go.disabled=false;go.textContent='Record approval'}

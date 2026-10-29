@@ -120,9 +120,9 @@ async function decide(legacyId, stage, d = {}) {
     const sha = dv && dv.payload ? (dv.payload.assembled && dv.payload.assembled.sha256) || dv.payload.sha256 : null;
     if (!dv || dv.id !== rep.draftVersionId || (rep.draftSha256 && sha !== rep.draftSha256)) throw new StoreError(409, 'qc_stale', 'the draft changed after this QC report — run QC again on the current cut');
   }
-  // 6.5: a storyboard is approved shot by shot first; the stage approval needs every shot approved
+  // 6.5: a storyboard is approved shot by shot first; owner 2026-10-29: a shot whose keyframe FAILED never blocks it
   if (decision === 'approved' && stage === 'board' && version.payload && Array.isArray(version.payload.shots)) {
-    const pending = version.payload.shots.filter((x) => !x.review || x.review.decision !== 'approved').map((x) => x.n);
+    const pending = version.payload.shots.filter((x) => !(x.keyframe && x.keyframe.state === 'failed') && (!x.review || x.review.decision !== 'approved')).map((x) => x.n);
     if (pending.length) throw new StoreError(409, 'shots_pending', `shot${pending.length > 1 ? 's' : ''} ${pending.join(', ')} not approved yet`);
   }
 
@@ -132,11 +132,8 @@ async function decide(legacyId, stage, d = {}) {
     ? { type: 'approve', role, approverId: d.actorId || null, generatedBy: version.generated_by || null, documents: { line_manager: docOk(docs.line_manager), adlcp: docOk(docs.adlcp) } }
     : { type: 'reject', reason: String(d.reason || '') };
   // 6.9 invalidation: a version built from an upstream version that has since been replaced cannot be approved
-  if (decision === 'approved') {
-    const st = await staleFor(stages);
-    const mine = st.find((x) => x.kind === stage);
-    if (mine) throw new StoreError(409, 'stale_inputs', `${stage} was built from an older ${mine.because.map((b) => b.kind).join(' and ')} — regenerate it from the current version first`);
-  }
+  // owner 2026-10-29: no approval depends on the step before; a stage built from an older upstream version
+  // is still shown as out of date on the page, but it can be approved
   const r = transition(stage, s.state, t);
   if (!r.ok) throw new StoreError(409, r.code, r.message);
 

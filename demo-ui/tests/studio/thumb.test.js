@@ -37,8 +37,6 @@ test('POST /api/studio action thumb: needs a moodboard; anchors to the approved 
   const studio = api('studio.js', ENV); const jobs = api('jobs.js', ENV); const pieces = api('pieces.js', ENV); const decisions = api('decisions.js', ENV);
   try {
     let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-th1', stage: 'plan', artifact: { title: 'Slim', product: 'Galaxy Z Flip8', msg: 'Slimness check', markets: ['UAE'], platforms: ['tiktok', 'instagram'], th: ['#0c1418', '#1d5a63'] }, piece: { title: 'Slim', product: 'Galaxy Z Flip8', msg: 'Slimness check', platforms: ['tiktok', 'instagram'], markets: ['UAE'] } } }), r);
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'thumb', pieceId: 'gen-th1' } }), r);
-    assert.equal(r.statusCode, 409, 'no moodboard yet'); assert.equal(r.body.code, 'prerequisites');
     // a moodboard set, approved with tiles 1 and 2 selected
     r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-th1', stage: 'mood', artifact: { imageUrl: 'https://cdn/m0.png', images: [0, 1, 2, 3].map((i) => ({ url: `https://cdn/m${i}.png`, assetPath: `pieces/gen-th1/mood/m${i}.png`, tag: DIRECTION.tiles[i].tag })), direction: DIRECTION, prompt: 'p', note: 'n' } } }), r); assert.equal(r.statusCode, 200);
     r = res(); await decisions.handler(req({ method: 'POST', body: { pieceId: 'gen-th1', stage: 'mood', decision: 'approved', name: 'N', role: 'reviewer', details: { selectedImages: [1, 2], annotations: 'keep the rim light' } } }), r); assert.equal(r.statusCode, 200);

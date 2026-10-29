@@ -219,7 +219,7 @@ async function fail(job, state, error) {
         return { ...payload, shots };
       });
     } catch (e) { console.warn('[jobs] shot failure could not be recorded:', e.message); }
-    await settleBoardStage(job);
+    if (await settleBoardStage(job)) await autoAssemble(job);
     return;
   }
   if (RENDER_KINDS.includes(job.kind) && job.stage_id) {
@@ -458,6 +458,28 @@ async function updateShots(versionId, mutate, attempts = 6) {
   throw new Error(`version ${versionId}: payload changed concurrently ${attempts} times`);
 }
 
+/** Owner 2026-10-29: the first draft is ONE video. When the last clip of a draft version settles (rendered or
+ *  failed) and at least one rendered, the cut is assembled by itself; the key (which clips, which files) makes a
+ *  re-rendered clip assemble again and two settling clips queue it once. Best effort: the page can still assemble. */
+async function autoAssemble(job) {
+  const p = job.payload || {};
+  if (p.stage !== 'draft' || !p.attachTo || !p.attachTo.versionId || !isVideoKind(job.kind)) return null;
+  try {
+    let key = null;
+    const r = await updateShots(p.attachTo.versionId, (payload) => {
+      const shots = Array.isArray(payload.shots) ? payload.shots : [];
+      const settled = shots.length && shots.every((s) => s.clip && ['rendered', 'failed'].includes(s.clip.state));
+      const ok = shots.filter((s) => s.clip && s.clip.state === 'rendered' && s.clip.assetPath);
+      if (!settled || !ok.length) return null;
+      key = ok.map((s) => `${s.n}:${s.clip.assetPath}`).join('|');
+      return payload.autoAssembleKey === key ? null : { ...payload, autoAssembleKey: key };
+    });
+    if (r.unchanged) return null;
+    const [row] = await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'assemble', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: p.pieceId, stage: 'draft', versionId: p.attachTo.versionId, auto: true, generatedBy: p.generatedBy || null } }], { returning: true });
+    return row;
+  } catch (e) { console.warn('[jobs] auto-assembly could not be queued:', e.message); return null; }
+}
+
 /** 6.5: no render job left alive on the stage → the storyboard is `generated` again. */
 async function settleBoardStage(job) {
   const rows = await queryRows('jobs', `select=id,kind&stage_id=eq.${q(job.stage_id)}&state=in.(queued,running)&limit=50`);
@@ -506,7 +528,7 @@ async function attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage, slo
     try { await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'f1x8_image', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, assetPath: keyframe.assetPath, title: meta.title || 'storyboard hook', description: `Storyboard hook keyframe (shot ${shot})`, hookCheck: true, versionId, generatedBy: job.payload.generatedBy || null } }]); }
     catch (e) { console.warn('[jobs] hook check could not be queued:', e.message); }
   }
-  await settleBoardStage(job);
+  if (await settleBoardStage(job)) await autoAssemble(job);
   try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: `${stage} shot ${shot} ${slot}` }); } catch (e) { /* best effort */ }
   return 'succeeded';
 }
@@ -561,9 +583,9 @@ async function runAssemble(job) {
   await patchRows('jobs', `id=eq.${q(job.id)}`, { state: 'running', error: null });
   const [v] = await queryRows('artifact_versions', `select=id,version,payload&id=eq.${q(p.versionId)}&limit=1`);
   if (!v || !Array.isArray(v.payload.shots)) { await fail(job, 'failed', 'draft version not found'); return 'failed'; }
-  const shots = v.payload.shots;
-  const notReady = shots.filter((s) => !(s.clip && s.clip.state === 'rendered' && s.clip.assetPath) || !(s.review && s.review.decision === 'approved')).map((s) => s.n);
-  if (notReady.length) { await fail(job, 'failed', `shots not approved or not rendered: ${notReady.join(', ')}`); return 'failed'; }
+  // owner 2026-10-29: one full video from every RENDERED clip; no per-clip approval, a failed clip is left out
+  const shots = v.payload.shots.filter((s) => s.clip && s.clip.state === 'rendered' && s.clip.assetPath);
+  if (!shots.length) { await fail(job, 'failed', 'no rendered clip to assemble'); return 'failed'; }
   const dir = A.tmpDir('maistro-cut-');
   try {
     const inputs = [];

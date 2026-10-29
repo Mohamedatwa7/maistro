@@ -58,7 +58,6 @@ test('POST /api/studio final → re-render only shot 2 → overlays for shot 1 �
     const store = require('../../api/_store.js');
     const DSHA = 'c'.repeat(64);
     const dv = await store.recordVersion('gen-fn1', 'draft', { shots: [shot(1), shot(2), shot(3)], aspect: '9:16', resolution: '720p', totalS: 9, assembled: { assetPath: 'pieces/gen-fn1/draft/cut.mp4', sha256: DSHA, transitions: ['cut', 'cut', 'cut'] }, assetPath: 'pieces/gen-fn1/draft/cut.mp4', sha256: DSHA, rev: 0 }, { producedBy: 'higgsfield_seedance', kind: 'video' });
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'final', pieceId: 'gen-fn1' } }), r); assert.equal(r.statusCode, 409, 'no approved QC'); assert.equal(r.body.code, 'prerequisites');
     await store.recordVersion('gen-fn1', 'qc', { real: true, report: REPORT(dv.versionId, DSHA) }, { producedBy: 'f1x8', kind: 'qc_report' });
     r = res(); await decisions.handler(req({ method: 'POST', body: { pieceId: 'gen-fn1', stage: 'qc', decision: 'approved', name: 'N', role: 'reviewer' } }), r); assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'final', pieceId: 'gen-fn1' } }), r);
@@ -74,7 +73,7 @@ test('POST /api/studio final → re-render only shot 2 → overlays for shot 1 �
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft-assemble', stage: 'final', pieceId: 'gen-fn1' } }), r); assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'overlays_stale');
     const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]).toString('base64');
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft-overlays', stage: 'final', pieceId: 'gen-fn1', overlays: [{ shot: 1, data: PNG }] } }), r); assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.match(r.body.stored[0].assetPath, /^pieces\/gen-fn1\/final\/overlay-1-/);
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft-assemble', stage: 'final', pieceId: 'gen-fn1' } }), r); assert.equal(r.statusCode, 409); assert.deepEqual(r.body.pending, [2]);
+    // owner 2026-10-29: the cut needs no per-clip approval (the approval below is just recorded)
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'shot-decide', stage: 'final', pieceId: 'gen-fn1', shot: 2, decision: 'approved', name: 'N' } }), r); assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft-assemble', stage: 'final', pieceId: 'gen-fn1' } }), r); assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     const aj = pg.tables.jobs.find((j) => j.kind === 'assemble'); assert.equal(aj.payload.stage, 'final'); assert.equal(aj.payload.versionId, fvId);

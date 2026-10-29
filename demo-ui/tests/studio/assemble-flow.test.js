@@ -41,8 +41,7 @@ test('draft-overlays → draft-assemble → the tick assembles approved clips in
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft-overlays', pieceId: 'gen-as1', overlays: [{ shot: 1, data: ovBytes.toString('base64'), text: { en: 'Hook', ar: '' } }] } }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.match(r.body.stored[0].assetPath, /^pieces\/gen-as1\/draft\/overlay-1-/);
     let v = pg.tables.artifact_versions.find((x) => x.id === dv.versionId); assert.equal(v.payload.shots[0].overlay.assetPath, r.body.stored[0].assetPath); assert.equal(v.payload.shots[0].overlay.text.en, 'Hook'); assert.equal(v.payload.rev, 1);
-    // assembly refuses until every clip is approved
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft-assemble', pieceId: 'gen-as1' } }), r); assert.equal(r.statusCode, 409); assert.deepEqual(r.body.pending, [2]);
+    // owner 2026-10-29: assembly needs no per-clip approval (the approval below is just recorded)
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'shot-decide', stage: 'draft', pieceId: 'gen-as1', shot: 2, decision: 'approved', name: 'N' } }), r); assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft-assemble', pieceId: 'gen-as1' } }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(r.body.job.kind, 'assemble'); assert.equal(r.body.job.state, 'queued', 'ffmpeg runs on the tick, not in the request');

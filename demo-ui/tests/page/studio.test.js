@@ -58,7 +58,7 @@ test('stageArtifact: studio piece shows a create box for an empty stage and the 
   try {
     const p = piece(X);
     assert.match(X.stageArtifact(p, 1), /READY TO CREATE/);
-    assert.match(X.stageArtifact(p, 7), /Unlocks after the Quality Check/);
+    assert.match(X.stageArtifact(p, 7), /The final starts from the first draft video/, 'the QC is optional: the final waits only for the draft video');
     p.draft = { videoUrl: 'https://cdn/v.mp4', version: 'v1', dur: '5s', audio: 'a', variants: [{ a: '16:9', l: '720p', k: 'seedance', st: 'ready' }] };
     p.qc = { real: true, runs: { draft: { score: 6, verdict: { risks: [], revision_brief: {} } } } };
     assert.match(X.stageArtifact(p, 7), /Implement F1X8's fixes/);
@@ -137,5 +137,38 @@ test('setView: an identical Studio re-render (job polling, server sync) leaves t
     assert.equal(X.setView('<div>a</div>'), true); assert.equal(X.setView('<div>a</div>'), false); assert.equal(writes, 1, 'same markup → no redraw');
     assert.equal(X.setView('<div>b</div>'), true); assert.equal(writes, 2);
     view.innerHTML = '<div>calendar</div>'; assert.equal(X.setView('<div>b</div>'), true, 'another view replaced #view → redraw'); assert.equal(writes, 4);
+  } finally { X.restore(); }
+});
+
+test('steps are optional: the tick row skips a step for the campaign, the pipeline marks it, its stage says so and can include it again', () => {
+  const X = loadPage({ fetchImpl: async () => new Promise(() => {}) });
+  try {
+    const p = { id: 'gen-sk', generated: true, studio: true, stage: 1, title: 'T', trend: '', platforms: ['tiktok'], markets: ['UAE'], th: ['#000000', '#111111'], map: { product: 'p', msg: 'm', angle: 'a' }, product: 'p' };
+    X.PROJECTS.unshift(p); X.STATE.proj = 'gen-sk';
+    assert.equal((X.stepsPick(p).match(/type="checkbox" checked/g) || []).length, 7, 'every step ticked by default');
+    X.stageSkip('gen-sk', 'board', true);
+    assert.equal(X.skipOf(p, 'board'), true); assert.match(X.stepsPick(p), /<input type="checkbox"\s+onchange="stageSkip\('gen-sk','board',!this\.checked\)">Storyboard/);
+    const html = X.rStudio(); assert.match(html, /class="pnode[^"]*skip"[^>]*onclick="stageSet\(4\)">\s*<div class="top"><span class="st-lab">Skipped/); assert.match(html, /OWN IDEA/, 'no trend → own idea');
+    assert.match(X.stageArtifact(p, 4), /Storyboard is skipped for this campaign\.<\/b>.*without a storyboard the first draft is one video/s);
+    X.stageSkip('gen-sk', 'board', false); assert.equal(X.skipOf(p, 'board'), false); assert.ok(!/is skipped/.test(X.stageArtifact(p, 4)));
+  } finally { X.restore(); }
+});
+
+test('create your own: the form needs an idea, then starts a campaign with the chosen markets, platforms and skipped steps (no trend)', async () => {
+  const X = loadPage({ fetchImpl: async (u) => (String(u).includes('/api/hermes') ? Promise.reject(new Error('offline in tests')) : new Promise(() => {})) });
+  try {
+    const els = { '#own-idea': { value: '' }, '#own-product': { value: 'Galaxy Z Flip8' }, '#own-err': { textContent: '' } };
+    const qs = X.document.querySelector; X.document.querySelector = (s) => els[s] || qs.call(X.document, s);
+    const form = X.rOwnForm(); assert.match(form, /id="own-idea"/); assert.match(form, /ownToggle\('markets','Kuwait'\)/); assert.match(form, /ownToggle\('skip','qc'\)/); assert.match(form, /ownCreate\(\)/);
+    X.ownCreate(); assert.match(els['#own-err'].textContent, /Describe the idea first/); assert.equal(X.PROJECTS.length, 0);
+    X.ownToggle('markets', 'Kuwait'); X.ownToggle('platforms', 'instagram'); X.ownToggle('skip', 'qc'); X.ownToggle('skip', 'thumb');
+    els['#own-idea'].value = 'Ramadan nights with the family, warm and premium';
+    X.ownCreate();
+    const p = X.PROJECTS[0];
+    assert.ok(p && p.studio && p.planning, 'a draft campaign shows at once while it is planned'); assert.equal(p.trend, ''); assert.equal(p.ownIdea, true);
+    assert.deepEqual(p.platforms, ['tiktok', 'instagram']); assert.deepEqual(Object.keys(p.skip).sort(), ['qc', 'thumb']);
+    assert.deepEqual(p.src.userMarkets, ['UAE', 'KSA', 'Kuwait']); assert.equal(p.src.userProduct, 'Galaxy Z Flip8');
+    assert.deepEqual(X.OWN.skip, {}, 'the form resets its step choice');
+    await new Promise((r) => setTimeout(r, 30)); // let the (failing, offline) planning call settle
   } finally { X.restore(); }
 });

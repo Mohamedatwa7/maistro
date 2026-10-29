@@ -131,7 +131,7 @@ check('gen box mentions AI Creative Director', moodPanel.includes('AI Creative D
 const draftPanel = X.stageArtifact(sp, 5);
 check('stage 5 is First Draft with format selects', draftPanel.includes('gen-ar-draft') && draftPanel.includes('First Draft'));
 const finalLocked = X.stageArtifact(sp, 7);
-check('Final Content locked before QC', finalLocked.includes('Unlocks after the Quality Check'));
+check('Final Content waits for the first draft (the QC is optional)', finalLocked.includes('The final starts from the first draft video'));
 sp.draft = { version: 'v1', dur: '5s', audio: 'x', variants: [{ a: '16:9', l: '720p', k: 'seedance', st: 'ready' }], videoUrl: 'https://x/d.mp4', prompt: 'draft prompt', note: 'n' };
 sp.qc = { real: true, avg: 6.8, runs: { draft: { score: 6.8, funnel_stage: 'upper', kpis: {}, verdict: { summary: 'ok',
   strengths: [], risks: [{ rank: 1, issue: 'Hook lands late', suggested_fix: 'Open on the punchline setup', confidence: 'high' }],
