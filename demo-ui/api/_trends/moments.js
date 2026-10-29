@@ -21,32 +21,32 @@ const MODEL = () => process.env.MAISTRO_MOMENTS_MODEL || 'claude-sonnet-5-5';
 // ---- the planned calendar (owner-editable) ----
 // yearly: from/to give the month and day; the year rolls forward. Otherwise the dates are absolute.
 const MOMENTS = [
-  { id: 'halloween', label: 'Halloween', from: '2026-10-31', to: '2026-10-31', yearly: true, category: 'culture', markets: ['AE', 'QA', 'BH'], leadDays: 14, note: 'Big with UAE expat audiences; low-key or sensitive in KSA and Kuwait. Keep it playful (costumes, night-mode camera), never gory.' },
-  { id: 'riyadh-season', label: 'Riyadh Season', from: '2026-10-10', to: '2027-03-31', category: 'culture', markets: ['SA'], leadDays: 21, estimate: true, note: 'Months of concerts, events and boulevard zones in Riyadh: on-ground content and creator collaborations.' },
-  { id: 'diwali', label: 'Diwali', from: '2026-11-08', to: '2026-11-08', category: 'culture', markets: ['AE', 'OM', 'QA', 'KW', 'BH'], leadDays: 14, estimate: true, note: 'Large South Asian audiences across the Gulf: lights, family and gifting.' },
-  { id: 'singles-day', label: "Singles' Day (11.11)", from: '2026-11-11', to: '2026-11-11', yearly: true, category: 'retail', markets: GULF, leadDays: 21, note: 'Noon and Amazon run 11.11 sales across the Gulf.' },
-  { id: 'oman-national-day', label: 'Oman National Day', from: '2026-11-18', to: '2026-11-18', yearly: true, category: 'national', markets: ['OM'], leadDays: 30, note: 'National pride: flag colours and heritage, respectful tone.' },
-  { id: 'white-friday', label: 'White Friday / Black Friday', from: '2026-11-20', to: '2026-11-30', category: 'retail', markets: GULF, leadDays: 30, estimate: true, note: "The Gulf's biggest sales week, through Cyber Monday. Retailer windows vary, so confirm with the retail team." },
-  { id: 'qatar-gp', label: 'Formula 1 Qatar Grand Prix', from: '2026-11-27', to: '2026-11-29', category: 'sport', markets: ['QA', 'AE', 'SA', 'KW', 'BH', 'OM'], leadDays: 14, note: 'Night race at Lusail: speed, low-light and slow-motion camera stories.' },
-  { id: 'uae-national-day', label: 'UAE National Day (Eid Al Etihad)', from: '2026-12-02', to: '2026-12-03', yearly: true, category: 'national', markets: ['AE'], leadDays: 30, note: "The UAE's biggest national moment: unity, heritage, flag colours." },
-  { id: 'abu-dhabi-gp', label: 'Formula 1 Abu Dhabi Grand Prix (season finale)', from: '2026-12-04', to: '2026-12-06', category: 'sport', markets: GULF, leadDays: 14, note: 'Yas Marina twilight race: night shots, speed, the title decider.' },
-  { id: 'dubai-shopping-festival', label: 'Dubai Shopping Festival', from: '2026-12-04', to: '2027-01-17', category: 'retail', markets: ['AE'], leadDays: 21, estimate: true, note: 'City-wide retail festival with fireworks and drone shows.' },
-  { id: 'gitex', label: 'GITEX Global (Dubai)', from: '2026-12-07', to: '2026-12-11', category: 'tech', markets: ['AE'], leadDays: 21, estimate: true, note: "The region's largest tech show: AI, devices and B2B. Confirm this year's dates." },
-  { id: 'bahrain-national-day', label: 'Bahrain National Day', from: '2026-12-16', to: '2026-12-16', yearly: true, category: 'national', markets: ['BH'], leadDays: 30, note: 'National pride, respectful tone.' },
-  { id: 'qatar-national-day', label: 'Qatar National Day', from: '2026-12-18', to: '2026-12-18', yearly: true, category: 'national', markets: ['QA'], leadDays: 30, note: 'National pride, maroon and white, respectful tone.' },
-  { id: 'christmas', label: 'Christmas and the gifting season', from: '2026-12-25', to: '2026-12-25', yearly: true, category: 'culture', markets: ['AE', 'BH', 'QA'], leadDays: 21, note: 'Expat gifting season. Keep it secular: gifting, family, the year in photos.' },
-  { id: 'new-year', label: "New Year's Eve", from: '2026-12-31', to: '2027-01-01', yearly: true, category: 'culture', markets: GULF, leadDays: 21, note: 'Burj Khalifa fireworks: night photography and the year-in-review.' },
-  { id: 'asian-cup', label: 'AFC Asian Cup (hosted by Saudi Arabia)', from: '2027-01-07', to: '2027-02-05', category: 'sport', markets: GULF, leadDays: 30, estimate: true, note: "Asia's football championship in KSA, with every Gulf team in the region: fan content and watch parties." },
-  { id: 'galaxy-unpacked', label: 'Galaxy Unpacked (S series)', from: '2027-02-01', to: '2027-02-25', category: 'tech', markets: GULF, leadDays: 30, estimate: true, note: "Samsung's own launch moment. Set the date once HQ confirms it." },
-  { id: 'valentines', label: "Valentine's Day", from: '2027-02-14', to: '2027-02-14', yearly: true, category: 'retail', markets: ['AE', 'QA', 'BH', 'KW', 'OM'], leadDays: 21, note: 'Gifting. Keep it light and non-romantic for conservative audiences.' },
-  { id: 'saudi-founding-day', label: 'Saudi Founding Day', from: '2027-02-22', to: '2027-02-22', yearly: true, category: 'national', markets: ['SA'], leadDays: 30, note: 'Heritage and history (distinct from National Day): traditional dress, Diriyah.' },
-  { id: 'kuwait-national-days', label: 'Kuwait National and Liberation Days', from: '2027-02-25', to: '2027-02-26', yearly: true, category: 'national', markets: ['KW'], leadDays: 30, note: 'National pride, respectful tone.' },
-  { id: 'ramadan', label: 'Ramadan', from: '2027-02-08', to: '2027-03-09', category: 'religious', markets: GULF, leadDays: 45, estimate: true, note: 'The biggest content season of the year: night-time viewing, family, giving. Dates follow the moon sighting.' },
-  { id: 'eid-al-fitr', label: 'Eid al-Fitr', from: '2027-03-10', to: '2027-03-13', category: 'religious', markets: GULF, leadDays: 30, estimate: true, note: 'Celebration, family visits, gifting. Dates follow the moon sighting.' },
-  { id: 'arab-mothers-day', label: "Mother's Day (Arab world)", from: '2027-03-21', to: '2027-03-21', yearly: true, category: 'culture', markets: GULF, leadDays: 21, note: 'Gifting and family moments.' },
-  { id: 'eid-al-adha', label: 'Eid al-Adha', from: '2027-05-16', to: '2027-05-19', category: 'religious', markets: GULF, leadDays: 30, estimate: true, note: 'Family and travel. Dates follow the moon sighting.' },
-  { id: 'ucl-final', label: 'UEFA Champions League final', from: '2027-05-29', to: '2027-05-29', category: 'sport', markets: GULF, leadDays: 14, estimate: true, note: 'Huge Gulf viewership: watch parties and fan reactions.' },
-  { id: 'saudi-national-day', label: 'Saudi National Day', from: '2026-09-23', to: '2026-09-23', yearly: true, category: 'national', markets: ['SA'], leadDays: 30, note: 'National pride, green and white, respectful tone.' },
+  { id: 'halloween', keywords: ['halloween', 'costume', 'spooky', 'trick or treat', 'pumpkin', 'calabaza'], label: 'Halloween', from: '2026-10-31', to: '2026-10-31', yearly: true, category: 'culture', markets: ['AE', 'QA', 'BH'], leadDays: 14, note: 'Big with UAE expat audiences; low-key or sensitive in KSA and Kuwait. Keep it playful (costumes, night-mode camera), never gory.' },
+  { id: 'riyadh-season', keywords: ['riyadh season', 'موسم الرياض'], label: 'Riyadh Season', from: '2026-10-10', to: '2027-03-31', category: 'culture', markets: ['SA'], leadDays: 21, estimate: true, note: 'Months of concerts, events and boulevard zones in Riyadh: on-ground content and creator collaborations.' },
+  { id: 'diwali', keywords: ['diwali', 'deepavali'], label: 'Diwali', from: '2026-11-08', to: '2026-11-08', category: 'culture', markets: ['AE', 'OM', 'QA', 'KW', 'BH'], leadDays: 14, estimate: true, note: 'Large South Asian audiences across the Gulf: lights, family and gifting.' },
+  { id: 'singles-day', keywords: ['11.11', 'singles day', "singles' day"], label: "Singles' Day (11.11)", from: '2026-11-11', to: '2026-11-11', yearly: true, category: 'retail', markets: GULF, leadDays: 21, note: 'Noon and Amazon run 11.11 sales across the Gulf.' },
+  { id: 'oman-national-day', keywords: ['oman national day', 'العيد الوطني العماني'], label: 'Oman National Day', from: '2026-11-18', to: '2026-11-18', yearly: true, category: 'national', markets: ['OM'], leadDays: 30, note: 'National pride: flag colours and heritage, respectful tone.' },
+  { id: 'white-friday', keywords: ['white friday', 'black friday', 'cyber monday'], label: 'White Friday / Black Friday', from: '2026-11-20', to: '2026-11-30', category: 'retail', markets: GULF, leadDays: 30, estimate: true, note: "The Gulf's biggest sales week, through Cyber Monday. Retailer windows vary, so confirm with the retail team." },
+  { id: 'qatar-gp', keywords: ['qatar grand prix', 'lusail', 'formula 1', 'f1'], label: 'Formula 1 Qatar Grand Prix', from: '2026-11-27', to: '2026-11-29', category: 'sport', markets: ['QA', 'AE', 'SA', 'KW', 'BH', 'OM'], leadDays: 14, note: 'Night race at Lusail: speed, low-light and slow-motion camera stories.' },
+  { id: 'uae-national-day', keywords: ['uae national day', 'eid al etihad', 'عيد الاتحاد', 'national day'], label: 'UAE National Day (Eid Al Etihad)', from: '2026-12-02', to: '2026-12-03', yearly: true, category: 'national', markets: ['AE'], leadDays: 30, note: "The UAE's biggest national moment: unity, heritage, flag colours." },
+  { id: 'abu-dhabi-gp', keywords: ['abu dhabi grand prix', 'yas marina', 'formula 1', 'f1'], label: 'Formula 1 Abu Dhabi Grand Prix (season finale)', from: '2026-12-04', to: '2026-12-06', category: 'sport', markets: GULF, leadDays: 14, note: 'Yas Marina twilight race: night shots, speed, the title decider.' },
+  { id: 'dubai-shopping-festival', keywords: ['dubai shopping festival', 'dsf'], label: 'Dubai Shopping Festival', from: '2026-12-04', to: '2027-01-17', category: 'retail', markets: ['AE'], leadDays: 21, estimate: true, note: 'City-wide retail festival with fireworks and drone shows.' },
+  { id: 'gitex', keywords: ['gitex'], label: 'GITEX Global (Dubai)', from: '2026-12-07', to: '2026-12-11', category: 'tech', markets: ['AE'], leadDays: 21, estimate: true, note: "The region's largest tech show: AI, devices and B2B. Confirm this year's dates." },
+  { id: 'bahrain-national-day', keywords: ['bahrain national day'], label: 'Bahrain National Day', from: '2026-12-16', to: '2026-12-16', yearly: true, category: 'national', markets: ['BH'], leadDays: 30, note: 'National pride, respectful tone.' },
+  { id: 'qatar-national-day', keywords: ['qatar national day'], label: 'Qatar National Day', from: '2026-12-18', to: '2026-12-18', yearly: true, category: 'national', markets: ['QA'], leadDays: 30, note: 'National pride, maroon and white, respectful tone.' },
+  { id: 'christmas', keywords: ['christmas', 'xmas', 'santa'], label: 'Christmas and the gifting season', from: '2026-12-25', to: '2026-12-25', yearly: true, category: 'culture', markets: ['AE', 'BH', 'QA'], leadDays: 21, note: 'Expat gifting season. Keep it secular: gifting, family, the year in photos.' },
+  { id: 'new-year', keywords: ['new year', 'nye', 'countdown', 'fireworks'], label: "New Year's Eve", from: '2026-12-31', to: '2027-01-01', yearly: true, category: 'culture', markets: GULF, leadDays: 21, note: 'Burj Khalifa fireworks: night photography and the year-in-review.' },
+  { id: 'asian-cup', keywords: ['asian cup', 'afc'], label: 'AFC Asian Cup (hosted by Saudi Arabia)', from: '2027-01-07', to: '2027-02-05', category: 'sport', markets: GULF, leadDays: 30, estimate: true, note: "Asia's football championship in KSA, with every Gulf team in the region: fan content and watch parties." },
+  { id: 'galaxy-unpacked', keywords: ['unpacked', 'galaxy s27'], label: 'Galaxy Unpacked (S series)', from: '2027-02-01', to: '2027-02-25', category: 'tech', markets: GULF, leadDays: 30, estimate: true, note: "Samsung's own launch moment. Set the date once HQ confirms it." },
+  { id: 'valentines', keywords: ['valentine'], label: "Valentine's Day", from: '2027-02-14', to: '2027-02-14', yearly: true, category: 'retail', markets: ['AE', 'QA', 'BH', 'KW', 'OM'], leadDays: 21, note: 'Gifting. Keep it light and non-romantic for conservative audiences.' },
+  { id: 'saudi-founding-day', keywords: ['founding day', 'يوم التأسيس'], label: 'Saudi Founding Day', from: '2027-02-22', to: '2027-02-22', yearly: true, category: 'national', markets: ['SA'], leadDays: 30, note: 'Heritage and history (distinct from National Day): traditional dress, Diriyah.' },
+  { id: 'kuwait-national-days', keywords: ['kuwait national day', 'liberation day'], label: 'Kuwait National and Liberation Days', from: '2027-02-25', to: '2027-02-26', yearly: true, category: 'national', markets: ['KW'], leadDays: 30, note: 'National pride, respectful tone.' },
+  { id: 'ramadan', keywords: ['ramadan', 'رمضان', 'iftar', 'suhoor'], label: 'Ramadan', from: '2027-02-08', to: '2027-03-09', category: 'religious', markets: GULF, leadDays: 45, estimate: true, note: 'The biggest content season of the year: night-time viewing, family, giving. Dates follow the moon sighting.' },
+  { id: 'eid-al-fitr', keywords: ['eid al fitr', 'eid mubarak', 'عيد الفطر'], label: 'Eid al-Fitr', from: '2027-03-10', to: '2027-03-13', category: 'religious', markets: GULF, leadDays: 30, estimate: true, note: 'Celebration, family visits, gifting. Dates follow the moon sighting.' },
+  { id: 'arab-mothers-day', keywords: ["mother's day", 'mothers day', 'عيد الأم'], label: "Mother's Day (Arab world)", from: '2027-03-21', to: '2027-03-21', yearly: true, category: 'culture', markets: GULF, leadDays: 21, note: 'Gifting and family moments.' },
+  { id: 'eid-al-adha', keywords: ['eid al adha', 'عيد الأضحى'], label: 'Eid al-Adha', from: '2027-05-16', to: '2027-05-19', category: 'religious', markets: GULF, leadDays: 30, estimate: true, note: 'Family and travel. Dates follow the moon sighting.' },
+  { id: 'ucl-final', keywords: ['champions league'], label: 'UEFA Champions League final', from: '2027-05-29', to: '2027-05-29', category: 'sport', markets: GULF, leadDays: 14, estimate: true, note: 'Huge Gulf viewership: watch parties and fan reactions.' },
+  { id: 'saudi-national-day', keywords: ['saudi national day', 'اليوم الوطني'], label: 'Saudi National Day', from: '2026-09-23', to: '2026-09-23', yearly: true, category: 'national', markets: ['SA'], leadDays: 30, note: 'National pride, green and white, respectful tone.' },
 ];
 
 const iso = (d) => d.toISOString().slice(0, 10);
@@ -73,7 +73,7 @@ function upcoming(now = new Date(), { horizonDays = 150, moments = MOMENTS } = {
     const daysUntil = Math.round((from - today) / DAY);
     const prepBy = new Date(from.getTime() - (m.leadDays || 21) * DAY);
     const status = from <= today && today <= to ? 'live' : today >= prepBy ? 'prep' : 'later';
-    return { id: m.id, label: m.label, category: m.category, markets: m.markets, from: iso(from), to: iso(to), daysUntil, prepBy: iso(prepBy), leadDays: m.leadDays || 21, status, estimate: Boolean(m.estimate), note: m.note };
+    return { id: m.id, label: m.label, keywords: m.keywords || [], category: m.category, markets: m.markets, from: iso(from), to: iso(to), daysUntil, prepBy: iso(prepBy), leadDays: m.leadDays || 21, status, estimate: Boolean(m.estimate), note: m.note };
   })
     .filter((m) => m.to >= iso(today) && m.daysUntil <= horizonDays)
     .sort((a, b) => a.from.localeCompare(b.from) || a.label.localeCompare(b.label));
@@ -171,8 +171,9 @@ const SCHEMA = {
           gulfRelevance: { type: 'integer', description: '0–10' }, // the API rejects minimum/maximum on integers (see prompts/profile-v1.js): clamped below
           why: { type: 'string', description: 'One short line: what happened and why people are searching' },
           samsungAngle: { type: 'string', description: 'One short line a Samsung Gulf social team could build on; empty when not brand-safe' },
+          keywords: { type: 'array', items: { type: 'string' }, description: '1–4 lowercase words or phrases a social post about this moment would contain (e.g. "ballon d or", "halloween")' },
         },
-        required: ['id', 'label', 'category', 'moment', 'brandSafe', 'gulfRelevance', 'why', 'samsungAngle'],
+        required: ['id', 'label', 'category', 'moment', 'brandSafe', 'gulfRelevance', 'why', 'samsungAngle', 'keywords'],
         additionalProperties: false,
       },
     },
@@ -226,8 +227,9 @@ function assemble(cands, cls) {
     if (cls && !k) continue; // the model skipped it: nothing to show without a safety decision
     const label = k ? k.label : x.title;
     const key = norm(label);
-    const g = groups.get(key) || { id: key.replace(/ /g, '-').slice(0, 80), label, category: k ? k.category : null, moment: k ? k.moment : null, brandSafe: k ? k.brandSafe : null, gulfRelevance: k ? k.gulfRelevance : null, why: k ? k.why : '', samsungAngle: k ? k.samsungAngle : '', markets: [], traffic: 0, wikiViews: 0, sources: [], searches: [], news: [], picture: null };
+    const g = groups.get(key) || { id: key.replace(/ /g, '-').slice(0, 80), label, category: k ? k.category : null, moment: k ? k.moment : null, brandSafe: k ? k.brandSafe : null, gulfRelevance: k ? k.gulfRelevance : null, why: k ? k.why : '', samsungAngle: k ? k.samsungAngle : '', keywords: [], markets: [], traffic: 0, wikiViews: 0, sources: [], searches: [], news: [], picture: null };
     if (k) { g.moment = g.moment || k.moment; g.brandSafe = g.brandSafe === false || k.brandSafe === false ? false : true; g.gulfRelevance = Math.max(g.gulfRelevance || 0, k.gulfRelevance || 0); if (!g.samsungAngle && k.samsungAngle) g.samsungAngle = k.samsungAngle; }
+    for (const w of (k && Array.isArray(k.keywords) ? k.keywords : [])) { const v = String(w).toLowerCase().trim().slice(0, 40); if (v.length >= 3 && g.keywords.length < 6 && !g.keywords.includes(v)) g.keywords.push(v); }
     for (const geo of x.geos) if (!g.markets.includes(geo)) g.markets.push(geo);
     g.traffic += x.traffic || 0; g.wikiViews += x.views || 0;
     const src = x.source === 'wikipedia' ? `wikipedia-${x.project === 'ar.wikipedia' ? 'ar' : 'en'}` : 'google';
@@ -240,6 +242,8 @@ function assemble(cands, cls) {
   return [...groups.values()].map((g) => ({ ...g, markets: g.markets.sort((a, b) => GULF.indexOf(a) - GULF.indexOf(b)), scale: g.markets.length >= 2 || g.sources.length > 1 || g.traffic >= 20000 || g.wikiViews >= 200000 ? 'macro' : 'local', reach: Math.round(reach({ ...g }) * 10) / 10 }))
     .sort((a, b) => (b.brandSafe === true) - (a.brandSafe === true) || b.reach - a.reach);
 }
+
+const corroborated = (m) => m.markets.length > 0 || m.sources.length >= 2;
 
 /** Everything spiking now. Source failures are reported, not thrown, unless every source failed. */
 async function fetchBreaking({ now = new Date(), client } = {}) {
@@ -259,7 +263,8 @@ async function fetchBreaking({ now = new Date(), client } = {}) {
   return {
     classifiedBy,
     // unchecked (no Claude): the widest few, labelled as unchecked by the page
-    items: cls ? all.filter((m) => m.moment && m.brandSafe) : all.filter((m) => m.scale === 'macro').slice(0, 12),
+    // a moment needs a search spike in a Gulf market or a second source: one Wikipedia page alone is too thin
+    items: (cls ? all.filter((m) => m.moment && m.brandSafe) : all.filter((m) => m.scale === 'macro').slice(0, 12)).filter(corroborated),
     hidden: all.filter((m) => m.moment && m.brandSafe === false).map((m) => ({ label: m.label, category: m.category })),
     routine: all.filter((m) => m.moment === false).length,
     sources: { googleMarkets: GULF.filter((geo, i) => g[i]), wikipediaDay: (en && en.day) || (ar && ar.day) || null },

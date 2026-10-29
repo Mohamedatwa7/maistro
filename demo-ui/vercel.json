@@ -24,6 +24,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/moments",
+      "schedule": "5 * * * *"
+    },
+    {
       "path": "/api/monitor",
       "schedule": "40 * * * *"
     }

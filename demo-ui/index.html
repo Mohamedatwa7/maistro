@@ -1463,7 +1463,7 @@ function rScoredCard(x,i){
  return `<div class="card hov click p5 rv" onclick="scoredToggle('${esc(x.trendId)}')">
   <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
    <div><h3 style="font-size:17px">${x.status==='scored'?`<span class="mono dim" style="font-size:12px">#${i+1}</span> `:''}${esc(x.name)}</h3>
-    <div style="display:flex;gap:8px;margin-top:7px;flex-wrap:wrap;align-items:center">${badge(lb[0],lb[1])}${late?badge('alert','LATE · POST-BY PASSED'):x.postBy?badge('c','POST BY '+postBy.toUpperCase()):''}${badge('muted','CONFIDENCE '+conf.toUpperCase())}${x.reviewBeforeUse&&x.reviewBeforeUse.length?badge('gold','REVIEW BEFORE USE · '+x.reviewBeforeUse.map(c=>c.replace('V-','')).join(' + ')):''}${x.decided?badge('ai',x.decided.replace('_',' ').toUpperCase()):''}</div></div>
+    <div style="display:flex;gap:8px;margin-top:7px;flex-wrap:wrap;align-items:center">${badge(lb[0],lb[1])}${late?badge('alert','LATE · POST-BY PASSED'):x.postBy?badge('c','POST BY '+postBy.toUpperCase()):''}${badge('muted','CONFIDENCE '+conf.toUpperCase())}${x.reviewBeforeUse&&x.reviewBeforeUse.length?badge('gold','REVIEW BEFORE USE · '+x.reviewBeforeUse.map(c=>c.replace('V-','')).join(' + ')):''}${x.decided?badge('ai',x.decided.replace('_',' ').toUpperCase()):''}${momentBadge(TRENDS.find(t=>t.trendId===String(x.trendId))||{name:x.name})}</div></div>
    ${x.status==='scored'?`<div style="text-align:right"><span class="num" style="font-size:26px;color:#fff">${x.score}</span><span class="dim" style="font-size:12px">/100</span></div>`:badge(x.status==='vetoed'?'alert':'gold',x.status.replace('_',' ').toUpperCase())}
   </div>
   ${pm&&pm.product&&pm.product!=='none'?`<p style="font-size:13px;margin-top:10px"><b style="color:#7dd3fc">${esc(pm.product)}</b> — ${esc(pm.feature||'')}${pm.catalogMatch===false?' '+badge('alert','NOT IN CATALOG'):''}</p>`:x.status==='scored'?`<p class="dim" style="font-size:12px;margin-top:10px">No catalog product mapped.</p>`:''}
@@ -4056,6 +4056,31 @@ function rMoments(){
   </div>
  </div>`;
 }
+/* part 3: a micro trend's reach (weekly views, creators posting it, a tie to a moment) and its link to a moment */
+const moKwRe=k=>new RegExp('(^|[^\\p{L}\\p{N}])'+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'($|[^\\p{L}\\p{N}])','iu');
+function momentFor(o){
+ if(!o)return null;
+ const txt=[o.name,(o.tags||[]).join(' '),String(o.desc||'').replace(/<[^>]*>/g,' ')].join(' ').toLowerCase().replace(/[’`]/g,"'");
+ const hit=m=>(m.keywords||[]).some(k=>moKwRe(String(k).toLowerCase()).test(txt));
+ const now=((MOMENTS.breaking&&MOMENTS.breaking.items)||[]).find(hit);
+ if(now)return{label:now.label,when:'spiking now'};
+ const up=MOMENTS.upcoming.find(m=>m.daysUntil<=60&&hit(m));
+ return up?{label:up.label,when:up.status==='live'?'under way':up.daysUntil===0?'today':'in '+up.daysUntil+' day'+(up.daysUntil===1?'':'s')}:null;
+}
+/* 0 not measured · 1 niche (<500K views/week) · 2 growing (500K–5M) · 3 broad (5M+, or tied to a moment); one creator in the sample drops a level */
+function trendReach(t){
+ const v=t.m&&t.m.views,creators=(t.clips||[]).length;
+ if(momentFor(t))return 3;
+ let lvl=v==null?0:v>=5e6?3:v>=5e5?2:1;
+ if(lvl>1&&creators===1)lvl--;
+ return lvl;
+}
+const REACH=[['muted','REACH NOT MEASURED','TrendRadar has no weekly view count for this trend'],['muted','NICHE','under 500K views a week'],['c','GROWING','500K–5M views a week'],['go','BROAD','5M+ views a week, or tied to a moment']];
+const reachBadge=t=>{const r=REACH[trendReach(t)];return `<span class="b b-${r[0]}" title="${esc(r[2])}">${r[1]}</span>`};
+/* the default feed hides niche and unmeasured trends unless Samsung fit is high, they tie to a moment, or Maistro ranked them */
+const keepTrend=t=>trendReach(t)>=2||(t.score&&t.score.fit>=60)||t.fitTag==='STRONG SAMSUNG FIT'||(SCORED.at&&SCORED.ranked.includes(scoredOf(t)));
+const momentBadge=o=>{const m=momentFor(o);return m?badge('gold','TIES TO '+esc(m.label).toUpperCase()+' · '+m.when.toUpperCase()):''};
+function nicheToggle(){STATE.showNiche=!STATE.showNiche;$('#view').innerHTML=rTrends();reveal()}
 function cpFromMoment(kind,id){
  const m=kind==='up'?MOMENTS.upcoming.find(x=>x.id===id):((MOMENTS.breaking&&MOMENTS.breaking.items)||[]).find(x=>x.id===id);if(!m)return;
  const when=kind==='up'?` (${m.from===m.to?m.from:m.from+' to '+m.to})`:' (happening now)';
@@ -4088,7 +4113,10 @@ function rTrends(){
   </div>
  </section>`;
  }
- const list=TRENDS.filter(t=>STATE.chip==='all'||t.platform===STATE.chip);
+ const inChip=TRENDS.filter(t=>STATE.chip==='all'||t.platform===STATE.chip);
+ const nicheN=inChip.filter(t=>!keepTrend(t)).length;
+ /* moment-linked trends first, then the feed's own order */
+ const list=(STATE.showNiche?inChip:inChip.filter(keepTrend)).map((t,i)=>({t,i,m:momentFor(t)?0:1})).sort((a,b)=>a.m-b.m||a.i-b.i).map(x=>x.t);
  const rising=TRENDS.filter(t=>t.vel>0).length;
  const top=TRENDS.reduce((a,b)=>b.vel>a.vel?b:a,TRENDS[0]);
  const strong=TRENDS.filter(t=>t.fitTag==='STRONG SAMSUNG FIT').length;
@@ -4128,8 +4156,9 @@ function rTrends(){
   </div>
   <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
    <div class="chips">${['all','tiktok','instagram','youtube','x'].map(c=>`<button class="${STATE.chip===c?'on':''}" onclick="chipSet('${c}')">${c==='all'?'All platforms':PLAT[c].n}</button>`).join('')}</div>
-   <span class="pill">${LIVE.on?'SORTED BY SAMSUNG FIT':'SORTED BY MAISTRO SCORE'}</span>
+   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${nicheN?`<button class="btn btn-sm" onclick="nicheToggle()">${STATE.showNiche?'Hide':'Show'} ${nicheN} niche trend${nicheN===1?'':'s'}</button>`:''}<span class="pill">${LIVE.on?'MOMENTS FIRST · THEN SAMSUNG FIT':'SORTED BY MAISTRO SCORE'}</span></div>
   </div>
+  ${nicheN&&!STATE.showNiche?`<p class="dim" style="font-size:11.5px;margin:-6px 0 14px">${nicheN} niche or unmeasured trend${nicheN===1?' is':'s are'} hidden: under 500K views a week and not a strong Samsung fit.</p>`:''}
   <div class="grid2e">
   ${list.map(t=>{
    const open=STATE.open[t.id];
@@ -4140,7 +4169,7 @@ function rTrends(){
    return `<div class="card hov click p5 rv" onclick="trendToggle('${t.id}')">
     <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
      <div><h3 style="font-size:17px">${esc(t.name)}</h3>
-      <div style="display:flex;gap:8px;margin-top:7px;flex-wrap:wrap;align-items:center">${plat(t.platform)}<span class="dim mono" style="font-size:10.5px">${t.markets.join(' · ')}</span>${badge('muted',t.type.toUpperCase())}${t.fitTag?badge('ai',t.fitTag):''}${rankBadge(t)}</div></div>
+      <div style="display:flex;gap:8px;margin-top:7px;flex-wrap:wrap;align-items:center">${plat(t.platform)}<span class="dim mono" style="font-size:10.5px">${t.markets.join(' · ')}</span>${badge('muted',t.type.toUpperCase())}${t.fitTag?badge('ai',t.fitTag):''}${rankBadge(t)}${LIVE.on?reachBadge(t):''}${momentBadge(t)}</div></div>
      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:7px">${velB}${stB}</div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin:13px 0 4px;flex-wrap:wrap">

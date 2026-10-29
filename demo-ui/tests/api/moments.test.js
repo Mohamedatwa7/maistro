@@ -39,9 +39,10 @@ test('parsing: Google Trends traffic and RSS items; Wikipedia spikes drop pages 
   assert.ok(!/"(minimum|maximum)"/.test(JSON.stringify(m.SCHEMA)), 'the structured-output API rejects integer bounds (prompts/profile-v1.js v1.1)');
 });
 
-function sources({ claude, failAll } = {}) {
+function sources({ claude, failAll, extra = [] } = {}) {
   let sent = null;
   const f = mockFetch([
+    ...extra,
     [/trends\.google\.com\/trending\/rss\?geo=(AE|SA|KW|QA|BH|OM)/, (u) => {
       if (failAll) return text('down', 503);
       const geo = /geo=(\w+)/.exec(u)[1];
@@ -55,7 +56,7 @@ function sources({ claude, failAll } = {}) {
       if (failAll) return text('down', 503);
       const latest = /\/2026\/10\/28$/.test(u);
       if (u.includes('/ar.wikipedia/')) return wikiDay(latest ? [['الصفحة_الرئيسية', 900000], ['الكرة_الذهبية_2026', 80000]] : [['الصفحة_الرئيسية', 880000]]);
-      return wikiDay(latest ? [['Main_Page', 4000000], ['Special:Search', 700000], ['Ballon_d%27Or_2026', 600000], ['Some_politician', 400000]] : [['Main_Page', 3900000], ['Special:Search', 690000]]);
+      return wikiDay(latest ? [['Main_Page', 4000000], ['Special:Search', 700000], ['Ballon_d%27Or_2026', 600000], ['Some_politician', 400000], ['Obscure_festival', 90000]] : [['Main_Page', 3900000], ['Special:Search', 690000]]);
     }],
     ['api.anthropic.com', (u, init) => { sent = JSON.parse(init.body); return claude ? anthropicReply(claude(sent)) : text('no', 500); }],
   ]);
@@ -69,6 +70,7 @@ function screen(body) {
     items: cands.map((c) => {
       const t = c.title.toLowerCase();
       if (/ballon|الكرة الذهبية/.test(t)) return { id: c.id, label: "Ballon d'Or 2026", category: 'sport', moment: true, brandSafe: true, gulfRelevance: 8, why: 'The Ballon d’Or was awarded.', samsungAngle: 'Galaxy AI photo remaster of a golden moment' };
+      if (/obscure/.test(t)) return { id: c.id, label: 'Obscure festival', category: 'culture', moment: true, brandSafe: true, gulfRelevance: 2, why: 'A page spiked.', samsungAngle: 'x' };
       if (/election|politician/.test(t)) return { id: c.id, label: 'Election', category: 'politics', moment: true, brandSafe: false, gulfRelevance: 3, why: 'An election.', samsungAngle: '' };
       return { id: c.id, label: c.title, category: 'sport', moment: false, brandSafe: true, gulfRelevance: 4, why: 'Routine.', samsungAngle: '' };
     }),
@@ -82,10 +84,10 @@ test('GET /api/moments: Gulf searches and Wikipedia spikes are merged into one m
   try {
     const r = res(); await h.handler(req({ method: 'GET' }), r);
     assert.equal(r.statusCode, 200);
-    assert.equal(r.headers['cache-control'], 'private, max-age=900');
+    assert.equal(r.headers['cache-control'], 'private, max-age=600');
     const b = r.body.breaking;
     assert.equal(b.classifiedBy, 'claude'); assert.deepEqual(b.errors, []);
-    assert.deepEqual(b.items.map((x) => x.label), ["Ballon d'Or 2026"], 'one moment; fixtures and the weather are routine, the election is screened out');
+    assert.deepEqual(b.items.map((x) => x.label), ["Ballon d'Or 2026"], 'one moment; fixtures and the weather are routine, the election is screened out, and a lone Wikipedia page is too thin');
     const bo = b.items[0];
     assert.deepEqual(bo.markets, ['AE', 'SA', 'QA']); assert.equal(bo.scale, 'macro');
     assert.deepEqual(bo.sources.sort(), ['google', 'wikipedia-ar', 'wikipedia-en']);
@@ -100,7 +102,7 @@ test('GET /api/moments: Gulf searches and Wikipedia spikes are merged into one m
     assert.ok(r.body.upcoming.some((x) => x.id === 'halloween'));
     const calls = s.f.calls.length;
     const again = res(); await h.handler(req({ method: 'GET' }), again);
-    assert.deepEqual(again.body.breaking, b); assert.equal(s.f.calls.length, calls, 'no source or Claude call within 30 minutes');
+    assert.deepEqual(again.body.breaking, b); assert.equal(s.f.calls.length, calls, 'no source or Claude call on a repeat read');
     const anon = res(); await h.handler(req({ method: 'GET', session: false }), anon);
     assert.equal(anon.statusCode, 401, 'signed-in only: a fresh read costs a Claude call');
   } finally { global.Date = RealDate; s.f.restore(); h.restore(); }
@@ -128,5 +130,37 @@ test('GET /api/moments: without the brand check the widest items are returned un
     assert.equal(r2.body.breaking, null, '?view=upcoming skips the live sources');
     const r3 = res(); await h.handler(req({ method: 'POST' }), r3);
     assert.equal(r3.statusCode, 405);
+  } finally { s.f.restore(); h.restore(); }
+});
+
+test('the hourly cron prepares the breaking read and stores it; a signed-in read serves the stored copy without touching the sources, and reads live only when it is over 75 minutes old', async () => {
+  const { fakePostgrest } = require('../fake-postgrest');
+  const pg = fakePostgrest();
+  const ENV = { ANTHROPIC_API_KEY: 'k', SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', CRON_SECRET: 'cron' };
+  const s = sources({ claude: screen, extra: [pg.route] });
+  const live = () => s.f.calls.filter((c) => /trends\.google|wikimedia|anthropic/.test(c.url)).length;
+  let h = api('moments.js', ENV);
+  try {
+    let r = res(); await h.handler(req({ method: 'GET', headers: { authorization: 'Bearer cron' }, session: false }), r);
+    assert.equal(r.statusCode, 200); assert.equal(r.body.ok, true); assert.equal(r.body.items, 1); assert.equal(r.body.classifiedBy, 'claude');
+    const row = pg.tables.trends_cache.find((x) => x.id === 'moments');
+    assert.equal(row.payload.breaking.items[0].label, "Ballon d'Or 2026");
+    r = res(); await h.handler(req({ method: 'GET', headers: { authorization: 'Bearer nope' }, session: false }), r);
+    assert.equal(r.statusCode, 401, 'a wrong cron secret is just an anonymous read');
+  } finally { h.restore(); }
+  h = api('moments.js', ENV); // a cold instance: no memo
+  try {
+    const before = live();
+    let r = res(); await h.handler(req({ method: 'GET' }), r);
+    assert.equal(live(), before, 'served from the stored copy: no source or Claude call');
+    assert.equal(r.body.breaking.items[0].label, "Ballon d'Or 2026"); assert.ok(r.body.breaking.preparedAt);
+  } finally { h.restore(); }
+  pg.tables.trends_cache.find((x) => x.id === 'moments').fetched_at = new Date(Date.now() - 2 * 3600e3).toISOString();
+  h = api('moments.js', ENV);
+  try {
+    const before = live();
+    const r = res(); await h.handler(req({ method: 'GET' }), r);
+    assert.ok(live() > before, 'a copy over 75 minutes old is read live again');
+    assert.ok(Date.now() - new Date(pg.tables.trends_cache.find((x) => x.id === 'moments').fetched_at).getTime() < 60e3, 'and stored');
   } finally { s.f.restore(); h.restore(); }
 });
