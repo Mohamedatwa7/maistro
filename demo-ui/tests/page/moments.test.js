@@ -59,6 +59,13 @@ test('part 3: the live feed hides niche and unmeasured trends unless on-brand, l
     X.STATE.trView = 'moments'; html = X.rTrends();
     assert.match(html, /③ · Moments/); assert.match(html, /Plan for these/); assert.match(html, /What the Gulf is searching/);
     assert.match(html, /Production window is open/); assert.match(html, /DATE TO CONFIRM/); assert.match(html, /3 routine searches/);
+    // live reference videos: a toggle per moment, opened in place
+    X.MOMENTS.upcoming[0].videos = [{ vid: '7701000000000000001', handle: '@dxb', region: 'AE', views: 120000 }, { vid: '7701000000000000002', handle: '@us', region: 'US', views: 900000 }];
+    X.MOMENTS.upcoming[0].videosAt = '2026-10-29T06:00:00Z'; X.MOMENTS.upcoming[0].captionsCheckedBy = 'claude';
+    html = X.rTrends();
+    assert.match(html, /▸ 2 live videos · 1 from Gulf creators/); assert.ok(!html.includes('data-vid="7701000000000000001"'), 'closed by default');
+    X.STATE.moOpen = { 'up:halloween': true }; html = X.rTrends();
+    assert.ok(html.includes('data-vid="7701000000000000001"')); assert.match(html, /captions brand-checked/);
     X.MOMENTS.breaking = { classifiedBy: 'none', items: [{ id: 'x', label: 'liverpool vs chelsea', markets: ['AE', 'KW'], sources: ['google'], news: [], keywords: [] }], hidden: [], routine: 0, errors: ['brand check: 400 Your credit balance is too low'] };
     html = X.rTrends();
     assert.ok(!html.includes('liverpool vs chelsea'), 'unchecked searches are not listed'); assert.match(html, /out of credit/);
