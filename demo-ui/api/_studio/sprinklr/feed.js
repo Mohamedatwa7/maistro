@@ -62,6 +62,8 @@ async function details(list) {
 }
 
 let lastRaw = null;
+// drafts carry accountGroupIds (the OutboundMessage schema); older payloads may use a singular field
+const groupOf = (d) => { const g = Array.isArray(d.accountGroupIds) && d.accountGroupIds.length ? d.accountGroupIds[0] : d.accountGroupId; return g != null && g !== '' ? String(g) : null; };
 /** { items, from, to, fetchedAt } — items newest first; cached 10 minutes per window */
 async function feed({ from, to, now = Date.now() } = {}) {
   const f = Number.isFinite(from) ? from : now - 14 * 864e5, t = Number.isFinite(to) ? to : now + 45 * 864e5;
@@ -75,8 +77,8 @@ async function feed({ from, to, now = Date.now() } = {}) {
     const d = by.get(r.id) || {};
     const c = d.content || {}, a = c.attachment || {};
     const tx = d.taxonomy || {};
-    if (!lastRaw && d.id != null) lastRaw = d;
-    return { id: r.id, platform: accounts[r.accountId] || null, accountId: r.accountId, status: r.status, at: r.at, text: String(c.text || c.title || '').slice(0, 280), permalink: d.permalink || null, media: a.type || null, campaignId: tx.campaignId ? String(tx.campaignId) : null, accountGroupId: d.accountGroupId != null ? String(d.accountGroupId) : null };
+    if (d.id != null && (!lastRaw || (r.kind === 'draft' && !groupOf(lastRaw)))) lastRaw = d;
+    return { id: r.id, platform: accounts[r.accountId] || null, accountId: r.accountId, status: r.status, at: r.at, text: String(c.text || c.title || '').slice(0, 280), permalink: d.permalink || null, media: a.type || null, campaignId: tx.campaignId ? String(tx.campaignId) : null, accountGroupId: groupOf(d) };
   }).filter((x) => x.platform).sort((a, b) => String(b.at).localeCompare(String(a.at)));
   const value = { items, from: new Date(f).toISOString(), to: new Date(t).toISOString(), fetchedAt: new Date(now).toISOString() };
   cache.set(key, { at: now, value });

@@ -82,7 +82,7 @@ test('campaigns: the campaign ids the owned accounts\' posts were filed under, w
   const sp = double();
   const route = [SP, (u, init) => {
     const url = new URL(u); const key = `${init.method || 'GET'} ${url.pathname.replace('/prod/api/v3', '')}`;
-    if (key === 'GET /publishing/post') return json({ data: url.searchParams.get('id').split(',').map((id) => ({ id: Number(id), content: { text: `post ${id}` }, taxonomy: { campaignId: 'cmp-9' }, accountGroupId: 77 })) });
+    if (key === 'GET /publishing/post') return json({ data: url.searchParams.get('id').split(',').map((id) => ({ id: Number(id), content: { text: `post ${id}` }, taxonomy: { campaignId: 'cmp-9' }, accountGroupIds: ['77'] })) });
     if (key === 'POST /reports/query' && JSON.parse(init.body).groupBys.some((g) => g.dimensionName === 'CAMPAIGN_ID')) { sp.s.calls.push({ key }); return json({ data: { data: [{ CAMPAIGN_ID: { id: 'cmp-9', name: 'Fold8 launch' } }], hasMore: false } }); }
     return sp.route[1](u, init);
   }];
