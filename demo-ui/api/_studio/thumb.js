@@ -54,8 +54,19 @@ async function moodContext(pieceId) {
   const approvals = await queryRows('approvals', `select=decision,details&artifact_version_id=eq.${encodeURIComponent(stage.current_version_id)}&decision=eq.approved&limit=1`);
   const sel = approvals[0] && approvals[0].details && Array.isArray(approvals[0].details.selectedImages) ? approvals[0].details.selectedImages : null;
   const images = Array.isArray(payload.images) ? payload.images : payload.imageUrl ? [{ url: payload.imageUrl, assetPath: payload.assetPath || null, tag: null }] : [];
-  const tiles = images.map((im, i) => ({ index: i, ...im, selected: sel ? sel.includes(i) : true })).filter((t) => t.selected);
-  return { approved: stage.state === 'approved', direction: payload.direction || null, tiles, annotations: approvals[0] && approvals[0].details ? approvals[0].details.annotations || null : null, note: payload.note || null, prompt: payload.prompt || null };
+  let tiles = images.map((im, i) => ({ index: i, ...im, selected: sel ? sel.includes(i) : true })).filter((t) => t.selected);
+  let direction = payload.direction || null, chosen = null;
+  if (payload.setMode === 'moods' && Array.isArray(payload.moods)) {
+    // three moods: everything downstream follows the one the person picked (approval, else the pick on the
+    // version); until a pick, the first mood that rendered stands in so no stage has to wait
+    const details = (approvals[0] && approvals[0].details) || {};
+    const pickedN = Number(details.chosenMood) || Number(payload.chosen) || null;
+    const m = payload.moods.find((x) => x.n === pickedN) || payload.moods.find((x) => x.state === 'rendered') || null;
+    chosen = m ? { n: m.n, name: m.name, pitch: m.pitch, picked: Boolean(pickedN && m.n === pickedN) } : null;
+    direction = m ? m.direction : null;
+    tiles = tiles.filter((t) => m && t.mood === m.n && t.state === 'rendered');
+  }
+  return { approved: stage.state === 'approved', direction, chosen, tiles, annotations: approvals[0] && approvals[0].details ? approvals[0].details.annotations || null : null, note: payload.note || null, prompt: payload.prompt || null };
 }
 
 async function thumbPrompt({ piece, mood, productLook, rules, userInput, refAttached, aspect, client, memberId }) {

@@ -2156,17 +2156,19 @@ async function stageGen(pid,sid,changes){
    jobPoll(p.id,'thumb',sd.job.id,0);
    return;
   }
-  /* 6.2: the moodboard is a visual DIRECTION first, then a set of tiles */
-  if(sid==='mood'&&useJobs()&&!changes){
-   GEN.busy[key]='Art director is writing the visual direction…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'mood',pieceId:p.id,userInput,piece:storeMeta(p)})});
+  /* 6.2: the moodboard is THREE moods to pick from (owner 2026-10-29); each lands as soon as it renders */
+  if(sid==='mood'&&useJobs()){
+   GEN.busy[key]='Art director is writing three different moods…';studioRefresh();
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'mood',pieceId:p.id,userInput,refImage:p.refImage||null,piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
-   if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
-   if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the render could not be submitted');
-   GEN.busy[key]='The Hermes moodboard bot is making the four-image set…';
-   p.jobs=p.jobs||{};p.jobs['g:mood']={jobId:sd.job.id,meta:{}};saveGenerated();
-   delete CHECKS[p.id+':mood'];
-   jobPoll(p.id,'mood',sd.job.id,0);
+   if(!sr.ok||!sd.artifact)throw new Error(sd.error||((sd.problems||[]).join('; '))||('studio responded '+sr.status));
+   const bad=(sd.jobs||[]).filter(j=>j.state==='failed'||j.state==='timed_out');
+   if(bad.length===(sd.jobs||[]).length&&bad.length)throw new Error(bad[0].error||'the renders could not be submitted');
+   attachTo(p,'mood',{...sd.artifact,version:'v'+sd.version},'Hermes moodboard bot',{recorded:{version:sd.version}});
+   GEN.busy[key]='The Hermes moodboard bot is rendering '+sd.artifact.moods.length+' moods'+(sd.productModel?' with the product\'s 3D model':'')+' — each appears as it lands…';
+   p.jobs=p.jobs||{};p.jobs['b:mood']={board:true};saveGenerated();
+   CHECKS[p.id+':mood']=undefined;CHECKS[p.id+':mood:all']=undefined;
+   studioRefresh();shotsPoll(p.id,'mood',0);
    return;
   }
   /* image/video stages: director → higgsfield */
@@ -2224,7 +2226,7 @@ async function stageGen(pid,sid,changes){
  }
 }
 /* The page only READS job state; completion was recorded server-side. */
-const POLL_MS={job:10000};
+const POLL_MS={job:5000,shots:4000};
 function jobPoll(pid,sid,jobId,tries){
  const key=pid+':'+sid;
  clearTimeout(GEN.timer[key]);
@@ -2688,6 +2690,7 @@ const BOARD_POLL={};
 function boardPoll(pid,tries){shotsPoll(pid,'board',tries)}
 /* shots fill in one by one on the storyboard (keyframes) and the first draft (clips) */
 function shotsPoll(pid,stage,tries){
+ if(stage==='mood')return moodsPoll(pid,tries);
  const slot=stage==='draft'?'clip':'keyframe',pk=pid+':'+stage;
  clearTimeout(BOARD_POLL[pk]);
  if(tries>240){const p=PROJECTS.find(x=>x.id===pid);if(p){delete GEN.busy[pk];GEN.err[pk]=(slot==='clip'?'Clips':'Keyframes')+' still rendering after 20 minutes — the jobs keep running on the server; reopen the piece later.'}studioRefresh();return}
@@ -2705,7 +2708,81 @@ function shotsPoll(pid,stage,tries){
    }
    studioRefresh();shotsPoll(pid,stage,tries+1);
   }catch(e){shotsPoll(pid,stage,tries+1)}
- },5000);
+ },POLL_MS.shots);
+}
+/* the three moods fill in one by one; each poll also moves the renders along on the server */
+function moodsPoll(pid,tries){
+ const pk=pid+':mood';clearTimeout(BOARD_POLL[pk]);
+ if(tries>300){delete GEN.busy[pk];GEN.err[pk]='Moods still rendering after 20 minutes — the jobs keep running on the server; reopen the piece later.';studioRefresh();return}
+ BOARD_POLL[pk]=setTimeout(async()=>{
+  try{
+   const r=await authFetch('/api/studio?shots='+encodeURIComponent(pid)+'&stage=mood');const d=await r.json().catch(()=>({}));
+   const p=PROJECTS.find(x=>x.id===pid);if(!p)return;
+   if(r.ok&&d.payload&&d.payload.setMode==='moods'){p.mood={...p.mood,...d.payload,version:'v'+d.version};saveGenerated()}
+   const ms=(p.mood&&p.mood.moods)||[];
+   if(ms.some(m=>m.state==='rendered')&&GEN.busy[pk])GEN.busy[pk]=ms.filter(m=>m.state==='rendered').length+' of '+ms.length+' moods ready — the rest are still rendering…';
+   if(r.ok&&d.live===0){
+    delete GEN.busy[pk];BOARD_POLL[pk]='settled';if(p.jobs)delete p.jobs['b:mood'];saveGenerated(); /* settled: a mood left pending without a job does not restart the poll */
+    CHECKS[pk+':all']=undefined;loadChecks(pid,'mood');studioRefresh();
+    const n=ms.filter(m=>m.state==='rendered').length,f=ms.filter(m=>m.state==='failed').length;
+    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Muse',1)}<div style="font-size:12.5px"><b>${n} mood${n===1?'':'s'} ready</b>${f?`, ${f} failed`:''} for <b>${esc(p.title)}</b> — pick the one the video follows.</div></div>`);
+    return;
+   }
+   if(r.ok&&d.checksPending===0&&CHECKS[pk+':all']&&ms.some(m=>m.state==='rendered'))CHECKS[pk+':all']=undefined;
+   studioRefresh();moodsPoll(pid,tries+1);
+  }catch(e){moodsPoll(pid,tries+1)}
+ },POLL_MS.shots);
+}
+/* the person picks the mood the brief, storyboard and video follow */
+async function moodPick(pid,n){
+ const p=PROJECTS.find(x=>x.id===pid);if(!p||!p.mood)return;
+ try{
+  const r=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'mood-pick',pieceId:pid,mood:n,piece:storeMeta(p)})});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('studio responded '+r.status));
+  p.mood={...p.mood,...d.payload};saveGenerated();studioRefresh();
+  const m=p.mood.moods.find(x=>x.n===n);
+  toast(`<span style="font-size:12.5px"><b style="color:#6ee7b9">Mood picked: ${esc(m?m.name:'mood '+n)}</b> — the brief, storyboard and video follow it.</span>`);
+ }catch(e){toast(`<b style="color:#fb7185">Mood:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
+}
+function moodChosenN(m){const sel=m.selection&&m.selection.chosenMood;return Number(sel)||Number(m.chosen)||null}
+function rMoodPick(p,locked){
+ const m=p.mood,key=p.id+':mood';
+ if(CHECKS[key+':all']===undefined){CHECKS[key+':all']=null;loadChecks(p.id,'mood')}
+ const all=CHECKS[key+':all']||[];
+ const vis=i=>all.filter(c=>c.kind==='vision').map(c=>c.results&&c.results.images&&c.results.images.find(x=>x.index===i)).find(Boolean)||null;
+ if(m.moods.some(x=>x.state==='pending')&&!BOARD_POLL[key])moodsPoll(p.id,0);
+ const chosen=moodChosenN(m);
+ const card=(md)=>{
+  const imgs=m.images.map((im,i)=>({...im,i})).filter(im=>im.mood===md.n);
+  const d=md.direction||{},on=chosen===md.n;
+  const pics=imgs.map(im=>{const v=vis(im.i);
+   const art=im.state==='rendered'?`<img ${mediaAttrs(im,'url')} alt="${esc(md.name)} ${im.i+1}" style="width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#000">`
+    :im.state==='failed'||md.state==='failed'?`<div class="dim" style="aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;font-size:11px;padding:8px;background:rgba(0,0,0,.4)">Not rendered</div>`
+    :`<div style="aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(0,0,0,.4)"><span class="gen-spin"></span><span class="dim" style="font-size:11px">Rendering…</span></div>`;
+   return `<div style="position:relative">${art}${im.state==='rendered'?`<div style="position:absolute;left:6px;bottom:6px">${v?(v.pass?badge('go','✓ CHECKS'):v.needsReview?badge('gold','NEEDS A LOOK'):badge('alert','FLAGGED')):badge('muted','CHECKING…')}</div>`:''}${v&&v.flags&&v.flags.length?`<div class="dim" style="font-size:10.5px;padding:4px 2px;color:${v.pass?'inherit':'#fda4af'}">${v.flags.map(f=>esc(f)).join(' · ')}</div>`:''}</div>`}).join('');
+  return `<div class="card" style="overflow:hidden;${on?'outline:2px solid var(--gold);':''}display:flex;flex-direction:column">
+   <div style="display:grid;grid-template-columns:repeat(${Math.max(1,imgs.length)},1fr);gap:2px;background:#000">${pics}</div>
+   <div style="padding:10px 12px;display:flex;flex-direction:column;gap:6px;flex:1">
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="mono dim" style="font-size:10px">MOOD ${md.n}</span>${on?badge('gold','✓ THE VIDEO FOLLOWS THIS MOOD'):''}${md.state==='failed'?badge('alert','FAILED'):''}</div>
+    <b style="font-size:14px;color:#fff">${esc(md.name)}</b>
+    <div class="dim" style="font-size:12px;line-height:1.5">${esc(md.pitch||'')}</div>
+    ${(d.palette||[]).length?`<div style="display:flex;gap:4px;flex-wrap:wrap">${d.palette.map(c=>`<span title="${esc(c.name)} ${esc(c.hex)} · ${esc(c.role)}" style="display:inline-block;width:16px;height:16px;border-radius:50%;border:1px solid var(--hairline);background:${esc(c.hex)}"></span>`).join('')}</div>`:''}
+    <div class="dim" style="font-size:11.5px;line-height:1.55">${[['Setting',d.setting],['Light',d.lighting],['Feel',d.mood]].filter(([,v])=>v).map(([k,v])=>`<div><b style="color:#bae6fd">${k}:</b> <span dir="auto">${esc(v)}</span></div>`).join('')}</div>
+    ${md.state==='failed'&&md.error?`<div style="font-size:11px;color:#fda4af">${esc(md.error)}</div>`:''}
+    ${p.studio&&!locked&&md.state==='rendered'&&!on?`<button class="btn btn-gold btn-sm" style="margin-top:auto" onclick="moodPick('${p.id}',${md.n})">Use this mood</button>`:''}
+   </div></div>`};
+ const cm=m.moods.find(x=>x.n===chosen),cd=cm&&cm.direction||{};
+ return `
+  <div class="pc-note" style="margin-bottom:12px">${chosen?`The brief, storyboard and video follow <b>${esc(cm?cm.name:'mood '+chosen)}</b>. You can switch until the moodboard is approved.`:'Three moods — pick the one the video should follow. Until you pick, the first ready mood stands in.'}</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px">${m.moods.map(card).join('')}</div>
+  ${cm?`<div style="margin-top:12px;border:1px solid var(--hairline);border-radius:12px;padding:12px;background:rgba(0,0,0,.35)">
+   <span class="kick">Picked mood · ${esc(cm.name)}${cd.leadingPrinciple?' · '+esc(cd.leadingPrinciple):''}</span>
+   <div class="grid2e" style="margin-top:8px;font-size:12.5px;line-height:1.6">
+    ${[['Setting',cd.setting],['Lighting',cd.lighting],['Mood',cd.mood],['Styling',cd.styling],['Wardrobe',cd.wardrobe],['Composition',cd.compositionStyle],['Camera',cd.cameraFeel],['Trend adaptation',cd.trendAdaptation]].filter(([,v])=>v).map(([k,v])=>`<div><b style="color:#bae6fd">${k}:</b> <span dir="auto">${esc(v)}</span></div>`).join('')}
+   </div></div>`:''}
+  ${m.selection&&m.selection.annotations?`<p class="dim" style="font-size:12px;margin-top:8px"><b style="color:#6ee7b9">Reviewer:</b> ${esc(m.selection.annotations)}</p>`:''}
+  ${GEN.err[key]?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[key])}</div>`:''}
+  ${p.studio?regenBox(p,'mood'):''}`;
 }
 function rBoard(p,locked){
  const b=p.board,key=p.id+':board';
@@ -2726,6 +2803,7 @@ function rBoard(p,locked){
   </div>
   ${R&&R.codeChecks?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${R.codeChecks.map(c=>`<span title="${esc(c.detail)}">${badge(c.passed?'go':'alert',(c.passed?'✓ ':'✗ ')+c.code.replace(/_/g,' ').toUpperCase())}</span>`).join('')}</div>`:''}
   ${R&&R.flags&&R.flags.length?`<div class="dim" style="font-size:11.5px;margin-bottom:10px">${R.flags.map(f=>esc(f)).join(' · ')}</div>`:''}
+  ${b.storyline&&b.storyline.logline?`<div style="border:1px solid var(--hairline);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:rgba(0,0,0,.3);font-size:12.5px;line-height:1.6"><span class="kick">Story</span><div style="margin-top:4px"><b style="color:#fff">${esc(b.storyline.logline)}</b></div><div class="dim" style="margin-top:3px"><b style="color:#6ee7b9">Opens:</b> ${esc(b.storyline.openingScene)} · <b style="color:#fbbf24">Closes:</b> ${esc(b.storyline.closingScene)}</div></div>`:''}
   ${b.hook&&b.hook.summary?`<div class="dim" style="font-size:11.5px;margin-bottom:10px">F1X8 on the hook keyframe: ${esc(b.hook.summary)}${b.hook.risks&&b.hook.risks.length?' · '+b.hook.risks.map(r=>esc(r.issue||r)).join(' · '):''}</div>`:''}
   <div class="frames" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">${(b.shots||[]).map(sh=>{
    const kf=sh.keyframe,v=vis(sh.n),rv=sh.review;
@@ -2733,7 +2811,7 @@ function rBoard(p,locked){
    return `<div class="frame card" style="overflow:hidden;border-color:${rv?(rv.decision==='approved'?'rgba(110,231,185,.5)':'rgba(251,113,133,.5)'):'var(--hairline)'}">
     <div class="art" style="height:auto;aspect-ratio:${(b.aspect||'9:16')==='9:16'?'9/12':'16/9'};background:#000;padding:0;position:relative;display:block">${art}<span class="tc" style="position:absolute;left:8px;bottom:8px">SHOT ${sh.n} · ${sh.durationS} s</span></div>
     <div class="p3" style="font-size:11.5px;line-height:1.55;color:var(--muted)">
-     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${badge('muted',esc(sh.type.replace('_',' ').toUpperCase()))}${sh.product.visible?badge('c','PRODUCT'+(sh.product.feature?' · '+esc(sh.product.feature):'')):''}${b.hookShot===sh.n?badge('gold','HOOK'):''}
+     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${sh.beat==='opening'?badge('go','OPENING SCENE'):sh.beat==='closing'?badge('gold','CLOSING SCENE'):''}${badge('muted',esc(sh.type.replace('_',' ').toUpperCase()))}${sh.product.visible?badge('c','PRODUCT'+(sh.product.feature?' · '+esc(sh.product.feature):'')):''}${b.hookShot===sh.n?badge('gold','HOOK'):''}
       ${v?(v.pass?badge('go','CHECK OK'):v.needsReview?badge('gold','NEEDS A LOOK'):badge('alert','FLAGGED')):kf&&kf.state==='rendered'?badge('muted','CHECKING…'):''}${rv?badge(rv.decision==='approved'?'go':'alert',rv.decision==='approved'?'APPROVED':'REJECTED'):''}</div>
      <div><b style="color:#fff">${esc(sh.camera)}</b> — ${esc(sh.action)}</div>
      ${sh.onScreenText.en||sh.onScreenText.ar?`<div style="margin-top:4px">Text: <b>${esc(sh.onScreenText.en)}</b>${sh.onScreenText.ar?` <span dir="rtl">${esc(sh.onScreenText.ar)}</span>`:''}</div>`:''}
@@ -3095,6 +3173,7 @@ function rBrief(p){
   <div class="pc-note" style="margin-bottom:10px">Editing the brief — your changes are saved as a new version (v${(parseInt(String(b.version||'v1').replace('v',''),10)||1)+1}) and re-checked; nothing is overwritten.</div>
   ${f('objective','Objective',e.objective)}${f('successMetric','Success metric',e.successMetric,1)}${f('keyMessage','Key message',e.keyMessage,1)}${f('cta','Call to action',e.cta,1)}
   ${f('hook','How Samsung adapts the trend',e.trendHook.samsungAdaptation)}
+  ${f('stLogline','Storyline — the whole story in one sentence',(e.storyline||{}).logline,2)}${f('stOpening','Opening scene',(e.storyline||{}).openingScene,2)}${f('stBeats','Story beats (one per line)',((e.storyline||{}).beats||[]).join('\n'),3)}${f('stClosing','Closing scene',(e.storyline||{}).closingScene,2)}${f('stProtagonist','Protagonist',(e.storyline||{}).protagonist,1)}
   <div class="grid-2f"><div class="f-field" style="margin-top:8px"><label>Target duration (s)</label><input class="inp-l" id="be-dur" type="number" min="1" value="${e.format.targetDurationS}"></div><div class="f-field" style="margin-top:8px"><label>Deadline</label><input class="inp-l" id="be-deadline" value="${esc(e.deadline)}"></div></div>
   ${f('captionEn','Caption (English)',e.caption.en,3)}${f('captionAr','Caption (Arabic)',e.caption.ar,3,'rtl')}
   ${f('hashEn','Hashtags EN (comma-separated)',e.hashtags.en.join(', '),1)}${f('hashAr','Hashtags AR (comma-separated)',e.hashtags.ar.join(', '),1,'rtl')}
@@ -3115,6 +3194,12 @@ function rBrief(p){
   ${row('Objective',`${esc(sp.objective)}<div class="dim" style="margin-top:3px">Success metric: ${esc(sp.successMetric)}</div>`)}
   ${row('Audience',`${esc(sp.audience.description)}<div style="margin-top:4px">${sp.audience.markets.map(m=>badge('muted',esc(m))).join(' ')}</div>`)}
   ${row('Trend hook',`<b>${esc(sp.trendHook.mechanic)}</b><div style="margin-top:3px">${esc(sp.trendHook.samsungAdaptation)}</div>`)}
+  ${sp.storyline?row('Storyline',`<b style="color:#fff">${esc(sp.storyline.logline)}</b>${sp.storyline.protagonist?`<div class="dim" style="margin-top:3px">Protagonist: ${esc(sp.storyline.protagonist)}</div>`:''}
+   <ol style="margin:8px 0 0 18px;line-height:1.75">
+    <li><b style="color:#6ee7b9">Opening scene</b> — ${esc(sp.storyline.openingScene)}</li>
+    ${(sp.storyline.beats||[]).map(x=>`<li>${esc(x)}</li>`).join('')}
+    <li><b style="color:#fbbf24">Closing scene</b> — ${esc(sp.storyline.closingScene)}</li>
+   </ol>`):''}
   ${row('Key message',badge('ai','“'+esc(sp.keyMessage)+'”'))}
   ${row('Products',sp.products.map(x=>`<b>${esc(x.name)}</b>${x.features.length?' — '+x.features.map(esc).join(', '):''}`).join('<br>'))}
   ${row('Claims',cl)}
@@ -3133,6 +3218,7 @@ async function saveBriefEdit(pid){
  const e=JSON.parse(JSON.stringify(BRIEF_EDIT[pid]));const v=(id)=>(($('#be-'+id)||{}).value||'');
  const lines=(t)=>t.split(/\n/).map(x=>x.trim()).filter(Boolean),tags=(t)=>t.split(/[,،]/).map(x=>x.trim().replace(/^#/,'')).filter(Boolean);
  e.objective=v('objective').trim();e.successMetric=v('successMetric').trim();e.keyMessage=v('keyMessage').trim();e.cta=v('cta').trim();e.trendHook.samsungAdaptation=v('hook').trim();
+ if(v('stLogline').trim()||v('stOpening').trim()||v('stClosing').trim()||e.storyline)e.storyline={logline:v('stLogline').trim(),protagonist:v('stProtagonist').trim(),openingScene:v('stOpening').trim(),beats:lines(v('stBeats')),closingScene:v('stClosing').trim()};
  e.format.targetDurationS=parseInt(v('dur'),10)||e.format.targetDurationS;e.deadline=v('deadline').trim();
  e.caption.en=v('captionEn').trim();e.caption.ar=v('captionAr').trim();e.hashtags.en=tags(v('hashEn'));e.hashtags.ar=tags(v('hashAr'));e.mandatories=lines(v('mandatories'));e.doNots=lines(v('doNots'));
  try{
@@ -3197,7 +3283,8 @@ async function composeCover(pid){
   studioRefresh();
  }catch(e){toast(`<b style="color:#fb7185">Compose:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
 }
-function rMoodSet(p){
+function rMoodSet(p,locked){
+ if(p.mood.setMode==='moods'&&Array.isArray(p.mood.moods))return rMoodPick(p,locked);
  const m=p.mood,d=m.direction||{};
  const key=p.id+':mood';
  if(CHECKS[key]===undefined){CHECKS[key]=null;loadChecks(p.id,'mood')}
@@ -4482,7 +4569,7 @@ function stageArtifactInner(p,n){
  if(n>p.stage)return head(badge('muted','QUEUED'))+`<p class="dim" style="font-size:12.5px">Waiting for stage 0${p.stage} to clear. ${s.agent} picks this up automatically.</p>`;
  const done=n<p.stage?badge('go','FINAL · IN PRODUCTION CENTER'):badge('ai','IN PROGRESS');
  switch(s.id){
-  case 'mood':return head(done)+(p.mood?(p.mood.images&&p.mood.images.length?rMoodSet(p):p.mood.imageUrl?`
+  case 'mood':return head(done)+(p.mood?(p.mood.images&&p.mood.images.length?rMoodSet(p,n<p.stage):p.mood.imageUrl?`
    <img class="gen-media" ${mediaAttrs(p.mood,'imageUrl')} alt="Generated moodboard">${dirNote(p.mood)}${p.studio?regenBox(p,'mood'):''}`:`
    <div class="mood">${p.mood.tiles.map(t=>`<div style="background:linear-gradient(135deg,${t[0]},${t[1]})"><span>${t[2]}</span></div>`).join('')}</div>
    <p class="dim" style="font-size:12.5px;line-height:1.65;margin-top:12px">${p.mood.note}</p>`):'');
@@ -4733,7 +4820,10 @@ function openApprove(id){
    <label class="upl"><span class="u1">Line manager approval</span><span class="u2">PDF / e-mail export — stored privately with a checksum</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.eml,.msg" onchange="uplOk(this,'line_manager')"></label>
    <label class="upl"><span class="u1">ADLCP approval</span><span class="u2">Signed document — stored privately with a checksum</span><input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.eml,.msg" onchange="uplOk(this,'adlcp')"></label>
   </div>`:''}
-  ${d.stage==='mood'&&pr.mood&&pr.mood.images?`<div class="f-field"><label>Select the tiles that set the direction (one or more)</label>
+  ${d.stage==='mood'&&pr.mood&&pr.mood.setMode==='moods'&&pr.mood.moods?`<div class="f-field"><label>The mood the brief, storyboard and video follow</label>
+   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">${pr.mood.moods.filter(x=>x.state==='rendered').map((x,i,a)=>`<label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="radio" name="ap-mood" class="ap-mood" value="${x.n}" ${(moodChosenN(pr.mood)||a[0].n)===x.n?'checked':''}> ${esc(x.name)}</label>`).join('')||'<span class="dim" style="font-size:12px">No mood has rendered yet.</span>'}</div></div>
+   <div class="f-field" style="margin-top:12px"><label>Annotations for later stages (optional)</label><input class="inp-l" id="ap-annot" placeholder="e.g. keep the warm rim light, less clutter in the setting"></div>`
+  :d.stage==='mood'&&pr.mood&&pr.mood.images?`<div class="f-field"><label>Select the tiles that set the direction (one or more)</label>
    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${pr.mood.images.map((im,i)=>`<label style="font-size:12px;display:flex;align-items:center;gap:6px"><input type="checkbox" class="ap-sel" value="${i}" checked> Tile ${i+1}${im.tag?' · '+esc(im.tag):''}</label>`).join('')}</div></div>
    <div class="f-field" style="margin-top:12px"><label>Annotations for later stages (optional)</label><input class="inp-l" id="ap-annot" placeholder="e.g. keep the warm rim light, less clutter in the setting"></div>`:''}
   <div class="f-field" style="margin-top:14px"><label>Your name</label><input class="inp-l" id="ap-name" placeholder="Full name" value="${esc((AUTH.member&&AUTH.member.name)||'')}"></div>
@@ -4758,7 +4848,11 @@ async function confirmApprove(id){
  const docs=ups.length===2?{line_manager:JSON.parse(ups[0].dataset.doc),adlcp:JSON.parse(ups[1].dataset.doc)}:undefined;
  const go=$('#ap-go');if(go){go.disabled=true;go.textContent='Recording…'}
  const sels=[...document.querySelectorAll('#modal .ap-sel')].filter(c=>c.checked).map(c=>+c.value);
- const details=d.stage==='mood'&&sels.length?{selectedImages:sels,annotations:(($('#ap-annot')||{}).value||'').trim()||null}:undefined;
+ const moodEl=document.querySelector('#modal .ap-mood:checked'),pm=PROJECTS.find(x=>x.id===d.proj);
+ if(d.stage==='mood'&&document.querySelectorAll('#modal .ap-mood').length&&!moodEl){const err=$('#ap-err');if(err)err.textContent='Pick the mood the video follows.';if(go){go.disabled=false;go.textContent='Record approval'}return}
+ const chosenMood=moodEl?+moodEl.value:null;
+ const details=d.stage==='mood'&&chosenMood&&pm&&pm.mood?{chosenMood,selectedImages:pm.mood.images.map((im,i)=>im.mood===chosenMood&&im.state==='rendered'?i:-1).filter(i=>i>=0),annotations:(($('#ap-annot')||{}).value||'').trim()||null}
+  :d.stage==='mood'&&sels.length?{selectedImages:sels,annotations:(($('#ap-annot')||{}).value||'').trim()||null}:undefined;
  if(d.stage==='mood'&&document.querySelectorAll('#modal .ap-sel').length&&!sels.length){const err=$('#ap-err');if(err)err.textContent='Select at least one tile.';return}
  if(d.stage==='board'){const pb=PROJECTS.find(x=>x.id===d.proj);const sh=pb&&pb.board&&pb.board.shots&&pb.board.shots.filter(x=>!(x.keyframe&&x.keyframe.state==='failed'));if(sh&&sh.some(x=>!x.review||x.review.decision!=='approved')){const err=$('#ap-err');if(err)err.textContent='Approve every rendered shot first (failed shots don\'t count) — '+sh.filter(x=>!x.review||x.review.decision!=='approved').map(x=>'shot '+x.n).join(', ')+' pending.';if(go){go.disabled=false;go.textContent='Record approval'}return}}
  const srv=await recordDecision(d,{decision:'approved',name,role,info,documents:docs,details});

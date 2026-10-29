@@ -7,12 +7,13 @@
 // not decide — the human approval does.
 const { registerPrompt, recordGeneration } = require('../_records.js');
 
-const VERSION = 'vision-check-v1.2-2026-10-21'; // v1.1: anchors and the reserved text side; v1.2: clip mode (morphing, artefacts across frames)
+const VERSION = 'vision-check-v1.3-2026-10-29'; // v1.1: anchors and the reserved text side; v1.2: clip mode (morphing, artefacts across frames); v1.3: the product's 3D model views
 const MODEL = () => process.env.MAISTRO_VISION_MODEL || 'claude-sonnet-5-5';
 
 const SYSTEM = [
   'You check generated campaign images for MAISTRO (Samsung Gulf). Answer the fixed questions for EACH image from what is visible; never assume. "unsure" is allowed and means a human must look.',
   'Product consistency: compare the device shown with the catalog look line; a different form factor, an older generation\'s shape, a wrong colour or a competitor-like design is a mismatch.',
+  'When PRODUCT 3D MODEL views are given, they ARE the product: productMatchesCatalog is "yes" only when the device matches that model exactly — silhouette, proportions and size relative to hands and objects, camera layout and lens count, buttons, hinge, screen shape, colour and finish. Any visible difference is "no"; a device too small or hidden to judge is "unsure".',
   'Prohibited: competitor devices or logos; readable text inside the image; real identifiable people or celebrities; minors; alcohol, gambling, drugs; revealing or suggestive dress or posing; religious or political symbols used as devices; tragedy or violence.',
   'Palette and lighting: judge against the named direction (colours by hex family, lighting by description).',
   'When ANCHOR images (the approved moodboard tiles) are given, judge whether each candidate image continues their palette, lighting, materials and mood: consistentWithMood yes | partial | no. When a reserved text side is given, say whether that side is clean negative space (textSpaceClear yes | partial | no).',
@@ -37,10 +38,12 @@ const SCHEMA = {
 };
 
 /** Pass = no hard failure and no "unsure" on the safety questions; flags list what to look at. */
-function verdict(img, expectProduct) {
+function verdict(img, expectProduct, model = false) {
   const flags = [];
   if (expectProduct && img.productPresent === 'no') flags.push('product missing');
-  if (expectProduct && img.productMatchesCatalog === 'no') flags.push('product does not match the catalog');
+  if (expectProduct && img.productMatchesCatalog === 'no') flags.push(model ? 'product does not match the 3D model' : 'product does not match the catalog');
+  // held to a 3D model, a device present but not matching is never waved through: a person must look
+  if (model && img.productPresent === 'yes' && img.productMatchesCatalog === 'unsure') flags.push('3D model match unsure');
   if (img.competitorOrLogo !== 'no') flags.push(img.competitorOrLogo === 'yes' ? 'competitor device or logo' : 'competitor/logo unsure');
   if (img.realPerson !== 'no') flags.push(img.realPerson === 'yes' ? 'real identifiable person' : 'person unsure');
   if (img.textInImage === 'yes') flags.push('text inside the image');
@@ -61,17 +64,19 @@ function verdict(img, expectProduct) {
 
 /** images: [{index, url}] (signed or public, fetchable by the model). */
 /** expectProduct: true (every image), false (none), or the indexes that are meant to show the product. */
-async function visionCheck({ images, anchors, textSide, direction, product, productLook, rules, client, legacyPieceId, stage, jobId, expectProduct, mode }) {
+async function visionCheck({ images, anchors, productViews, textSide, direction, product, productLook, rules, client, legacyPieceId, stage, jobId, expectProduct, mode }) {
   const Anthropic = client ? null : require('@anthropic-ai/sdk');
   const c = client || new Anthropic({ timeout: 90000, maxRetries: 1 });
   registerPrompt('studio.vision.check', VERSION, `SYSTEM:\n${SYSTEM}\n\nUSER: images {{n}} direction {{direction}} product {{productLook}} rules {{rules}}`, ['n', 'direction', 'productLook', 'rules']);
   const content = [];
+  const views = (productViews || []).filter((v) => typeof v === 'string' && /^https:\/\//.test(v)).slice(0, 3);
+  views.forEach((u, i) => { content.push({ type: 'text', text: `PRODUCT 3D MODEL VIEW ${i + 1} (the exact product every image must show):` }); content.push({ type: 'image', source: { type: 'url', url: u } }); });
   (anchors || []).forEach((a) => { content.push({ type: 'text', text: `ANCHOR (${a.label || `approved moodboard tile ${a.index + 1}`}):` }); content.push({ type: 'image', source: { type: 'url', url: a.url } }); });
   images.forEach((im) => { content.push({ type: 'text', text: `IMAGE ${im.index}:` }); content.push({ type: 'image', source: { type: 'url', url: im.url } }); });
-  const userText = `DIRECTION: ${JSON.stringify({ palette: direction && direction.palette, lighting: direction && direction.lighting, mood: direction && direction.mood }, null, 1)}\nPRODUCT: ${product || 'none expected'}${productLook ? ` — catalog look: ${productLook}` : ''}\nCULTURAL RULES: ${JSON.stringify(rules || [])}\nANCHORS: ${(anchors || []).length ? `${anchors.length} anchor image(s) shown above — judge consistentWithMood against them` : 'none (answer n/a)'}\nRESERVED TEXT SIDE: ${textSide || 'none (answer n/a)'}\nMODE: ${mode === 'clip' ? `CLIP — the ${images.length} images are FRAMES of one generated clip in time order (first, middle, last); the anchor is its source keyframe. Answer morphing and artifacts per frame.` : 'single images (morphing and artifacts: n/a)'}\nAnswer the questions for every image (indexes ${images.map((i) => i.index).join(', ')}).`;
+  const userText = `DIRECTION: ${JSON.stringify({ palette: direction && direction.palette, lighting: direction && direction.lighting, mood: direction && direction.mood }, null, 1)}\nPRODUCT: ${product || 'none expected'}${productLook ? ` — catalog look: ${productLook}` : ''}\nPRODUCT 3D MODEL: ${views.length ? `${views.length} view(s) shown first — judge productMatchesCatalog against the model exactly` : 'none (judge against the catalog look line)'}\nCULTURAL RULES: ${JSON.stringify(rules || [])}\nANCHORS: ${(anchors || []).length ? `${anchors.length} anchor image(s) shown above — judge consistentWithMood against them` : 'none (answer n/a)'}\nRESERVED TEXT SIDE: ${textSide || 'none (answer n/a)'}\nMODE: ${mode === 'clip' ? `CLIP — the ${images.length} images are FRAMES of one generated clip in time order (first, middle, last); the anchor is its source keyframe. Answer morphing and artifacts per frame.` : 'single images (morphing and artifacts: n/a)'}\nAnswer the questions for every image (indexes ${images.map((i) => i.index).join(', ')}).`;
   content.push({ type: 'text', text: userText });
   const t0 = Date.now();
-  const rec = { kind: 'claude', legacyPieceId, stage, model: MODEL(), promptName: 'studio.vision.check', promptVersion: VERSION, resolvedPrompt: `${SYSTEM}\n\n${userText}`, userPrompt: userText, params: { images: images.length, anchors: (anchors || []).length, textSide: textSide || null, mode: mode || 'image' }, inputAssets: [...(anchors || []).map((a) => a.url), ...images.map((i) => i.url)], jobId };
+  const rec = { kind: 'claude', legacyPieceId, stage, model: MODEL(), promptName: 'studio.vision.check', promptVersion: VERSION, resolvedPrompt: `${SYSTEM}\n\n${userText}`, userPrompt: userText, params: { images: images.length, anchors: (anchors || []).length, productViews: views.length, textSide: textSide || null, mode: mode || 'image' }, inputAssets: [...views, ...(anchors || []).map((a) => a.url), ...images.map((i) => i.url)], jobId };
   let response;
   try {
     response = await c.messages.create({ model: MODEL(), max_tokens: 8000, system: SYSTEM, messages: [{ role: 'user', content }], output_config: { format: { type: 'json_schema', schema: SCHEMA }, effort: 'low' } });
@@ -80,7 +85,7 @@ async function visionCheck({ images, anchors, textSide, direction, product, prod
   let j; try { j = JSON.parse(text ? text.text : ''); } catch (e) { await recordGeneration({ ...rec, status: 'failed', error: 'malformed JSON', latencyMs: Date.now() - t0 }); return { error: 'malformed JSON' }; }
   if (!j || !Array.isArray(j.images)) { await recordGeneration({ ...rec, status: 'failed', error: 'no images array', latencyMs: Date.now() - t0 }); return { error: 'no images array' }; }
   const expects = (i) => (Array.isArray(expectProduct) ? expectProduct.includes(i) : expectProduct === undefined ? Boolean(product) : Boolean(expectProduct));
-  const results = images.map((im) => { const r = j.images.find((x) => x.index === im.index) || null; return r ? { index: im.index, productExpected: expects(im.index), ...r, ...verdict(r, expects(im.index)) } : { index: im.index, missing: true, pass: false, needsReview: true, flags: ['no verdict returned'] }; });
+  const results = images.map((im) => { const r = j.images.find((x) => x.index === im.index) || null; return r ? { index: im.index, productExpected: expects(im.index), ...r, ...verdict(r, expects(im.index), views.length > 0) } : { index: im.index, missing: true, pass: false, needsReview: true, flags: ['no verdict returned'] }; });
   await recordGeneration({ ...rec, status: 'succeeded', latencyMs: Date.now() - t0, usage: response.usage || null });
   return { results, passed: results.every((r) => r.pass), model: MODEL(), promptVersion: VERSION, usage: response.usage || null };
 }

@@ -12,7 +12,7 @@ const { queryRows } = require('../_supabase.js');
 const { activeDocuments } = require('../_kb/index.js');
 const { moodContext } = require('./thumb.js');
 
-const VERSION = 'brief-v1-2026-10-21';
+const VERSION = 'brief-v2-2026-10-29'; // v2: the storyline the storyboard and the video follow
 const CHECK_VERSION = 'brief-copy-check-v1-2026-10-21';
 const MODEL = () => process.env.MAISTRO_STUDIO_MODEL || 'claude-opus-5-5';
 const CHECK_MODEL = () => process.env.MAISTRO_VISION_MODEL || 'claude-sonnet-5-5';
@@ -34,11 +34,12 @@ const LICENSING = ['none', 'cleared', 'unknown'];
 
 const SCHEMA = {
   type: 'object', additionalProperties: false,
-  required: ['objective', 'successMetric', 'audience', 'trendHook', 'keyMessage', 'products', 'claims', 'cta', 'tone', 'format', 'languagePlan', 'audio', 'mandatories', 'doNots', 'hashtags', 'caption', 'deadline'],
+  required: ['objective', 'successMetric', 'audience', 'trendHook', 'storyline', 'keyMessage', 'products', 'claims', 'cta', 'tone', 'format', 'languagePlan', 'audio', 'mandatories', 'doNots', 'hashtags', 'caption', 'deadline'],
   properties: {
     objective: { type: 'string' }, successMetric: { type: 'string' },
     audience: { type: 'object', additionalProperties: false, required: ['description', 'markets'], properties: { description: { type: 'string' }, markets: { type: 'array', items: { type: 'string' } } } },
     trendHook: { type: 'object', additionalProperties: false, required: ['mechanic', 'samsungAdaptation'], properties: { mechanic: { type: 'string' }, samsungAdaptation: { type: 'string' } } },
+    storyline: { type: 'object', additionalProperties: false, required: ['logline', 'protagonist', 'openingScene', 'beats', 'closingScene'], properties: { logline: { type: 'string' }, protagonist: { type: 'string' }, openingScene: { type: 'string' }, beats: { type: 'array', items: { type: 'string' } }, closingScene: { type: 'string' } } },
     keyMessage: { type: 'string' },
     products: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['name', 'features'], properties: { name: { type: 'string' }, features: { type: 'array', items: { type: 'string' } } } } },
     claims: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['claim', 'approvedWording', 'disclaimer'], properties: { claim: { type: 'string' }, approvedWording: { type: 'string' }, disclaimer: { type: 'string' } } } },
@@ -59,6 +60,7 @@ const SYSTEM = [
   'CLAIMS: a claim is any verifiable statement about the product (a spec, a number, a comparison, "fastest", "best", "all-day battery"). You may only make claims that appear in the APPROVED CLAIMS list, with their exact wording and disclaimer. If that list is empty, claims MUST be an empty array and the key message, caption and CTA must carry no verifiable product claim — express the benefit as an experience, not a specification. Feature names may be mentioned only when the catalog lists them.',
   'AUDIO: name a track only when its licensing is known to be cleared; otherwise describe the audio direction and set musicReference to "" with licensing "none". Never reference a trend sound whose commercial-use status is not cleared.',
   'LANGUAGE: Gulf Arabic for conversational on-screen text and captions, Modern Standard Arabic only for formal claims and disclaimers, English when the market plan says so. Arabic copy must read as native Gulf Arabic, never as a literal translation of the English.',
+  'STORYLINE: write the plot the storyboard and the final video follow — simple, with clear cause and effect, that makes sense inside targetDurationS (never a random montage). logline: the whole story in one sentence. protagonist: who we follow, by look, age range and wardrobe from the approved mood (never a real or identifiable person; "none" only when the story has no person). openingScene: the first scene — it hooks inside 3 seconds and sets up a small, relatable tension or wish. beats: 2–4 short beats in order where the product naturally changes the situation through its catalog features (no claim that is not approved). closingScene: the last scene before the Samsung logo end card — it resolves the tension and lands the key message.',
   'DURATION: pick targetDurationS inside the platform\'s sweet spot you are given. HASHTAGS: at most the platform\'s limit, mixing the trend\'s tag, one Samsung tag and market-relevant tags; ar hashtags in Arabic script.',
   'Deadline: a realistic date within 14 days of today formatted like "12 Oct 2026". Mandatories always include the hero product on screen, the Samsung logo end-frame and cleared audio only. Tone follows the brand voice: conversational yet premium, Refined Wit, never putting down competitors.',
   'Fill every field. Be concrete and culturally specific to the markets, never generic.',
@@ -95,7 +97,7 @@ function platformRules(platform, specsDocs) {
 function validateShape(j) {
   const p = [];
   if (!j || typeof j !== 'object') return ['$: object required'];
-  for (const k of SCHEMA.required) if (j[k] === undefined || j[k] === null) p.push(`${k}: required`);
+  for (const k of SCHEMA.required) if (k !== 'storyline' && (j[k] === undefined || j[k] === null)) p.push(`${k}: required`);
   if (p.length) return p;
   for (const k of ['objective', 'successMetric', 'keyMessage', 'cta', 'tone', 'deadline']) if (typeof j[k] !== 'string' || !j[k].trim()) p.push(`${k}: non-empty string`);
   if (!Array.isArray(j.products) || !j.products.length) p.push('products: at least one');
@@ -107,6 +109,12 @@ function validateShape(j) {
   if (!Array.isArray(j.hashtags.en) || !Array.isArray(j.hashtags.ar)) p.push('hashtags: en[] and ar[]');
   if (typeof j.caption.en !== 'string' || typeof j.caption.ar !== 'string') p.push('caption: en and ar strings');
   if (!/^\d{1,2} [A-Z][a-z]{2} \d{4}$/.test(j.deadline)) p.push('deadline: like "12 Oct 2026"');
+  // briefs written before v2 have no storyline (the storyline check flags it); a storyline given must be whole
+  if (j.storyline !== undefined && j.storyline !== null) {
+    const st = j.storyline;
+    for (const k of ['logline', 'openingScene', 'closingScene']) if (typeof st[k] !== 'string' || !st[k].trim()) p.push(`storyline.${k}: required`);
+    if (!Array.isArray(st.beats)) p.push('storyline.beats: array');
+  }
   return p;
 }
 
@@ -132,6 +140,9 @@ function codeChecks(b, ctx) {
   const text = b.mandatories.join(' ').toLowerCase();
   const missing = req.filter((r) => !(r === 'product on screen' ? /product|device|hero/.test(text) : r === 'logo' ? /logo|end[- ]?frame|end card/.test(text) : /audio|sound|music|track/.test(text)));
   out.push({ code: 'mandatories_complete', passed: missing.length === 0, detail: missing.length ? `mandatories missing: ${missing.join(', ')}` : 'hero product, logo end-frame and audio rule present' });
+  const st = b.storyline;
+  const stOk = Boolean(st && st.logline && st.openingScene && st.closingScene && Array.isArray(st.beats) && st.beats.length >= 1);
+  out.push({ code: 'storyline_complete', passed: stOk, detail: stOk ? `opening, ${st.beats.length} beat(s), closing` : 'no storyline (opening scene, beats, closing scene) for the storyboard to follow' });
   const dl = Date.parse(b.deadline);
   out.push({ code: 'deadline_realistic', passed: !Number.isNaN(dl) && dl > ctx.now - 864e5 && dl < ctx.now + 15 * 864e5, detail: b.deadline });
   return out;
@@ -171,7 +182,7 @@ function userMessage(piece, ctx, userInput) {
     `TODAY: ${new Date(ctx.now).toISOString().slice(0, 10)}`,
     `CAMPAIGN: ${JSON.stringify({ title: piece.title, product: piece.product, keyMessageSoFar: piece.key_message, angle: piece.angle, markets: piece.markets, platforms: piece.platforms, trend: piece.trend_name }, null, 1)}`,
     `TREND PROFILE: ${JSON.stringify(ctx.judgement ? { profile: ctx.judgement.profile, criteria: ctx.judgement.criteria } : ctx.trend ? { name: ctx.trend.name, mechanic: ctx.trend.mechanic, why: ctx.trend.why, fit: ctx.trend.samsungFit, brief: ctx.trend.brief, sound: ctx.trend.sound } : 'not available — build on the campaign angle', null, 1)}`,
-    `APPROVED MOODBOARD${ctx.mood.approved ? '' : ' (current version, not yet approved)'}: ${JSON.stringify(ctx.mood.direction ? { leadingPrinciple: d.leadingPrinciple, setting: d.setting, palette: d.palette, lighting: d.lighting, mood: d.mood, styling: d.styling, wardrobe: d.wardrobe, trendAdaptation: d.trendAdaptation, selectedTiles: ctx.mood.tiles.map((t) => t.tag), reviewerAnnotations: ctx.mood.annotations } : { note: ctx.mood.note, prompt: ctx.mood.prompt }, null, 1)}`,
+    `APPROVED MOODBOARD${ctx.mood.approved ? '' : ' (current version, not yet approved)'}: ${JSON.stringify(ctx.mood.direction ? { pickedMood: ctx.mood.chosen ? ctx.mood.chosen.name : undefined, leadingPrinciple: d.leadingPrinciple, setting: d.setting, palette: d.palette, lighting: d.lighting, mood: d.mood, styling: d.styling, wardrobe: d.wardrobe, trendAdaptation: d.trendAdaptation, selectedTiles: ctx.mood.tiles.map((t) => t.tag), reviewerAnnotations: ctx.mood.annotations } : { note: ctx.mood.note, prompt: ctx.mood.prompt }, null, 1)}`,
     `APPROVED THUMBNAIL: ${JSON.stringify(ctx.thumb || 'none yet', null, 1)}`,
     `CATALOG ENTRY for ${piece.product}: ${JSON.stringify(ctx.catalog ? { look: ctx.catalog.look, keyFeatures: ctx.catalog.keyFeatures, colors: ctx.catalog.colors, availability: ctx.catalog.availability } : 'NOT IN THE CATALOG — the product cannot be shown or claimed', null, 1)}`,
     `APPROVED CLAIMS (the only claims allowed): ${JSON.stringify(ctx.approvedClaims)}`,

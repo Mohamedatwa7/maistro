@@ -183,7 +183,7 @@ test('Hermes error classes: 429 (run limit) and 5xx retry with backoff under the
     const row = W.pg.tables.jobs.find((j) => j.id === r.body.job.id);
     assert.ok(new Date(row.next_poll_at) > new Date(), 'backoff set'); assert.equal(W.pg.tables.stages.find((s) => s.kind === 'thumb').state, 'generating', 'the stage waits with the job');
     W.H.reject = { status: 502, body: {} };
-    due(row); r = await W.get({ id: row.id }); assert.equal(r.body.job.state, 'queued'); assert.equal(row.attempts, 2);
+    due(row); r = await W.get({ id: row.id }); assert.equal(r.body.job.state, 'queued'); assert.equal(row.attempts, 1, 'a 429 is waiting for a slot, not a failed attempt');
     W.H.reject = null;
     due(row); r = await W.get({ id: row.id }); assert.equal(r.body.job.state, 'running');
     assert.equal(W.H.last.headers['Idempotency-Key'], row.id, 'every attempt replays the same key');

@@ -72,6 +72,14 @@ const VIDEO_RES = ['480p', '720p', '1080p', '4k'];
 const imageRes = (r) => { const v = String(r || '').toLowerCase(); return ['1k', '2k', '4k'].includes(v) ? v : v === '2160p' ? '4k' : v === '720p' || v === '480p' ? '1k' : '2k'; };
 const videoRes = (r) => (VIDEO_RES.includes(String(r)) ? String(r) : '720p');
 
+// Owner 2026-10-29: when the product has a 3D model, every render must use it — strict, not a style hint.
+const PRODUCT_MODEL_RULE = [
+  'STRICT PRODUCT RULE: product_image_urls are renders of the exact 3D model of the product from several angles.',
+  'Every device in the output must be that model and nothing else: identical silhouette, proportions and real-world size (relative to hands and objects), thickness, corner radii, camera layout, lens count and placement, buttons, hinge, screen shape, colour and finish.',
+  'Pass the views to your generator as its product/subject reference. Do not redesign, restyle, recolour, simplify or add anything to the device; no extra lenses, no logo or text on it, no different model.',
+  'Show it from whatever angle the shot needs, but if the device cannot be shown faithfully in a shot, keep it out of frame rather than show a different one.',
+].join(' ');
+
 /** The run body for a render job (mood/thumb/board image, draft/final clip). `input` is a JSON string in
  *  the field names the bots understand (aspect, resolution, count, duration, audio, product_image_urls,
  *  moodboard_image_urls, first_frame_url, max_credits); the video bot refuses a run missing
@@ -102,7 +110,7 @@ function renderRun(payload, role) {
   const rules = [
     'The prompt was written by Maistro\'s art director from the approved earlier stages: follow it closely.',
     req.product_image_urls ? 'The device shown MUST be exactly the product in product_image_urls (same form factor, cameras, colours and finish); never invent a different device.' : null,
-    payload.productModel ? 'product_image_urls are renders of the exact 3D model of the product from several angles: reproduce that geometry, camera layout, buttons, colour and finish precisely, from whatever angle the shot needs.' : null,
+    payload.productModel ? PRODUCT_MODEL_RULE : null,
     req.moodboard_image_urls ? 'Match the palette, light and styling of moodboard_image_urls (the approved moodboard).' : null,
     req.seed != null ? 'Use the seed if your generator takes one, so this can be re-rendered the same way.' : null,
     req.reviewer_changes ? 'Apply only the reviewer_changes; keep everything else.' : null,

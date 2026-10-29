@@ -64,7 +64,7 @@ test('draft-overlays → draft-assemble → the tick assembles approved clips in
     r = res(); await jobs.handler(req({ headers: { authorization: 'Bearer cron' }, session: false }), r);
     const cc = pg.tables.jobs.find((j) => j.kind === 'clip_check'); assert.equal(cc.state, 'succeeded', cc.error);
     const vis = pg.tables.stage_checks.find((c) => c.kind === 'vision' && c.artifact_version_id === dv.versionId);
-    assert.ok(vis); assert.equal(vis.results.shot, 2); assert.equal(vis.results.frames.length, 3); assert.equal(vis.passed, false); assert.deepEqual(vis.results.images[2].flags, ['product or person morphs between frames']); assert.equal(vis.prompt_version, 'vision-check-v1.2-2026-10-21');
+    assert.ok(vis); assert.equal(vis.results.shot, 2); assert.equal(vis.results.frames.length, 3); assert.equal(vis.passed, false); assert.deepEqual(vis.results.images[2].flags, ['product or person morphs between frames']); assert.equal(vis.prompt_version, 'vision-check-v1.3-2026-10-29');
     assert.equal(visionBody.messages[0].content.filter((c) => c.type === 'image').length, 4, 'keyframe anchor + 3 frames'); assert.match(visionBody.messages[0].content.map((c) => c.text || '').join(' '), /MODE: CLIP/);
     assert.equal(puts.filter((x) => /\/frames-2-\d-/.test(x.p)).length, 3, 'frames stored for the model to read');
   } finally { f.restore(); studio.restore(); jobs.restore(); pieces.restore(); delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; fs.rmSync(dir, { recursive: true, force: true }); }

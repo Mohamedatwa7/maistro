@@ -58,7 +58,7 @@ test('POST /api/studio action thumb: needs a moodboard; anchors to the approved 
     r = res(); await jobs.handler(req({ headers: { authorization: 'Bearer cron' }, session: false }), r);
     assert.equal(r.body.states.succeeded, 1, JSON.stringify(r.body));
     assert.equal(visionBody.messages[0].content.filter((c) => c.type === 'image').length, 3, 'two anchors + the candidate'); assert.match(visionBody.messages[0].content[0].text, /ANCHOR \(approved moodboard tile 2\)/);
-    const sc = pg.tables.stage_checks.at(-1); assert.equal(sc.passed, true); assert.equal(sc.results.images[0].consistentWithMood, 'partial'); assert.equal(sc.prompt_version, 'vision-check-v1.2-2026-10-21');
+    const sc = pg.tables.stage_checks.at(-1); assert.equal(sc.passed, true); assert.equal(sc.results.images[0].consistentWithMood, 'partial'); assert.equal(sc.prompt_version, 'vision-check-v1.3-2026-10-29');
     // composite: the page draws the headline and stores the PNG as a manual version
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'thumb-composite', pieceId: 'gen-th1', data: Buffer.from(PNG).toString('base64'), overlay: { ...art.overlay, baseAssetPath: art.assetPath } } }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(r.body.version, 2); assert.match(r.body.assetPath, /^pieces\/gen-th1\/thumb\/composite-/);

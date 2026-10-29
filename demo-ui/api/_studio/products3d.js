@@ -52,7 +52,7 @@ async function refsFor(product) {
 async function renderRefs(product, pagePhoto) {
   const { refs, model } = await refsFor(product);
   const all = [...new Set([...refs, ...(typeof pagePhoto === 'string' && /^https:\/\//.test(pagePhoto) ? [pagePhoto] : [])])].slice(0, REFS_PER_RENDER);
-  return { ref: all[0] || null, refs: all, model: model || null };
+  return { ref: all[0] || null, refs: all, model: model || null, views: refs }; // views: the model's alone (the vision check's product anchor)
 }
 
 async function list() {

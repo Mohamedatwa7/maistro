@@ -30,7 +30,9 @@ const KIND_STAGE = { hermes_image: ['mood', 'thumb', 'board'], hermes_video: ['d
 // second tick cannot re-claim a check that is still running
 // assemble and clip_check run ffmpeg inside one invocation: their claim windows exceed the
 // longest run (the function limit is 300 s) so a second tick can never double-claim them
-const POLL_S = { hermes_image: 20, hermes_video: 45, hermes_brief: 15, higgsfield_image: 20, higgsfield_video: 45, f1x8_image: 60, f1x8_video: 90, vision_check: 150, assemble: 290, clip_check: 200 };
+// 2026-10-29 (owner: "the videos and storyboard take way too much time to show up"): Hermes renders are
+// asked about every 8 s (images) and 15 s (clips) — a status read is one cheap GET
+const POLL_S = { hermes_image: 8, hermes_video: 15, hermes_brief: 10, higgsfield_image: 20, higgsfield_video: 45, f1x8_image: 60, f1x8_video: 90, vision_check: 150, assemble: 290, clip_check: 200 };
 const TIMEOUT_S = { hermes_image: 20 * 60, hermes_video: 45 * 60, hermes_brief: 15 * 60, higgsfield_image: 15 * 60, higgsfield_video: 20 * 60, f1x8_image: 30 * 60, f1x8_video: 45 * 60, vision_check: 10 * 60, assemble: 15 * 60, clip_check: 10 * 60 };
 const MAX_SUBMIT_ATTEMPTS = 3;
 // A job about to be submitted is leased for longer than the submit itself can take (the 30 s Hermes POST timeout,
@@ -178,6 +180,11 @@ async function advance(job) {
         // a disallowed asset host. Retries replay the same Idempotency-Key.
         const permanent = e && e.retryable === false ? true : Boolean(e && e.status && e.status < 500 && e.status !== 429 && e.retryable !== true);
         if (permanent) { await fail(job, 'failed', e.message); return 'failed'; }
+        if (e && e.code === 'concurrency') {
+          // Hermes is busy with this piece's other renders: wait for a free slot (the job's timeout still bounds it)
+          await patchRows('jobs', `id=eq.${q(job.id)}&state=in.(${LIVE_STATES})`, { attempts: attempts - 1, error: 'Hermes is at its run limit — waiting for a free slot (the other renders of this piece go first)', next_poll_at: plusS(Math.round(12 + Math.random() * 8)) });
+          return 'queued';
+        }
         const wait = Math.round(60 * attempts * (0.75 + Math.random() * 0.5)); // backoff with jitter
         // only while the job is still live: never write a retry over a job another poller has already finished
         await patchRows('jobs', `id=eq.${q(job.id)}&state=in.(${LIVE_STATES})`, { error: String(e.message || e).slice(0, 300), next_poll_at: plusS(wait) });
@@ -206,6 +213,22 @@ async function assetUrlFor(payload) {
 async function fail(job, state, error) {
   await finish(job, { state, error: String(error || '').slice(0, 300) });
   await jobRecord(job, { status: state === 'timed_out' ? 'timed_out' : /moderated|nsfw/i.test(String(error)) ? 'refused' : 'failed', error });
+  if (job.payload && job.payload.attachTo && job.payload.attachTo.mood && RENDER_KINDS.includes(job.kind)) {
+    // a failed mood marks that mood and its image slots; the other moods keep rendering
+    try {
+      const { slotOf, PER_MOOD } = require('./_studio/mood.js');
+      const { versionId, mood } = job.payload.attachTo;
+      await updateShots(versionId, (payload) => {
+        if (!Array.isArray(payload.moods) || !payload.moods[mood - 1]) return null;
+        const moods = payload.moods.map((m) => ({ ...m })); const images = (payload.images || []).map((x) => ({ ...x }));
+        moods[mood - 1] = { ...moods[mood - 1], state: 'failed', error: String(error || '').slice(0, 200), jobId: job.id };
+        for (let k = slotOf(mood); k < slotOf(mood) + PER_MOOD; k++) if (images[k] && images[k].state !== 'rendered') images[k] = { ...images[k], state: 'failed' };
+        return { ...payload, moods, images };
+      });
+    } catch (e) { console.warn('[jobs] mood failure could not be recorded:', e.message); }
+    await settleBoardStage(job);
+    return;
+  }
   if (job.payload && job.payload.attachTo && RENDER_KINDS.includes(job.kind)) {
     // 6.5: a failed keyframe marks its shot; the other shots keep rendering
     try {
@@ -285,6 +308,8 @@ async function pollRender(job) {
     }
     if (meta.direction) { artifact.direction = meta.direction; artifact.directionVersion = meta.directionVersion || null; }
     if (meta.overlay) { artifact.overlay = meta.overlay; artifact.textSide = meta.textSide || null; artifact.promptVersion = meta.promptVersion || null; artifact.moodApproved = Boolean(meta.moodApproved); }
+    // one of the three moods fills its image slots on the moodboard version
+    if (job.payload.attachTo && job.payload.attachTo.mood) return attachMood(job, { artifact, sourceUrl, copy, meta });
     // 6.5: a storyboard keyframe fills a shot slot on an existing version instead of making a new one
     if (job.payload.attachTo) return attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage, slot: isVideo ? 'clip' : 'keyframe' });
     let recorded;
@@ -304,7 +329,7 @@ async function pollRender(job) {
         // tile-per-facet set (legacy) is held to it only on its product tiles
         const tiles = meta.direction && Array.isArray(meta.direction.tiles) && meta.setMode !== 'variations' ? meta.direction.tiles : null;
         const expectProduct = meta.expectProduct !== undefined ? meta.expectProduct : tiles ? tiles.map((t, i) => (/product|device/i.test(`${t.tag} ${t.demonstrates}`) ? i : -1)).filter((i) => i >= 0) : Boolean(meta.product);
-        await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'vision_check', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, versionId: recorded.versionId, images: (artifact.images || [{ url: sourceUrl, assetPath: artifact.assetPath || null }]).map((a, i) => ({ index: i, url: a.url, assetPath: a.assetPath || null })), direction: meta.direction || null, product: meta.product || null, productLook: meta.productLook || null, rules: meta.rules || [], expectProduct, anchors: meta.anchors || [], textSide: meta.textSide || null, generatedBy: job.payload.generatedBy || null } }]);
+        await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'vision_check', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, versionId: recorded.versionId, images: (artifact.images || [{ url: sourceUrl, assetPath: artifact.assetPath || null }]).map((a, i) => ({ index: i, url: a.url, assetPath: a.assetPath || null })), direction: meta.direction || null, product: meta.product || null, productLook: meta.productLook || null, rules: meta.rules || [], expectProduct, anchors: meta.anchors || [], productViews: productViewsOf(job.payload), textSide: meta.textSide || null, generatedBy: job.payload.generatedBy || null } }]);
       } catch (e) { console.warn('[jobs] vision check could not be queued:', e.message); }
     }
     try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: `${stage} rendered by job` }); } catch (e) { console.warn('[jobs] spec sync failed:', e.message); }
@@ -490,6 +515,42 @@ async function settleBoardStage(job) {
   return true;
 }
 
+/** The 3D model's views on a render job (public URLs): the vision check holds the product to them. */
+const productViewsOf = (payload) => (payload && payload.productModel && Array.isArray(payload.productViews) ? payload.productViews.slice(0, 3) : []);
+
+/** One of the three moods landed: its images fill the mood's slots in the flat `images` list of the moodboard
+ *  version (copied in already by pollRender), the mood is marked rendered and its images get the vision check,
+ *  held to the product's 3D model views when there are any. The version number does not change. */
+async function attachMood(job, { artifact, sourceUrl, copy, meta }) {
+  const { slotOf, PER_MOOD } = require('./_studio/mood.js');
+  const { versionId, mood } = job.payload.attachTo;
+  const got = (artifact.images || [{ url: sourceUrl, assetPath: copy ? copy.path : null, sha256: copy ? copy.sha256 : null }]).slice(0, PER_MOOD);
+  const at = slotOf(mood);
+  try {
+    const r = await updateShots(versionId, (payload) => {
+      if (!Array.isArray(payload.moods) || !payload.moods[mood - 1]) return null;
+      const moods = payload.moods.map((m) => ({ ...m })); const images = (payload.images || []).map((x) => ({ ...x }));
+      for (let k = 0; k < PER_MOOD; k++) {
+        const g = got[k];
+        images[at + k] = g ? { ...images[at + k], mood, state: 'rendered', url: g.url, assetPath: g.assetPath || null, sha256: g.sha256 || null, jobId: job.id } : { ...images[at + k], mood, state: 'failed' };
+      }
+      moods[mood - 1] = { ...moods[mood - 1], state: 'rendered', jobId: job.id, error: null, botNote: artifact.note || null, madeBy: artifact.madeBy || null };
+      const first = images.find((x) => x.state === 'rendered');
+      return { ...payload, moods, images, imageUrl: first ? first.url : null, assetPath: first ? first.assetPath : null };
+    });
+    if (r.unchanged) { await fail(job, 'failed', `moodboard version or mood ${mood} not found`); return 'failed'; }
+  } catch (e) { await fail(job, 'failed', `mood could not be attached: ${String(e.message || e).slice(0, 160)}`); return 'failed'; }
+  await finish(job, { state: 'succeeded', error: null, result: { attached: { versionId, mood }, images: got.length } });
+  await jobRecord(job, { status: 'succeeded', outputAssets: got.map((g) => ({ ...g, versionId, mood })) });
+  if (job.payload.autoCheck) {
+    try { await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'vision_check', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage: 'mood', versionId, mood, images: got.map((g, k) => ({ index: at + k, url: g.url, assetPath: g.assetPath || null })), direction: meta.direction || null, product: meta.product || null, productLook: meta.productLook || null, rules: meta.rules || [], expectProduct: Boolean(meta.expectProduct), anchors: [], productViews: productViewsOf(job.payload), textSide: null, generatedBy: job.payload.generatedBy || null } }]); }
+    catch (e) { console.warn('[jobs] vision check could not be queued:', e.message); }
+  }
+  await settleBoardStage(job);
+  try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: `mood ${mood} rendered` }); } catch (e) { /* best effort */ }
+  return 'succeeded';
+}
+
 /** 6.5: write a rendered keyframe into `payload.shots[n-1].keyframe` of the storyboard
  *  version named by the job, keep the previous keyframe in the shot's history, queue the
  *  vision check (anchored to the selected mood tiles and the previous shot's keyframe) and,
@@ -516,12 +577,12 @@ async function attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage, slo
     try {
       const prevShot = shot > 1 ? shots[shot - 2] : null;
       const anchors = [...(meta.anchors || []), ...(prevShot && prevShot.keyframe && prevShot.keyframe.state === 'rendered' ? [{ index: shot - 2, url: prevShot.keyframe.url, assetPath: prevShot.keyframe.assetPath, label: `previous shot ${shot - 1} keyframe — the same product, character, setting and lighting are expected` }] : [])];
-      await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'vision_check', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, versionId, shot, images: [{ index: shot, url: sourceUrl, assetPath: keyframe.assetPath }], direction: meta.direction || null, product: meta.product || null, productLook: meta.productLook || null, rules: meta.rules || [], expectProduct: Boolean(meta.expectProduct), anchors, textSide: null, generatedBy: job.payload.generatedBy || null } }]);
+      await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'vision_check', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, versionId, shot, images: [{ index: shot, url: sourceUrl, assetPath: keyframe.assetPath }], direction: meta.direction || null, product: meta.product || null, productLook: meta.productLook || null, rules: meta.rules || [], expectProduct: Boolean(meta.expectProduct), anchors, productViews: productViewsOf(job.payload), textSide: null, generatedBy: job.payload.generatedBy || null } }]);
     } catch (e) { console.warn('[jobs] vision check could not be queued:', e.message); }
   }
   if (job.payload.autoCheck && slot === 'clip' && keyframe.assetPath) {
     // 6.6 (b): frames of the clip go to the vision check with the keyframe as the anchor
-    try { await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'clip_check', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, versionId, shot, clipAssetPath: keyframe.assetPath, keyframeAssetPath: job.payload.imageAssetPath || null, product: meta.product || null, productLook: meta.productLook || null, rules: meta.rules || [], expectProduct: Boolean(meta.expectProduct), generatedBy: job.payload.generatedBy || null } }]); }
+    try { await insertRows('jobs', [{ piece_id: job.piece_id, stage_id: job.stage_id, kind: 'clip_check', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload: { pieceId: job.payload.pieceId, stage, versionId, shot, clipAssetPath: keyframe.assetPath, keyframeAssetPath: job.payload.imageAssetPath || null, productViews: productViewsOf(job.payload), product: meta.product || null, productLook: meta.productLook || null, rules: meta.rules || [], expectProduct: Boolean(meta.expectProduct), generatedBy: job.payload.generatedBy || null } }]); }
     catch (e) { console.warn('[jobs] clip check could not be queued:', e.message); }
   }
   if (meta.hookCheck && slot === 'keyframe' && keyframe.assetPath) {
@@ -563,7 +624,7 @@ async function runClipCheck(job) {
     }
     const anchors = [];
     if (p.keyframeAssetPath) { try { anchors.push({ index: 0, url: await storage.signedUrl(p.keyframeAssetPath, 3600), label: `source keyframe of shot ${p.shot} — the clip must keep this product, character, setting and lighting` }); } catch (e) { /* no anchor */ } }
-    const out = await visionCheck({ images: images.map((i) => ({ index: i.index, url: i.url })), anchors, mode: 'clip', product: p.product, productLook: p.productLook, rules: p.rules, expectProduct: p.expectProduct, legacyPieceId: p.pieceId, stage: p.stage, jobId: job.id });
+    const out = await visionCheck({ images: images.map((i) => ({ index: i.index, url: i.url })), anchors, productViews: p.productViews || [], mode: 'clip', product: p.product, productLook: p.productLook, rules: p.rules, expectProduct: p.expectProduct, legacyPieceId: p.pieceId, stage: p.stage, jobId: job.id });
     if (!Array.isArray(out.results)) { await fail(job, 'failed', out.error || 'clip check failed'); return 'failed'; }
     const results = { images: out.results, shot: p.shot, frames: images.map((i) => ({ index: i.index, t: i.t, assetPath: i.assetPath })), clip: { durationS: probe.durationS, width: probe.width, height: probe.height, fps: probe.fps, hasAudio: probe.hasAudio } };
     await insertRows('stage_checks', [{ piece_id: job.piece_id, stage_id: job.stage_id, artifact_version_id: p.versionId, kind: 'vision', passed: out.passed, results, model: out.model || null, prompt_version: out.promptVersion || null, job_id: job.id }]);
@@ -630,10 +691,10 @@ async function runVisionCheck(job) {
     if (a.assetPath) { try { url = await storage.signedUrl(a.assetPath, 3600); } catch (e) { /* provider URL stays */ } }
     if (url) anchors.push({ index: a.index, url, label: a.label || null });
   }
-  const out = await visionCheck({ images, anchors, textSide: p.textSide, direction: p.direction, product: p.product, productLook: p.productLook, rules: p.rules, expectProduct: p.expectProduct, legacyPieceId: p.pieceId, stage: p.stage, jobId: job.id });
+  const out = await visionCheck({ images, anchors, productViews: p.productViews || [], textSide: p.textSide, direction: p.direction, product: p.product, productLook: p.productLook, rules: p.rules, expectProduct: p.expectProduct, legacyPieceId: p.pieceId, stage: p.stage, jobId: job.id });
   if (out.error) { await fail(job, 'failed', out.error); return 'failed'; }
   try {
-    await insertRows('stage_checks', [{ piece_id: job.piece_id, stage_id: job.stage_id, artifact_version_id: p.versionId, kind: 'vision', passed: out.passed, results: { images: out.results }, model: out.model, prompt_version: out.promptVersion, job_id: job.id }]);
+    await insertRows('stage_checks', [{ piece_id: job.piece_id, stage_id: job.stage_id, artifact_version_id: p.versionId, kind: 'vision', passed: out.passed, results: { images: out.results, ...(p.mood ? { mood: p.mood } : {}), productModel: Boolean((p.productViews || []).length) }, model: out.model, prompt_version: out.promptVersion, job_id: job.id }]);
   } catch (e) { console.warn('[jobs] stage_checks write failed:', e.message); }
   await finish(job, { state: 'succeeded', error: null, result: { passed: out.passed, images: out.results } });
   return 'succeeded';
@@ -700,17 +761,35 @@ async function pollQc(job) {
   return 'running';
 }
 
-/** The tick: advance every due row within a time budget. */
-async function tick(budgetMs = 50000, limit = 25) {
+/** The tick: advance every due row within a time budget, TICK_LANES at a time with the renders first, so a
+ *  vision check (a model call) or an assembly (ffmpeg) never holds up a render's submit or status read. */
+const TICK_LANES = 6;
+async function tick(budgetMs = 50000, limit = 40) {
   const t0 = Date.now();
   const due = await queryRows('jobs', `select=*&state=in.(queued,running)&next_poll_at=lte.${q(nowIso())}&order=next_poll_at.asc&limit=${limit}`);
+  const queue = [...due.filter((j) => RENDER_KINDS.includes(j.kind)), ...due.filter((j) => !RENDER_KINDS.includes(j.kind))];
   const out = { due: due.length, advanced: 0, states: {} };
-  for (const j of due) {
-    if (Date.now() - t0 > budgetMs) break;
-    const st = await advance(j).catch((e) => `error: ${e.message}`);
-    out.advanced++; out.states[st] = (out.states[st] || 0) + 1;
-  }
+  const lane = async () => {
+    for (let j = queue.shift(); j; j = queue.shift()) {
+      if (Date.now() - t0 > budgetMs) return;
+      const st = await advance(j).catch((e) => `error: ${e.message}`);
+      out.advanced++; out.states[st] = (out.states[st] || 0) + 1;
+    }
+  };
+  await Promise.all(Array.from({ length: TICK_LANES }, lane));
   return out;
+}
+
+/** The due render jobs of one stage, advanced side by side — the page that polls a stage drives its renders
+ *  (status reads) instead of waiting for the next minute tick. Checks and assembly stay with the tick. */
+async function advanceStage(stageId, budgetMs = 20000) {
+  const due = await queryRows('jobs', `select=*&stage_id=eq.${q(stageId)}&state=in.(queued,running)&next_poll_at=lte.${q(nowIso())}&order=next_poll_at.asc&limit=12`);
+  const renders = due.filter((j) => RENDER_KINDS.includes(j.kind));
+  if (!renders.length) return 0;
+  let timer;
+  await Promise.race([Promise.all(renders.map((j) => advance(j).catch(() => null))), new Promise((r) => { timer = setTimeout(r, budgetMs); })]);
+  clearTimeout(timer);
+  return renders.length;
 }
 
 /** Jobs of one piece (newest first), advancing any that are due — the
@@ -727,4 +806,4 @@ async function jobsForPiece(legacyId, limit = 50) {
   return out;
 }
 
-module.exports = { KINDS, createJob, getJob, advance, tick, jobsForPiece, publicJob, settleBoardStage, updateShots, pieceBudget, dailySpend, POLL_S, TIMEOUT_S };
+module.exports = { KINDS, createJob, getJob, advance, advanceStage, tick, jobsForPiece, publicJob, settleBoardStage, updateShots, pieceBudget, dailySpend, POLL_S, TIMEOUT_S };

@@ -42,7 +42,7 @@
 const { requireSession, refreshMember, memberOnly, claimActor, PASSWORD_CLAIM } = require('../_auth.js');
 const { createJob, StoreError } = (() => { const j = require('../_jobs.js'); const s = require('../_store.js'); return { createJob: j.createJob, StoreError: s.StoreError }; })();
 const { ensurePiece } = require('../_store.js');
-const { visualDirection, setPrompt, TILES } = require('../_studio/mood.js');
+const { visualDirections, setPrompt, moodsArtifact, PER_MOOD } = require('../_studio/mood.js');
 const thumb = require('../_studio/thumb.js');
 const briefMod = require('../_studio/brief.js');
 const boardMod = require('../_studio/board.js');
@@ -55,6 +55,15 @@ const { queryRows, insertRows } = require('../_supabase.js');
 
 // a recorded seed per keyframe (1–1,000,000, passed through to the bot) so a shot can be re-rendered reproducibly (6.9)
 const newSeed = () => 1 + Math.floor(Math.random() * 1000000);
+// the product reference on a render job: the 3D model's views (held to exactly) and the campaign photo
+const refsOf = (pr) => (pr.refs.length ? { ref: pr.ref, refs: pr.refs, ...(pr.model ? { productModel: pr.model, productViews: pr.views } : {}) } : {});
+/** Submit freshly inserted render jobs side by side (one bounded Hermes POST each) and set the stage
+ *  generating; the page sees every job at once instead of waiting on them one after another. */
+async function submitAll(inserted, stageId, legacyId) {
+  const { patchRows } = require('../_supabase.js');
+  if (stageId) await patchRows('stages', `id=eq.${encodeURIComponent(stageId)}`, { state: 'generating' });
+  return Promise.all(inserted.map(async (j) => { await jobsSvc.advance(j).catch(() => null); const fresh = await jobsSvc.getJob(j.id); return jobsSvc.publicJob(fresh || j, legacyId); }));
+}
 const ASSET_RE = (legacyId) => new RegExp(`^pieces/${legacyId.replace(/[^a-zA-Z0-9_-]/g, '')}/(mood|thumb|board|draft|final)/[a-z0-9-]+\\.(png|jpg|webp)$`);
 
 /** Store the brief's checks (code + copy) on the version; returns the row shape the page reads. */
@@ -169,11 +178,12 @@ module.exports = async (req, res) => {
       }
       if (q.board || q.shots) {
         // ?board=<id> (storyboard) or ?shots=<id>&stage=board|draft — the version whose shots are filling in
-        const sk = q.shots && ['draft', 'final'].includes(String(q.stage)) ? String(q.stage) : 'board';
+        const sk = q.shots && ['draft', 'final', 'mood'].includes(String(q.stage)) ? String(q.stage) : 'board';
         const [piece] = await queryRows('content_pieces', `select=id&legacy_id=eq.${encodeURIComponent(String(q.shots || q.board))}&limit=1`);
         if (!piece) return res.status(404).json({ error: 'piece not found' });
         const [stage] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.${sk}&limit=1`);
-        if (!stage || !stage.current_version_id) return res.status(404).json({ error: sk === 'draft' ? 'no first draft yet' : sk === 'final' ? 'no final yet' : 'no storyboard yet' });
+        if (!stage || !stage.current_version_id) return res.status(404).json({ error: sk === 'draft' ? 'no first draft yet' : sk === 'final' ? 'no final yet' : sk === 'mood' ? 'no moodboard yet' : 'no storyboard yet' });
+        await jobsSvc.advanceStage(stage.id);
         const [v] = await queryRows('artifact_versions', `select=id,version,payload,produced_by&id=eq.${encodeURIComponent(stage.current_version_id)}&limit=1`);
         const live = await queryRows('jobs', `select=id,kind,state&stage_id=eq.${encodeURIComponent(stage.id)}&state=in.(queued,running)&limit=20`);
         const hook = await queryRows('qc_results', `select=score,result,heatmap_path,at&artifact_version_id=eq.${encodeURIComponent(stage.current_version_id)}&order=at.desc&limit=1`).catch(() => []);
@@ -191,7 +201,7 @@ module.exports = async (req, res) => {
     }
     if (!(await refreshMember(req, res))) return;
     const b = req.body || {};
-    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package', 'budget', 'override-sign', 'override', 'post-link', 'post-unlink', 'slot-plan', 'slot-export', 'slot-cancel', 'slot-draft-check', 'product3d-sign', 'product3d-save', 'product3d-views', 'product3d-remove'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
+    if (!['mood', 'thumb', 'thumb-composite', 'brief', 'brief-edit', 'board', 'board-shot', 'board-shot-decide', 'shot-decide', 'draft', 'draft-shot', 'draft-overlays', 'draft-assemble', 'qc', 'qc-plan-edit', 'qc-sendback', 'final', 'final-verify', 'final-package', 'budget', 'override-sign', 'override', 'post-link', 'post-unlink', 'slot-plan', 'slot-export', 'slot-cancel', 'slot-draft-check', 'product3d-sign', 'product3d-save', 'product3d-views', 'product3d-remove', 'mood-pick'].includes(b.action)) return res.status(400).json({ error: 'action must be one of mood, thumb, thumb-composite, brief, brief-edit, board, board-shot, board-shot-decide, shot-decide, draft, draft-shot' });
     const legacyId = String(b.pieceId || '');
     if (b.action.startsWith('product3d-')) {
       // a product's 3D model: sign the browser's upload, then save it with the views the page photographed
@@ -246,6 +256,22 @@ module.exports = async (req, res) => {
     const { piece } = await ensurePiece(legacyId, b.piece || {});
     const meta = { id: legacyId, title: piece.title, product: piece.product, msg: piece.key_message, angle: piece.angle, markets: piece.markets, platforms: piece.platforms };
     const bits = await kbBits(piece.product);
+    if (b.action === 'mood-pick') {
+      // owner 2026-10-29: the person picks one of the three moods; the brief, storyboard and video follow it
+      const n = Number(b.mood);
+      const [stage] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.mood&limit=1`);
+      if (!stage || !stage.current_version_id) return res.status(409).json({ error: 'no moodboard yet', code: 'no_version' });
+      if (stage.state === 'approved') return res.status(409).json({ error: 'the moodboard is approved; reopen it to pick another mood', code: 'approved_immutable' });
+      const r = await jobsSvc.updateShots(stage.current_version_id, (payload) => {
+        const m = Array.isArray(payload.moods) ? payload.moods.find((x) => x.n === n) : null;
+        if (!m || m.state !== 'rendered') return null;
+        return { ...payload, chosen: n, direction: m.direction, pickedBy: req.member ? req.member.name || req.member.email : null, pickedAt: new Date().toISOString() };
+      });
+      if (r.unchanged) return res.status(409).json({ error: `mood ${b.mood} is not one of the rendered moods`, code: 'not_ready' });
+      try { await insertRows('audit_log', [{ actor: req.member ? req.member.id : null, action: 'mood.pick', entity: 'artifact_version', entity_id: stage.current_version_id, after: { pieceId: legacyId, mood: n } }]); } catch (e) { /* best effort */ }
+      try { const { syncSpec } = require('../_spec.js'); await syncSpec(legacyId, { memberId: req.member ? req.member.id : null, note: `mood ${n} picked` }); } catch (e) { /* best effort */ }
+      return res.status(200).json({ ok: true, chosen: n, payload: r.payload });
+    }
     if (b.action === 'board-shot-decide' || b.action === 'shot-decide') {
       const sk = b.action === 'shot-decide' && ['draft', 'final'].includes(b.stage) ? b.stage : 'board';
       const slot = sk === 'board' ? 'keyframe' : 'clip';
@@ -282,9 +308,9 @@ module.exports = async (req, res) => {
       const shot = v.payload.shots[n - 1];
       const useRef = Boolean(refImage && shot.product.visible);
       const changes = String(b.changes || '').trim();
-      const prompt = `${boardMod.keyframePrompt(shot, mood.direction, bits.productLook, useRef)}${changes ? ` Changes requested by the reviewer (apply only these, keep everything else): ${changes}.` : ''}`;
+      const prompt = `${boardMod.keyframePrompt(shot, mood.direction, bits.productLook, useRef, { model: Boolean(pr.model), storyline: v.payload.storyline || null })}${changes ? ` Changes requested by the reviewer (apply only these, keep everything else): ${changes}.` : ''}`;
       const anchors = mood.tiles.filter((t) => t.assetPath || t.url).slice(0, 4).map((t) => ({ index: t.index, url: t.url || null, assetPath: t.assetPath || null }));
-      const [job] = await insertRows('jobs', [{ piece_id: piece.id, stage_id: stage.id, kind: 'hermes_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: v.payload.aspect || '9:16', resolution: '1080p', seed: newSeed(), ...(useRef ? { ref: refImage, refs: pr.refs, ...(pr.model ? { productModel: pr.model } : {}) } : {}), autoCheck: true, attachTo: { versionId: v.id, shot: n }, generatedBy: req.member ? req.member.id : null, meta: { shot: n, prompt, changes: changes || null, anchors, direction: mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: n === v.payload.hookShot, title: piece.title } } }], { returning: true });
+      const [job] = await insertRows('jobs', [{ piece_id: piece.id, stage_id: stage.id, kind: 'hermes_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: v.payload.aspect || '9:16', resolution: '1080p', seed: newSeed(), ...(useRef ? { ref: refImage, refs: pr.refs, ...(pr.model ? { productModel: pr.model, productViews: pr.views } : {}) } : {}), autoCheck: true, attachTo: { versionId: v.id, shot: n }, generatedBy: req.member ? req.member.id : null, meta: { shot: n, prompt, changes: changes || null, anchors, direction: mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: n === v.payload.hookShot, title: piece.title } } }], { returning: true });
       const { patchRows } = require('../_supabase.js');
       if (stage.state !== 'generating') await patchRows('stages', `id=eq.${encodeURIComponent(stage.id)}`, { state: 'generating' });
       await jobsSvc.advance(job).catch(() => null);
@@ -376,10 +402,9 @@ module.exports = async (req, res) => {
         const jobs = [];
         if (ap.regenShots.length) {
           const motion = (x) => `${x.camera}. ${x.action} ${x.product && x.product.visible ? 'The device stays exactly as in the first frame — no morphing, no extra buttons, no logos.' : ''} Fix requested by QC (apply only this, keep everything else): ${x.regenInstruction}. Present tense, one continuous motion, no cuts, no on-screen text, no captions.`.replace(/\s+/g, ' ').trim();
-          const rows = ap.regenShots.map((n) => { const x = ap.shots.find((y) => y.n === n); return { piece_id: piece.id, stage_id: fs0.id, kind: 'hermes_video', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'final', prompt: motion(x), ...(x.keyframe && x.keyframe.assetPath ? { imageAssetPath: x.keyframe.assetPath } : { imageUrl: x.keyframe ? x.keyframe.url : null }), duration: Math.min(30, Math.max(4, Math.ceil(Number(x.durationS) || 4))), resolution: dv.payload.resolution || '720p', aspect_ratio: dv.payload.aspect || '9:16', generateAudio: true, autoCheck: true, attachTo: { versionId: out.versionId, shot: n }, generatedBy: req.member ? req.member.id : null, meta: { shot: n, prompt: motion(x), title: piece.title, expectProduct: Boolean(x.product && x.product.visible), product: piece.product, fix: true } } }; });
-          const inserted = await insertRows('jobs', rows, { returning: true });
-          await patchRows('stages', `id=eq.${encodeURIComponent(fs0.id)}`, { state: 'generating' });
-          for (const j0 of inserted) { await jobsSvc.advance(j0).catch(() => null); const fresh = await jobsSvc.getJob(j0.id); jobs.push(jobsSvc.publicJob(fresh || j0, legacyId)); }
+          const pr = await products3d.renderRefs(piece.product, b.refImage);
+          const rows = ap.regenShots.map((n) => { const x = ap.shots.find((y) => y.n === n); return { piece_id: piece.id, stage_id: fs0.id, kind: 'hermes_video', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'final', prompt: motion(x), ...(x.keyframe && x.keyframe.assetPath ? { imageAssetPath: x.keyframe.assetPath } : { imageUrl: x.keyframe ? x.keyframe.url : null }), duration: Math.min(30, Math.max(4, Math.ceil(Number(x.durationS) || 4))), resolution: dv.payload.resolution || '720p', aspect_ratio: dv.payload.aspect || '9:16', generateAudio: true, ...(x.product && x.product.visible ? refsOf(pr) : {}), autoCheck: true, attachTo: { versionId: out.versionId, shot: n }, generatedBy: req.member ? req.member.id : null, meta: { shot: n, prompt: motion(x), title: piece.title, expectProduct: Boolean(x.product && x.product.visible), product: piece.product, fix: true } } }; });
+          jobs.push(...(await submitAll(await insertRows('jobs', rows, { returning: true }), fs0.id, legacyId)));
         }
         try { const { syncSpec } = require('../_spec.js'); await syncSpec(legacyId, { memberId: req.member ? req.member.id : null, note: 'final: QC fixes applied' }); } catch (e) { /* best effort */ }
         return res.status(200).json({ ok: true, version: out.version, versionId: out.versionId, applied: ap.applied, notApplied: ap.notApplied, regenShots: ap.regenShots, reusedDraftCut: nothingToRebuild, overlaysToRedraw: ap.shots.filter((x) => x.overlayStale).map((x) => x.n), jobs, artifact: { ...artifact, version: `v${out.version}` } });
@@ -515,7 +540,7 @@ module.exports = async (req, res) => {
       const draftAspect = bv && bshots.length && ['9:16', '16:9', '1:1'].includes(bv.payload.aspect) ? bv.payload.aspect : thumb.aspectFor(piece.platforms);
       // the product's 3D views go with every clip that shows the device (a text-to-video clip has no keyframe to hold it)
       const pr = await products3d.renderRefs(piece.product, b.refImage);
-      const clipRefs = (x) => (pr.refs.length && (!x.keyframe || (x.product && x.product.visible)) ? { ref: pr.ref, refs: pr.refs, ...(pr.model ? { productModel: pr.model } : {}) } : {});
+      const clipRefs = (x) => (pr.refs.length && (!x.keyframe || (x.product && x.product.visible)) ? { ref: pr.ref, refs: pr.refs, ...(pr.model ? { productModel: pr.model, productViews: pr.views } : {}) } : {});
       const clipJob = (versionId, x, extra) => ({ piece_id: piece.id, stage_id: ds.id, kind: 'hermes_video', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'draft', prompt: `${x.textPrompt || motion(x)}${extra ? ` Changes requested by the reviewer (apply only these, keep everything else): ${extra}.` : ''}`, ...(!x.keyframe ? {} : x.keyframe.assetPath ? { imageAssetPath: x.keyframe.assetPath } : { imageUrl: x.keyframe.url }), duration: clipDuration(x), resolution, aspect_ratio: draftAspect, generateAudio: true, ...clipRefs(x), attachTo: { versionId, shot: x.n }, generatedBy: req.member ? req.member.id : null, meta: { shot: x.n, prompt: x.textPrompt || motion(x), title: piece.title, shotDurationS: x.durationS, expectProduct: Boolean(x.product && x.product.visible), fromKeyframeJob: (x.keyframe && x.keyframe.jobId) || null } } });
       const { patchRows } = require('../_supabase.js');
       if (b.action === 'draft-shot') {
@@ -545,19 +570,17 @@ module.exports = async (req, res) => {
         const targetS = Math.min(15, Math.max(5, Math.round(Number(sp && sp.format && sp.format.targetDurationS) || 10)));
         const textPrompt = [
           `A ${targetS}-second ${aspect === '9:16' ? 'vertical ' : ''}social video for Samsung ${piece.product || ''}.`,
+          sp && sp.storyline && sp.storyline.openingScene ? `Story: open on ${sp.storyline.openingScene}; then ${(sp.storyline.beats || []).join('; ')}; close on ${sp.storyline.closingScene}.` : '',
           sp ? `Key message: ${sp.keyMessage || ''}.${hook ? ` Hook: ${hook}.` : ''}${sp.cta ? ` End on: ${sp.cta}.` : ''}` : `Key message: ${piece.key_message || piece.title || ''}.${piece.angle ? ` Angle: ${piece.angle}.` : ''}`,
           piece.trend_name ? `Inspired by the trend "${piece.trend_name}".` : '',
-          'The device looks exactly like the real product: no morphing, no extra buttons, no invented logos. No on-screen text, no captions.',
+          pr.model ? 'The device is the exact product from the reference renders of its 3D model — identical shape, size, colour, cameras and buttons, never morphing. No on-screen text, no captions.' : 'The device looks exactly like the real product: no morphing, no extra buttons, no invented logos. No on-screen text, no captions.',
         ].filter(Boolean).join(' ');
         shots = [{ n: 1, boardShot: null, durationS: targetS, type: 'full', camera: '', action: '', product: { visible: true }, onScreenText: null, line: null, audioCue: null, transition: 'none', keyframe: null, textPrompt, clipDurationS: targetS, clip: null, review: null }];
       }
       const totalS = Math.round(shots.reduce((a, x) => a + (Number(x.durationS) || 0), 0) * 10) / 10;
       const artifact = { shots, totalS, aspect, resolution, fromStoryboard: bshots.length > 0, boardVersionId: bshots.length ? bv.id : null, boardVersion: bshots.length ? bv.version : null, boardApproved: bshots.length ? bs.state === 'approved' : null, skippedShots, dur: `${totalS}s`, audio: 'Native audio per clip (Hermes video bot); loudness normalised at assembly', variants: [{ a: aspect, l: resolution, k: 'original', st: 'rendering' }], videoUrl: null, assembled: null, prompt: bshots.length ? `first draft from storyboard v${bv.version}: ${shots.length} clips` : shots[0].textPrompt, note: `${bshots.length ? 'One clip per storyboard shot from the Hermes video bot, driven by its keyframe; the clips join into one video by themselves.' : 'One clip for the whole video from the Hermes video bot (no storyboard).'}${skippedShots.length ? ` Storyboard shot${skippedShots.length > 1 ? 's' : ''} ${skippedShots.join(', ')} left out: the keyframe failed.` : ''}`, draftVersion: 'draft-v1-2026-10-21', rev: 0 };
       const out = await recordVersion(legacyId, 'draft', artifact, { piece: b.piece || {}, producedBy: 'hermes', kind: 'video', generatedBy: req.member ? req.member.id : null });
-      const inserted = await insertRows('jobs', shots.map((x) => clipJob(out.versionId, x, '')), { returning: true });
-      await patchRows('stages', `id=eq.${encodeURIComponent(ds.id)}`, { state: 'generating' });
-      const jobs = [];
-      for (const j of inserted) { await jobsSvc.advance(j).catch(() => null); const fresh = await jobsSvc.getJob(j.id); jobs.push(jobsSvc.publicJob(fresh || j, legacyId)); }
+      const jobs = await submitAll(await insertRows('jobs', shots.map((x) => clipJob(out.versionId, x, '')), { returning: true }), ds.id, legacyId);
       try { const { syncSpec } = require('../_spec.js'); await syncSpec(legacyId, { memberId: req.member ? req.member.id : null, note: 'first draft clips queued' }); } catch (e) { /* best effort */ }
       return res.status(200).json({ ok: true, artifact: { ...artifact, version: `v${out.version}` }, version: out.version, versionId: out.versionId, jobs });
     }
@@ -568,8 +591,21 @@ module.exports = async (req, res) => {
       const w = await boardMod.shotList({ piece, brief, mood: bctx.mood, trend: bctx.trend, judgement: bctx.judgement, productLook: bits.productLook, rules: bits.rules, userInput: b.userInput, memberId: req.member ? req.member.id : null, legacyId });
       if (!w.list) return res.status(502).json({ error: w.error, problems: w.problems || [] });
       const aspect = thumb.aspectFor(piece.platforms);
-      const artifact = boardMod.artifactFrom(w.list, { promptVersion: w.promptVersion, briefVersionId: brief.versionId, briefApproved: brief.approved, moodApproved: bctx.mood.approved, aspect });
+      const storyline = brief.payload && brief.payload.spec ? brief.payload.spec.storyline || null : null;
+      const artifact = boardMod.artifactFrom(w.list, { promptVersion: w.promptVersion, briefVersionId: brief.versionId, briefApproved: brief.approved, moodApproved: bctx.mood.approved, aspect, storyline });
       const out = await recordVersion(legacyId, 'board', artifact, { piece: b.piece || {}, producedBy: 'claude', kind: 'text', generatedBy: req.member ? req.member.id : null });
+      // one keyframe per shot through the job service
+      const pr = await products3d.renderRefs(piece.product, b.refImage); // the product's 3D views, then the campaign photo
+      const refImage = pr.ref;
+      const anchors = bctx.mood.tiles.filter((t) => t.assetPath || t.url).slice(0, 4).map((t) => ({ index: t.index, url: t.url || null, assetPath: t.assetPath || null }));
+      const [stageRow] = await queryRows('stages', `select=id,state&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.board&limit=1`);
+      const rows = w.list.shots.map((shot) => {
+        const useRef = Boolean(refImage && shot.product.visible);
+        const prompt = boardMod.keyframePrompt(shot, bctx.mood.direction, bits.productLook, useRef, { model: Boolean(pr.model), storyline });
+        return { piece_id: piece.id, stage_id: stageRow.id, kind: 'hermes_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: aspect, resolution: '1080p', seed: newSeed(), ...(useRef ? { ref: refImage, refs: pr.refs, ...(pr.model ? { productModel: pr.model, productViews: pr.views } : {}) } : {}), autoCheck: true, attachTo: { versionId: out.versionId, shot: shot.n }, generatedBy: req.member ? req.member.id : null, meta: { shot: shot.n, prompt, anchors, direction: bctx.mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: shot.n === w.list.hookShot, title: piece.title } } };
+      });
+      const submitted = submitAll(await insertRows('jobs', rows, { returning: true }), stageRow.id, legacyId);
+      submitted.catch(() => null); // awaited below, after the shot-list checks
       // checks on the shot list: arithmetic and coverage in code, mechanic and hook by the model
       let checks = null;
       try {
@@ -581,21 +617,7 @@ module.exports = async (req, res) => {
         checks = { codeChecks: code, mechanic: mc.check || null, mechanicError: mc.error || null, flags, passed, version: boardMod.VERSION };
         if (stage) await insertRows('stage_checks', [{ piece_id: piece.id, stage_id: stage.id, artifact_version_id: out.versionId, kind: 'spec', passed, results: checks, model: mc.model || null, prompt_version: boardMod.CHECK_VERSION }]);
       } catch (e) { checks = { error: String(e.message || e).slice(0, 200) }; }
-      // one keyframe per shot through the job service
-      const pr = await products3d.renderRefs(piece.product, b.refImage); // the product's 3D views, then the campaign photo
-      const refImage = pr.ref;
-      const anchors = bctx.mood.tiles.filter((t) => t.assetPath || t.url).slice(0, 4).map((t) => ({ index: t.index, url: t.url || null, assetPath: t.assetPath || null }));
-      const [stageRow] = await queryRows('stages', `select=id,state&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.board&limit=1`);
-      const rows = w.list.shots.map((shot) => {
-        const useRef = Boolean(refImage && shot.product.visible);
-        const prompt = boardMod.keyframePrompt(shot, bctx.mood.direction, bits.productLook, useRef);
-        return { piece_id: piece.id, stage_id: stageRow.id, kind: 'hermes_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', prompt, aspect_ratio: aspect, resolution: '1080p', seed: newSeed(), ...(useRef ? { ref: refImage, refs: pr.refs, ...(pr.model ? { productModel: pr.model } : {}) } : {}), autoCheck: true, attachTo: { versionId: out.versionId, shot: shot.n }, generatedBy: req.member ? req.member.id : null, meta: { shot: shot.n, prompt, anchors, direction: bctx.mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, expectProduct: shot.product.visible, hookCheck: shot.n === w.list.hookShot, title: piece.title } } };
-      });
-      const inserted = await insertRows('jobs', rows, { returning: true });
-      const { patchRows } = require('../_supabase.js');
-      await patchRows('stages', `id=eq.${encodeURIComponent(stageRow.id)}`, { state: 'generating' });
-      const jobs = [];
-      for (const j of inserted) { await jobsSvc.advance(j).catch(() => null); const fresh = await jobsSvc.getJob(j.id); jobs.push(jobsSvc.publicJob(fresh || j, legacyId)); }
+      const jobs = await submitted;
       try { const { syncSpec } = require('../_spec.js'); await syncSpec(legacyId, { memberId: req.member ? req.member.id : null, note: 'storyboard written' }); } catch (e) { /* best effort */ }
       return res.status(200).json({ ok: true, artifact, version: out.version, versionId: out.versionId, checks, jobs, briefApproved: brief.approved, moodApproved: bctx.mood.approved });
     }
@@ -627,20 +649,24 @@ module.exports = async (req, res) => {
       if (!tp.prompt) return res.status(502).json({ error: tp.error, problems: tp.problems || [] });
       const overlay = { headline: String(b.headline || '').slice(0, 120), headlineAr: String(b.headlineAr || '').slice(0, 120), side: tp.textSide, box: thumb.overlayBox(aspect, tp.textSide), aspect };
       const anchors = mood.tiles.filter((t) => t.assetPath || t.url).slice(0, 4).map((t) => ({ index: t.index, url: t.url || null, assetPath: t.assetPath || null }));
-      const job = await createJob({ legacyId, stage: 'thumb', kind: 'hermes_image', payload: { prompt: tp.prompt, aspect_ratio: aspect, resolution: '1080p', ...(refImage ? { ref: refImage, refs: pr.refs, ...(pr.model ? { productModel: pr.model } : {}) } : {}), autoCheck: true, meta: { prompt: tp.prompt, note: tp.note, title: piece.title, sub: piece.key_message || '', textSide: tp.textSide, overlay, promptVersion: tp.promptVersion, product: piece.product, productLook: bits.productLook, rules: bits.rules, anchors, moodApproved: mood.approved } }, piece: b.piece || {}, member: req.member });
+      const job = await createJob({ legacyId, stage: 'thumb', kind: 'hermes_image', payload: { prompt: tp.prompt, aspect_ratio: aspect, resolution: '1080p', ...(refImage ? { ref: refImage, refs: pr.refs, ...(pr.model ? { productModel: pr.model, productViews: pr.views } : {}) } : {}), autoCheck: true, meta: { prompt: tp.prompt, note: tp.note, title: piece.title, sub: piece.key_message || '', textSide: tp.textSide, overlay, promptVersion: tp.promptVersion, product: piece.product, productLook: bits.productLook, rules: bits.rules, anchors, moodApproved: mood.approved } }, piece: b.piece || {}, member: req.member });
       return res.status(200).json({ ok: true, prompt: tp.prompt, textSide: tp.textSide, note: tp.note, aspect, overlay, moodApproved: mood.approved, anchors: anchors.length, job });
     }
+    // owner 2026-10-29: THREE moods to pick from, each rendered by the moodboard bot as a small set with the
+    // product's 3D model views attached (every image shows the exact product); the person picks the one the
+    // video follows. The version is recorded first and each mood's images land in it as its job finishes.
     const trend = piece.trend_name ? { name: piece.trend_name, id: piece.trend_id } : null;
-    const dir = await visualDirection({ piece: meta, trend, userInput: b.userInput, productLook: bits.productLook, rules: bits.rules, palette: bits.palette, memberId: req.member ? req.member.id : null });
-    if (!dir.direction) return res.status(502).json({ error: dir.error, problems: dir.problems || [] });
-    const d = dir.direction;
-    // the moodboard bot renders ONE prompt as a set of four, so the set is four
-    // VARIATIONS of the whole direction (not one image per tile brief); the
-    // tile briefs stay on the direction as text. The product is expected in
-    // every variation exactly when the catalog has a look line for it.
-    const prompt = setPrompt(d, bits.productLook);
-    const job = await createJob({ legacyId, stage: 'mood', kind: 'hermes_image', payload: { prompt, aspect_ratio: '4:3', resolution: '1080p', batch: TILES, autoCheck: true, meta: { prompt, note: `${d.leadingPrinciple} · ${d.mood}`, direction: d, directionVersion: dir.promptVersion, setMode: 'variations', expectProduct: Boolean(bits.productLook), product: piece.product, productLook: bits.productLook, rules: bits.rules } }, piece: b.piece || {}, member: req.member });
-    return res.status(200).json({ ok: true, direction: d, promptVersion: dir.promptVersion, job });
+    const pr = await products3d.renderRefs(piece.product, b.refImage);
+    const hasModel = Boolean(pr.model);
+    const dir = await visualDirections({ piece: meta, trend, userInput: b.userInput, productLook: bits.productLook, rules: bits.rules, palette: bits.palette, hasModel, memberId: req.member ? req.member.id : null });
+    if (!dir.options) return res.status(502).json({ error: dir.error, problems: dir.problems || [] });
+    const artifact = moodsArtifact(dir.options, { promptVersion: dir.promptVersion, prompts: dir.options.map((o) => setPrompt(o, bits.productLook, hasModel)) });
+    const out = await recordVersion(legacyId, 'mood', artifact, { piece: b.piece || {}, producedBy: 'hermes', kind: 'image', generatedBy: req.member ? req.member.id : null });
+    const [stageRow] = await queryRows('stages', `select=id,state&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.mood&limit=1`);
+    const expectProduct = Boolean(bits.productLook || hasModel);
+    const rows = artifact.moods.map((m) => ({ piece_id: piece.id, stage_id: stageRow.id, kind: 'hermes_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'mood', prompt: m.prompt, aspect_ratio: '4:3', resolution: '1080p', batch: PER_MOOD, ...(expectProduct ? refsOf(pr) : {}), autoCheck: true, attachTo: { versionId: out.versionId, mood: m.n }, generatedBy: req.member ? req.member.id : null, meta: { prompt: m.prompt, note: `${m.name} · ${m.direction.mood}`, mood: m.n, direction: m.direction, directionVersion: dir.promptVersion, setMode: 'moods', expectProduct, product: piece.product, productLook: bits.productLook, rules: bits.rules } } }));
+    const jobs = await submitAll(await insertRows('jobs', rows, { returning: true }), stageRow.id, legacyId);
+    return res.status(200).json({ ok: true, artifact: { ...artifact, version: `v${out.version}` }, version: out.version, versionId: out.versionId, promptVersion: dir.promptVersion, productModel: pr.model, jobs });
   } catch (e) {
     if (e instanceof StoreError) return res.status(e.status).json({ error: e.message, code: e.code });
     return res.status(e && e.status ? e.status : 502).json({ error: String((e && e.message) || e) });

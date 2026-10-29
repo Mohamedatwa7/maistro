@@ -11,21 +11,22 @@
 const { registerPrompt, recordGeneration } = require('../_records.js');
 const { queryRows } = require('../_supabase.js');
 
-const VERSION = 'storyboard-v1-2026-10-21';
+const VERSION = 'storyboard-v2-2026-10-29'; // v2: opening and closing scenes, the brief's storyline
 const CHECK_VERSION = 'storyboard-check-v1-2026-10-21';
 const MODEL = () => process.env.MAISTRO_STUDIO_MODEL || 'claude-opus-5-5';
 const CHECK_MODEL = () => process.env.MAISTRO_VISION_MODEL || 'claude-sonnet-5-5';
 const SHOT_TYPES = ['wide', 'medium', 'close_up', 'macro', 'pov', 'insert', 'end_card'];
 const TRANSITIONS = ['cut', 'match_cut', 'whip', 'dissolve', 'hold', 'none'];
-const MIN_SHOTS = 3, MAX_SHOTS = 8;
+const MIN_SHOTS = 4, MAX_SHOTS = 8; // at least the opening scene, a story beat, the closing scene and the end card
+const BEATS = ['opening', 'story', 'closing', 'end_card'];
 const DURATION_TOLERANCE = 0.1; // ±10 % of the brief's target
 const HOOK_WINDOW_S = 3;
 
 const SHOT = {
   type: 'object', additionalProperties: false,
-  required: ['n', 'durationS', 'type', 'camera', 'action', 'product', 'onScreenText', 'line', 'audioCue', 'transition'],
+  required: ['n', 'beat', 'durationS', 'type', 'camera', 'action', 'product', 'onScreenText', 'line', 'audioCue', 'transition'],
   properties: {
-    n: { type: 'integer' }, durationS: { type: 'number' }, type: { type: 'string', enum: SHOT_TYPES }, camera: { type: 'string' }, action: { type: 'string' },
+    n: { type: 'integer' }, beat: { type: 'string', enum: BEATS }, durationS: { type: 'number' }, type: { type: 'string', enum: SHOT_TYPES }, camera: { type: 'string' }, action: { type: 'string' },
     product: { type: 'object', additionalProperties: false, required: ['visible', 'feature'], properties: { visible: { type: 'boolean' }, feature: { type: 'string' } } },
     onScreenText: { type: 'object', additionalProperties: false, required: ['en', 'ar'], properties: { en: { type: 'string' }, ar: { type: 'string' } } },
     line: { type: 'object', additionalProperties: false, required: ['en', 'ar'], properties: { en: { type: 'string' }, ar: { type: 'string' } } },
@@ -36,7 +37,8 @@ const SCHEMA = { type: 'object', additionalProperties: false, required: ['shots'
 
 const SYSTEM = [
   'You are Frame, the storyboard writer inside MAISTRO (Samsung Gulf social video). You turn an APPROVED BRIEF into a precise shot list that a video model will render shot by shot.',
-  'Rules: between 3 and 8 shots; the durations add up to the brief\'s target duration; the hook lands inside the first 3 seconds; every feature the brief lists appears in a shot where the product is visible; the key message appears as on-screen text or a line; the CTA appears in the last two shots; the final shot is the end card (type "end_card": Samsung logo, no product action, a hold).',
+  'STORY: the shots tell the brief\'s STORYLINE scene by scene, with clear cause and effect. Shot 1 is the OPENING SCENE (beat "opening"): it sets up the story and carries the hook. The middle shots play the story beats in order (beat "story"). The second-to-last shot is the CLOSING SCENE (beat "closing"): it resolves the story with the product and lands the key message. The last shot is the end card (beat "end_card"). When there is no storyline, write a simple one yourself and follow it the same way. A recurring person looks the same in every shot (same look, hair and wardrobe as the storyline\'s protagonist).',
+  'Rules: between 4 and 8 shots; the durations add up to the brief\'s target duration; the hook lands inside the first 3 seconds; every feature the brief lists appears in a shot where the product is visible; the key message appears as on-screen text or a line; the CTA appears in the last two shots; the final shot is the end card (type "end_card": Samsung logo, no product action, a hold).',
   'Each shot: one camera angle AND movement in `camera` (e.g. "low angle, slow push-in"), one concrete action, whether the product is visible and which catalog feature it shows ("" when none), on-screen text en/ar ("" when none — keep it to a few words, it is overlaid in code), the voiceover or caption line en/ar, an audio cue, and the transition INTO the next shot.',
   'Follow the trend\'s mechanic beat by beat so the piece is recognisable as the trend, inside the approved moodboard\'s setting, palette and lighting. The product is only ever the catalog product; never describe its shape beyond the catalog look line. Arabic lines read as native Gulf Arabic, never literal translations. No real identifiable people, no competitor devices, nothing against the cultural rules.',
   'Return the shots, which shot carries the hook, and a one-line note for the user.',
@@ -56,6 +58,7 @@ function validateShape(j) {
   if (j.shots.length < MIN_SHOTS || j.shots.length > MAX_SHOTS) p.push(`shots: between ${MIN_SHOTS} and ${MAX_SHOTS}`);
   j.shots.forEach((s, i) => {
     if (s.n !== i + 1) p.push(`shots[${i}].n: must be ${i + 1}`);
+    if (s.beat !== undefined && !BEATS.includes(s.beat)) p.push(`shots[${i}].beat: enum`);
     if (typeof s.durationS !== 'number' || !(s.durationS > 0) || s.durationS > 30) p.push(`shots[${i}].durationS: 0–30 s`);
     if (!SHOT_TYPES.includes(s.type)) p.push(`shots[${i}].type: enum`);
     if (!TRANSITIONS.includes(s.transition)) p.push(`shots[${i}].transition: enum`);
@@ -66,6 +69,15 @@ function validateShape(j) {
   });
   if (!Number.isInteger(j.hookShot) || j.hookShot < 1 || j.hookShot > j.shots.length) p.push('hookShot: a shot number');
   return p;
+}
+
+/** The story structure is fixed by position, whatever the model labelled: shot 1 is the opening scene, the shot
+ *  before the end card the closing scene, the end card last; everything between is the story. */
+function normalizeBeats(j) {
+  const n = j.shots.length;
+  const endCard = n && j.shots[n - 1].type === 'end_card';
+  const closingAt = endCard ? n - 2 : n - 1;
+  return { ...j, shots: j.shots.map((s, i) => ({ ...s, beat: i === 0 ? 'opening' : i === closingAt ? 'closing' : endCard && i === n - 1 ? 'end_card' : 'story' })) };
 }
 
 /** Numbers and coverage, computed in code. Each: {code, passed, detail}. */
@@ -95,6 +107,10 @@ function codeChecks(j, brief) {
   const last = j.shots[j.shots.length - 1];
   out.push({ code: 'end_card', passed: last.type === 'end_card' && /logo|samsung/i.test(`${last.action} ${last.onScreenText.en}`), detail: last.type === 'end_card' ? 'end card closes the piece' : 'the last shot is not an end card' });
   out.push({ code: 'product_visible', passed: j.shots.some((s) => s.product.visible), detail: `${j.shots.filter((s) => s.product.visible).length} shot(s) show the product` });
+  const opening = j.shots[0] && j.shots[0].beat === 'opening', closing = j.shots.length >= 2 && j.shots[j.shots.length - 2].beat === 'closing';
+  out.push({ code: 'opening_and_closing', passed: opening && closing, detail: opening && closing ? `opens on shot 1, closes on shot ${j.shots.length - 1}, then the end card` : `${opening ? '' : 'no opening scene first'}${!opening && !closing ? '; ' : ''}${closing ? '' : 'no closing scene before the end card'}` });
+  const story = spec && spec.storyline;
+  out.push({ code: 'follows_storyline', passed: Boolean(story && story.openingScene && story.closingScene), detail: story && story.openingScene ? `storyline: ${String(story.logline || '').slice(0, 120)}` : 'the brief has no storyline — the shot list wrote its own plot' });
   return out;
 }
 
@@ -111,8 +127,9 @@ function userMessage({ piece, brief, mood, trend, judgement, productLook, rules,
   return [
     `CAMPAIGN: ${JSON.stringify({ title: piece.title, product: piece.product, markets: piece.markets, platforms: piece.platforms, trend: piece.trend_name }, null, 1)}`,
     `APPROVED BRIEF${brief.approved ? '' : ' (current version, not yet approved)'}: ${JSON.stringify(b.spec || { objective: b.objective, keyMessage: b.msg, mandatories: b.mandatories }, null, 1)}`,
+    `STORYLINE (tell it scene by scene — opening scene first, closing scene before the end card): ${b.spec && b.spec.storyline ? JSON.stringify(b.spec.storyline, null, 1) : 'none in the brief — write a simple plot with an opening scene, 1–3 beats and a closing scene, and follow it'}`,
     `TREND PROFILE: ${JSON.stringify(judgement ? judgement.profile : trend ? { name: trend.name, mechanic: trend.mechanic, why: trend.why, fit: trend.samsungFit } : 'not available — follow the brief\'s trend hook', null, 1)}`,
-    `APPROVED MOODBOARD: ${JSON.stringify(mood.direction ? { leadingPrinciple: d.leadingPrinciple, setting: d.setting, palette: d.palette, lighting: d.lighting, mood: d.mood, styling: d.styling, wardrobe: d.wardrobe, compositionStyle: d.compositionStyle, cameraFeel: d.cameraFeel, selectedTiles: mood.tiles.map((t) => t.tag), reviewerAnnotations: mood.annotations } : { note: mood.note }, null, 1)}`,
+    `APPROVED MOODBOARD: ${JSON.stringify(mood.direction ? { pickedMood: mood.chosen ? mood.chosen.name : undefined, leadingPrinciple: d.leadingPrinciple, setting: d.setting, palette: d.palette, lighting: d.lighting, mood: d.mood, styling: d.styling, wardrobe: d.wardrobe, compositionStyle: d.compositionStyle, cameraFeel: d.cameraFeel, selectedTiles: mood.tiles.map((t) => t.tag), reviewerAnnotations: mood.annotations } : { note: mood.note }, null, 1)}`,
     `PRODUCT (catalog look line): ${piece.product}: ${productLook || 'not in the catalog — the product cannot be shown'}`,
     `CULTURAL RULES: ${JSON.stringify(rules || [])}`,
     `WHAT THE USER ASKED FOR: "${String(userInput || '').trim() || '(left to you)'}"`,
@@ -134,7 +151,7 @@ async function shotList({ piece, brief, mood, trend, judgement, productLook, rul
   const problems = validateShape(j);
   if (problems.length) { await recordGeneration({ ...rec, status: 'failed', error: `validation: ${problems.join('; ')}`, latencyMs: Date.now() - t0, usage: response.usage }); return { error: 'shot list failed validation', problems }; }
   await recordGeneration({ ...rec, status: 'succeeded', latencyMs: Date.now() - t0, usage: response.usage || null });
-  return { list: j, promptVersion: VERSION, model: MODEL() };
+  return { list: normalizeBeats(j), promptVersion: VERSION, model: MODEL() };
 }
 
 async function mechanicCheck({ list, brief, trend, judgement, client, legacyId, memberId }) {
@@ -163,23 +180,26 @@ function checkFlags(check) {
   return f;
 }
 
-/** The Soul prompt for one shot's keyframe, anchored to the direction and the catalog look. */
-function keyframePrompt(shot, direction, productLook, refAttached) {
+/** The Soul prompt for one shot's keyframe, anchored to the direction, the product (its 3D model when there is
+ *  one, else the reference photo or the catalog look) and the storyline's recurring character. */
+function keyframePrompt(shot, direction, productLook, refAttached, { model = false, storyline = null } = {}) {
   const d = direction || {};
   const pal = (d.palette || []).map((c) => `${c.name} ${c.hex}`).join(', ');
-  const product = shot.product.visible ? (refAttached ? 'The device is the exact product from the reference image' : productLook ? `The device is exactly: ${productLook}` : 'no device shown') + (shot.product.feature ? `, showing ${shot.product.feature}` : '') + '.' : 'No phone or device in frame.';
-  const type = shot.type === 'end_card' ? 'A clean end-card frame: Samsung Blue background, empty centre for a logo overlaid later' : `${shot.type.replace('_', ' ')} shot, ${shot.camera}`;
-  return `${type}. ${shot.action} ${product} Setting: ${d.setting || 'as the moodboard'}. ${d.lighting ? `Lighting: ${d.lighting}.` : ''} ${d.styling ? `Styling: ${d.styling}.` : ''} ${d.wardrobe ? `Wardrobe: ${d.wardrobe}.` : ''} Palette: ${pal || 'Samsung Blue #1428A0 present and intentional'}. ${d.cameraFeel ? `Camera feel: ${d.cameraFeel}.` : ''} Single still frame, cinematic, no text, no logos, no competitor devices, no real identifiable people.`.replace(/\s+/g, ' ').trim();
+  const exact = model ? 'The device is the exact product from the reference renders of its 3D model — identical shape, proportions, size, colour, camera layout and buttons' : 'The device is the exact product from the reference image';
+  const product = shot.product.visible ? (refAttached ? exact : productLook ? `The device is exactly: ${productLook}` : 'no device shown') + (shot.product.feature ? `, showing ${shot.product.feature}` : '') + '.' : 'No phone or device in frame.';
+  const type = shot.type === 'end_card' ? 'A clean end-card frame: Samsung Blue background, empty centre for a logo overlaid later' : `${shot.beat === 'opening' ? 'Opening scene of the story — ' : shot.beat === 'closing' ? 'Closing scene of the story — ' : ''}${shot.type.replace('_', ' ')} shot, ${shot.camera}`;
+  const who = shot.type !== 'end_card' && storyline && storyline.protagonist && !/^none\b/i.test(storyline.protagonist) ? ` Recurring character when a person is in frame: ${storyline.protagonist}.` : '';
+  return `${type}. ${shot.action}${who} ${product} Setting: ${d.setting || 'as the moodboard'}. ${d.lighting ? `Lighting: ${d.lighting}.` : ''} ${d.styling ? `Styling: ${d.styling}.` : ''} ${d.wardrobe ? `Wardrobe: ${d.wardrobe}.` : ''} Palette: ${pal || 'Samsung Blue #1428A0 present and intentional'}. ${d.cameraFeel ? `Camera feel: ${d.cameraFeel}.` : ''} Single still frame, cinematic, no text, no logos, no competitor devices, no real identifiable people.`.replace(/\s+/g, ' ').trim();
 }
 
 /** The stored storyboard artifact: the shot list with empty keyframe slots the jobs fill in. */
 function artifactFrom(list, meta) {
   return {
     shots: list.shots.map((s) => ({ ...s, keyframe: null, review: null })),
-    hookShot: list.hookShot, notes: list.notes, totalS: Math.round(list.shots.reduce((a, s) => a + s.durationS, 0) * 10) / 10,
+    hookShot: list.hookShot, notes: list.notes, storyline: meta.storyline || null, totalS: Math.round(list.shots.reduce((a, s) => a + s.durationS, 0) * 10) / 10,
     boardVersion: meta.promptVersion || VERSION, briefVersionId: meta.briefVersionId || null, briefApproved: Boolean(meta.briefApproved), moodApproved: Boolean(meta.moodApproved), aspect: meta.aspect || '9:16',
     prompt: `storyboard of ${list.shots.length} shots`, note: list.notes, rev: 0,
   };
 }
 
-module.exports = { VERSION, CHECK_VERSION, SYSTEM, SCHEMA, CHECK_SCHEMA, SHOT_TYPES, TRANSITIONS, DURATION_TOLERANCE, HOOK_WINDOW_S, validateShape, codeChecks, briefFor, userMessage, shotList, mechanicCheck, checkFlags, keyframePrompt, artifactFrom };
+module.exports = { VERSION, CHECK_VERSION, SYSTEM, SCHEMA, CHECK_SCHEMA, SHOT_TYPES, TRANSITIONS, BEATS, normalizeBeats, DURATION_TOLERANCE, HOOK_WINDOW_S, validateShape, codeChecks, briefFor, userMessage, shotList, mechanicCheck, checkFlags, keyframePrompt, artifactFrom };
