@@ -68,7 +68,9 @@ async function finalMedia(pieceId) {
 function slotView(s, piece) {
   return { id: s.id, pieceId: piece ? piece.legacy_id : null, title: piece ? piece.title : null, platform: s.platform, account: s.account, slotAt: s.slot_at, caption: s.caption, mode: s.mode, status: s.status, createdBy: s.created_by_label, exportedAt: s.exported_at, postedAt: s.posted_at, piecePostId: s.piece_post_id, canceledAt: s.canceled_at, cancelReason: s.cancel_reason, sprinklrDraftId: s.sprinklr_draft_id || null, sprinklrStatus: s.sprinklr_status || null, sprinklrCheckedAt: s.sprinklr_checked_at || null, sprinklrError: s.sprinklr_error || null };
 }
-const sprinklrView = () => ({ configured: SprinklrAdapter.connected, drafts: SprinklrAdapter.enabled, livePublishing: false });
+// accounts: the Sprinklr account id each platform's drafts go to (shown in the composer)
+const sprinklrView = () => ({ configured: SprinklrAdapter.connected, drafts: SprinklrAdapter.enabled, livePublishing: false,
+  accounts: Object.fromEntries(Object.entries(require('./sprinklr/feed.js').feedAccounts()).map(([id, p]) => [p, id])) });
 
 /** GET ?calendar=1: slots in [from, to) plus approved finals with no open slot, each with its trend's post-by date */
 async function calendar({ from, to }) {

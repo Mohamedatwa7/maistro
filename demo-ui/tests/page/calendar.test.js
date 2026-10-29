@@ -75,7 +75,7 @@ test('month view: a grid for the month with Sprinklr posts and Maistro slots by 
 
 test('composer: "+ Add Maistro post" opens the original post layout for an approved final; Add to calendar plans the slot, push also creates the Sprinklr draft; a Maistro slot opens with its push', async () => {
   const sent = [];
-  const data = cal({ unscheduled: [{ pieceId: 'gen-p1', title: 'Deadpan', product: 'Galaxy Z Flip8', platforms: ['tiktok'], markets: ['UAE'], postBy: null, media: { videoUrl: 'https://sb.test/final.mp4', thumbUrl: 'https://sb.test/t.png' } }], sprinklr: { configured: true, drafts: true, livePublishing: false }, owned: { tiktok: ['samsunggulf'], instagram: ['samsunggulf'] } });
+  const data = cal({ unscheduled: [{ pieceId: 'gen-p1', title: 'Deadpan', product: 'Galaxy Z Flip8', platforms: ['tiktok'], markets: ['UAE'], postBy: null, media: { videoUrl: 'https://sb.test/final.mp4', thumbUrl: 'https://sb.test/t.png' } }], sprinklr: { configured: true, drafts: true, livePublishing: false, accounts: { tiktok: '1776286', instagram: '53027' } }, owned: { tiktok: ['samsunggulf'], instagram: ['samsunggulf'] } });
   const X = loadPage({ fetchImpl: async (u, init) => { if (init && init.method === 'POST') { const b = JSON.parse(init.body); sent.push(b); return json(b.action === 'slot-plan' ? { ok: true, slot: { id: 41 } } : { ok: true, sprinklr: { draftId: 'D-1' } }); } return String(u).includes('calendar=1') ? json(data) : new Promise(() => {}); }, hash: '#/calendar' });
   try {
     const modal = { innerHTML: '' }; const q0 = X.document.querySelector; // one modal element; the form fields are read from CALC
@@ -86,6 +86,7 @@ test('composer: "+ Add Maistro post" opens the original post layout for an appro
     let m = modal.innerHTML;
     assert.match(m, /Post preview/); assert.match(m, /class="cc-phone"/); assert.match(m, /<video src="https:\/\/sb\.test\/final\.mp4"/, 'the real final plays in the preview');
     assert.match(m, /cc-plat on/); assert.match(m, /@samsunggulf/); assert.match(m, /value="2026-10-30T18:00"/); assert.match(m, /Add &amp; push draft to Sprinklr/);
+    assert.match(m, /SPRINKLR ACCOUNT 1776286/); assert.match(m, /TikTok account \(Sprinklr ID <span class="mono">1776286<\/span>\)/, 'the composer names the Sprinklr account the draft goes to');
     X.calComposePlat('instagram'); m = modal.innerHTML; assert.match(m, /class="cc-feed"/, 'Instagram shows the feed layout');
     X.CALC.cap = ''; await X.calSave(false); assert.match(modal.innerHTML, /Write the caption/); assert.equal(sent.length, 0);
     X.CALC.cap = 'Wait for it'; await X.calSave(true);

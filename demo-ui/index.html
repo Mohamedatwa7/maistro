@@ -837,7 +837,7 @@ footer b{letter-spacing:.25em;font-weight:600}
     <canvas id="mesh"></canvas>
     <div class="tag">
       <span class="kick" style="color:#7dd3fc">Trend → Post, end to end</span>
-      <p>Hermes pulls live trends over MCP, six agents carry each piece from moodboard to final cut, humans sign the gate, the post goes out (by hand until Sprinklr is connected) — and Performance closes the loop.</p>
+      <p>Hermes pulls live trends over MCP, six agents carry each piece from moodboard to final cut, humans sign the gate, the post lands in Sprinklr as a draft your team schedules — and Performance closes the loop.</p>
     </div>
   </div>
 </section>
@@ -2819,7 +2819,7 @@ function rFinal(p,locked){
   ${diff.length?`<span class="kick">Draft → final, per shot</span><table style="width:100%;font-size:12px;border-collapse:collapse;margin:6px 0 12px">${diff.map(d=>`<tr style="border-top:1px dashed var(--hairline)"><td style="padding:5px 6px 5px 0">Shot ${d.n}</td><td>${badge(lab[d.status][0],lab[d.status][1])}</td><td class="dim">${d.textChanges.map(k=>`${k==='line'?'caption':'text'}: “${esc((d.before[k]||{}).en||'')}” → “<b style="color:#fff">${esc((d.after[k]||{}).en||'')}</b>” <span dir="rtl">${esc((d.after[k]||{}).ar||'')}</span>`).join('<br>')}${d.status==='clip_regenerated'&&d.finalClip&&d.finalClip.sha256?' new clip '+esc(d.finalClip.sha256.slice(0,10)):''}</td></tr>`).join('')}</table>`:''}
   ${v?`<span class="kick">Each QC risk after the fixes</span><div style="margin:6px 0 12px">${v.risks.map(r=>`<div style="font-size:12px;margin-top:4px">${badge(r.resolved==='yes'?'go':r.resolved==='partial'?'gold':'alert',esc(r.ref)+' · '+r.resolved.toUpperCase())} <span class="dim">${esc(r.evidence)}</span></div>`).join('')}</div>`:''}
   ${p.studio&&!locked&&f.assembled&&!v?`<div style="margin-bottom:10px"><button class="btn btn-ai btn-sm" onclick="finalVerify('${p.id}')">Re-run F1X8 and verify every risk</button></div>`:''}
-  ${f.assembled&&locked?`<div style="margin-bottom:10px"><button class="btn btn-go btn-sm" onclick="finalPackage('${p.id}')">Export the delivery package</button> <span class="dim" style="font-size:11px">Video, thumbnail, captions per language, hashtags, disclaimers and metadata, for Sprinklr or manual posting.</span></div>`:''}
+  ${f.assembled&&locked?`<div style="margin-bottom:10px"><button class="btn btn-go btn-sm" onclick="finalPackage('${p.id}')">Export the delivery package</button> <span class="dim" style="font-size:11px">Video, thumbnail, captions per language, hashtags, disclaimers and metadata, for Sprinklr or manual posting.</span>${p.studio?` <a href="#/calendar" style="font-size:11px;color:#7dd3fc">Plan it in the Calendar and push it to Sprinklr as a draft →</a>`:''}</div>`:''}
   ${f.assembled&&locked?rPostLinks(p):''}
   ${rDraft(p,locked,'final')}`;
 }
@@ -3928,7 +3928,7 @@ const FX_SECTIONS=[
   img:'https://images.unsplash.com/photo-1522542550221-31fd19575a2d?q=80&w=1920&auto=format&fit=crop'},
  {l:'Approve',t:'Governance',r:'ADLCP Gate',
   img:'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1920&auto=format&fit=crop'},
- {l:'Publish',t:'Calendar',r:'Manual · Sprinklr later',
+ {l:'Publish',t:'Calendar',r:'Sprinklr drafts',
   img:'https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1920&auto=format&fit=crop'},
  {l:'Measure',t:'Performance',r:'Boost Loop',
   img:'https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1920&auto=format&fit=crop'},
@@ -4765,7 +4765,8 @@ function calModal(){
  const d=CALV.data||{},un=d.unscheduled||[],drafts=Boolean(d.sprinklr&&d.sprinklr.drafts);
  const slot=CALC.slotId?(d.slots||[]).find(x=>x.id===CALC.slotId):null;
  const item=slot||un.find(x=>x.pieceId===CALC.pid);
- const pushNote=drafts?'Push creates the post as a <b>draft</b> in Sprinklr: schedule or publish it in Sprinklr.'
+ const sprAcc=((d.sprinklr&&d.sprinklr.accounts)||{})[(slot||{}).platform||CALC.plat];
+ const pushNote=drafts?`Push creates the post as a <b>draft</b> in Sprinklr${sprAcc?` on the ${esc(FEED_PLAT[(slot||{}).platform||CALC.plat]||'')} account (Sprinklr ID <span class="mono">${esc(sprAcc)}</span>)`:''}, with the video, thumbnail, caption and time. Your team schedules or publishes it in Sprinklr; Maistro never posts.`
   :'Sprinklr drafts are off on the server (SPRINKLR_DRAFTS), so the post is added to the calendar only.';
  if(!item){$('#modal').innerHTML=`<h3>Add a Maistro post</h3><p class="msub">Only approved finals can go on the calendar, and none is waiting for a slot. Approve a final in the <a href="#/studio" onclick="closeModal()" style="color:#7dd3fc">Content Studio</a> first.</p><div class="mrow"><button class="btn btn-ghost btn-sm" onclick="closeModal()">Close</button></div>`;return}
  if(slot){
@@ -4790,7 +4791,7 @@ function calModal(){
    <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
     <div class="f-field"><label>Approved final</label><select class="inp" onchange="calComposePiece(this.value)">${un.map(u=>`<option value="${esc(u.pieceId)}" ${u.pieceId===CALC.pid?'selected':''}>${esc(u.title||u.pieceId)}${u.postBy?' · post by '+esc(fmtStamp(Date.parse(u.postBy)).split(',')[0]):''}</option>`).join('')}</select></div>
     <div class="f-field"><label>Platform</label><div style="display:flex;gap:6px;flex-wrap:wrap">${plats.map(p=>`<button type="button" class="cc-plat ${p===CALC.plat?'on':''}" onclick="calComposePlat('${esc(p)}')"><i style="background:${(PLAT[p]||{}).c||'#9aa3b5'}"></i>${esc(FEED_PLAT[p]||p)}</button>`).join('')||'<span class="dim" style="font-size:11.5px">No owned accounts configured.</span>'}</div></div>
-    <div class="f-field"><label>Account</label><select class="inp" id="cc-acc" onchange="calPrevRefresh()">${accs.map(a=>`<option value="${esc(a)}" ${a===CALC.acc?'selected':''}>@${esc(a)}</option>`).join('')}</select></div>
+    <div class="f-field"><label>Account</label><select class="inp" id="cc-acc" onchange="calPrevRefresh()">${accs.map(a=>`<option value="${esc(a)}" ${a===CALC.acc?'selected':''}>@${esc(a)}</option>`).join('')}</select>${drafts&&sprAcc?`<div class="dim mono" style="font-size:10px;margin-top:5px">SPRINKLR ACCOUNT ${esc(sprAcc)}</div>`:''}</div>
     <div class="f-field"><label>Date &amp; time (Gulf, GST)</label><input class="inp" id="cc-when" type="datetime-local" value="${esc(CALC.when)}" onchange="calPrevRefresh()"></div>
    </div></div>
   <div class="f-field" style="margin-top:14px"><label>Caption</label>

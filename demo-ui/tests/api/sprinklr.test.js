@@ -51,7 +51,7 @@ test('drafts mode: export creates one Sprinklr draft that meets the spec; status
   try {
     let r = await get(studio, { calendar: '1' });
     assert.equal(r.body.mode, 'sprinklr'); assert.match(r.body.label, /^Sprinklr: drafts only/);
-    assert.deepEqual(r.body.sprinklr, { configured: true, drafts: true, livePublishing: false });
+    assert.deepEqual(r.body.sprinklr, { configured: true, drafts: true, livePublishing: false, accounts: { facebook: '6625', instagram: '53027', tiktok: '1776286', x: '7952', youtube: '7953' } });
     r = await post(studio, planBody);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(r.body.slot.mode, 'sprinklr');
     const id = r.body.slot.id;
@@ -63,6 +63,7 @@ test('drafts mode: export creates one Sprinklr draft that meets the spec; status
     assert.equal(create.init.headers.authorization, 'Bearer st'); assert.equal(create.init.headers.key, 'sk');
     const m = create.body, schemas = SPEC.components.schemas;
     for (const k of schemas.OutboundMessage.required) assert.ok(m[k] != null, `OutboundMessage.${k} is required by the spec`);
+    assert.deepEqual(m.accountIds, [1776286], 'the owned TikTok account Sprinklr id');
     for (const k of schemas.VideoAttachment.required) assert.ok(m.content.attachment[k] != null, `VideoAttachment.${k} is required by the spec`);
     assert.ok(Object.keys(m.content.attachment).every((k) => k in schemas.VideoAttachment.properties), 'only VideoAttachment fields');
     assert.equal(m.content.attachment.type, 'VIDEO'); assert.match(m.content.attachment.url, /^https:\/\/sb\.test\/storage\/v1\/object\/sign\/assets\/pieces\/gen-p1\/final\/cut\.mp4\?token=t$/);
@@ -114,7 +115,7 @@ test('fallbacks: no opt-in stays manual; an unmapped account or a Sprinklr error
   let studio = api('studio.js', { ...ENV, SPRINKLR_DRAFTS: undefined });
   try {
     let r = await get(studio, { calendar: '1' });
-    assert.equal(r.body.mode, 'manual_export'); assert.deepEqual(r.body.sprinklr, { configured: true, drafts: false, livePublishing: false });
+    assert.equal(r.body.mode, 'manual_export'); assert.deepEqual(r.body.sprinklr, { configured: true, drafts: false, livePublishing: false, accounts: { facebook: '6625', instagram: '53027', tiktok: '1776286', x: '7952', youtube: '7953' } });
     assert.match(r.body.label, /^Sprinklr: connected, read-only — drafts not on yet/);
     r = await post(studio, planBody);
     r = await post(studio, { action: 'slot-export', pieceId: 'gen-p1', id: r.body.slot.id });
@@ -124,12 +125,24 @@ test('fallbacks: no opt-in stays manual; an unmapped account or a Sprinklr error
 
   pg = fakePostgrest(); seed(pg);
   f = mockFetch([sp.route, sign, pg.route]);
-  studio = api('studio.js', { ...ENV, SPRINKLR_ACCOUNT_GROUPS: 'instagram:samsunggulf=ag-ig' });
+  // owner 2026-10-29: no account group needed — the draft goes to the account id alone
+  studio = api('studio.js', { ...ENV, SPRINKLR_ACCOUNT_GROUPS: undefined });
+  try {
+    let r = await post(studio, planBody); const id = r.body.slot.id;
+    r = await post(studio, { action: 'slot-export', pieceId: 'gen-p1', id });
+    assert.equal(r.statusCode, 200); assert.ok(r.body.sprinklr.draftId, JSON.stringify(r.body));
+    const [create] = sp.s.calls.filter((c) => c.key === 'POST /publishing/draft');
+    assert.deepEqual(create.body.accountIds, [1776286]); assert.ok(!('accountGroupIds' in create.body));
+  } finally { f.restore(); studio.restore(); }
+
+  pg = fakePostgrest(); seed(pg); sp.s.calls.length = 0;
+  f = mockFetch([sp.route, sign, pg.route]);
+  studio = api('studio.js', { ...ENV, SPRINKLR_ACCOUNT_GROUPS: 'instagram:samsunggulf=ag-ig', SPRINKLR_FEED_ACCOUNTS: 'instagram:53027' });
   try {
     let r = await post(studio, planBody); const id = r.body.slot.id;
     r = await post(studio, { action: 'slot-export', pieceId: 'gen-p1', id });
     assert.equal(r.statusCode, 200); assert.equal(r.body.slot.status, 'exported');
-    assert.equal(r.body.sprinklr.code, 'sprinklr_account_unmapped'); assert.match(r.body.slot.sprinklrError, /^sprinklr_account_unmapped: no Sprinklr account group for tiktok:samsunggulf/);
+    assert.equal(r.body.sprinklr.code, 'sprinklr_account_unmapped'); assert.match(r.body.slot.sprinklrError, /^sprinklr_account_unmapped: no Sprinklr account for tiktok:samsunggulf/);
     assert.equal(sp.s.calls.length, 0);
     r = await post(studio, { action: 'slot-draft-check', pieceId: 'gen-p1', id });
     assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'no_draft');
