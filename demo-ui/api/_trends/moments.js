@@ -199,7 +199,9 @@ async function classify(cands, { client } = {}) {
   if (!cands.length) return new Map();
   if (!client && !process.env.ANTHROPIC_API_KEY) return null;
   const Anthropic = client ? null : require('@anthropic-ai/sdk');
-  const c = client || new Anthropic({ timeout: 60000, maxRetries: 1 });
+  // one long attempt, not two short ones: ~60 candidates take Sonnet over a minute (2026-10-29: two 60 s
+  // attempts both timed out), and the cron has 300 s for this and the video refresh
+  const c = client || new Anthropic({ timeout: 150000, maxRetries: 0 });
   const digest = cands.map((x) => ({ id: x.id, title: x.title, source: x.source, markets: x.geos.map((g) => GEO_NAME[g]), searches: x.traffic || undefined, wikipediaViews: x.views || undefined, wikipedia: x.project, headlines: x.news.map((n) => n.title) }));
   const response = await c.messages.create({
     model: MODEL(),
@@ -243,6 +245,7 @@ function assemble(cands, cls) {
     .sort((a, b) => (b.brandSafe === true) - (a.brandSafe === true) || b.reach - a.reach);
 }
 
+const MAX_CANDIDATES = 60;
 const corroborated = (m) => m.markets.length > 0 || m.sources.length >= 2;
 
 /** Everything spiking now. Source failures are reported, not thrown, unless every source failed. */
@@ -256,7 +259,10 @@ async function fetchBreaking({ now = new Date(), client } = {}) {
   ]);
   const google = g.filter(Boolean).flat();
   if (!google.length && !en && !ar) throw new Error(`every moments source failed: ${errors.join('; ')}`);
-  const cands = candidates({ google, wiki: { ...(en ? { 'en.wikipedia': en } : {}), ...(ar ? { 'ar.wikipedia': ar } : {}) } });
+  // the widest MAX_CANDIDATES go to the check (markets, searches, Wikipedia views); the long tail is single-market noise
+  const cands = candidates({ google, wiki: { ...(en ? { 'en.wikipedia': en } : {}), ...(ar ? { 'ar.wikipedia': ar } : {}) } })
+    .map((x) => ({ x, w: x.geos.length * 2 + (x.traffic ? Math.log10(x.traffic) : 0) + (x.views ? Math.log10(x.views) - 3 : 0) }))
+    .sort((a, b) => b.w - a.w).slice(0, MAX_CANDIDATES).map((o) => o.x);
   let cls = null, classifiedBy = 'none';
   try { cls = await classify(cands, { client }); classifiedBy = cls ? 'claude' : 'none'; } catch (e) { errors.push(`brand check: ${String(e.message || e)}`); }
   const all = assemble(cands, cls);

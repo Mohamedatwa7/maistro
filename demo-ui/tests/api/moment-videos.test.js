@@ -56,6 +56,11 @@ test('refresh: only due moments are searched, within the per-run call cap; Claud
     const hv = out.byId.halloween.videos;
     assert.ok(hv.length >= 2 && hv.length <= 6 && hv.every((c) => approve.includes(c.vid)), 'only Claude-approved captions');
     assert.ok(!hv.some((c) => /off-brand/.test(c.caption))); assert.equal(hv[0].region, 'AE', 'Gulf creator first');
+    // an empty moment retries after an hour; a full one waits six
+    searched.length = 0;
+    const hourAgo = new Date(NOW - 3700e3).toISOString();
+    await v.refresh([{ id: 'a', label: 'A', keywords: ['aaa'], markets: [] }, { id: 'b', label: 'B', keywords: ['bbb'], markets: [] }], { byId: { a: { at: hourAgo, videos: [] }, b: { at: hourAgo, videos: [{ vid: 'x' }] } } }, { now: NOW });
+    assert.deepEqual(searched, ['aaa']);
     // the per-run cap: 25 moments × 2 queries never exceeds 40 calls
     searched.length = 0;
     const many = Array.from({ length: 25 }, (_, i) => ({ id: `m${i}`, label: `Moment ${i}`, keywords: [`moment ${i}`], markets: ['SA'] }));

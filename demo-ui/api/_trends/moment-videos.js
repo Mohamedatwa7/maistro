@@ -12,7 +12,7 @@ const BASE = 'https://api.tikhub.io';
 const SEARCH = '/api/v1/tiktok/app/v3/fetch_general_search_result';
 const GULF = ['AE', 'SA', 'KW', 'QA', 'BH', 'OM'];
 const CITY = { AE: 'dubai', SA: 'riyadh', KW: 'kuwait', QA: 'qatar', BH: 'bahrain', OM: 'oman' };
-const REFRESH_MS = 6 * 3600e3, MAX_CALLS = 40, PER_MOMENT = 6, MIN_PLAYS = 5000, MAX_AGE_DAYS = 14;
+const REFRESH_MS = 6 * 3600e3, EMPTY_RETRY_MS = 3600e3, MAX_CALLS = 40, PER_MOMENT = 6, MIN_PLAYS = 5000, MAX_AGE_DAYS = 14;
 const MODEL = () => process.env.MAISTRO_MOMENTS_MODEL || 'claude-sonnet-5-5';
 // captions a consumer-electronics brand should never put in front of its team as a reference
 const BLOCK = /\b(nsfw|onlyfans|only fans|18\+|sexy|nude|naked|lingerie|bikini|twerk|gore|murder|kill(ing)?|drunk|weed|vape|casino|bet(ting)?|sophie rain|aishah sofey)\b/i;
@@ -69,9 +69,11 @@ async function checkCaptions(clips, { client } = {}) {
   const response = await c.messages.create({
     model: MODEL(),
     max_tokens: 4000,
-    system: 'You screen TikTok reference videos for Samsung Gulf\'s social team by caption and creator handle. Keep a video only if a ' +
-      'consumer-electronics brand team in the Gulf could comfortably watch it as a creative reference: no sexual or suggestive content, ' +
-      'adult-content creators, gore, drugs, alcohol, gambling, politics, religion mocked, hate, or dangerous stunts. When unsure, leave it out.',
+    // 2026-10-29: "when unsure, leave it out" rejected every Halloween video (costumes, decorations): only clear signals count now
+    system: 'You screen TikTok reference videos for Samsung Gulf\'s social team by caption and creator handle. These are creative ' +
+      'references for a moment (a holiday, a sale, a race, a festival), so ordinary content fits: costumes, decorations, food, outfits, ' +
+      'events, vlogs, humour, products, dances. Leave a video out only when its caption or creator clearly signals sexual or suggestive ' +
+      'content, an adult-content creator, gore, drugs, alcohol, gambling, politics, mocking religion, hate, or a dangerous stunt.',
     messages: [{ role: 'user', content: `VIDEOS:\n${JSON.stringify(clips.map((x) => ({ vid: x.vid, creator: x.handle, caption: x.caption })), null, 1)}\n\nList the vids to keep.` }],
     output_config: { format: { type: 'json_schema', schema: CAPTION_SCHEMA }, effort: 'low' },
   });
@@ -88,7 +90,8 @@ async function refresh(moments, stored = {}, { now = Date.now(), client } = {}) 
   const prev = stored.byId || {};
   const byId = {};
   for (const m of moments) if (prev[m.id]) byId[m.id] = prev[m.id]; // moments no longer listed drop out
-  const due = moments.filter((m) => !prev[m.id] || now - new Date(prev[m.id].at).getTime() >= REFRESH_MS)
+  // a moment that came back empty retries after an hour, not six
+  const due = moments.filter((m) => !prev[m.id] || now - new Date(prev[m.id].at).getTime() >= ((prev[m.id].videos || []).length ? REFRESH_MS : EMPTY_RETRY_MS))
     .sort((a, b) => (prev[a.id] ? new Date(prev[a.id].at).getTime() : 0) - (prev[b.id] ? new Date(prev[b.id].at).getTime() : 0));
   let calls = 0;
   const found = {};
@@ -106,7 +109,8 @@ async function refresh(moments, stored = {}, { now = Date.now(), client } = {}) 
   let ok = null, captionsCheckedBy = 'blocklist';
   try { ok = await checkCaptions(all, { client }); if (ok) captionsCheckedBy = 'claude'; } catch (e) { errors.push(`caption check: ${String(e.message || e)}`); }
   for (const [id, f] of Object.entries(found)) {
-    byId[id] = { at: new Date(now).toISOString(), queries: f.queries, captionsCheckedBy, videos: f.clips.filter((c) => !ok || ok.has(c.vid)).slice(0, PER_MOMENT) };
+    const kept = f.clips.filter((c) => !ok || ok.has(c.vid));
+    byId[id] = { at: new Date(now).toISOString(), queries: f.queries, captionsCheckedBy, screenedOut: f.clips.length - kept.length, videos: kept.slice(0, PER_MOMENT) };
   }
   return { byId, calls, errors, captionsCheckedBy };
 }

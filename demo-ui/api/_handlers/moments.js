@@ -44,7 +44,7 @@ async function storeVideos(payload) {
   try { await upsertRows('trends_cache', [{ id: VIDEOS_KEY, payload, source: 'tikhub', fetched_at: new Date().toISOString(), error: null }], 'id'); }
   catch (e) { console.warn('[moments] videos write failed:', e.message); }
 }
-const withVideos = (list, byId) => (list || []).map((m) => (byId && byId[m.id] ? { ...m, videos: byId[m.id].videos, videosAt: byId[m.id].at, captionsCheckedBy: byId[m.id].captionsCheckedBy } : m));
+const withVideos = (list, byId) => (list || []).map((m) => (byId && byId[m.id] ? { ...m, videos: byId[m.id].videos, videosAt: byId[m.id].at, captionsCheckedBy: byId[m.id].captionsCheckedBy, videosScreenedOut: byId[m.id].screenedOut || 0 } : m));
 async function fresh(now) {
   let breaking;
   try { breaking = await moments.fetchBreaking({ now }); }

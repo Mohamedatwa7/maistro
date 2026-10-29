@@ -4015,7 +4015,7 @@ const moNum=n=>n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n>=1e3?Math.roun
 function moVidsToggle(key){STATE.moOpen=STATE.moOpen||{};STATE.moOpen[key]=!STATE.moOpen[key];$('#view').innerHTML=rTrends();reveal()}
 function rMoVids(m,key){
  const v=(m.videos||[]).filter(c=>c&&c.vid);
- if(!v.length)return '';
+ if(!v.length)return m.videosScreenedOut?`<div class="mo-vnote dim" style="margin-top:8px">${m.videosScreenedOut} live video${m.videosScreenedOut===1?' was':'s were'} found this week; none passed the caption check.</div>`:'';
  const open=STATE.moOpen&&STATE.moOpen[key];
  const gulf=v.filter(c=>MKT[c.region]).length;
  return `<button class="mo-vbtn" onclick="moVidsToggle('${esc(key)}')">${open?'▾':'▸'} ${v.length} live video${v.length===1?'':'s'}${gulf?` · ${gulf} from Gulf creators`:''}</button>
