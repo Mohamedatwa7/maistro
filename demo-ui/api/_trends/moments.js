@@ -192,7 +192,8 @@ const SYSTEM =
   'crime, scandals, religion, finance or crypto speculation, gambling and adult content, and for any single private person. ' +
   'It is true for sport, entertainment, tech, culture, holidays and seasonal moments a consumer-electronics brand can join without ' +
   'controversy. gulfRelevance is 0–10 for how much Gulf audiences care. samsungAngle is one concrete, light idea (a Galaxy feature, a ' +
-  'format), or empty when not brand-safe. If you do not know what a candidate refers to, say so in why and set brandSafe false.';
+  'format), or empty when not brand-safe. If you do not know what a candidate refers to, say so in why and set brandSafe false. ' +
+  'In why and samsungAngle, call the audience "the Gulf" or "Gulf audiences": never name a single Gulf country as the market.';
 
 /** One Claude pass over the candidates. Returns Map(id → classification), or null when unavailable. */
 async function classify(cands, { client } = {}) {
@@ -245,8 +246,11 @@ function assemble(cands, cls) {
     .sort((a, b) => (b.brandSafe === true) - (a.brandSafe === true) || b.reach - a.reach);
 }
 
-const MAX_CANDIDATES = 60;
+const MAX_CANDIDATES = 60, MAX_ITEMS = 15, SEARCH_MIN_RELEVANCE = 6;
 const corroborated = (m) => m.markets.length > 0 || m.sources.length >= 2;
+// 2026-10-29: moments alone left one item most hours, so brand-safe searches Gulf audiences care about are listed
+// after them (kind 'search'); the rest of the routine searches stay out
+const listed = (m) => m.brandSafe && (m.moment || m.gulfRelevance >= SEARCH_MIN_RELEVANCE);
 
 /** Everything spiking now. Source failures are reported, not thrown, unless every source failed. */
 async function fetchBreaking({ now = new Date(), client } = {}) {
@@ -270,9 +274,10 @@ async function fetchBreaking({ now = new Date(), client } = {}) {
     classifiedBy,
     // unchecked (no Claude): the widest few, labelled as unchecked by the page
     // a moment needs a search spike in a Gulf market or a second source: one Wikipedia page alone is too thin
-    items: (cls ? all.filter((m) => m.moment && m.brandSafe) : all.filter((m) => m.scale === 'macro').slice(0, 12)).filter(corroborated),
+    items: (cls ? all.filter(listed).map((m) => ({ ...m, kind: m.moment ? 'moment' : 'search' })).sort((a, b) => (a.kind === 'search') - (b.kind === 'search')) : all.filter((m) => m.scale === 'macro').slice(0, 12))
+      .filter(corroborated).slice(0, MAX_ITEMS),
     hidden: all.filter((m) => m.moment && m.brandSafe === false).map((m) => ({ label: m.label, category: m.category })),
-    routine: all.filter((m) => m.moment === false).length,
+    routine: all.filter((m) => !m.moment && !(cls && listed(m))).length,
     sources: { googleMarkets: GULF.filter((geo, i) => g[i]), wikipediaDay: (en && en.day) || (ar && ar.day) || null },
     errors,
   };

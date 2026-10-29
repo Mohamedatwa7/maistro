@@ -60,7 +60,7 @@ function summarise(kind, payload) {
 
 function inferLanguages(markets) {
   const m = (markets || []).map((x) => String(x).toUpperCase());
-  const ar = m.some((x) => /KSA|SAUDI|UAE|QATAR|KUWAIT|OMAN|BAHRAIN|EGYPT|GCC|MENA/.test(x));
+  const ar = m.some((x) => /KSA|SAUDI|UAE|QATAR|KUWAIT|OMAN|BAHRAIN|EGYPT|GCC|GULF|MENA/.test(x));
   return ar ? ['en', 'ar'] : ['en'];
 }
 

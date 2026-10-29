@@ -58,7 +58,7 @@ test('part 3: the live feed hides niche and unmeasured trends unless on-brand, l
     // the Moments view itself
     X.STATE.trView = 'moments'; html = X.rTrends();
     assert.match(html, /③ · Moments/); assert.match(html, /Plan for these/); assert.match(html, /What the Gulf is searching/);
-    assert.match(html, /Production window is open/); assert.match(html, /DATE TO CONFIRM/); assert.match(html, /3 routine searches/);
+    assert.match(html, /Production window is open/); assert.match(html, /Gulf · /); assert.match(html, /Searched across the Gulf/); assert.ok(!/>UAE · |KSA|Qatar · /.test(html), 'no single country is named as the market'); assert.match(html, /DATE TO CONFIRM/); assert.match(html, /3 routine searches/);
     // live reference videos: a toggle per moment, opened in place
     X.MOMENTS.upcoming[0].videos = [{ vid: '7701000000000000001', handle: '@dxb', region: 'AE', views: 120000 }, { vid: '7701000000000000002', handle: '@us', region: 'US', views: 900000 }];
     X.MOMENTS.upcoming[0].videosAt = '2026-10-29T06:00:00Z'; X.MOMENTS.upcoming[0].captionsCheckedBy = 'claude';

@@ -50,6 +50,7 @@ function sources({ claude, failAll, extra = [] } = {}) {
       if (['AE', 'SA', 'QA'].includes(geo)) base.push(["ballon d'or", '20K+', 'Dembélé wins the Ballon d’Or']);
       if (geo === 'SA') base.push(['الكرة الذهبية', '50K+']);
       if (geo === 'AE') base.push(['election results', '5K+']);
+      if (geo === 'KW') base.push(['al hilal vs al nassr', '20K+']);
       return text(rss(base));
     }],
     [/wikimedia\.org\/api\/rest_v1\/metrics\/pageviews\/top\/(en|ar)\.wikipedia/, (u) => {
@@ -72,6 +73,7 @@ function screen(body) {
       if (/ballon|الكرة الذهبية/.test(t)) return { id: c.id, label: "Ballon d'Or 2026", category: 'sport', moment: true, brandSafe: true, gulfRelevance: 8, why: 'The Ballon d’Or was awarded.', samsungAngle: 'Galaxy AI photo remaster of a golden moment' };
       if (/obscure/.test(t)) return { id: c.id, label: 'Obscure festival', category: 'culture', moment: true, brandSafe: true, gulfRelevance: 2, why: 'A page spiked.', samsungAngle: 'x' };
       if (/election|politician/.test(t)) return { id: c.id, label: 'Election', category: 'politics', moment: true, brandSafe: false, gulfRelevance: 3, why: 'An election.', samsungAngle: '' };
+      if (/al hilal/.test(t)) return { id: c.id, label: 'Al Hilal vs Al Nassr', category: 'sport', moment: false, brandSafe: true, gulfRelevance: 8, why: 'The Riyadh derby.', samsungAngle: 'Fan reactions on Galaxy' };
       return { id: c.id, label: c.title, category: 'sport', moment: false, brandSafe: true, gulfRelevance: 4, why: 'Routine.', samsungAngle: '' };
     }),
   };
@@ -87,7 +89,8 @@ test('GET /api/moments: Gulf searches and Wikipedia spikes are merged into one m
     assert.equal(r.headers['cache-control'], 'private, max-age=600');
     const b = r.body.breaking;
     assert.equal(b.classifiedBy, 'claude'); assert.deepEqual(b.errors, []);
-    assert.deepEqual(b.items.map((x) => x.label), ["Ballon d'Or 2026"], 'one moment; fixtures and the weather are routine, the election is screened out, and a lone Wikipedia page is too thin');
+    assert.deepEqual(b.items.map((x) => [x.label, x.kind]), [["Ballon d'Or 2026", 'moment'], ['Al Hilal vs Al Nassr', 'search']], 'the moment first, then a brand-safe search the Gulf cares about; low-relevance fixtures and the weather are routine, the election is screened out, and a lone Wikipedia page is too thin');
+    assert.match(s.sent().system, /never name a single Gulf country/);
     const bo = b.items[0];
     assert.deepEqual(bo.markets, ['AE', 'SA', 'QA']); assert.equal(bo.scale, 'macro');
     assert.deepEqual(bo.sources.sort(), ['google', 'wikipedia-ar', 'wikipedia-en']);
@@ -142,7 +145,7 @@ test('the hourly cron prepares the breaking read and stores it; a signed-in read
   let h = api('moments.js', ENV);
   try {
     let r = res(); await h.handler(req({ method: 'GET', headers: { authorization: 'Bearer cron' }, session: false }), r);
-    assert.equal(r.statusCode, 200); assert.equal(r.body.ok, true); assert.equal(r.body.items, 1); assert.equal(r.body.classifiedBy, 'claude');
+    assert.equal(r.statusCode, 200); assert.equal(r.body.ok, true); assert.equal(r.body.items, 2); assert.equal(r.body.classifiedBy, 'claude');
     const row = pg.tables.trends_cache.find((x) => x.id === 'moments');
     assert.equal(row.payload.breaking.items[0].label, "Ballon d'Or 2026");
     r = res(); await h.handler(req({ method: 'GET', headers: { authorization: 'Bearer nope' }, session: false }), r);

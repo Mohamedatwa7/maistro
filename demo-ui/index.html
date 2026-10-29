@@ -4062,6 +4062,8 @@ function trendStalePill(){
  return h>TREND_STALE_H?`<span class="pill" style="border-color:rgba(251,113,133,.5);color:#fda4af"><span class="dot" style="background:#fb7185"></span>STALE · ${Math.round(h)}H OLD</span>`:'';
 }
 const MKT={AE:'UAE',SA:'KSA',KW:'Kuwait',QA:'Qatar',BH:'Bahrain',OM:'Oman'};
+/* the Moments view names the region, never a single country (owner, 2026-10-29) */
+const moWhere=m=>(m.markets||[]).some(c=>MKT[c])?'Gulf':'Global';
 const MO_CAT={national:'c',religious:'gold',retail:'go',sport:'ai',tech:'v',culture:'muted',entertainment:'v',holiday:'gold',lifestyle:'muted',other:'muted'};
 const moDate=s=>{const d=new Date(s+'T00:00:00Z');return{d:d.getUTCDate(),m:d.toLocaleString('en',{month:'short',timeZone:'UTC'}).toUpperCase()}};
 const moNum=n=>n>=1e6?(n/1e6).toFixed(1).replace(/\.0$/,'')+'M':n>=1e3?Math.round(n/1e3)+'K':String(n);
@@ -4083,7 +4085,7 @@ function rMomentUp(m){
   <div class="mo-date"><b>${dt.d}</b><span>${dt.m}</span></div>
   <div style="min-width:0;flex:1">
    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="mo-ttl">${esc(m.label)}</span>${badge(MO_CAT[m.category]||'muted',esc(String(m.category).toUpperCase()))}${m.estimate?badge('muted','DATE TO CONFIRM'):''}</div>
-   <div class="mo-sub">${m.markets.map(c=>esc(MKT[c]||c)).join(' · ')} · ${prep}</div>
+   <div class="mo-sub">${moWhere(m)} · ${prep}</div>
    <div class="mo-note">${esc(m.note||'')}</div>
    ${rMoVids(m,'up:'+m.id)}
   </div>
@@ -4095,8 +4097,8 @@ function rMomentNow(m){
  const n=(m.news||[])[0];
  return `<div class="mo-row">
   <div style="min-width:0;flex:1">
-   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="mo-ttl">${esc(m.label)}</span>${m.category?badge(MO_CAT[m.category]||'muted',esc(String(m.category).toUpperCase())):''}${m.scale==='macro'?badge('gold','REGION-WIDE'):''}${m.brandSafe==null?badge('alert','NOT BRAND-CHECKED'):''}</div>
-   <div class="mo-sub">${m.markets.length?m.markets.map(c=>esc(MKT[c]||c)).join(' · '):'Wikipedia'}${reach?' · '+reach:''}</div>
+   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="mo-ttl">${esc(m.label)}</span>${m.category?badge(MO_CAT[m.category]||'muted',esc(String(m.category).toUpperCase())):''}${m.kind==='search'?badge('muted','TRENDING SEARCH'):m.scale==='macro'?badge('gold','REGION-WIDE'):''}${m.brandSafe==null?badge('alert','NOT BRAND-CHECKED'):''}</div>
+   <div class="mo-sub">${m.markets.length?'Searched across the Gulf':'Wikipedia'}${reach?' · '+reach:''}</div>
    ${m.why?`<div class="mo-note">${esc(m.why)}</div>`:''}
    ${m.samsungAngle?`<div class="mo-angle">✦ ${esc(m.samsungAngle)}</div>`:''}
    ${n&&/^https:\/\//.test(n.url)?`<a class="mo-news" href="${esc(n.url)}" target="_blank" rel="noopener noreferrer">${esc(n.title)}${n.source?' · '+esc(n.source):''} ↗</a>`:''}
@@ -4109,7 +4111,7 @@ function rMoments(){
  if(!MOMENTS.loaded)return `<div class="card p5"><p class="dim" style="font-size:12.5px">Loading moments…</p></div>`;
  if(MOMENTS.error&&!MOMENTS.upcoming.length)return `<div class="card p5"><div class="pc-note">Moments could not be loaded (${esc(MOMENTS.error)}). Reload to try again.</div></div>`;
  const b=MOMENTS.breaking||{items:[],hidden:[]};
- const src=b.sources?`Google Trends in ${b.sources.googleMarkets.length} Gulf markets${b.sources.wikipediaDay?' + Wikipedia (English and Arabic, '+esc(b.sources.wikipediaDay)+')':''}`:'';
+ const src=b.sources?`Google Trends across the Gulf${b.sources.wikipediaDay?' + Wikipedia (English and Arabic, '+esc(b.sources.wikipediaDay)+')':''}`:'';
  return `<div class="mo-grid">
   <div class="card" style="overflow:hidden">
    <div class="p5 mo-head"><span class="kick accent">Coming up</span><h3 style="font-size:17px;margin-top:8px">Plan for these</h3>
@@ -4118,12 +4120,12 @@ function rMoments(){
   </div>
   <div class="card" style="overflow:hidden">
    <div class="p5 mo-head"><span class="kick accent">Breaking now</span><h3 style="font-size:17px;margin-top:8px">What the Gulf is searching</h3>
-    <p class="dim" style="font-size:12px;margin-top:4px">Finals, award nights, launches and other shared moments spiking right now${src?': '+src:''}. Routine searches and anything off-brand are left out.</p></div>
+    <p class="dim" style="font-size:12px;margin-top:4px">Finals, award nights, launches and other shared moments spiking right now, then the other brand-safe searches Gulf audiences care about${src?': '+src:''}. Anything off-brand or routine (weather, portals) is left out.</p></div>
    ${b.error?`<div class="p5"><div class="pc-note">The live sources could not be reached (${esc(b.error)}).</div></div>`:''}
    ${!b.error&&b.classifiedBy==='none'?`<div class="p5" style="padding-top:0"><div class="pc-note">The brand check is unavailable right now${(b.errors||[]).some(e=>/credit balance/i.test(e))?' (the Anthropic account is out of credit)':''}, so nothing is listed: unchecked searches are mostly fixtures and noise. The calendar on the left is unaffected.</div></div>`:''}
    ${b.refreshSkipped?`<div class="p5" style="padding-top:0"><div class="pc-note" style="border-color:rgba(251,191,36,.45)">Showing the last checked list${b.preparedAt?' from '+esc(fmtClock(b.preparedAt)):''}: the latest refresh could not run its brand check, so it was not used.</div></div>`:''}
    ${b.classifiedBy==='none'?'':(b.items||[]).map(rMomentNow).join('')||(!b.error?'<div class="pc-empty dim">No region-wide moment is spiking right now.</div>':'')}
-   ${(b.hidden||[]).length||b.routine?`<div class="mo-foot dim">${b.hidden.length?`Screened out as off-brand: ${b.hidden.map(h=>esc(h.label)+(h.category?' ('+esc(h.category)+')':'')).join(', ')}. `:''}${b.routine?`${b.routine} routine searches (fixtures, weather, portals) skipped.`:''}</div>`:''}
+   ${(b.hidden||[]).length||b.routine?`<div class="mo-foot dim">${b.hidden.length?`Screened out as off-brand: ${b.hidden.map(h=>esc(h.label)+(h.category?' ('+esc(h.category)+')':'')).join(', ')}. `:''}${b.routine?`${b.routine} routine searches (weather, portals, minor fixtures) skipped.`:''}</div>`:''}
   </div>
  </div>`;
 }
@@ -4155,8 +4157,7 @@ function nicheToggle(){STATE.showNiche=!STATE.showNiche;$('#view').innerHTML=rTr
 function cpFromMoment(kind,id){
  const m=kind==='up'?MOMENTS.upcoming.find(x=>x.id===id):((MOMENTS.breaking&&MOMENTS.breaking.items)||[]).find(x=>x.id===id);if(!m)return;
  const when=kind==='up'?` (${m.from===m.to?m.from:m.from+' to '+m.to})`:' (happening now)';
- const payload={...cpPayloadFromText(`${m.label}${when}: ${m.samsungAngle||m.note||m.why||''}`.trim()),name:m.label,type:'moment',markets:(m.markets||[]).map(c=>MKT[c]||c)};
- if(!payload.markets.length)payload.markets=['UAE','KSA'];
+ const payload={...cpPayloadFromText(`${m.label}${when}: ${m.samsungAngle||m.note||m.why||''}`.trim()),name:m.label,type:'moment',markets:['Gulf']};
  Object.assign(BOT,{step:'direction',msgs:[],chips:[],proj:null,payload:null,pendingPayload:payload,busy:false});
  cpDraft(m.label,BOT.pendingPayload);
  cpSay(`I've pulled the moment <b>“${esc(m.label)}”</b> into the studio. Tell me what you want this campaign to be (product, angle, market) or tap <b>Plan it</b> and I'll decide.`);
