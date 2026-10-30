@@ -48,8 +48,8 @@ const check = (name, cond) => { console.log((cond ? 'PASS' : 'FAIL') + ' ' + nam
 
 // Landing
 const home = X.rHome();
-check('rHome renders ascii canvas', home.includes('al-cv'));
-check('rHome wordmark matches site logo (gold Ai)', home.includes('M<span class="ai">Ai</span>STRO'));
+check('rHome renders the signal-map canvas', home.includes('hp-map-cv'));
+check('rHome wordmark reads MAISTRO with the AI highlighted', home.includes('<span class="word">M<span class="ai-hl">AI</span>STRO</span>') && home.includes('<span class="hp-name">M<span class="ai-hl">AI</span>STRO</span>'));
 check('rHome has enter link', home.includes('#/trends'));
 check('startAscii defined', typeof X.startAscii === 'function');
 check('slideshow removed', X.ssGone);

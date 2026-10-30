@@ -111,6 +111,12 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       await dispatch({ method: req.method, url: req.url, headers: req.headers, query, body }, res);
       if (!res.writableEnded) res.end();
+    } else if (req.method === 'GET' && /^\/(assets\/[\w.-]+|favicon\.ico)$/.test(u.pathname) && fs.existsSync(path.join(ROOT, u.pathname.replace('favicon.ico', 'assets/favicon.ico')))) {
+      // the page's own images and icons, as Vercel serves them from public/assets
+      const file = path.join(ROOT, u.pathname.replace('favicon.ico', 'assets/favicon.ico'));
+      const TYPES = { '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
+      res.setHeader('content-type', TYPES[path.extname(file)] || 'application/octet-stream');
+      res.end(fs.readFileSync(file));
     } else if (req.method === 'GET') {
       res.setHeader('content-type', 'text/html; charset=utf-8');
       res.end(fs.readFileSync(path.join(ROOT, 'index.html')));

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 export const metadata = {
   title: "MAISTRO",
   description: "A→Z content creation platform · Samsung Gulf",
-  icons: { icon: [{ url: "/assets/favicon.svg", type: "image/svg+xml" }, { url: "/favicon.ico", sizes: "any" }], apple: "/assets/apple-touch-icon.png" },
+  icons: { icon: [{ url: "/assets/favicon.svg?v=3", type: "image/svg+xml" }, { url: "/favicon.ico?v=3", sizes: "any" }], apple: "/assets/apple-touch-icon.png?v=3" },
 };
 
 // Root layout for the pages that replace the legacy app one by one

@@ -52,7 +52,7 @@ function WorkspaceSwitcher({ selected, onSelect }: { selected?: string; onSelect
   const [internalSelected, setInternalSelected] = useState('Samsung Gulf');
   const current = selected || internalSelected;
   const handleSelect = onSelect || setInternalSelected;
-  const workspaces = ['Samsung Gulf', 'Samsung KSA', 'Samsung Egypt', 'Samsung Türkiye'];
+  const workspaces = ['Samsung Gulf', 'Samsung Egypt', 'Samsung Türkiye'];
 
   return (
     <div className="relative">
