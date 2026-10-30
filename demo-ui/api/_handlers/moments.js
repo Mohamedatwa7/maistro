@@ -1,6 +1,6 @@
 // GET /api/moments (session): the big occasions to plan around (api/_trends/moments.js).
 //   upcoming: the planned calendar, under way or starting within ~5 months
-//   breaking: what is spiking now in the Gulf (Google Trends) and on Wikipedia,
+//   breaking: what is spiking now in the Gulf (Google Trends), on Wikipedia and in the Gulf news,
 //             brand-checked by Claude; `hidden` lists what was screened out
 // ?view=upcoming skips the live sources.
 // The breaking read is slow (six feeds, two Wikipedia days, a Claude pass) and costs a

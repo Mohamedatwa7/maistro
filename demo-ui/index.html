@@ -4332,8 +4332,8 @@ function rMomentNow(m){
  const n=(m.news||[])[0];
  return `<div class="mo-row">
   <div style="min-width:0;flex:1">
-   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="mo-ttl">${esc(m.label)}</span>${m.category?badge(MO_CAT[m.category]||'muted',esc(String(m.category).toUpperCase())):''}${m.kind==='search'?badge('muted','TRENDING SEARCH'):m.scale==='macro'?badge('gold','REGION-WIDE'):''}${m.brandSafe==null?badge('alert','NOT BRAND-CHECKED'):''}</div>
-   <div class="mo-sub">${m.markets.length?'Searched across the Gulf':'Wikipedia'}${reach?' · '+reach:''}</div>
+   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="mo-ttl">${esc(m.label)}</span>${m.category?badge(MO_CAT[m.category]||'muted',esc(String(m.category).toUpperCase())):''}${m.kind==='news'?badge('muted','IN THE NEWS'):''}${m.kind==='search'?badge('muted','TRENDING SEARCH'):m.scale==='macro'?badge('gold','REGION-WIDE'):''}${m.brandSafe==null?badge('alert','NOT BRAND-CHECKED'):''}</div>
+   <div class="mo-sub">${m.markets.length?'Searched across the Gulf':(m.newsMarkets||[]).length?'In the Gulf news ('+esc(m.newsMarkets.map(g=>({SA:'KSA',AE:'UAE'})[g]||g).join(', '))+')':'Wikipedia'}${reach?' · '+reach:''}</div>
    ${m.why?`<div class="mo-note">${esc(m.why)}</div>`:''}
    ${m.samsungAngle?`<div class="mo-angle">✦ ${esc(m.samsungAngle)}</div>`:''}
    ${n&&/^https:\/\//.test(n.url)?`<a class="mo-news" href="${esc(n.url)}" target="_blank" rel="noopener noreferrer">${esc(n.title)}${n.source?' · '+esc(n.source):''} ↗</a>`:''}
@@ -4346,7 +4346,7 @@ function rMoments(){
  if(!MOMENTS.loaded)return `<div class="card p5"><p class="dim" style="font-size:12.5px">Loading moments…</p></div>`;
  if(MOMENTS.error&&!MOMENTS.upcoming.length)return `<div class="card p5"><div class="pc-note">Moments could not be loaded (${esc(MOMENTS.error)}). Reload to try again.</div></div>`;
  const b=MOMENTS.breaking||{items:[],hidden:[]};
- const src=b.sources?`Google Trends across the Gulf${b.sources.wikipediaDay?' + Wikipedia (English and Arabic, '+esc(b.sources.wikipediaDay)+')':''}`:'';
+ const src=b.sources?`Google Trends across the Gulf${b.sources.wikipediaDay?' + Wikipedia (English and Arabic, '+esc(b.sources.wikipediaDay)+')':''}${(b.sources.newsSections||[]).length?' + Gulf news ('+esc(b.sources.newsSections.join(', '))+')':''}`:'';
  return `<div class="mo-grid">
   <div class="card" style="overflow:hidden">
    <div class="p5 mo-head"><span class="kick accent">Coming up</span><h3 style="font-size:17px;margin-top:8px">Plan for these</h3>
@@ -4355,7 +4355,7 @@ function rMoments(){
   </div>
   <div class="card" style="overflow:hidden">
    <div class="p5 mo-head"><span class="kick accent">Breaking now</span><h3 style="font-size:17px;margin-top:8px">What the Gulf is searching</h3>
-    <p class="dim" style="font-size:12px;margin-top:4px">Finals, award nights, launches and other shared moments spiking right now, then the other brand-safe searches Gulf audiences care about${src?': '+src:''}. Anything off-brand or routine (weather, portals) is left out.</p></div>
+    <p class="dim" style="font-size:12px;margin-top:4px">Finals, award nights, launches, releases and other shared moments spiking right now, then the other brand-safe searches and stories Gulf audiences care about, at most four per category${src?': '+src:''}. Anything off-brand or routine (weather, portals) is left out.</p></div>
    ${b.error?`<div class="p5"><div class="pc-note">The live sources could not be reached (${esc(b.error)}).</div></div>`:''}
    ${!b.error&&b.classifiedBy==='none'?`<div class="p5" style="padding-top:0"><div class="pc-note">The brand check is unavailable right now${(b.errors||[]).some(e=>/credit balance/i.test(e))?' (the Anthropic account is out of credit)':''}, so nothing is listed: unchecked searches are mostly fixtures and noise. The calendar on the left is unaffected.</div></div>`:''}
    ${b.refreshSkipped?`<div class="p5" style="padding-top:0"><div class="pc-note" style="border-color:rgba(251,191,36,.45)">Showing the last checked list${b.preparedAt?' from '+esc(fmtClock(b.preparedAt)):''}: the latest refresh could not run its brand check, so it was not used.</div></div>`:''}

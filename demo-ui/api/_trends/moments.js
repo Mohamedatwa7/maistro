@@ -7,7 +7,9 @@
 //    (lunar, organiser-announced) and must be confirmed before booking work.
 //  - fetchBreaking(): what is spiking right now, from Google Trends' daily
 //    trending searches in the six Gulf markets and Wikipedia's most-viewed pages
-//    (English and Arabic, yesterday against a week earlier). One Claude pass names
+//    (English and Arabic, yesterday against a week earlier), plus Google News' Arabic
+//    entertainment, tech and science headlines in KSA and the UAE (the Trends
+//    feed is ten searches a market, mostly fixtures, and ignores categories). One Claude pass names
 //    each item, merges duplicates across languages and sources, and decides brand
 //    safety; without it the items are returned unchecked and say so.
 // No keys are needed for the sources. Nothing here is written to the database.
@@ -104,6 +106,29 @@ async function googleTrends(geo) {
   return parseTrendsRss(await r.text()).map((x) => ({ ...x, geo }));
 }
 
+// Google News topic feeds: the Arabic editions are the Gulf's own (the English ones redirect to the US edition)
+// HEALTH was tried 2026-10-30: outbreaks and cancer treatments, which the brand check screens out anyway
+const NEWS_TOPICS = ['ENTERTAINMENT', 'TECHNOLOGY', 'SCIENCE'];
+const NEWS_GEOS = ['SA', 'AE'];
+const NEWS_PER_FEED = 5;
+
+/** Google News RSS → [{ title, url, source }]; the " - Outlet" suffix comes off the headline. */
+function parseNewsRss(xml) {
+  return String(xml || '').split('<item>').slice(1).map((it) => {
+    const sm = /<source[^>]*>([\s\S]*?)<\/source>/.exec(it); // carries a url attribute
+    const source = sm ? decode(sm[1].trim()) : '';
+    let title = tag(it, 'title');
+    if (source && title.endsWith(` - ${source}`)) title = title.slice(0, -(source.length + 3));
+    return { title: title.trim(), url: tag(it, 'link'), source };
+  }).filter((x) => x.title);
+}
+
+async function googleNews(geo, topic) {
+  const r = await fetchT(`https://news.google.com/rss/headlines/section/topic/${topic}?hl=ar&gl=${geo}&ceid=${geo}:ar`, { headers: { 'user-agent': 'Mozilla/5.0 (Maistro moments)' } }, { timeoutMs: 8000, retries: 1 });
+  if (!r.ok) throw new Error(`Google News ${geo} ${topic}: ${r.status}`);
+  return parseNewsRss(await r.text()).slice(0, NEWS_PER_FEED).map((x) => ({ ...x, geo, topic: topic.toLowerCase() }));
+}
+
 // pages that are always near the top (portals, search, bots) and say nothing about a moment
 const WIKI_NOISE = /^(Main_Page|الصفحة_الرئيسية|Special:|Wikipedia:|File:|Portal:|Help:|Template:|Category:|خاص:|ويكيبيديا:|ملف:|بوابة:|مساعدة:|قالب:|تصنيف:)|^\.xxx$|^XXX|^Cleopatra$|^Bible$|^Pornhub/i;
 
@@ -136,8 +161,8 @@ async function wikiBreaking(project, now) {
 
 const norm = (s) => String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
-/** Raw candidates before classification: Google items merged by title across markets, plus Wikipedia spikes. */
-function candidates({ google = [], wiki = {} }) {
+/** Raw candidates before classification: Google items merged by title across markets, Wikipedia spikes and Gulf headlines. */
+function candidates({ google = [], wiki = {}, news = [] }) {
   const byTitle = new Map();
   for (const g of google) {
     const k = norm(g.title);
@@ -151,7 +176,15 @@ function candidates({ google = [], wiki = {} }) {
   for (const [project, w] of Object.entries(wiki)) {
     for (const s of (w && w.spikes) || []) out.push({ id: `w:${project}:${norm(s.title)}`, title: s.title, source: 'wikipedia', project, views: s.views, weekAgo: s.weekAgo, geos: [], traffic: 0, news: [] });
   }
-  return out;
+  // a headline is in the Gulf news, not searched: its markets are newsGeos, so the page never calls it a search
+  const byHeadline = new Map();
+  for (const n of news) {
+    const k = norm(n.title).slice(0, 80);
+    const c = byHeadline.get(k) || { id: `n:${k}`, title: n.title, source: 'news', topic: n.topic, geos: [], newsGeos: [], traffic: 0, news: [{ title: n.title, url: n.url, source: n.source }] };
+    if (!c.newsGeos.includes(n.geo)) c.newsGeos.push(n.geo);
+    byHeadline.set(k, c);
+  }
+  return out.concat([...byHeadline.values()]);
 }
 
 const CATEGORIES = ['sport', 'entertainment', 'tech', 'culture', 'holiday', 'retail', 'lifestyle', 'politics', 'conflict', 'tragedy', 'crime', 'finance', 'religion', 'adult', 'other'];
@@ -183,7 +216,8 @@ const SCHEMA = {
 };
 const SYSTEM =
   'You screen what is spiking right now for Samsung Gulf\'s social team (UAE, KSA, Kuwait, Qatar, Bahrain, Oman). ' +
-  'Each candidate is a Google search trending in one or more Gulf markets, or a Wikipedia page whose views spiked. ' +
+  'Each candidate is a Google search trending in one or more Gulf markets, a Wikipedia page whose views spiked, or a headline ' +
+  'from the Gulf\'s Arabic entertainment, tech or science news (label it in English). ' +
   'For every candidate: name the moment in plain English (identical labels for the same moment across languages and sources), ' +
   'categorise it, and decide moment and brandSafe. moment is true only for a shared occasion people across the region are talking ' +
   'about: a final, a derby or title decider, an awards night (e.g. the Ballon d\'Or), a major launch, a festival, a holiday, a viral ' +
@@ -203,10 +237,10 @@ async function classify(cands, { client } = {}) {
   // one long attempt, not two short ones: ~60 candidates take Sonnet over a minute (2026-10-29: two 60 s
   // attempts both timed out), and the cron has 300 s for this and the video refresh
   const c = client || new Anthropic({ timeout: 150000, maxRetries: 0 });
-  const digest = cands.map((x) => ({ id: x.id, title: x.title, source: x.source, markets: x.geos.map((g) => GEO_NAME[g]), searches: x.traffic || undefined, wikipediaViews: x.views || undefined, wikipedia: x.project, headlines: x.news.map((n) => n.title) }));
+  const digest = cands.map((x) => ({ id: x.id, title: x.title, source: x.source, markets: x.geos.map((g) => GEO_NAME[g]), inTheNewsIn: x.newsGeos ? x.newsGeos.map((g) => GEO_NAME[g]) : undefined, newsSection: x.topic, searches: x.traffic || undefined, wikipediaViews: x.views || undefined, wikipedia: x.project, headlines: x.source === 'news' ? undefined : x.news.map((n) => n.title) }));
   const response = await c.messages.create({
     model: MODEL(),
-    max_tokens: 12000,
+    max_tokens: 16000,
     system: SYSTEM,
     messages: [{ role: 'user', content: `CANDIDATES:\n${JSON.stringify(digest, null, 1)}\n\nClassify every candidate.` }],
     output_config: { format: { type: 'json_schema', schema: SCHEMA }, effort: 'low' },
@@ -230,12 +264,13 @@ function assemble(cands, cls) {
     if (cls && !k) continue; // the model skipped it: nothing to show without a safety decision
     const label = k ? k.label : x.title;
     const key = norm(label);
-    const g = groups.get(key) || { id: key.replace(/ /g, '-').slice(0, 80), label, category: k ? k.category : null, moment: k ? k.moment : null, brandSafe: k ? k.brandSafe : null, gulfRelevance: k ? k.gulfRelevance : null, why: k ? k.why : '', samsungAngle: k ? k.samsungAngle : '', keywords: [], markets: [], traffic: 0, wikiViews: 0, sources: [], searches: [], news: [], picture: null };
+    const g = groups.get(key) || { id: key.replace(/ /g, '-').slice(0, 80), label, category: k ? k.category : null, moment: k ? k.moment : null, brandSafe: k ? k.brandSafe : null, gulfRelevance: k ? k.gulfRelevance : null, why: k ? k.why : '', samsungAngle: k ? k.samsungAngle : '', keywords: [], markets: [], newsMarkets: [], traffic: 0, wikiViews: 0, sources: [], searches: [], news: [], picture: null };
     if (k) { g.moment = g.moment || k.moment; g.brandSafe = g.brandSafe === false || k.brandSafe === false ? false : true; g.gulfRelevance = Math.max(g.gulfRelevance || 0, k.gulfRelevance || 0); if (!g.samsungAngle && k.samsungAngle) g.samsungAngle = k.samsungAngle; }
     for (const w of (k && Array.isArray(k.keywords) ? k.keywords : [])) { const v = String(w).toLowerCase().trim().slice(0, 40); if (v.length >= 3 && g.keywords.length < 6 && !g.keywords.includes(v)) g.keywords.push(v); }
     for (const geo of x.geos) if (!g.markets.includes(geo)) g.markets.push(geo);
+    for (const geo of x.newsGeos || []) if (!g.newsMarkets.includes(geo)) g.newsMarkets.push(geo);
     g.traffic += x.traffic || 0; g.wikiViews += x.views || 0;
-    const src = x.source === 'wikipedia' ? `wikipedia-${x.project === 'ar.wikipedia' ? 'ar' : 'en'}` : 'google';
+    const src = x.source === 'wikipedia' ? `wikipedia-${x.project === 'ar.wikipedia' ? 'ar' : 'en'}` : x.source === 'news' ? 'news' : 'google';
     if (!g.sources.includes(src)) g.sources.push(src);
     if (!g.searches.includes(x.title)) g.searches.push(x.title);
     for (const n of x.news) if (g.news.length < 2 && !g.news.some((y) => y.url === n.url)) g.news.push(n);
@@ -246,8 +281,16 @@ function assemble(cands, cls) {
     .sort((a, b) => (b.brandSafe === true) - (a.brandSafe === true) || b.reach - a.reach);
 }
 
-const MAX_CANDIDATES = 60, MAX_ITEMS = 15, SEARCH_MIN_RELEVANCE = 6;
-const corroborated = (m) => m.markets.length > 0 || m.sources.length >= 2;
+// each source has its own share of the check, so the Gulf's fixtures cannot crowd out the headlines and Wikipedia
+const QUOTA = { google: 25, wikipedia: 20, news: 25 };
+const MAX_ITEMS = 15, SEARCH_MIN_RELEVANCE = 6;
+// 2026-10-30: the list was mostly football; no category takes more than CATEGORY_CAP places
+const CATEGORY_CAP = 4;
+const corroborated = (m) => m.markets.length > 0 || m.newsMarkets.length > 0 || m.sources.length >= 2;
+function capByCategory(list, cap = CATEGORY_CAP) {
+  const seen = {};
+  return list.filter((m) => { const k = m.category || 'other'; seen[k] = (seen[k] || 0) + 1; return seen[k] <= cap; });
+}
 // 2026-10-29: moments alone left one item most hours, so brand-safe searches Gulf audiences care about are listed
 // after them (kind 'search'); the rest of the routine searches stay out
 const listed = (m) => m.brandSafe && (m.moment || m.gulfRelevance >= SEARCH_MIN_RELEVANCE);
@@ -256,17 +299,24 @@ const listed = (m) => m.brandSafe && (m.moment || m.gulfRelevance >= SEARCH_MIN_
 async function fetchBreaking({ now = new Date(), client } = {}) {
   const errors = [];
   const settle = (p, label) => p.catch((e) => { errors.push(`${label}: ${String(e.message || e)}`); return null; });
-  const [g, en, ar] = await Promise.all([
+  const feeds = NEWS_GEOS.flatMap((geo) => NEWS_TOPICS.map((topic) => [geo, topic]));
+  const [g, en, ar, nw] = await Promise.all([
     Promise.all(GULF.map((geo) => settle(googleTrends(geo), `Google Trends ${geo}`))),
     settle(wikiBreaking('en.wikipedia', now), 'Wikipedia (en)'),
     settle(wikiBreaking('ar.wikipedia', now), 'Wikipedia (ar)'),
+    Promise.all(feeds.map(([geo, topic]) => settle(googleNews(geo, topic), `Google News ${geo} ${topic.toLowerCase()}`))),
   ]);
   const google = g.filter(Boolean).flat();
-  if (!google.length && !en && !ar) throw new Error(`every moments source failed: ${errors.join('; ')}`);
-  // the widest MAX_CANDIDATES go to the check (markets, searches, Wikipedia views); the long tail is single-market noise
-  const cands = candidates({ google, wiki: { ...(en ? { 'en.wikipedia': en } : {}), ...(ar ? { 'ar.wikipedia': ar } : {}) } })
-    .map((x) => ({ x, w: x.geos.length * 2 + (x.traffic ? Math.log10(x.traffic) : 0) + (x.views ? Math.log10(x.views) - 3 : 0) }))
-    .sort((a, b) => b.w - a.w).slice(0, MAX_CANDIDATES).map((o) => o.x);
+  // feed order is the editors' ranking: interleave the feeds so every section reaches the check
+  const news = [];
+  for (let i = 0; i < NEWS_PER_FEED; i++) for (const f of nw) if (f && f[i]) news.push(f[i]);
+  if (!google.length && !en && !ar && !news.length) throw new Error(`every moments source failed: ${errors.join('; ')}`);
+  // the widest of each source go to the check (markets, searches, Wikipedia views; headlines keep their feed order);
+  // the long tail is single-market noise
+  const weigh = (x) => x.geos.length * 2 + (x.traffic ? Math.log10(x.traffic) : 0) + (x.views ? Math.log10(x.views) - 3 : 0);
+  const all0 = candidates({ google, wiki: { ...(en ? { 'en.wikipedia': en } : {}), ...(ar ? { 'ar.wikipedia': ar } : {}) }, news });
+  const take = (source, sort) => { const l = all0.filter((x) => x.source === source); return (sort ? l.sort((a, b) => weigh(b) - weigh(a)) : l).slice(0, QUOTA[source]); };
+  const cands = [...take('google', true), ...take('wikipedia', true), ...take('news', false)];
   let cls = null, classifiedBy = 'none';
   try { cls = await classify(cands, { client }); classifiedBy = cls ? 'claude' : 'none'; } catch (e) { errors.push(`brand check: ${String(e.message || e)}`); }
   const all = assemble(cands, cls);
@@ -274,13 +324,14 @@ async function fetchBreaking({ now = new Date(), client } = {}) {
     classifiedBy,
     // unchecked (no Claude): the widest few, labelled as unchecked by the page
     // a moment needs a search spike in a Gulf market or a second source: one Wikipedia page alone is too thin
-    items: (cls ? all.filter(listed).map((m) => ({ ...m, kind: m.moment ? 'moment' : 'search' })).sort((a, b) => (a.kind === 'search') - (b.kind === 'search')) : all.filter((m) => m.scale === 'macro').slice(0, 12))
-      .filter(corroborated).slice(0, MAX_ITEMS),
+    // kind: a shared moment, else a search (Trends or Wikipedia), else a story only in the Gulf news
+    items: (cls ? capByCategory(all.filter(listed).filter(corroborated).map((m) => ({ ...m, kind: m.moment ? 'moment' : m.markets.length || m.wikiViews ? 'search' : 'news' })).sort((a, b) => (a.kind !== 'moment') - (b.kind !== 'moment'))) : all.filter((m) => m.scale === 'macro').filter(corroborated).slice(0, 12))
+      .slice(0, MAX_ITEMS),
     hidden: all.filter((m) => m.moment && m.brandSafe === false).map((m) => ({ label: m.label, category: m.category })),
     routine: all.filter((m) => !m.moment && !(cls && listed(m))).length,
-    sources: { googleMarkets: GULF.filter((geo, i) => g[i]), wikipediaDay: (en && en.day) || (ar && ar.day) || null },
+    sources: { googleMarkets: GULF.filter((geo, i) => g[i]), wikipediaDay: (en && en.day) || (ar && ar.day) || null, newsSections: [...new Set(feeds.filter((f, i) => nw[i]).map(([, t]) => t.toLowerCase()))] },
     errors,
   };
 }
 
-module.exports = { MOMENTS, GULF, upcoming, occurrence, parseTraffic, parseTrendsRss, wikiSpikes, candidates, classify, assemble, fetchBreaking, SCHEMA };
+module.exports = { MOMENTS, GULF, upcoming, occurrence, parseTraffic, parseTrendsRss, parseNewsRss, capByCategory, wikiSpikes, candidates, classify, assemble, fetchBreaking, SCHEMA };

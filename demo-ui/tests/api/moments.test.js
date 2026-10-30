@@ -53,6 +53,11 @@ function sources({ claude, failAll, extra = [] } = {}) {
       if (geo === 'KW') base.push(['al hilal vs al nassr', '20K+']);
       return text(rss(base));
     }],
+    [/news\.google\.com\/rss\/headlines\/section\/topic\/(ENTERTAINMENT|TECHNOLOGY|HEALTH|SCIENCE)\?hl=ar&gl=(SA|AE)/, (u) => {
+      if (failAll) return text('down', 503);
+      const items = /ENTERTAINMENT\?hl=ar&gl=SA/.test(u) ? `<item><title>مسلسل جديد يتصدر المشاهدات - العربية</title><link>https://news.test/series</link><source url="https://alarabiya.net">العربية</source></item>` : '';
+      return text(`<?xml version="1.0"?><rss><channel><title>أخبار Google</title>${items}</channel></rss>`);
+    }],
     [/wikimedia\.org\/api\/rest_v1\/metrics\/pageviews\/top\/(en|ar)\.wikipedia/, (u) => {
       if (failAll) return text('down', 503);
       const latest = /\/2026\/10\/28$/.test(u);
@@ -73,6 +78,7 @@ function screen(body) {
       if (/ballon|الكرة الذهبية/.test(t)) return { id: c.id, label: "Ballon d'Or 2026", category: 'sport', moment: true, brandSafe: true, gulfRelevance: 8, why: 'The Ballon d’Or was awarded.', samsungAngle: 'Galaxy AI photo remaster of a golden moment' };
       if (/obscure/.test(t)) return { id: c.id, label: 'Obscure festival', category: 'culture', moment: true, brandSafe: true, gulfRelevance: 2, why: 'A page spiked.', samsungAngle: 'x' };
       if (/election|politician/.test(t)) return { id: c.id, label: 'Election', category: 'politics', moment: true, brandSafe: false, gulfRelevance: 3, why: 'An election.', samsungAngle: '' };
+      if (/مسلسل/.test(t)) return { id: c.id, label: 'New series tops the charts', category: 'entertainment', moment: false, brandSafe: true, gulfRelevance: 7, why: 'A new series leads viewing.', samsungAngle: 'Watch it on a Galaxy Tab', keywords: ['series'] };
       if (/al hilal/.test(t)) return { id: c.id, label: 'Al Hilal vs Al Nassr', category: 'sport', moment: false, brandSafe: true, gulfRelevance: 8, why: 'The Riyadh derby.', samsungAngle: 'Fan reactions on Galaxy' };
       return { id: c.id, label: c.title, category: 'sport', moment: false, brandSafe: true, gulfRelevance: 4, why: 'Routine.', samsungAngle: '' };
     }),
@@ -89,7 +95,7 @@ test('GET /api/moments: Gulf searches and Wikipedia spikes are merged into one m
     assert.equal(r.headers['cache-control'], 'private, max-age=600');
     const b = r.body.breaking;
     assert.equal(b.classifiedBy, 'claude'); assert.deepEqual(b.errors, []);
-    assert.deepEqual(b.items.map((x) => [x.label, x.kind]), [["Ballon d'Or 2026", 'moment'], ['Al Hilal vs Al Nassr', 'search']], 'the moment first, then a brand-safe search the Gulf cares about; low-relevance fixtures and the weather are routine, the election is screened out, and a lone Wikipedia page is too thin');
+    assert.deepEqual(b.items.map((x) => [x.label, x.kind]), [["Ballon d'Or 2026", 'moment'], ['Al Hilal vs Al Nassr', 'search'], ['New series tops the charts', 'news']], 'the moment first, then a brand-safe search the Gulf cares about; low-relevance fixtures and the weather are routine, the election is screened out, and a lone Wikipedia page is too thin');
     assert.match(s.sent().system, /never name a single Gulf country/);
     const bo = b.items[0];
     assert.deepEqual(bo.markets, ['AE', 'SA', 'QA']); assert.equal(bo.scale, 'macro');
@@ -98,7 +104,10 @@ test('GET /api/moments: Gulf searches and Wikipedia spikes are merged into one m
     assert.equal(bo.wikiViews, 680000); assert.equal(bo.news.length, 1); assert.match(bo.samsungAngle, /Galaxy/);
     assert.deepEqual(b.hidden, [{ label: 'Election', category: 'politics' }], 'what was screened out is listed, not silently dropped');
     assert.ok(b.routine >= 2);
-    assert.deepEqual(b.sources, { googleMarkets: ['AE', 'SA', 'KW', 'QA', 'BH', 'OM'], wikipediaDay: '2026-10-28' });
+    assert.deepEqual(b.sources, { googleMarkets: ['AE', 'SA', 'KW', 'QA', 'BH', 'OM'], wikipediaDay: '2026-10-28', newsSections: ['entertainment', 'technology', 'science'] });
+    const sr = b.items[2];
+    assert.deepEqual([sr.markets, sr.newsMarkets, sr.sources, sr.news[0].source], [[], ['SA'], ['news'], 'العربية'], 'a Gulf headline is in the news, not searched; the outlet comes off the title');
+    assert.match(s.sent().messages[0].content, /"newsSection": "entertainment"/);
     const sent = s.sent();
     assert.ok(!/Main_Page|Special:Search|الصفحة_الرئيسية/.test(sent.messages[0].content), 'portal pages never reach the model');
     assert.equal(sent.output_config.format.type, 'json_schema');
@@ -141,11 +150,11 @@ test('the hourly cron prepares the breaking read and stores it; a signed-in read
   const pg = fakePostgrest();
   const ENV = { ANTHROPIC_API_KEY: 'k', SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', CRON_SECRET: 'cron' };
   const s = sources({ claude: screen, extra: [pg.route] });
-  const live = () => s.f.calls.filter((c) => /trends\.google|wikimedia|anthropic/.test(c.url)).length;
+  const live = () => s.f.calls.filter((c) => /trends\.google|news\.google|wikimedia|anthropic/.test(c.url)).length;
   let h = api('moments.js', ENV);
   try {
     let r = res(); await h.handler(req({ method: 'GET', headers: { authorization: 'Bearer cron' }, session: false }), r);
-    assert.equal(r.statusCode, 200); assert.equal(r.body.ok, true); assert.equal(r.body.items, 2); assert.equal(r.body.classifiedBy, 'claude');
+    assert.equal(r.statusCode, 200); assert.equal(r.body.ok, true); assert.equal(r.body.items, 3); assert.equal(r.body.classifiedBy, 'claude');
     const row = pg.tables.trends_cache.find((x) => x.id === 'moments');
     assert.equal(row.payload.breaking.items[0].label, "Ballon d'Or 2026");
     r = res(); await h.handler(req({ method: 'GET', headers: { authorization: 'Bearer nope' }, session: false }), r);
@@ -195,4 +204,14 @@ test('when the brand check fails, a checked copy under a day old is kept (not re
     assert.match(r.body.breaking.refreshSkipped, /brand check/);
     assert.ok(Date.now() - new Date(r.body.breaking.preparedAt).getTime() > 3600e3, 'preparedAt is the kept copy\'s time');
   } finally { s.f.restore(); h.restore(); }
+});
+
+test('variety: no category takes more than four places, and the source quotas keep headlines in the check next to the fixtures', () => {
+  const m = M();
+  const list = ['sport', 'sport', 'sport', 'sport', 'sport', 'sport', 'entertainment', 'tech', null].map((category, i) => ({ id: String(i), category }));
+  assert.deepEqual(m.capByCategory(list).map((x) => x.id), ['0', '1', '2', '3', '6', '7', '8'], 'the fifth and sixth sport items give way');
+  const news = m.parseNewsRss('<rss><item><title>Galaxy launch in Riyadh - Arab News</title><link>https://x.test/a</link><source url="https://arabnews.com">Arab News</source></item></rss>');
+  assert.deepEqual(news, [{ title: 'Galaxy launch in Riyadh', url: 'https://x.test/a', source: 'Arab News' }]);
+  const c = m.candidates({ news: [{ title: 'A', url: 'u', source: 's', geo: 'SA', topic: 'technology' }, { title: 'A', url: 'u', source: 's', geo: 'AE', topic: 'technology' }] });
+  assert.deepEqual([c.length, c[0].newsGeos, c[0].geos], [1, ['SA', 'AE'], []], 'one headline in both editions is one candidate');
 });
