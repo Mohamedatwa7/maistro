@@ -104,6 +104,7 @@ test('GET /api/moments: Gulf searches and Wikipedia spikes are merged into one m
     assert.equal(bo.wikiViews, 680000); assert.equal(bo.news.length, 1); assert.match(bo.samsungAngle, /Galaxy/);
     assert.deepEqual(b.hidden, [{ label: 'Election', category: 'politics' }], 'what was screened out is listed, not silently dropped');
     assert.ok(b.routine >= 2);
+    assert.ok(b.screened.some((x) => x.label === 'Election' && x.brandSafe === false), 'what was not listed is kept for tuning');
     assert.deepEqual(b.sources, { googleMarkets: ['AE', 'SA', 'KW', 'QA', 'BH', 'OM'], wikipediaDay: '2026-10-28', newsSections: ['entertainment', 'technology', 'science'] });
     const sr = b.items[2];
     assert.deepEqual([sr.markets, sr.newsMarkets, sr.sources, sr.news[0].source], [[], ['SA'], ['news'], 'العربية'], 'a Gulf headline is in the news, not searched; the outlet comes off the title');

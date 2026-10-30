@@ -328,6 +328,8 @@ async function fetchBreaking({ now = new Date(), client } = {}) {
     items: (cls ? capByCategory(all.filter(listed).filter(corroborated).map((m) => ({ ...m, kind: m.moment ? 'moment' : m.markets.length || m.wikiViews ? 'search' : 'news' })).sort((a, b) => (a.kind !== 'moment') - (b.kind !== 'moment'))) : all.filter((m) => m.scale === 'macro').filter(corroborated).slice(0, 12))
       .slice(0, MAX_ITEMS),
     hidden: all.filter((m) => m.moment && m.brandSafe === false).map((m) => ({ label: m.label, category: m.category })),
+    // everything the check did not list, for tuning the bar (not shown on the page)
+    screened: cls ? all.filter((m) => !listed(m) || !corroborated(m)).slice(0, 80).map((m) => ({ label: m.label, category: m.category, brandSafe: m.brandSafe, moment: m.moment, gulfRelevance: m.gulfRelevance, sources: m.sources })) : [],
     routine: all.filter((m) => !m.moment && !(cls && listed(m))).length,
     sources: { googleMarkets: GULF.filter((geo, i) => g[i]), wikipediaDay: (en && en.day) || (ar && ar.day) || null, newsSections: [...new Set(feeds.filter((f, i) => nw[i]).map(([, t]) => t.toLowerCase()))] },
     errors,
