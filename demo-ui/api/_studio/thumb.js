@@ -5,6 +5,7 @@
 // browser (correct Arabic shaping and RTL), never inside the image; the
 // platform decides the aspect; the overlay must sit inside the safe zone.
 const { registerPrompt, recordGeneration } = require('../_records.js');
+const { withImages } = require('./refs.js');
 const { queryRows } = require('../_supabase.js');
 
 const VERSION = 'thumb-prompt-v1-2026-10-21';
@@ -69,7 +70,7 @@ async function moodContext(pieceId) {
   return { approved: stage.state === 'approved', direction, chosen, tiles, annotations: approvals[0] && approvals[0].details ? approvals[0].details.annotations || null : null, note: payload.note || null, prompt: payload.prompt || null };
 }
 
-async function thumbPrompt({ piece, mood, productLook, rules, userInput, refAttached, aspect, client, memberId }) {
+async function thumbPrompt({ piece, mood, productLook, rules, userInput, refAttached, aspect, styleRefs = [], client, memberId }) {
   const Anthropic = client ? null : require('@anthropic-ai/sdk');
   const c = client || new Anthropic({ timeout: 90000, maxRetries: 1 });
   registerPrompt('studio.thumb.prompt', VERSION, `SYSTEM:\n${SYSTEM}\n\nUSER: campaign {{campaign}} product {{productLook}} mood {{mood}} aspect {{aspect}} rules {{rules}} ask {{userInput}}`, ['campaign', 'productLook', 'mood', 'aspect', 'rules', 'userInput']);
@@ -83,9 +84,9 @@ async function thumbPrompt({ piece, mood, productLook, rules, userInput, refAtta
     `WHAT THE USER ASKED FOR: "${String(userInput || '').trim() || '(left to you)'}"`,
   ].join('\n\n');
   const t0 = Date.now();
-  const rec = { kind: 'claude', legacyPieceId: piece.id, stage: 'thumb', model: MODEL(), promptName: 'studio.thumb.prompt', promptVersion: VERSION, resolvedPrompt: `${SYSTEM}\n\n${user}`, userPrompt: user, params: { aspect, refAttached: Boolean(refAttached) }, memberId };
+  const rec = { kind: 'claude', legacyPieceId: piece.id, stage: 'thumb', model: MODEL(), promptName: 'studio.thumb.prompt', promptVersion: VERSION, resolvedPrompt: `${SYSTEM}\n\n${user}`, userPrompt: user, params: { aspect, refAttached: Boolean(refAttached), styleRefs }, memberId };
   let response;
-  try { response = await c.messages.create({ model: MODEL(), max_tokens: 3000, system: SYSTEM, messages: [{ role: 'user', content: user }], output_config: { format: { type: 'json_schema', schema: SCHEMA } } }); }
+  try { response = await c.messages.create({ model: MODEL(), max_tokens: 3000, system: SYSTEM, messages: [{ role: 'user', content: withImages(user, styleRefs) }], output_config: { format: { type: 'json_schema', schema: SCHEMA } } }); }
   catch (e) { await recordGeneration({ ...rec, status: 'failed', error: e.message, latencyMs: Date.now() - t0 }); throw e; }
   const text = response.content && response.content.find((b) => b.type === 'text');
   let j; try { j = JSON.parse(text ? text.text : ''); } catch (e) { await recordGeneration({ ...rec, status: 'failed', error: 'malformed JSON', latencyMs: Date.now() - t0 }); return { error: 'malformed JSON' }; }

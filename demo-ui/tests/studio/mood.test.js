@@ -57,9 +57,9 @@ const CHECK6 = { images: [0, 1, 2, 3, 4, 5].map((i) => ({ ...CHECK.images[1], in
 function moodsWorld() {
   const pg = fakePostgrest();
   const H = hermesFake(); const hf = H.state;
-  const visionCalls = [];
+  const visionCalls = [], claudeCalls = [];
   const f = mockFetch([
-    ['api.anthropic.com', (u, init) => { const b = JSON.parse(init.body); const isCheck = /check generated campaign images/.test(b.system); if (isCheck) visionCalls.push(b); return json({ content: [{ type: 'text', text: JSON.stringify(isCheck ? CHECK6 : OPTIONS) }], stop_reason: 'end_turn', usage: { input_tokens: 5, output_tokens: 5 } }); }],
+    ['api.anthropic.com', (u, init) => { const b = JSON.parse(init.body); const isCheck = /check generated campaign images/.test(b.system); if (isCheck) visionCalls.push(b); else claudeCalls.push(b); return json({ content: [{ type: 'text', text: JSON.stringify(isCheck ? CHECK6 : OPTIONS) }], stop_reason: 'end_turn', usage: { input_tokens: 5, output_tokens: 5 } }); }],
     ...H.routes,
     [(u, init) => /\/storage\/v1\/object\/sign\/assets\/products\/index\.json/.test(u) && (init.method || 'GET') === 'GET', () => new Response(JSON.stringify(INDEX), { status: 200 })],
     [(u, init) => /\/storage\/v1\/object\/sign\/assets\//.test(u) && (init.method || 'GET') === 'POST', (u) => json({ signedURL: `/object/sign/assets/${String(u).split('/object/sign/assets/')[1]}?token=t` })],
@@ -67,7 +67,7 @@ function moodsWorld() {
     pg.route,
   ]);
   const studio = api('studio.js', ENV); const jobs = api('jobs.js', ENV); const pieces = api('pieces.js', ENV);
-  return { pg, hf, f, visionCalls, studio, jobs, pieces, restore: () => { f.restore(); studio.restore(); jobs.restore(); pieces.restore(); } };
+  return { pg, hf, f, visionCalls, claudeCalls, studio, jobs, pieces, restore: () => { f.restore(); studio.restore(); jobs.restore(); pieces.restore(); } };
 }
 
 test('validateMoods: exactly three complete, differently named moods', () => {
@@ -197,4 +197,51 @@ test('page (v1 sets): rMoodSet renders the four tiles with check badges and the 
     assert.match(html, /Visual direction · Authentically grounded/); assert.match(html, /Samsung Blue #1428A0 · dominant/); assert.match(html, /data-asset="pieces\/gen-m\/mood\/t1\.png"/);
     assert.match(html, /mood-direction-v1-2026-10-21 · check vision-check-v1-2026-10-21 flagged/);
   } finally { X.restore(); }
+});
+
+test('references from the chat (owner 2026-10-30): the art director sees them as images, every render job carries them to the Hermes bots as style references (never as the product), and only our own refs bucket is accepted', async () => {
+  const W = moodsWorld();
+  const MINE = 'https://sb.test/storage/v1/object/public/refs/2026/look-1.jpg', FOREIGN = 'https://evil.test/x.jpg';
+  try {
+    let r = res(); await W.pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-ref1', stage: 'plan', artifact: { title: 'Ref', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] }, piece: { title: 'Ref', product: 'Galaxy Z Flip8', msg: 'm' } } }), r);
+    r = res(); await W.studio.handler(req({ method: 'POST', body: { action: 'mood', pieceId: 'gen-ref1', userInput: 'like this', styleRefs: [MINE, FOREIGN, MINE] } }), r);
+    assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+    const c = W.claudeCalls[0].messages[0].content;
+    assert.ok(Array.isArray(c), 'the prompt writer gets the images, not just text');
+    assert.deepEqual(c.filter((x) => x.type === 'image').map((x) => x.source.url), [MINE], 'only our refs bucket, once');
+    assert.match(c[c.length - 1].text, /REFERENCE IMAGES FROM THE USER[\s\S]*never copy a device, logo/);
+    const runs = W.hf.runs.map((x) => ({ input: JSON.parse(x.body.input), instructions: x.body.instructions }));
+    assert.equal(runs.length, 3);
+    assert.ok(runs.every((x) => JSON.stringify(x.input.style_reference_urls) === JSON.stringify([MINE])), 'every mood render carries the reference');
+    assert.ok(runs.every((x) => !(x.input.product_image_urls || []).includes(MINE)), 'a reference is never the product');
+    assert.ok(runs.every((x) => /style_reference_urls are the user's own reference images/.test(x.instructions)));
+    assert.ok(W.pg.tables.jobs.filter((j) => j.kind === 'hermes_image').every((j) => j.payload.styleRefs[0] === MINE), 'stored on the job, so a retry keeps it');
+    // without references nothing changes: plain text to Claude, no style field for the bots
+    const before = W.claudeCalls.length, runsBefore = W.hf.runs.length;
+    r = res(); await W.studio.handler(req({ method: 'POST', body: { action: 'mood', pieceId: 'gen-ref1', userInput: 'again' } }), r);
+    assert.equal(typeof W.claudeCalls[before].messages[0].content, 'string');
+    assert.ok(W.hf.runs.slice(runsBefore).every((x) => !('style_reference_urls' in JSON.parse(x.body.input))));
+  } finally { W.restore(); }
+});
+
+test('page: references attach in the chat and in every prompt box — the chat holds them until the campaign exists, then the campaign keeps them (up to four) and every studio call sends them', async () => {
+  const sent = [];
+  const X = loadPage({ fetchImpl: async (u, init) => { if (String(u) === '/api/studio' && init && init.body) sent.push(JSON.parse(init.body)); return new Promise(() => {}); } });
+  const U = (n) => `https://sb.test/storage/v1/object/public/refs/r${n}.jpg`;
+  X.BOT.pendingRefs = [U(1)];
+  const p = X.cpDraft('A campaign', { markets: ['UAE'], platform: 'tiktok' });
+  assert.deepEqual(p.styleRefs, [U(1)], 'what was attached in the chat goes to the new campaign');
+  assert.deepEqual(X.BOT.pendingRefs, []);
+  let html = X.rStyleRefs(p, true);
+  assert.match(html, /📎 ADD REFERENCE/); assert.match(html, /r1\.jpg/); assert.match(html, /1\/4 · USED ON EVERY GENERATION/);
+  p.styleRefs = [U(1), U(2), U(3), U(4), U(5), 'http://plain.test/x.jpg'];
+  assert.deepEqual(X.styleRefsOf(p), [U(1), U(2), U(3), U(4)], 'https only, four at most');
+  p.styleRefs = [U(1), U(2), U(3), U(4)];
+  assert.doesNotMatch(X.rStyleRefs(p, false), /ADD REFERENCE/, 'full: no picker');
+  X.styleRefRemove(p.id, 0);
+  assert.deepEqual(p.styleRefs, [U(2), U(3), U(4)]);
+  Object.assign(p, { planning: false, title: 'A campaign', product: 'Galaxy Z Flip8', map: { product: 'Galaxy Z Flip8', msg: 'm', angle: 'a' } });
+  X.stageGen(p.id, 'mood');
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(sent[0].action, 'mood'); assert.deepEqual(sent[0].styleRefs, [U(2), U(3), U(4)]);
 });

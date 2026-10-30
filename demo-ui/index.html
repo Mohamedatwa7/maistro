@@ -1863,7 +1863,8 @@ function cpOpen(){
 function cpClose(){STATE.copilot=false;studioRefresh()}
 function cpGreet(){
  BOT.step='concept';
- cpSay(`I'm the <b>Studio Copilot</b>. Tell me what to build — a product, an idea, a market — and I'll set up the campaign pipeline: moodboard → thumbnail → brief → storyboard → final video → QC. Then you create each piece right inside its stage, in plain words — the <b style="color:#e8e9ec">AI Creative Director</b> turns them into professional prompts and keeps everything visually consistent. You can also start from any trend card in <a href="#/trends" style="color:#7dd3fc">Trend Analysis</a>.`);
+ BOT.pendingRefs=BOT.pendingRefs||[];
+ cpSay(`I'm the <b>Studio Copilot</b>. Tell me what to build — a product, an idea, a market — and I'll set up the campaign pipeline: moodboard → thumbnail → brief → storyboard → final video → QC. Then you create each piece right inside its stage, in plain words — the <b style="color:#e8e9ec">AI Creative Director</b> turns them into professional prompts and keeps everything visually consistent. You can also start from any trend card in <a href="#/trends" style="color:#7dd3fc">Trend Analysis</a>. Got a look in mind? Tap <b>📎 Attach a reference</b> below and every prompt and render will follow it.`);
  const chips=TRENDS.slice(0,3).map(t=>({t:'📈 '+t.name.slice(0,30),a:'trend',v:t.id}));
  BOT.chips=chips.length?chips:[];
 }
@@ -1884,6 +1885,7 @@ function cpDraft(name,payload){
   product:'Planning…',markets:payload.markets||['UAE'],
   platforms:[payload.platform||'tiktok'],th:['#14161d','#2a2f3e'],src:payload,
   map:{product:'',msg:'',angle:''}};
+ if(BOT.pendingRefs&&BOT.pendingRefs.length){p.styleRefs=BOT.pendingRefs.slice(0,STYLE_MAX);BOT.pendingRefs=[]}
  PROJECTS.unshift(p);STATE.proj=p.id;STATE.stageSel=null;BOT.proj=p.id;
  return p;
 }
@@ -1956,7 +1958,7 @@ function cpAction(a,v){
  if(a==='new'){
   const p=cpProj();
   if(p&&p.planning&&!STAGES.some(s=>p[s.id])){const i=PROJECTS.indexOf(p);if(i>-1)PROJECTS.splice(i,1);if(STATE.proj===p.id)STATE.proj=null}
-  Object.assign(BOT,{step:'concept',msgs:[],proj:null,payload:null,pendingPayload:null,busy:false});cpGreet();cpRender();return}
+  Object.assign(BOT,{step:'concept',msgs:[],proj:null,payload:null,pendingPayload:null,pendingRefs:[],busy:false});cpGreet();cpRender();return}
 }
 function cpSend(){
  const i=document.getElementById('cp-in-field');if(!i)return;
@@ -2158,6 +2160,7 @@ function genBox(p,sid){
   <p class="hint">The first draft scored <b style="color:#fff">${(fx.score??0).toFixed(1)}/10</b>. The AI Creative Director will rewrite the draft's prompt to implement every fix below${fx.revisionBrief.objective?` (revision objective: “${esc(fx.revisionBrief.objective)}”)`:''}, keep what already works, and Seedance re-renders the cut.</p>
   ${fx.fixes.length?`<ul style="margin:10px 0 0 18px;font-size:12px;line-height:1.9">${fx.fixes.map(f=>`<li style="color:#86efac"><span style="color:var(--text)">${esc(f)}</span></li>`).join('')}</ul>`:''}
   <textarea id="gen-in-final" placeholder="optional — anything else to change in the final cut"></textarea>
+  ${rStyleRefs(p,false)}
   <div class="row"><span class="kick" style="font-size:9px">Format</span>
    <select id="gen-ar-final"><option>16:9</option><option>9:16</option><option>1:1</option></select>
    <select id="gen-dur-final"><option value="5">5s</option><option value="8">8s</option><option value="10">10s</option></select>
@@ -2184,6 +2187,7 @@ function genBox(p,sid){
     ?`${sg.agent} writes this from the campaign plan${prior?' and everything generated so far':''}. Add wishes below if you have any.`
     :`Describe what you want and the <b style="color:#e8e9ec">AI Creative Director</b> turns it into a professional ${sg.l.toLowerCase()} prompt${prior?' — matched to the look of the pieces you already made':''}, then ${sid==='draft'?'your Hermes video bot renders the first cut':'your Hermes '+({mood:'moodboard',thumb:'thumbnail',board:'storyboard'}[sid]||'')+' bot makes the image'}.`}</p>
   <textarea id="gen-in-${sid}" placeholder="${hints[sid]}"></textarea>
+  ${sid!=='qc'?rStyleRefs(p,false):''}
   ${sid==='thumb'?`<div class="grid-2f" style="margin-top:8px"><div class="f-field"><label>Headline (English, overlaid in code — never inside the image)</label><input class="inp-l" id="gen-head-en" maxlength="120" placeholder="e.g. Slimness check: passed."></div>
    <div class="f-field"><label>Headline (Arabic, optional)</label><input class="inp-l" id="gen-head-ar" dir="rtl" maxlength="120" placeholder="عنوان بالعربية"></div></div>
   <p class="hint" style="margin-top:6px">Cover aspect follows the platforms (${thumbAspectFor(p)}); the text sits inside the platform safe zone. The moodboard must exist first.</p>`:''}
@@ -2215,7 +2219,7 @@ async function stageGen(pid,sid,changes){
   /* 6.8: the final applies ONLY the approved QC plan, at each fix's unit */
   if(sid==='final'&&useJobs()&&!changes&&((p.qc&&p.qc.report&&!skipOf(p,'qc'))||(p.draft&&p.draft.assembled))){
    GEN.busy[key]=p.qc&&p.qc.report&&!skipOf(p,'qc')?'Applying the approved fix plan (only the shots it names)…':'Making the final from the first draft video…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'final',pieceId:p.id,piece:storeMeta(p)})});
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'final',pieceId:p.id,styleRefs:styleRefsOf(p),piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
    attachTo(p,'final',sd.artifact,'Forge',{recorded:{version:sd.version}});FINAL_DIFF[p.id]=undefined;
@@ -2239,7 +2243,7 @@ async function stageGen(pid,sid,changes){
   if(sid==='draft'&&useJobs()&&!changes&&!(p.board&&p.board.shots&&!skipOf(p,'board'))){
    /* no storyboard (skipped or not made): one text-to-video clip for the whole video */
    GEN.busy[key]='The Hermes video bot is making the first draft as one video'+(p.brief&&!skipOf(p,'brief')?' from the brief':' from the campaign plan')+'…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',noBoard:true,pieceId:p.id,resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',noBoard:true,pieceId:p.id,styleRefs:styleRefsOf(p),resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
    attachTo(p,'draft',sd.artifact,'Hermes video bot',{recorded:{version:sd.version}});
@@ -2254,7 +2258,7 @@ async function stageGen(pid,sid,changes){
    const okShots=p.board.shots.filter(s=>kst(s)==='rendered'),failedShots=p.board.shots.filter(s=>kst(s)==='failed').map(s=>s.n);
    if(!okShots.length)throw new Error('Every storyboard keyframe failed — regenerate at least one shot first.');
    GEN.busy[key]='The Hermes video bot is rendering '+okShots.length+' clips from the storyboard keyframes'+(failedShots.length?' (shot '+failedShots.join(', ')+' left out: its keyframe failed)':'')+' — they join into one video by themselves…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',pieceId:p.id,resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',pieceId:p.id,styleRefs:styleRefsOf(p),resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
    attachTo(p,'draft',sd.artifact,'Hermes video bot',{recorded:{version:sd.version}});
@@ -2265,7 +2269,7 @@ async function stageGen(pid,sid,changes){
   /* 6.5: the storyboard is a shot list from the approved brief + one keyframe per shot */
   if(sid==='board'&&useJobs()){
    GEN.busy[key]='Frame is writing the shot list'+(p.brief&&!skipOf(p,'brief')?' from the brief':' from the campaign plan')+'…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',pieceId:p.id,userInput,refImage:p.refImage||null,piece:storeMeta(p)})});
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',pieceId:p.id,styleRefs:styleRefsOf(p),userInput,refImage:p.refImage||null,piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
    attachTo(p,'board',{...sd.artifact,version:'v'+sd.version},'Frame',{recorded:{version:sd.version}});
@@ -2278,7 +2282,7 @@ async function stageGen(pid,sid,changes){
   /* 6.4: the brief is written from the approved moodboard + thumbnail and checked in code */
   if(sid==='brief'&&useJobs()){
    GEN.busy[key]='Your Hermes brief bot is writing the brief'+(p.mood?' from the moodboard'+(p.thumb?' and thumbnail':''):' from the campaign plan')+'…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'brief',pieceId:p.id,userInput,piece:storeMeta(p)})});
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'brief',pieceId:p.id,styleRefs:styleRefsOf(p),userInput,piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
    if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the brief bot could not be reached');
@@ -2302,7 +2306,7 @@ async function stageGen(pid,sid,changes){
   if(sid==='thumb'&&useJobs()&&!changes){
    GEN.busy[key]='Art director is writing the cover prompt'+(p.mood?' from the moodboard':' from the campaign plan')+'…';studioRefresh();
    const head=(($('#gen-head-en')||{}).value||'').trim(),headAr=(($('#gen-head-ar')||{}).value||'').trim();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'thumb',pieceId:p.id,userInput,headline:head,headlineAr:headAr,refImage:p.refImage||null,piece:storeMeta(p)})});
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'thumb',pieceId:p.id,styleRefs:styleRefsOf(p),userInput,headline:head,headlineAr:headAr,refImage:p.refImage||null,piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
    if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the render could not be submitted');
@@ -2315,7 +2319,7 @@ async function stageGen(pid,sid,changes){
   /* 6.2: the moodboard is THREE moods to pick from (owner 2026-10-29); each lands as soon as it renders */
   if(sid==='mood'&&useJobs()){
    GEN.busy[key]='Art director is writing three different moods…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'mood',pieceId:p.id,userInput,refImage:p.refImage||null,piece:storeMeta(p)})});
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'mood',pieceId:p.id,styleRefs:styleRefsOf(p),userInput,refImage:p.refImage||null,piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||((sd.problems||[]).join('; '))||('studio responded '+sr.status));
    const bad=(sd.jobs||[]).filter(j=>j.state==='failed'||j.state==='timed_out');
@@ -2633,6 +2637,71 @@ function resumeJobs(){
   });
  });
 }
+/* An image file → ≤1600px JPEG in the public refs bucket (/api/upload) → its URL. */
+async function upImg(f){
+ const bmp=await createImageBitmap(f);
+ const sc=Math.min(1,1600/Math.max(bmp.width,bmp.height));
+ const cv=document.createElement('canvas');
+ cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);
+ cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
+ const dataUrl=cv.toDataURL('image/jpeg',.88);
+ const r=await authFetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({data:dataUrl.split(',')[1],contentType:'image/jpeg'})});
+ const d=await r.json().catch(()=>({}));
+ if(!r.ok||!d.url)throw new Error(d.error||'upload failed');
+ return d.url;
+}
+/* ---------- the person's own reference images (owner 2026-10-30) ----------
+   Attached in the chat or any stage's prompt box: a look, a frame, a setting, a
+   motion to follow. One set per campaign (up to 4); the art director sees them
+   and every render after that carries them. Never the product: that stays the
+   product photos / 3D model. Before a campaign exists, the chat holds them. */
+const STYLE_MAX=4;
+function styleRefsOf(p){return (p&&Array.isArray(p.styleRefs)?p.styleRefs:[]).filter(u=>/^https:\/\//.test(u)).slice(0,STYLE_MAX)}
+function styleList(pid){
+ const p=pid?PROJECTS.find(x=>x.id===pid):null;
+ if(p){p.styleRefs=styleRefsOf(p);return{p,list:p.styleRefs}}
+ BOT.pendingRefs=BOT.pendingRefs||[];return{p:null,list:BOT.pendingRefs};
+}
+async function styleRefAdd(pid,input,fromChat){
+ const files=[...(input.files||[])];input.value='';if(!files.length)return;
+ const {p,list}=styleList(pid);
+ const room=STYLE_MAX-list.length;
+ if(room<=0){toast(`<span style="font-size:12.5px">Up to ${STYLE_MAX} references per campaign — remove one first.</span>`);return}
+ toast(`<span style="font-size:12.5px">Uploading ${Math.min(room,files.length)} reference${Math.min(room,files.length)>1?'s':''}…</span>`);
+ const added=[];
+ for(const f of files.slice(0,room)){
+  try{const u=await upImg(f);list.push(u);added.push(u)}
+  catch(e){toast(`<b style="color:#f87171">Reference upload failed:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
+ }
+ if(!added.length)return;
+ if(p)saveGenerated();
+ if(fromChat){
+  BOT.msgs.push({who:'me',html:`<div style="display:flex;gap:6px;flex-wrap:wrap">${added.map(u=>`<img src="${esc(u)}" alt="" style="width:64px;height:64px;border-radius:8px;object-fit:cover">`).join('')}</div>`});
+  cpSay(`Got ${added.length>1?'them':'it'} — ${p?`<b>“${esc(p.title)}”</b> now has ${list.length} reference${list.length>1?'s':''}`:`I'll attach ${list.length>1?'these':'it'} to the campaign you describe next`}. The art director looks at ${list.length>1?'them':'it'} when writing every prompt, and the render bots follow ${list.length>1?'their':'its'} look — never a device or logo from ${list.length>1?'them':'it'}: the product always comes from its photos or 3D model.`);
+  cpRender();
+ }else studioRefresh();
+ toast(`<span style="font-size:12.5px"><b style="color:#86efac">${added.length} reference${added.length>1?'s':''} attached.</b> Every generation of this campaign follows ${list.length>1?'them':'it'} from now on.</span>`);
+}
+function styleRefRemove(pid,i){
+ const {p,list}=styleList(pid);if(!list[i])return;
+ list.splice(i,1);if(p)saveGenerated();
+ if(STATE.copilot)cpRender();else studioRefresh();
+}
+/* the strip of thumbnails + the 📎 picker; `chat` uploads post into the chat log */
+function rStyleRefs(p,chat){
+ const pid=p?p.id:'';
+ const list=p?styleRefsOf(p):(BOT.pendingRefs||[]);
+ return `<div class="style-refs" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px" onclick="event.stopPropagation()">
+  ${list.map((u,i)=>`<span style="position:relative;display:inline-block">
+   <img src="${esc(u)}" alt="" title="Your reference — every prompt and render follows its look" style="width:34px;height:34px;border-radius:8px;object-fit:cover;display:block;border:1px solid var(--line-2)">
+   <span onclick="styleRefRemove('${pid}',${i})" title="Remove" style="position:absolute;top:-6px;right:-6px;width:15px;height:15px;border-radius:50%;background:#0a0a0b;border:1px solid var(--hairline);color:var(--muted);font-size:9px;line-height:13px;text-align:center;cursor:pointer">✕</span>
+  </span>`).join('')}
+  ${list.length<STYLE_MAX?`<label class="pill" style="cursor:pointer" title="Attach your own reference images (a look, a frame, a setting, a motion) — up to ${STYLE_MAX} per campaign. The art director sees them and every render follows them; the product itself still comes from its photos or 3D model.">📎 ${list.length?'ADD REFERENCE':'ATTACH A REFERENCE'}
+   <input type="file" accept="image/*" multiple style="display:none" onchange="styleRefAdd('${pid}',this,${chat?1:0})"></label>`:''}
+  ${list.length?`<span class="mono dim" style="font-size:9px;letter-spacing:.06em">${list.length}/${STYLE_MAX} · USED ON EVERY GENERATION</span>`:''}
+ </div>`;
+}
 /* ---------- campaign product reference photos (real product fidelity) ----------
    A campaign holds a LIBRARY of product photos (e.g. closed + open views of a
    foldable); the generator takes one reference per render, so the highlighted
@@ -2645,17 +2714,8 @@ async function refUpload(pid,input){
  let ok=0;
  for(const f of files){
   try{
-   const bmp=await createImageBitmap(f);
-   const sc=Math.min(1,1600/Math.max(bmp.width,bmp.height));
-   const cv=document.createElement('canvas');
-   cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);
-   cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
-   const dataUrl=cv.toDataURL('image/jpeg',.88);
-   const r=await authFetch('/api/upload',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({data:dataUrl.split(',')[1],contentType:'image/jpeg'})});
-   const d=await r.json().catch(()=>({}));
-   if(!r.ok||!d.url)throw new Error(d.error||'upload failed');
-   p.refImages.push(d.url);p.refImage=d.url;ok++;
+   const url=await upImg(f);
+   p.refImages.push(url);p.refImage=url;ok++;
   }catch(e){
    toast(`<b style="color:#f87171">Photo upload failed:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`);
   }
@@ -3307,7 +3367,7 @@ async function shotRegen(pid,n,stage){
  const p=PROJECTS.find(x=>x.id===pid);if(!p||!p[stage]||!p[stage].shots)return;
  const changes=(($('#sg-changes-'+n)||{}).value||'').trim();
  try{
-  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:stage==='draft'?'draft-shot':'board-shot',pieceId:pid,shot:n,changes,refImage:p.refImage||null,piece:storeMeta(p)})});
+  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:stage==='draft'?'draft-shot':'board-shot',pieceId:pid,shot:n,changes,styleRefs:styleRefsOf(p),refImage:p.refImage||null,piece:storeMeta(p)})});
   const sd=await sr.json().catch(()=>({}));if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
   if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the render could not be submitted');
   const sh=p[stage].shots.find(x=>x.n===n);if(sh){sh[slot]={state:'pending',jobId:sd.job.id};sh.review=null}saveGenerated();
@@ -3483,6 +3543,7 @@ function regenBox(p,sid){
    <button class="btn btn-gold btn-sm" onclick="stageRegen('${p.id}','${sid}')">↻ Regenerate</button>
    ${useJobs()&&(sid==='mood'||sid==='thumb')?`<button class="btn btn-ghost btn-sm" onclick="overrideUpload('${p.id}','${sid}',null)" title="Use your own image instead — stored as a human-made version and checked like a generated one">⬆ Upload my own</button>`:''}
   </div>
+  ${sid!=='qc'?rStyleRefs(p,false):''}
   ${GEN.err[key]?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[key])}</div>`:''}
  </div>`;
 }
@@ -3594,6 +3655,7 @@ function rCopilot(){
    ${BOT.msgs.map(m=>`<div class="cp-m ${m.who}">${m.html}</div>`).join('')}
   </div>
   <div class="cp-chips">${BOT.chips.map(c=>`<button class="cp-chip ${c.done?'done':''} ${c.gold?'gold':''}" onclick="cpAction('${c.a}','${c.v||''}')">${c.t}</button>`).join('')}</div>
+  <div style="padding:0 14px">${rStyleRefs(cpProj(),true)}</div>
   <div class="cp-in">
    <input id="cp-in-field" placeholder="${BOT.step==='concept'?'Describe the campaign to build…':BOT.step==='direction'?'Tell me what you want this campaign to be…':'Type a message…'}" onkeydown="cpKey(event)">
    <button class="btn btn-gold btn-sm" onclick="cpSend()">Send</button>

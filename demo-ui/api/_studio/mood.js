@@ -6,6 +6,7 @@
 // names come from the knowledge base; nothing here invents product facts —
 // the product is its 3D model's views when one exists, else the catalog look line.
 const { registerPrompt, recordGeneration } = require('../_records.js');
+const { withImages } = require('./refs.js');
 
 const VERSION = 'mood-direction-v2-2026-10-29'; // v2: three moods to pick from
 const MODEL = () => process.env.MAISTRO_STUDIO_MODEL || 'claude-opus-5-5';
@@ -72,16 +73,16 @@ function validateMoods(j) {
 }
 
 /** One structured-output call → { options: [3 moods] } or { error, problems }. */
-async function visualDirections({ piece, trend, userInput, productLook, rules, palette, hasModel, client, memberId }) {
+async function visualDirections({ piece, trend, userInput, productLook, rules, palette, hasModel, styleRefs = [], client, memberId }) {
   const Anthropic = client ? null : require('@anthropic-ai/sdk');
   const c = client || new Anthropic({ timeout: 90000, maxRetries: 1 });
   registerPrompt('studio.mood.direction', VERSION, `SYSTEM:\n${SYSTEM}\n\nUSER: campaign {{campaign}} product {{productLook}} trend {{trend}} palette {{palette}} rules {{rules}} ask {{userInput}}`, ['campaign', 'productLook', 'trend', 'palette', 'rules', 'userInput']);
   const user = userMessage({ piece, trend, userInput, productLook, rules, palette, hasModel });
   const t0 = Date.now();
-  const rec = { kind: 'claude', legacyPieceId: piece.id, stage: 'mood', model: MODEL(), promptName: 'studio.mood.direction', promptVersion: VERSION, resolvedPrompt: `${SYSTEM}\n\n${user}`, userPrompt: user, params: { max_tokens: 8000, moods: MOODS }, memberId };
+  const rec = { kind: 'claude', legacyPieceId: piece.id, stage: 'mood', model: MODEL(), promptName: 'studio.mood.direction', promptVersion: VERSION, resolvedPrompt: `${SYSTEM}\n\n${user}`, userPrompt: user, params: { max_tokens: 8000, moods: MOODS, styleRefs }, memberId };
   let response;
   try {
-    response = await c.messages.create({ model: MODEL(), max_tokens: 8000, system: SYSTEM, messages: [{ role: 'user', content: user }], output_config: { format: { type: 'json_schema', schema: SCHEMA } } });
+    response = await c.messages.create({ model: MODEL(), max_tokens: 8000, system: SYSTEM, messages: [{ role: 'user', content: withImages(user, styleRefs) }], output_config: { format: { type: 'json_schema', schema: SCHEMA } } });
   } catch (e) { await recordGeneration({ ...rec, status: 'failed', error: e.message, latencyMs: Date.now() - t0 }); throw e; }
   const text = response.content && response.content.find((b) => b.type === 'text');
   if (!text) { await recordGeneration({ ...rec, status: 'failed', error: `no text (stop_reason ${response.stop_reason})`, latencyMs: Date.now() - t0 }); return { error: `no text block (stop_reason ${response.stop_reason})` }; }

@@ -9,6 +9,7 @@
 // extra anchor (cross-shot consistency). Shots are reviewed one by one; only
 // rejected shots regenerate.
 const { registerPrompt, recordGeneration } = require('../_records.js');
+const { withImages } = require('./refs.js');
 const { queryRows } = require('../_supabase.js');
 
 const VERSION = 'storyboard-v2-2026-10-29'; // v2: opening and closing scenes, the brief's storyline
@@ -136,15 +137,15 @@ function userMessage({ piece, brief, mood, trend, judgement, productLook, rules,
   ].join('\n\n');
 }
 
-async function shotList({ piece, brief, mood, trend, judgement, productLook, rules, userInput, client, memberId, legacyId }) {
+async function shotList({ piece, brief, mood, trend, judgement, productLook, rules, userInput, styleRefs = [], client, memberId, legacyId }) {
   const Anthropic = client ? null : require('@anthropic-ai/sdk');
   const c = client || new Anthropic({ timeout: 120000, maxRetries: 1 });
   registerPrompt('studio.storyboard', VERSION, `SYSTEM:\n${SYSTEM}\n\nUSER: campaign {{campaign}} brief {{brief}} trend {{trend}} mood {{mood}} product {{productLook}} rules {{rules}} ask {{userInput}}`, ['campaign', 'brief', 'trend', 'mood', 'productLook', 'rules', 'userInput']);
   const user = userMessage({ piece, brief, mood, trend, judgement, productLook, rules, userInput });
   const t0 = Date.now();
-  const rec = { kind: 'claude', legacyPieceId: legacyId, stage: 'board', model: MODEL(), promptName: 'studio.storyboard', promptVersion: VERSION, resolvedPrompt: `${SYSTEM}\n\n${user}`, userPrompt: user, params: { briefVersion: brief.version, briefApproved: brief.approved }, memberId };
+  const rec = { kind: 'claude', legacyPieceId: legacyId, stage: 'board', model: MODEL(), promptName: 'studio.storyboard', promptVersion: VERSION, resolvedPrompt: `${SYSTEM}\n\n${user}`, userPrompt: user, params: { briefVersion: brief.version, briefApproved: brief.approved, styleRefs }, memberId };
   let response;
-  try { response = await c.messages.create({ model: MODEL(), max_tokens: 8000, system: SYSTEM, messages: [{ role: 'user', content: user }], output_config: { format: { type: 'json_schema', schema: SCHEMA } } }); }
+  try { response = await c.messages.create({ model: MODEL(), max_tokens: 8000, system: SYSTEM, messages: [{ role: 'user', content: withImages(user, styleRefs) }], output_config: { format: { type: 'json_schema', schema: SCHEMA } } }); }
   catch (e) { await recordGeneration({ ...rec, status: 'failed', error: e.message, latencyMs: Date.now() - t0 }); throw e; }
   const text = response.content && response.content.find((b) => b.type === 'text');
   let j; try { j = JSON.parse(text ? text.text : ''); } catch (e) { await recordGeneration({ ...rec, status: 'failed', error: 'malformed JSON', latencyMs: Date.now() - t0 }); return { error: 'malformed JSON' }; }

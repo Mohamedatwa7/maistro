@@ -29,6 +29,7 @@
 //   ROLE ∈ MOOD, THUMB, BRIEF, BOARD, VIDEO
 //   MAISTRO_HERMES_USD_PER_CREDIT  assumed $ per Higgsfield credit for the budget gate (default 0.06)
 const { fetchT } = require('../_http.js');
+const refsMod = require('../_studio/refs.js');
 
 const ROLES = ['mood', 'thumb', 'brief', 'board', 'video'];
 const PROFILES = { mood: 'maistro-moodboard', thumb: 'maistro-thumbnail', brief: 'maistro-brief', board: 'maistro-storyboard', video: 'maistro-video' };
@@ -85,6 +86,7 @@ const PRODUCT_MODEL_RULE = [
  *  moodboard_image_urls, first_frame_url, max_credits); the video bot refuses a run missing
  *  resolution, duration or aspect, so those are always set. */
 // the product reference: the 3D model's views (payload.refs, hero first) or the one campaign photo (payload.ref)
+const styleRefs = (payload) => (Array.isArray(payload.styleRefs) ? payload.styleRefs.filter(isHttps).slice(0, refsMod.MAX) : []);
 const productRefs = (payload) => [...new Set([payload.ref, ...(Array.isArray(payload.refs) ? payload.refs : [])].filter(isHttps))].slice(0, 4);
 function renderRun(payload, role) {
   const n = role === 'mood' && Number(payload.batch) > 1 ? Math.min(8, Number(payload.batch)) : 1;
@@ -103,6 +105,7 @@ function renderRun(payload, role) {
     ...(role === 'video' && isHttps(payload.imageUrl) ? { first_frame_url: payload.imageUrl } : {}),
     ...(productRefs(payload).length ? { product_image_urls: productRefs(payload) } : {}),
     ...(anchors.length ? { moodboard_image_urls: anchors } : {}),
+    ...(styleRefs(payload).length ? { style_reference_urls: styleRefs(payload) } : {}),
     ...(Number.isInteger(payload.seed) ? { seed: payload.seed } : {}),
     ...(payload.meta && payload.meta.changes ? { reviewer_changes: String(payload.meta.changes) } : {}),
     max_credits: maxCredits(role, payload, n),
@@ -112,6 +115,7 @@ function renderRun(payload, role) {
     req.product_image_urls ? 'The device shown MUST be exactly the product in product_image_urls (same form factor, cameras, colours and finish); never invent a different device.' : null,
     payload.productModel ? PRODUCT_MODEL_RULE : null,
     req.moodboard_image_urls ? 'Match the palette, light and styling of moodboard_image_urls (the approved moodboard).' : null,
+    req.style_reference_urls ? refsMod.BOT_RULE : null,
     req.seed != null ? 'Use the seed if your generator takes one, so this can be re-rendered the same way.' : null,
     req.reviewer_changes ? 'Apply only the reviewer_changes; keep everything else.' : null,
     role === 'video' && req.audio ? 'Native audio, no music you cannot license.' : null,
@@ -122,7 +126,7 @@ function renderRun(payload, role) {
 /** The run body for the brief bot: Maistro's brief rules + the campaign context + the schema to fill. */
 function briefRun(payload) {
   return {
-    input: `${payload.context}\n\nBRIEF JSON SCHEMA (your "brief" must validate against it):\n${JSON.stringify(payload.schema)}`,
+    input: `${payload.context}${styleRefs(payload).length ? `\n\nREFERENCE IMAGES FROM THE USER (open and look at each): ${styleRefs(payload).join(' ')}\n${refsMod.BRIEF_RULE}` : ''}\n\nBRIEF JSON SCHEMA (your "brief" must validate against it):\n${JSON.stringify(payload.schema)}`,
     instructions: `${payload.system}\n\n${outputContract('brief')}`,
   };
 }
