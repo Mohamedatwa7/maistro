@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Coming soon</title>
+<link rel="icon" href="/assets/favicon.svg?v=3" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico?v=3" sizes="any">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:#fff;color:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    display:grid;place-items:center;padding:24px;-webkit-font-smoothing:antialiased}
+  main{width:min(360px,100%);text-align:center}
+  h1{font-size:clamp(28px,6vw,40px);font-weight:600;letter-spacing:-.03em}
+  form{margin-top:28px;display:flex;gap:8px}
+  input{flex:1;min-width:0;height:44px;padding:0 14px;border:1px solid #d4d4d8;border-radius:10px;font:inherit;font-size:15px;color:#0a0a0a;background:#fff}
+  input:focus{outline:none;border-color:#0a0a0a;box-shadow:0 0 0 3px rgba(10,10,10,.08)}
+  button{height:44px;padding:0 18px;border:0;border-radius:10px;background:#0a0a0a;color:#fff;font:inherit;font-size:15px;font-weight:500;cursor:pointer}
+  button:hover{background:#27272a}
+  button:focus-visible{outline:2px solid #0a0a0a;outline-offset:2px}
+  .err{margin-top:12px;font-size:13px;color:#dc2626;min-height:18px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Coming soon…</h1>
+  <form method="post" action="/gate">
+    <input type="password" name="password" placeholder="Password" aria-label="Password" autocomplete="current-password" required autofocus>
+    <button type="submit">Enter</button>
+  </form>
+  <p class="err" id="err" role="alert"></p>
+</main>
+<script>if(/[?&]denied=1/.test(location.search))document.getElementById('err').textContent='Wrong password.';</script>
+</body>
+</html>

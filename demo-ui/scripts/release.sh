@@ -44,9 +44,16 @@ for HOST in https://maistro-demo.vercel.app https://www.ma1stro.com; do
   [ -n "$OK" ] || { echo "RELEASE STOPPED: $HOST did not converge on $SHORT within 3 min (answers $(echo "$H" | grep -o '"revision":[^,]*'), health $(echo "$H" | grep -o '"ok":[a-z]*'))"; exit 1; }
   # the edge can serve the previous page for a few seconds after the revision switches (868268a, 2026-10-22):
   # poll up to a minute before calling it a mismatch
-  WANT=$(sha256sum index.html | cut -c1-64); PAGE_OK=""
+  # behind the coming-soon gate (src/gate.mjs, middleware.ts) / answers the holding page: with GATE_PASSWORD in the
+  # environment the check signs in and compares the app behind it; without it, it accepts the exact holding page
+  WANT=$(sha256sum index.html | cut -c1-64); HOLD=$(sha256sum public/coming-soon.html | cut -c1-64); PAGE_OK=""; CK=""
+  if [ -n "${GATE_PASSWORD:-}" ]; then
+    CK=$(curl -s -D - -o /dev/null -X POST --data-urlencode "password=$GATE_PASSWORD" "$HOST/gate" | tr -d '' | grep -i '^set-cookie: maistro_gate=' | sed 's/^[^:]*: //; s/;.*//' || true)
+  fi
   for i in $(seq 1 6); do
-    [ "$(curl -s "$HOST/" | sha256sum | cut -c1-64)" = "$WANT" ] && { PAGE_OK=1; break; }
+    GOT=$(curl -s ${CK:+-H "Cookie: $CK"} "$HOST/" | sha256sum | cut -c1-64)
+    [ "$GOT" = "$WANT" ] && { PAGE_OK=1; break; }
+    [ "$GOT" = "$HOLD" ] && [ -z "$CK" ] && { PAGE_OK=1; echo "$HOST is behind the coming-soon gate (app page not compared; set GATE_PASSWORD to compare it)"; break; }
     sleep 10
   done
   [ -n "$PAGE_OK" ] || { echo "RELEASE STOPPED: $HOST serves a page that differs from index.html"; exit 1; }
