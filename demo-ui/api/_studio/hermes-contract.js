@@ -39,8 +39,14 @@ const reviewSessionId = (legacyId, ts = Date.now()) => `maistro-review-${campaig
 // ---------- the product: one locked spec every request reads ----------
 // Known colourways and model codes. The KB catalog entry (product_catalog: colors, modelCodes,
 // referenceImages) adds to this; nothing here is guessed — a colour without a code sends model_code null.
+// referenceImages: the official Samsung Gulf gallery shots for that model code (samsung.com/ae, flattened on white),
+// served from our own /assets (open past the coming-soon gate) so the links never break for the bots.
+const ASSET_BASE = 'https://www.ma1stro.com/assets/products';
 const PRODUCT_SPECS = {
-  'Galaxy S26 Ultra': { defaultColour: 'Sky Blue', codes: { 'Sky Blue': 'SM-S948BLBIMEA' } },
+  'Galaxy S26 Ultra': {
+    defaultColour: 'Sky Blue', codes: { 'Sky Blue': 'SM-S948BLBIMEA' },
+    referenceImages: ['front', 'back', 'side', 'back-three-quarter'].map((view) => ({ url: `${ASSET_BASE}/galaxy-s26-ultra/sky-blue-${view}.jpg`, view, colour: 'Sky Blue' })),
+  },
 };
 const norm = (s) => String(s || '').trim().toLowerCase();
 
@@ -66,7 +72,10 @@ const VIEW_ORDER = ['front', 'back', 'side'];
 /** Official images (front, back, side — the catalog's, in the campaign colour) first, then the fallbacks
  *  (the product's 3D-model views, the campaign photo). https only, no repeats, at most `max`. */
 function productImages(spec, catalog, fallbacks = [], max = 4) {
-  const imgs = catalog && Array.isArray(catalog.referenceImages) ? catalog.referenceImages : [];
+  const known = spec && spec.family ? PRODUCT_SPECS[Object.keys(PRODUCT_SPECS).find((k) => norm(k) === norm(spec.family))] : null;
+  // the KB catalog's own images win; the shipped official shots fill in when it has none
+  const fromCatalog = catalog && Array.isArray(catalog.referenceImages) && catalog.referenceImages.length ? catalog.referenceImages : null;
+  const imgs = fromCatalog || (known && known.referenceImages ? known.referenceImages : []);
   const ofColour = imgs.filter((x) => x && isHttps(x.url) && (!x.colour || !spec || !spec.colour || norm(x.colour) === norm(spec.colour)));
   const rank = (x) => { const i = VIEW_ORDER.indexOf(norm(x.view)); return i < 0 ? VIEW_ORDER.length : i; };
   const official = [...ofColour].sort((a, b) => rank(a) - rank(b)).map((x) => x.url);

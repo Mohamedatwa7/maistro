@@ -120,6 +120,11 @@ test('the product: one spec from the family, the campaign colour and the catalog
   const catalog = { referenceImages: [{ url: 'https://c/side.png', view: 'side', colour: 'Sky Blue' }, { url: 'https://c/back-black.png', view: 'back', colour: 'Black' }, { url: 'https://c/back.png', view: 'back', colour: 'Sky Blue' }, { url: 'https://c/front.png', view: 'front' }] };
   assert.deepEqual(C.productImages(S26, catalog, ['https://c/model-view.png', 'http://c/x.png']), ['https://c/front.png', 'https://c/back.png', 'https://c/side.png', 'https://c/model-view.png']);
   assert.equal(C.productLine(S26), 'Samsung Galaxy S26 Ultra in Sky Blue (SM-S948BLBIMEA)');
+  // the official Sky Blue gallery shots ship with Maistro (/assets, open past the gate); another colourway never gets them
+  const sky = C.productImages(C.productSpec({ family: 'Galaxy S26 Ultra' }), null, ['https://c/model-view.png']);
+  assert.deepEqual(sky, ['front', 'back', 'side', 'back-three-quarter'].map((v) => `https://www.ma1stro.com/assets/products/galaxy-s26-ultra/sky-blue-${v}.jpg`));
+  for (const u of sky) assert.ok(require('fs').existsSync(require('path').join(__dirname, '../..', new URL(u).pathname)), `${u} is in assets/ (copied to public/ at build)`);
+  assert.deepEqual(C.productImages(C.productSpec({ family: 'Galaxy S26 Ultra', colour: 'Black' }), null, ['https://c/model-view.png']), ['https://c/model-view.png']);
 });
 
 test('staleness and order: a clip made from a replaced keyframe is stale; earlier steps not approved are warned (strict blocks)', () => {

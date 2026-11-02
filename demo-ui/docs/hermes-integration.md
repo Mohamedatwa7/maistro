@@ -206,8 +206,10 @@ How Maistro handles a reply:
 
 ## Remaining gaps
 
-- **Official product images:** the catalog's `referenceImages` (front/back/side per colour) are empty in the KB
-  seed. Until they are filled, `product_image_urls` falls back to the 3D-model views or the campaign photo.
+- **Official product images:** Galaxy S26 Ultra / Sky Blue ships its official Samsung Gulf gallery shots (front,
+  back, side, back three-quarter) in `assets/products/galaxy-s26-ultra/` (served at `/assets/…`), listed in `PRODUCT_SPECS`. Other
+  products and colourways fall back to the 3D-model views or the campaign photo until their images are added there
+  or to the KB catalog's `referenceImages`.
 - **Model codes:** only Galaxy S26 Ultra / Sky Blue (SM-S948BLBIMEA) is known. Other products send
   `model_code: null` until `modelCodes` is added to their catalog entry.
 - **Logo composite:** compositing the official lettermark in post needs the brand-kit asset. The bots are no
