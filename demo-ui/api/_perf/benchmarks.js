@@ -120,7 +120,8 @@ function benchmarks({ posts, snapshots = [], now = Date.now(), windowDays = 90, 
     const p0 = os[0].p, noViews = p0.platform === 'facebook' || (p0.platform === 'instagram' && format(p0) === 'image');
     const col = (pick) => stats(os.map((o) => pick(o.m)));
     return {
-      views: noViews ? null : col((m) => num(m.views)),
+      // a post whose view count is missing (or a 0 the tracker wrote for "unknown") is left out, never read as 0 views
+      views: noViews ? null : stats(os.map((o) => Number(o.m.views)).filter((x) => Number.isFinite(x) && x > 0)),
       likes: col((m) => num(m.likes)),
       comments: col((m) => num(m.comments)),
       shares: p0.platform === 'instagram' ? null : col((m) => num(m.sharesRaw != null ? m.sharesRaw : m.shares)),
