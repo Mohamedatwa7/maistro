@@ -2071,7 +2071,7 @@ function applyServerPieces(pieces){
   let p=PROJECTS.find(x=>x.id===sp.id);
   if(!p){
    const plan=sp.stages.plan&&sp.stages.plan.version?sp.stages.plan.version.payload:null;
-   p={id:sp.id,generated:true,studio:sp.origin==='studio',stage:1,title:sp.title,product:sp.product,markets:sp.markets||[],platforms:sp.platforms||[],
+   p={id:sp.id,generated:true,studio:sp.origin==='studio',source:sp.source||null,stage:1,title:sp.title,product:sp.product,markets:sp.markets||[],platforms:sp.platforms||[],
     th:(plan&&plan.th)||['#0a0a0b','#1f2937'],trend:sp.trend||sp.title,trendId:sp.trendId||null,map:{product:sp.product,msg:sp.msg||'',angle:sp.angle||''}};
    PROJECTS.push(p);changed++;
   }
@@ -5178,8 +5178,10 @@ function stageArtifact(p,n){
 }
 function stageArtifactInner(p,n){
  const s=STAGES[n-1];
+ /* agent ingest (docs/agent-ingest.md): what Hermes pushed through /api/agent says so, and waits for review */
+ const src=p[s.id]&&p[s.id].source==='hermes'?`<span title="Pushed by Hermes through the agent API — a draft for review">${badge('c','SOURCE: HERMES')}</span>`:'';
  const head=(extra='')=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-   <div style="display:flex;align-items:center;gap:10px">${agentChip(s.agent,n===p.stage)}<div><h3 style="font-size:15.5px">0${n} · ${s.l}</h3><span class="dim" style="font-size:11px">${s.d}</span></div></div>${extra}</div>`;
+   <div style="display:flex;align-items:center;gap:10px">${agentChip(s.agent,n===p.stage)}<div><h3 style="font-size:15.5px">0${n} · ${s.l}</h3><span class="dim" style="font-size:11px">${s.d}</span></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${src}${extra}</div></div>`;
  if(p.studio&&s.id==='qc'&&p.qc&&p.qc.report)return head(badge('go','QC REPORT · '+esc(p.qc.version||'')))+rQcPlan(p,n<p.stage);
  if(p.studio&&s.id==='qc')return head(p.qc&&p.qc.real&&p.qc.avg!=null?badge('go','F1X8 · ANALYZED'):badge('ai','F1X8 · LIVE'))+rQcConsole(p);
  if(p.studio&&!p[s.id])return head(badge('gold','READY TO CREATE'))+genBox(p,s.id);
@@ -5191,7 +5193,7 @@ function stageArtifactInner(p,n){
    <div class="mood">${p.mood.tiles.map(t=>`<div style="background:linear-gradient(135deg,${t[0]},${t[1]})"><span>${t[2]}</span></div>`).join('')}</div>
    <p class="dim" style="font-size:12.5px;line-height:1.65;margin-top:12px">${p.mood.note}</p>`):'');
   case 'thumb':return head(done)+(p.thumb?((p.thumb.imageUrl||p.thumb.assetPath)&&p.thumb.overlay?rThumbCover(p)+qaRow(p.thumb):p.thumb.imageUrl?`
-   <img class="gen-media" style="max-width:560px;aspect-ratio:16/9;object-fit:cover" ${mediaAttrs(p.thumb,'imageUrl')} alt="Generated thumbnail">${dirNote(p.thumb)}${p.studio?regenBox(p,'thumb'):''}`:`
+   <img class="gen-media" style="max-width:560px;aspect-ratio:16/9;object-fit:cover" ${mediaAttrs(p.thumb,'imageUrl')} alt="Generated thumbnail">${qaRow(p.thumb)}${dirNote(p.thumb)}${p.studio?regenBox(p,'thumb'):''}`:`
    <div style="max-width:520px"><div class="thumb169" style="background:linear-gradient(120deg,${p.thumb.g[0]},${p.thumb.g[1]})">
     <span class="play">▶</span><div class="tt">${p.thumb.title}<div class="mono" style="font-size:10px;font-weight:400;letter-spacing:.14em;margin-top:5px;color:rgba(255,255,255,.75)">${p.thumb.sub.toUpperCase()}</div></div></div></div>
    <p class="dim" style="font-size:12px;margin-top:10px">Winning route of 3 tested — highest predicted tap-through in the first 2s window.</p>`):'');
@@ -5204,7 +5206,7 @@ function stageArtifactInner(p,n){
    <div class="frames">${p.board.map(f=>`<div class="frame card" style="overflow:hidden"><div class="art" style="background:linear-gradient(135deg,${f.g[0]},${f.g[1]})"><span class="tc">${f.tc}</span></div><div class="p3" style="font-size:11.5px;line-height:1.55;color:var(--muted)">${f.d}</div></div>`).join('')}</div>`:`
    <img class="gen-media" ${mediaAttrs(p.board,'imageUrl')} alt="Generated storyboard sheet">${dirNote(p.board)}${p.studio?regenBox(p,'board'):''}`):'');
   case 'draft':return head(done)+(p.draft?p.draft.shots?rDraft(p,n<p.stage):`
-   ${p.draft.videoUrl||p.draft.assetPath?`<video controls playsinline ${mediaAttrs(p.draft,'videoUrl')} style="width:100%;max-width:640px;border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}
+   ${p.draft.videoUrl||p.draft.assetPath?`<video controls playsinline ${mediaAttrs(p.draft,'videoUrl')} style="width:100%;max-width:640px;border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}${qaRow(p.draft)}
    <div class="pipe-item" style="margin-bottom:14px"><span class="thumb" style="background:linear-gradient(120deg,${p.th[0]},${p.th[1]})"></span>
     <div><b style="color:#fff">${esc(p.title)} · first draft ${esc(p.draft.version)}</b> <span class="dim mono" style="font-size:10.5px">· ${p.draft.dur}</span>
      <div class="dim" style="font-size:11.5px;margin-top:3px">${p.draft.audio}</div></div></div>

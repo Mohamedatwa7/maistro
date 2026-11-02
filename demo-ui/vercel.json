@@ -32,5 +32,11 @@
       "schedule": "40 * * * *"
     }
   ],
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "rewrites": [
+    {
+      "source": "/api/agent/:path*",
+      "destination": "/api/agent?path=:path*"
+    }
+  ]
 }

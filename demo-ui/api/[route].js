@@ -30,6 +30,7 @@ const ROUTES = {
   monitor: 'monitor',
   thumb: 'thumb',
   moments: 'moments',
+  agent: 'agent',
 };
 
 module.exports = async (req, res) => {

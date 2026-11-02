@@ -224,6 +224,7 @@ async function listPieces(limit = 100) {
     return {
       id: p.legacy_id || p.id, pieceId: p.id, title: p.title, product: p.product, msg: p.key_message, angle: p.angle,
       markets: p.markets, platforms: p.platforms, trendId: p.trend_id, trend: p.trend_name, origin: p.origin,
+      source: out.plan && out.plan.version && out.plan.version.payload && out.plan.version.payload.source === 'hermes' ? 'hermes' : null,
       status: pieceStatus(mine.map((s) => ({ kind: s.kind, state: s.state }))), createdAt: p.created_at, updatedAt: p.updated_at, stages: out,
     };
   });
