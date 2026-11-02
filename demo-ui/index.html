@@ -5059,14 +5059,6 @@ function rTrends(){
  const nicheN=inChip.filter(t=>!keepTrend(t)).length;
  /* moment-linked trends first, then the feed's own order */
  const list=(STATE.showNiche?inChip:inChip.filter(keepTrend)).map((t,i)=>({t,i,m:momentFor(t)?0:1})).sort((a,b)=>a.m-b.m||a.i-b.i).map(x=>x.t);
- /* the KPIs describe TrendRadar's measured board; the team's picks carry no measurements */
- const boardT=TRENDS.filter(t=>!t.team);
- const rising=boardT.filter(t=>t.vel>0).length;
- const top=boardT.length?boardT.reduce((a,b)=>b.vel>a.vel?b:a,boardT[0]):null;
- const strong=boardT.filter(t=>t.fitTag==='STRONG SAMSUNG FIT').length;
- const scored=TRENDS.filter(t=>t.score);
- const avgFit=scored.length?Math.round(scored.reduce((s,t)=>s+t.score.fit,0)/scored.length):0;
- const briefed=TRENDS.filter(t=>t.status==='briefed');
  /* one page, two lenses on the same trends: the ranking (what to make, scored + vetted) and the live feed (everything TrendRadar sees) */
  const hasRank=SCORED.loaded&&!!SCORED.at;
  const trView=STATE.trView||(hasRank?'ranked':'live');
@@ -5079,12 +5071,6 @@ function rTrends(){
    ${lens('live','②','Live feed','Everything TrendRadar is tracking today, before Maistro’s judgement: raw momentum, views and the trend sound. Use it to browse or spot something the ranking missed.',TRENDS.length)}
    ${lens('moments','③','Moments','The big occasions to plan around (Halloween, National Days, Ramadan) and what the whole Gulf is searching right now (finals, award nights, launches).',MOMENTS.loaded?momentCount:'—')}
   </div>`:'';
- const kpi2=LIVE.on
-  ?`<div class="card kpi p4"><span class="kick">Strong Samsung fit</span><div class="v num">${strong}</div><div class="hint">of ${boardT.length} gated · via TrendRadar</div></div>`
-  :`<div class="card kpi p4"><span class="kick">Briefed to studio</span><div class="v num">${briefed.length}</div><div class="hint">${briefed.map(t=>t.name).join(' · ')||'—'}</div></div>`;
- const kpi3=LIVE.on
-  ?`<div class="card kpi p4"><span class="kick">Avg relevance gate</span><div class="v num">${avgFit}<span class="dim" style="font-size:15px">/100</span></div><div class="hint">across ${scored.length} scored trends</div></div>`
-  :`<div class="card kpi p4"><span class="kick">Audio clearance</span><div class="v num">1<span class="dim" style="font-size:15px">/3</span></div><div class="hint">1 cleared · 1 pending · 1 blocked</div></div>`;
  return `
  <section>
   <div class="section-head"><div><span class="kick accent">${LIVE.on?'01 · Samsung-fit feed · TrendRadar':'01 · Scout feed, scored + cleared'}</span><h2>Trend Analysis</h2></div>
@@ -5092,15 +5078,7 @@ function rTrends(){
   ${lenses}
   ${trView==='ranked'?rScoredBoard():''}
   ${trView==='moments'?rMoments():''}
-  ${trView==='live'?`<div class="kpis c4" style="margin-bottom:18px">
-   <div class="card kpi p4"><span class="kick">Live trends</span><div class="v num">${TRENDS.length}</div><div class="hint">${rising} rising · ${TRENDS.length-rising} not rising</div></div>
-   ${kpi2}
-   ${kpi3}
-   <div class="card kpi p4"><span class="kick">Top velocity</span>${top
-    ?`<div class="v num" style="color:${top.vel>0?'var(--go)':top.vel<0?'#f87171':'#fff'}">${top.vel>0?'+':''}${top.vel}%</div><div class="hint">${esc(top.name)} · ${LIVE.on?'per day':'48h'}${top.vel<=0?' · nothing rising':''}</div>`
-    :`<div class="v num dim">—</div><div class="hint">no measured trends on the board</div>`}</div>
-  </div>
-  <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+  ${trView==='live'?`<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
    <div class="chips">${['all','tiktok','instagram','youtube','x'].map(c=>`<button class="${STATE.chip===c?'on':''}" onclick="chipSet('${c}')">${c==='all'?'All platforms':PLAT[c].n}</button>`).join('')}</div>
    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${nicheN?`<button class="btn btn-sm" onclick="nicheToggle()">${STATE.showNiche?'Hide':'Show'} ${nicheN} niche trend${nicheN===1?'':'s'}</button>`:''}<span class="pill">${LIVE.on?'MOMENTS FIRST · THEN SAMSUNG FIT':'SORTED BY MAISTRO SCORE'}</span></div>
   </div>
