@@ -135,11 +135,14 @@ test('7.2 benchmark panel: the server\'s cells as computed (no statistic derived
   try {
     await new Promise((r) => setTimeout(r, 80));
     const html = X.rBenchPanel();
-    assert.match(html, /a benchmark, not boost advice/);
-    assert.match(html, /TikTok<\/td><td>ER<\/td><td class="num">114<\/td><td class="num">5\.36 %<\/td><td class="num">6\.91 %<\/td><td class="num">8\.17 %<\/td><td class="num">9\.84 %<\/td><td class="num dim">42<\/td>/);
-    assert.match(html, /X text<\/td><td>ER<\/td><td class="num">3<\/td><td colspan="4" class="dim">n &lt; 20: count only/);
-    assert.match(html, /Instagram video: 3–7 days n = 15/);
-    assert.match(html, /Giveaways, counted apart and never ranked: Facebook 18/);
+    assert.match(html, /how a post did, not whether to boost it/);
+    // plain-language row: weak / typical / strong / standout, as the server computed them
+    assert.match(html, /<b style="color:#fff">TikTok<\/b><\/td><td [^>]*class="dim">Engagement rate<\/td><td [^>]*class="num">114<\/td><td [^>]*class="num">below 5\.4%<\/td><td [^>]*class="num"><b style="color:#fff">6\.9%<\/b><\/td><td [^>]*class="num">above 8\.2%<\/td><td [^>]*class="num">above 9\.8%<\/td>/);
+    assert.match(html, /<b style="color:#fff">X text<\/b>.*Not enough posts yet \(3 of 20 needed\)/);
+    assert.ok(html.indexOf('TikTok</b>') < html.indexOf('X text</b>'), 'rows with numbers come first');
+    assert.match(html, /left out for fewer views: TikTok 42 · X text 20/);
+    assert.match(html, /Instagram video — 3–7 days: 15/);
+    assert.match(html, /Giveaways are counted apart and never compared: Facebook 18/);
     const p = track.posts[0];
     assert.match(X.benchChip({ ...p, platform: 'tiktok' }), /ER 8\.41 % — P80 of 114 mature TikTok organic posts \(90 d\) · benchmark among mature posts — not boost advice/);
     X.BENCH.data.posts[id] = { band: '0-1d', format: 'video', giveaway: 'suspected', young: { n: 3, expected: '2026-10-29', reason: 'benchmarks for posts under 7 days not yet available' } };
