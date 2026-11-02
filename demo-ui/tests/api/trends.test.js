@@ -292,7 +292,7 @@ test('teamTrends: the team-added Instagram trends ride alongside the board, outs
     assert.equal(r.body.count, 2);
     assert.ok(r.body.trends.every((t) => !t.team));
     const team = r.body.teamTrends;
-    assert.deepEqual(team.map((t) => t.name), ['Running Late', 'Fridge POV', 'Things We Are Ghosting This October']);
+    assert.deepEqual(team.map((t) => t.name), ['Running Late / Horizontal GRWM', 'Fridge POV', 'Things We Are Ghosting This October', 'My Kind of Trick or Treating']);
     for (const t of team) {
       assert.equal(t.team, true);
       assert.equal(t.platform, 'instagram');
@@ -301,6 +301,6 @@ test('teamTrends: the team-added Instagram trends ride alongside the board, outs
       assert.ok(t.clips.length >= 3);
       for (const c of t.clips) assert.match(c.url, /^https:\/\/www\.instagram\.com\/(reel|p)\/[A-Za-z0-9_-]+\/$/);
     }
-    assert.equal(team.reduce((n, t) => n + t.clips.length, 0), 11);
+    assert.equal(team.reduce((n, t) => n + t.clips.length, 0), 14);
   } finally { f.restore(); restore(); }
 });

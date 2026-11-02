@@ -16,12 +16,12 @@ const ig = (code, kind) => ({
 
 const RAW = [
   {
-    name: 'Running Late',
+    name: 'Running Late / Horizontal GRWM',
     category: 'lifestyle',
     addedAt: '2026-11-02',
-    mechanic: 'Female lifestyle trend: the frantic "running late" routine, filmed as a fast-cut sequence of getting ready and heading out the door.',
+    mechanic: 'Female lifestyle trend: the frantic "running late" get-ready-with-me, filmed horizontally as a fast-cut sequence of getting ready and heading out the door.',
     tags: ['runninglate', 'grwm', 'lifestyle'],
-    clips: [ig('De0sjXaM6cK', 'reel'), ig('DYpE5pxTC3t', 'reel'), ig('Dc1o1oUyyaQ', 'reel')],
+    clips: [ig('DcgE1ewo6I5', 'reel'), ig('DcpdoapzrWF', 'reel'), ig('DblAD4Pspxl', 'reel')],
   },
   {
     name: 'Fridge POV',
@@ -38,6 +38,14 @@ const RAW = [
     mechanic: 'Halloween photo and video trend in a bedsheet ghost costume: a list of things you are "ghosting" (leaving behind) this October.',
     tags: ['ghosting', 'halloween', 'ghostcostume'],
     clips: [ig('DePQmmOgYWa', 'post'), ig('Dd9X7eqFS55', 'reel'), ig('DeCp99-Gl2T', 'post'), ig('Del4b4rD3ab', 'post'), ig('DeuMMQ_DMBl', 'post')],
+  },
+  {
+    name: 'My Kind of Trick or Treating',
+    category: 'seasonal',
+    addedAt: '2026-11-02',
+    mechanic: 'Halloween trend: a personal twist on trick or treating, showing your own version of the "treats" you go out for.',
+    tags: ['trickortreat', 'halloween', 'mykindoftrickortreating'],
+    clips: [ig('DfK83Rwx7NG', 'reel'), ig('De-8uuYBNfR', 'reel'), ig('DfIO_E6v_YA', 'reel')],
   },
 ];
 
