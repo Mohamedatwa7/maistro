@@ -89,3 +89,30 @@ test('young posts: no percentile below n = 20, expected date from the posting ra
   const s = B.benchmarks({ posts: [young], now: NOW, newestByPlatform: { tiktok: '2026-10-17T08:00:00Z' } });
   assert.deepEqual(s.posts[young.postId].young, { n: 0, expected: null, reason: 'no recent data — tracker last collected 2026-10-17' });
 });
+
+test('counts: mature organic cells carry views / likes / comments / shares per post over every post (no view floor); null where the platform gives no number; none on giveaway or young cells', () => {
+  seq = 0;
+  // 20 TikToks: views 1000·k, likes k, comments 2k, shares 3k (k = 1..20); one 100-view post joins the counts but not the ER
+  const tk = Array.from({ length: 20 }, (_, i) => post({ metrics: { views: 1000 * (i + 1), likes: i + 1, comments: 2 * (i + 1), shares: null, sharesRaw: 3 * (i + 1) } }));
+  const low = post({ metrics: { views: 100, likes: 0, comments: 0, sharesRaw: 0 } });
+  const ig = Array.from({ length: 20 }, (_, i) => post({ platform: 'instagram', mediaType: 'Sidecar', metrics: { views: null, likes: i + 1, comments: 1, shares: 999 } }));
+  const fb = Array.from({ length: 3 }, () => post({ platform: 'facebook', mediaType: 'post', metrics: { likes: 1, comments: 1, sharesRaw: 1 } }));
+  const young = post({ postedAt: ago(2) });
+  const give = post({ caption: 'Giveaway! win a Fold8' });
+  const r = B.benchmarks({ posts: [...tk, low, ...ig, ...fb, young, give], now: NOW, newestByPlatform: { tiktok: ago(0.1) } });
+  const cell = (pl, f, band = 'mature', kind = 'organic') => r.cells.find((c) => c.platform === pl && c.format === f && c.band === band && c.kind === kind);
+  const t = cell('tiktok', 'all');
+  assert.equal(t.n, 20, 'the ER still needs 500 views');
+  assert.deepEqual(t.counts.views, { n: 21, p25: 5000, median: 10000, p75: 15000, p90: 18000 }, 'sorted 100, 1000..20000: nearest rank');
+  assert.deepEqual(t.counts.likes, { n: 21, p25: 5, median: 10, p75: 15, p90: 18 });
+  assert.equal(t.counts.shares.median, 30, 'raw share count');
+  const i = cell('instagram', 'image');
+  assert.equal(i.counts.views, null, 'IG images: views not collected');
+  assert.equal(i.counts.shares, null, 'IG shares never collected, even if present');
+  assert.equal(i.counts.likes.median, 10);
+  const f = cell('facebook', 'all');
+  assert.equal(f.counts.views, null, 'Facebook: views not collected');
+  assert.deepEqual(f.counts.likes, { n: 3 }, 'under 20 posts: count only');
+  assert.equal(cell('tiktok', 'all', 'mature', 'giveaway').counts, undefined);
+  assert.equal(cell('tiktok', 'all', '1-3d'), undefined, 'no snapshots: no young cell from live posts');
+});

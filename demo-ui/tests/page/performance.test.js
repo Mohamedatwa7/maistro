@@ -124,8 +124,10 @@ test('7.2 benchmark panel: the server\'s cells as computed (no statistic derived
   const bench = {
     asOf: '2026-10-21T09:00:00.000Z', windowDays: 90, minN: 20, minViews: 500, snapshotsSince: '2026-10-20T06:30:00Z', excludedLowViews: { tiktok: 42 },
     cells: [
-      { platform: 'tiktok', format: 'all', band: 'mature', kind: 'organic', metric: 'er', n: 114, p25: 0.053596, median: 0.069100, p75: 0.081713, p90: 0.098361, excludedLowViews: 42, sharesAssumedZero: 0 },
-      { platform: 'x', format: 'text', band: 'mature', kind: 'organic', metric: 'er', n: 3, excludedLowViews: 20, sharesAssumedZero: 0 },
+      { platform: 'tiktok', format: 'all', band: 'mature', kind: 'organic', metric: 'er', n: 114, p25: 0.053596, median: 0.069100, p75: 0.081713, p90: 0.098361, excludedLowViews: 42, sharesAssumedZero: 0,
+        counts: { views: { n: 156, p25: 1200, median: 4800, p75: 21000, p90: 90000 }, likes: { n: 156, p25: 60, median: 310, p75: 1500, p90: 6000 }, comments: { n: 156, p25: 2, median: 9, p75: 40, p90: 200 }, shares: { n: 156, p25: 1, median: 6, p75: 30, p90: 150 } } },
+      { platform: 'x', format: 'text', band: 'mature', kind: 'organic', metric: 'er', n: 3, excludedLowViews: 20, sharesAssumedZero: 0, counts: { views: { n: 3 }, likes: { n: 3 }, comments: { n: 3 }, shares: { n: 3 } } },
+      { platform: 'instagram', format: 'image', band: 'mature', kind: 'organic', metric: 'engagements', n: 41, p25: 52, median: 97, p75: 179, p90: 246, excludedLowViews: 0, sharesAssumedZero: 0, counts: { views: null, likes: { n: 41, p25: 50, median: 95, p75: 170, p90: 240 }, comments: { n: 41, p25: 1, median: 2, p75: 5, p90: 9 }, shares: null } },
       { platform: 'instagram', format: 'video', band: '3-7d', kind: 'organic', metric: 'er', n: 15, excludedLowViews: 0, sharesAssumedZero: 0 },
       { platform: 'facebook', format: 'all', band: 'mature', kind: 'giveaway', metric: 'engagements', n: 18, excludedLowViews: 0, sharesAssumedZero: 0 },
     ],
@@ -136,11 +138,11 @@ test('7.2 benchmark panel: the server\'s cells as computed (no statistic derived
     await new Promise((r) => setTimeout(r, 80));
     const html = X.rBenchPanel();
     assert.match(html, /how a post did, not whether to boost it/);
-    // plain-language row: weak / typical / strong / standout, as the server computed them
-    assert.match(html, /<b style="color:#fff">TikTok<\/b><\/td><td [^>]*class="dim">Engagement rate<\/td><td [^>]*class="num">114<\/td><td [^>]*class="num">below 5\.4%<\/td><td [^>]*class="num"><b style="color:#fff">6\.9%<\/b><\/td><td [^>]*class="num">above 8\.2%<\/td><td [^>]*class="num">above 9\.8%<\/td>/);
+    // one row per channel: the typical post's views / likes / comments / shares, with the usual (middle-half) range
+    assert.match(html, /<b style="color:#fff">TikTok<\/b><\/td><td [^>]*class="num">156<\/td><td [^>]*><b [^>]*>4\.8K<\/b><div [^>]*>usually 1\.2K–21K<\/div><\/td><td [^>]*><b [^>]*>310<\/b>/);
+    assert.match(html, /<b style="color:#fff">Instagram image \/ carousel<\/b><\/td><td [^>]*class="num">41<\/td><td [^>]*class="dim">not collected<\/td><td [^>]*><b [^>]*>95<\/b>.*<td [^>]*class="dim">not collected<\/td><\/tr>/);
     assert.match(html, /<b style="color:#fff">X text<\/b>.*Not enough posts yet \(3 of 20 needed\)/);
-    assert.ok(html.indexOf('TikTok</b>') < html.indexOf('X text</b>'), 'rows with numbers come first');
-    assert.match(html, /left out for fewer views: TikTok 42 · X text 20/);
+    assert.ok(html.indexOf('Instagram image / carousel</b>') < html.indexOf('X text</b>'), 'rows with numbers come first');
     assert.match(html, /Instagram video — 3–7 days: 15/);
     assert.match(html, /Giveaways are counted apart and never compared: Facebook 18/);
     const p = track.posts[0];

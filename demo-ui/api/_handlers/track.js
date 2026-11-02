@@ -543,7 +543,9 @@ module.exports = async (req, res) => {
     if (wantBench && String(q.live || '') !== '1') {
       try {
         const [row] = await queryRows('perf_payloads', 'select=computed_at,payload&kind=eq.bench_90d&limit=1');
-        if (row && Date.now() - Date.parse(row.computed_at) <= STORED_MAX_H * 36e5) {
+        // a payload stored before the per-post counts existed (views/likes/comments/shares) is recomputed live
+        const hasCounts = row && Array.isArray(row.payload && row.payload.cells) && row.payload.cells.every((c) => c.band !== 'mature' || c.kind !== 'organic' || c.counts !== undefined);
+        if (row && hasCounts && Date.now() - Date.parse(row.computed_at) <= STORED_MAX_H * 36e5) {
           res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
           return res.status(200).json({ ...row.payload, served: 'stored', computedAt: row.computed_at });
         }

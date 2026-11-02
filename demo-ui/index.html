@@ -5326,7 +5326,7 @@ function rStudio(){
     <div class="pipe-item"><span class="thumb" style="background:linear-gradient(120deg,${p.th[0]},${p.th[1]})"></span>
      <div><h3 style="font-size:17px">${esc(p.title)}</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:5px;align-items:center">
-       ${p.trend?badge('ai','TREND · '+esc(p.trend.toUpperCase())):badge('gold','OWN IDEA')}<span class="dim mono" style="font-size:10.5px">${esc(p.product)} · ${p.markets.map(esc).join(' · ')}</span>${p.platforms.map(plat).join(' ')}</div></div></div>
+       ${p.trend?badge('ai','TREND · '+esc(p.trend.toUpperCase())):badge('gold','OWN IDEA')}<span class="dim mono" style="font-size:10.5px">${[p.product,...(p.markets||[]).filter(m=>!/^(ksa|egypt)$/i.test(String(m).trim()))].map(esc).join(' · ')}</span>${p.platforms.map(plat).join(' ')}</div></div></div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
      ${p.studio?rRefControl(p):''}${p.studio?rColour(p):''}
      <div class="stage-dots">${STAGES.map(s=>`<i class="${s.n<p.stage?'done':s.n===p.stage?'cur':''}"></i>`).join('')}</div>
@@ -5929,30 +5929,35 @@ function rBenchPanel(){
  if(!BENCH.data)return `<div class="card p4" style="margin-bottom:18px"><span class="kick">Benchmarks</span><div class="dim" style="font-size:12px;margin-top:6px">${BENCH.err?esc(BENCH.err):'Computing benchmarks over the last 90 days…'}</div></div>`;
  const b=BENCH.data;
  const chan=c=>(BENCH_PLAT[c.platform]||c.platform)+(BENCH_FMT[c.format]||'');
+ const enough=c=>!!(c.counts&&c.counts.likes&&c.counts.likes.median!=null);
+ const nOf=c=>c.counts&&c.counts.likes?c.counts.likes.n:c.n;
  /* rows with numbers first, then the ones still collecting posts */
- const mature=b.cells.filter(c=>c.band==='mature'&&c.kind==='organic').sort((x,y)=>(y.median!=null)-(x.median!=null)||y.n-x.n);
- /* a rate reads as a percentage (two decimals under 1 %), a count as a whole number */
- const v=(c,x)=>c.metric==='er'?(x*100).toFixed(x<0.01?2:1)+'%':fmt(Math.round(x));
+ const mature=b.cells.filter(c=>c.band==='mature'&&c.kind==='organic').sort((x,y)=>enough(y)-enough(x)||nOf(y)-nOf(x));
+ /* views, likes, comments, shares per post: the typical (middle) post, and the range the middle half of posts fall in */
+ const METRICS=[['views','Views'],['likes','Likes'],['comments','Comments'],['shares','Shares']];
  const th='style="text-align:left;padding:8px 10px;font-weight:500;font-size:10.5px;letter-spacing:.04em;border-bottom:1px solid var(--hairline)"';
- const tdS='padding:9px 10px;border-bottom:1px solid var(--hairline);white-space:nowrap',td=`style="${tdS}"`,tdC=col=>`style="${tdS};color:${col}"`;
- const row=c=>`<tr><td ${td}><b style="color:#fff">${esc(chan(c))}</b></td><td ${td} class="dim">${c.metric==='er'?'Engagement rate':'Engagements per post'}</td><td ${td} class="num">${c.n}</td>${c.median!=null
-   ?`<td ${tdC('#f87171')} class="num">below ${v(c,c.p25)}</td><td ${td} class="num"><b style="color:#fff">${v(c,c.median)}</b></td><td ${tdC('#4ade80')} class="num">above ${v(c,c.p75)}</td><td ${tdC('#fbbf24')} class="num">above ${v(c,c.p90)}</td>`
-   :`<td ${td} colspan="4" class="dim">Not enough posts yet (${c.n} of ${b.minN} needed)</td>`}</tr>`;
+ const tdS='padding:9px 10px;border-bottom:1px solid var(--hairline);white-space:nowrap;vertical-align:top',td=`style="${tdS}"`,tdSm=`style="${tdS};font-size:11px"`;
+ /* null = the platform does not give us this number; a cell under 20 posts has no median */
+ const cellOf=s=>s===null?`<td ${tdSm} class="dim">not collected</td>`
+   :s&&s.median!=null?`<td ${td}><b class="num" style="color:#fff;font-size:14px">${fmt(Math.round(s.median))}</b><div class="dim num" style="font-size:10.5px;margin-top:2px">usually ${fmt(Math.round(s.p25))}–${fmt(Math.round(s.p75))}</div></td>`
+   :`<td ${tdSm} class="dim">—</td>`;
+ const row=c=>`<tr><td ${td}><b style="color:#fff">${esc(chan(c))}</b></td><td ${td} class="num">${nOf(c)}</td>${enough(c)
+   ?METRICS.map(([k])=>cellOf(c.counts[k])).join('')
+   :`<td ${td} colspan="4" class="dim">Not enough posts yet (${nOf(c)} of ${b.minN} needed)</td>`}</tr>`;
  const young={};
  for(const c of b.cells)if(c.band!=='mature'&&c.kind==='organic'){(young[chan(c)]=young[chan(c)]||[]).push(`${BENCH_BAND[c.band]}: ${c.n}`)}
  const gw=b.cells.filter(c=>c.kind==='giveaway').map(c=>`${chan(c)} ${c.n}`).join(' · ');
- const low=mature.filter(c=>c.excludedLowViews).map(c=>`${chan(c)} ${c.excludedLowViews}`).join(' · ');
  const reasons=[...new Set(Object.values(b.posts).filter(e=>e.young&&e.young.reason).map(e=>e.young.reason+(e.young.expected?' — expected '+e.young.expected:'')))];
  return `<div class="card p4" style="margin-bottom:18px">
   <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline"><span class="kick">Benchmarks · what a normal post gets</span><span class="dim mono" style="font-size:10px">updated ${esc(b.asOf.slice(0,16).replace('T',' '))} UTC</span></div>
-  <p style="font-size:13px;line-height:1.6;margin:8px 0 4px">How our posts on each channel usually perform once they are a week old, from the last ${b.windowDays} days. Find a post's channel and compare its number with the row: is it weak, typical or strong for that channel?</p>
+  <p style="font-size:13px;line-height:1.6;margin:8px 0 4px">What a typical post of ours gets on each channel once it is a week old, from the last ${b.windowDays} days. Compare a post with its channel's row: below the usual range is weak, above it is strong.</p>
   <div style="overflow-x:auto;margin-top:10px"><table style="width:100%;font-size:12px;border-collapse:collapse">
-   <thead><tr class="dim"><th ${th}>CHANNEL</th><th ${th}>MEASURED BY</th><th ${th}>POSTS COMPARED</th><th ${th}>WEAK<br><span style="font-weight:400">bottom quarter</span></th><th ${th}>TYPICAL<br><span style="font-weight:400">middle post</span></th><th ${th}>STRONG<br><span style="font-weight:400">top quarter</span></th><th ${th}>STANDOUT<br><span style="font-weight:400">top 10%</span></th></tr></thead>
+   <thead><tr class="dim"><th ${th}>CHANNEL</th><th ${th}>POSTS COMPARED</th>${METRICS.map(([,l])=>`<th ${th}>${l.toUpperCase()}<br><span style="font-weight:400">per post</span></th>`).join('')}</tr></thead>
    <tbody>${mature.map(row).join('')}</tbody></table></div>
-  <div class="dim" style="font-size:11.5px;margin-top:10px;line-height:1.6"><b style="color:#e8e9ec">Engagement rate</b> = likes, comments and shares divided by views. Facebook posts and Instagram image posts have no view counts, so they are compared on total engagements instead.</div>
+  <div class="dim" style="font-size:11.5px;margin-top:10px;line-height:1.6">The big number is the <b style="color:#e8e9ec">typical post</b>: half our posts on that channel got more, half got less. <b style="color:#e8e9ec">Usually</b> is the range the middle half of our posts fall in. <b style="color:#e8e9ec">Not collected</b> means the platform does not give us that number for this kind of post.</div>
   <div style="font-size:11.5px;margin-top:6px;line-height:1.6;color:var(--gold,#fbbf24)">This tells you how a post did, not whether to boost it: the boosting window closes in the first 1–3 days, and these numbers compare posts after their first week.</div>
   <details style="margin-top:10px"><summary class="dim" style="font-size:11px;cursor:pointer">How this is calculated</summary>
-   <div class="dim" style="font-size:11px;margin-top:6px;line-height:1.6">Only organic posts at least 7 days old are compared, and a row needs ${b.minN} posts before it shows numbers. Each column is the value at that point when the channel's posts are lined up from lowest to highest (nearest rank: 25th, 50th, 75th and 90th percentile). Engagement rate only counts posts with at least ${b.minViews} views${low?` (left out for fewer views: ${esc(low)})`:''}. Instagram engagements do not include shares (not collected).<br>
+   <div class="dim" style="font-size:11px;margin-top:6px;line-height:1.6">Only organic posts at least 7 days old are counted, and a row needs ${b.minN} posts before it shows numbers. Each channel's posts are lined up from lowest to highest for each number: the typical post is the middle one (median), and the usual range runs from the post a quarter of the way up to the one three quarters up (25th to 75th percentile, nearest rank). Facebook posts and Instagram image posts carry no view count; Instagram shares are not collected.<br>
    Posts younger than a week, by age: ${Object.entries(young).map(([k,x])=>`${esc(k)} — ${esc(x.join(', '))}`).join(' · ')||'none observed yet'}.${reasons.length?' '+reasons.map(esc).join('; ')+'.':''}<br>
    Giveaways are counted apart and never compared: ${esc(gw||'none')}.</div></details>
  </div>`;

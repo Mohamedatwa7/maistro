@@ -106,11 +106,32 @@ function benchmarks({ posts, snapshots = [], now = Date.now(), windowDays = 90, 
     if (o.value == null) { c.excludedLowViews++; continue; }
     c.values.push(o.value);
   }
+  // plain counts for the page's benchmark table (mature organic cells): views, likes, comments, shares per post,
+  // over every post in the cell (no view floor). null = not collected for that platform/format, never 0.
+  const counted = new Map();
+  for (const o of obs) {
+    if (o.band !== 'mature' || kindOf(o.p) !== 'organic') continue;
+    const key = keyOf(o.p, o.band);
+    (counted.get(key) || counted.set(key, []).get(key)).push(o);
+  }
+  const countsOf = (key) => {
+    const os = counted.get(key);
+    if (!os) return null;
+    const p0 = os[0].p, noViews = p0.platform === 'facebook' || (p0.platform === 'instagram' && format(p0) === 'image');
+    const col = (pick) => stats(os.map((o) => pick(o.m)));
+    return {
+      views: noViews ? null : col((m) => num(m.views)),
+      likes: col((m) => num(m.likes)),
+      comments: col((m) => num(m.comments)),
+      shares: p0.platform === 'instagram' ? null : col((m) => num(m.sharesRaw != null ? m.sharesRaw : m.shares)),
+    };
+  };
   const bandIdx = (b) => BANDS.findIndex((x) => x[0] === b);
-  const out = [...cells.values()].map((c) => ({
+  const out = [...cells.entries()].map(([key, c]) => ({
     platform: c.platform, format: c.format, band: c.band, kind: c.kind, metric: c.metric,
     ...(c.kind === 'giveaway' ? { n: c.values.length } : stats(c.values)),
     excludedLowViews: c.excludedLowViews, sharesAssumedZero: c.sharesAssumedZero,
+    ...(c.band === 'mature' && c.kind === 'organic' ? { counts: countsOf(key) } : {}),
   })).sort((a, b) => a.platform.localeCompare(b.platform) || a.format.localeCompare(b.format) || bandIdx(a.band) - bandIdx(b.band) || a.kind.localeCompare(b.kind));
   const excludedLowViews = {};
   for (const c of out) if (c.excludedLowViews) excludedLowViews[c.platform] = (excludedLowViews[c.platform] || 0) + c.excludedLowViews;
