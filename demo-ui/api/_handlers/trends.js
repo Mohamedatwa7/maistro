@@ -16,6 +16,7 @@ const { fetchT } = require('../_http.js');
 // rules if the key is missing or the call fails. Edge-cached 15 minutes.
 
 const SOURCE = 'https://www.kymah.com/';
+const { TEAM_TRENDS } = require('../_trends/team-trends.js');
 const MODEL = 'claude-opus-4-8';
 
 // trends_cache (ADR-005, M4): the last good board — raw and curated — lives
@@ -523,7 +524,7 @@ module.exports = async (req, res) => {
       if (!cache.hit) await writeCache({ ...board, curated: [], curatedBy: 'none' });
       res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=900');
       res.setHeader('Access-Control-Allow-Origin', '*');
-      return res.status(200).json({ source, fetchedAt: new Date().toISOString(), live, boardGeneratedAt, boardTotal: 0, curatedBy: 'none', count: 0, trends: [], cache });
+      return res.status(200).json({ source, fetchedAt: new Date().toISOString(), live, boardGeneratedAt, boardTotal: 0, curatedBy: 'none', count: 0, trends: [], teamTrends: TEAM_TRENDS, cache });
     }
 
     let curatedBy = 'none';
@@ -565,6 +566,8 @@ module.exports = async (req, res) => {
       curatedBy,
       count: trends.length,
       trends,
+      // the team's own picks (api/_trends/team-trends.js), outside the board's count and filters
+      teamTrends: TEAM_TRENDS,
       cache,
     });
   } catch (err) {

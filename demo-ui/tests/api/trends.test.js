@@ -282,3 +282,25 @@ test('snapshots (5.0): every fetched board writes one trend_snapshots row per we
     assert.equal(h.handler.snapshotRow({ name: 'x' }, { fetchedAt: 'now' }), null, 'no id → rejected');
   } finally { f.restore(); h.restore(); }
 });
+
+test('teamTrends: the team-added Instagram trends ride alongside the board, outside its count and filters', async () => {
+  const f = mockFetch([['https://www.kymah.com/', () => text(page)]]);
+  const { handler, restore } = api('trends.js', { ANTHROPIC_API_KEY: undefined });
+  try {
+    const r = res();
+    await handler(req({ query: { all: '1', limit: '2' } }), r);
+    assert.equal(r.body.count, 2);
+    assert.ok(r.body.trends.every((t) => !t.team));
+    const team = r.body.teamTrends;
+    assert.deepEqual(team.map((t) => t.name), ['Running Late', 'Fridge POV', 'Things We Are Ghosting This October']);
+    for (const t of team) {
+      assert.equal(t.team, true);
+      assert.equal(t.platform, 'instagram');
+      assert.ok(t.id.startsWith('team-'));
+      assert.equal(t.samsungFit.score, null); // nothing measured, nothing invented
+      assert.ok(t.clips.length >= 3);
+      for (const c of t.clips) assert.match(c.url, /^https:\/\/www\.instagram\.com\/(reel|p)\/[A-Za-z0-9_-]+\/$/);
+    }
+    assert.equal(team.reduce((n, t) => n + t.clips.length, 0), 11);
+  } finally { f.restore(); restore(); }
+});
