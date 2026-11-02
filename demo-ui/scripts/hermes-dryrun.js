@@ -41,7 +41,7 @@ async function run(role, body, session, label) {
   const req = { profile: H.PROFILES[role], session_id: session, input: (() => { try { return JSON.parse(body.input); } catch (e) { return body.input; } })(), instructions: body.instructions };
   show(`${label}: request (POST /p/${H.PROFILES[role]}/v1/runs)`, req);
   let sub;
-  try { sub = await H.submit(role, body, { sessionId: session, idempotencyKey: `${CAMPAIGN}-${label}-${Date.now()}` }); }
+  try { sub = await H.submit(role, body, { sessionId: session, idempotencyKey: `${CAMPAIGN}-${label.replace(/[^A-Za-z0-9-]/g, '')}-${Date.now()}` }); }
   catch (e) { show(`${label}: submit failed`, { status: e.status || null, code: e.code || null, error: String(e.message) }); return null; }
   console.log(`${label}: submitted ${sub.ref} (${sub.bot}), polling…`);
   const until = Date.now() + waitMin * 60000;
