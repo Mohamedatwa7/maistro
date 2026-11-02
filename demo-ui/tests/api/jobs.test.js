@@ -44,7 +44,7 @@ test('a render job: created → stage generating → run submitted to the stage\
     const run = W.H.runs[0];
     assert.equal(run.profile, 'thumbnail', 'the thumbnail bot\'s profile'); assert.equal(run.url, 'https://hermes.test/p/thumbnail/v1/runs');
     assert.equal(run.headers.Authorization, 'Bearer hk'); assert.equal(run.headers['Idempotency-Key'], job.id); assert.equal(run.body.session_id, 'maistro-gen-j1-thumb');
-    assert.match(run.body.input, /hero shot/); const inp = JSON.parse(run.body.input); assert.equal(inp.aspect, '16:9'); assert.equal(inp.resolution, '2k', '1080p maps to the image bots\' 2k'); assert.deepEqual(inp.product_image_urls, ['https://ref.test/photo.jpg']); assert.equal(inp.max_credits, 4);
+    assert.match(run.body.input, /hero shot/); const inp = JSON.parse(run.body.input); assert.equal(inp.aspect, '16:9'); assert.equal(inp.resolution, '2k', '1080p maps to the image bots\' 2k'); assert.deepEqual(inp.product_image_urls, ['https://ref.test/photo.jpg']); assert.equal(inp.max_credits, 6, 'thumbnail: the image + two QA re-renders (hermes-contract budgets)');
     assert.match(run.body.instructions, /"images": \["<https URL>"\]/, 'the output contract asks for one image');
     assert.equal(W.pg.tables.stages.find((s) => s.kind === 'thumb').state, 'generating');
     // not due yet: a read does not call the bot again; the tick finds nothing due
@@ -279,7 +279,7 @@ test('the adapter reads the bot\'s reply: the last ```json block, else the last 
   assert.deepEqual([roleFor('hermes_image', 'mood'), roleFor('hermes_image', 'board'), roleFor('hermes_video', 'final'), roleFor('hermes_brief', 'brief')], ['mood', 'board', 'video', 'brief']);
   const run = renderRun({ prompt: 'p', batch: 4, aspect_ratio: '4:3', seed: 42, anchorUrls: ['https://a/1.png', 'http://no/2.png'], meta: { changes: 'warmer light' } }, 'mood');
   const inp = JSON.parse(run.input);
-  assert.match(run.instructions, /exactly 4 https URLs/); assert.match(inp.task, /4 cohesive image variations/); assert.equal(inp.count, 4); assert.equal(inp.seed, 42); assert.equal(inp.reviewer_changes, 'warmer light'); assert.equal(inp.aspect, '4:3');
+  assert.match(run.instructions, /exactly 4 https URLs/); assert.match(inp.task, /4 cohesive image variations/); assert.equal(inp.count, 4); assert.equal(inp.seed, undefined, 'the generator cannot use a seed: never sent'); assert.equal(inp.reviewer_changes, 'warmer light'); assert.equal(inp.aspect, '4:3');
   assert.deepEqual(inp.moodboard_image_urls, ['https://a/1.png'], 'only https anchors are passed on');
 });
 
@@ -293,7 +293,7 @@ test('the bots\' contract (maistro-bots): maistro-* profiles and the key file\'s
     const h = require('../../api/_adapters/hermes.js');
     process.env.HERMES_API_URL = 'https://gw.test'; process.env.HERMES_KEY_MAISTRO_VIDEO = 'kv'; process.env.HERMES_KEY_MAISTRO_STORYBOARD = 'kb';
     assert.deepEqual(h.config('video'), { root: 'https://gw.test/p/maistro-video', profile: 'maistro-video', key: 'kv' });
-    assert.deepEqual(Object.values(h.PROFILES), ['maistro-moodboard', 'maistro-thumbnail', 'maistro-brief', 'maistro-storyboard', 'maistro-video']);
+    assert.deepEqual(Object.values(h.PROFILES), ['maistro-moodboard', 'maistro-thumbnail', 'maistro-brief', 'maistro-storyboard', 'maistro-video', 'maistro-organizer']);
     assert.throws(() => h.config('mood'), /HERMES_KEY_MAISTRO_MOODBOARD/, 'each bot needs its own key');
     const v = JSON.parse(h.renderRun({ prompt: 'p' }, 'video').input);
     assert.deepEqual([v.resolution, v.duration, v.aspect], ['720p', 5, '9:16']);

@@ -2188,6 +2188,7 @@ function genBox(p,sid){
     :`Describe what you want and the <b style="color:#e8e9ec">AI Creative Director</b> turns it into a professional ${sg.l.toLowerCase()} prompt${prior?' — matched to the look of the pieces you already made':''}, then ${sid==='draft'?'your Hermes video bot renders the first cut':'your Hermes '+({mood:'moodboard',thumb:'thumbnail',board:'storyboard'}[sid]||'')+' bot makes the image'}.`}</p>
   <textarea id="gen-in-${sid}" placeholder="${hints[sid]}"></textarea>
   ${sid!=='qc'?rStyleRefs(p,false):''}
+  ${sid==='board'&&useJobs()?`<label class="hint" style="display:flex;gap:6px;align-items:center;margin-top:8px;cursor:pointer"><input type="checkbox" id="gen-plan-board"> Let the storyboard bot plan it: the story, the shot list and every keyframe in one run</label>`:''}
   ${sid==='thumb'?`<div class="grid-2f" style="margin-top:8px"><div class="f-field"><label>Headline (English, overlaid in code — never inside the image)</label><input class="inp-l" id="gen-head-en" maxlength="120" placeholder="e.g. Slimness check: passed."></div>
    <div class="f-field"><label>Headline (Arabic, optional)</label><input class="inp-l" id="gen-head-ar" dir="rtl" maxlength="120" placeholder="عنوان بالعربية"></div></div>
   <p class="hint" style="margin-top:6px">Cover aspect follows the platforms (${thumbAspectFor(p)}); the text sits inside the platform safe zone. The moodboard must exist first.</p>`:''}
@@ -2219,8 +2220,8 @@ async function stageGen(pid,sid,changes){
   /* 6.8: the final applies ONLY the approved QC plan, at each fix's unit */
   if(sid==='final'&&useJobs()&&!changes&&((p.qc&&p.qc.report&&!skipOf(p,'qc'))||(p.draft&&p.draft.assembled))){
    GEN.busy[key]=p.qc&&p.qc.report&&!skipOf(p,'qc')?'Applying the approved fix plan (only the shots it names)…':'Making the final from the first draft video…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'final',pieceId:p.id,styleRefs:styleRefsOf(p),piece:storeMeta(p)})});
-   const sd=await sr.json().catch(()=>({}));
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'final',pieceId:p.id,styleRefs:styleRefsOf(p),...campCtx(p),piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));orderWarn(sd);
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
    attachTo(p,'final',sd.artifact,'Forge',{recorded:{version:sd.version}});FINAL_DIFF[p.id]=undefined;
    if(sd.regenShots.length){p.jobs=p.jobs||{};p.jobs['b:final']={board:true};saveGenerated();GEN.busy[key]='The Hermes video bot is re-rendering shot '+sd.regenShots.join(', ')+'…';shotsPoll(p.id,'final',0)}
@@ -2233,7 +2234,7 @@ async function stageGen(pid,sid,changes){
   if(sid==='qc'&&useJobs()&&p.draft&&p.draft.assembled&&!changes){
    GEN.busy[key]='F1X8 is analysing the assembled cut; the fix plan follows…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'qc',pieceId:p.id,piece:storeMeta(p)})});
-   const sd=await sr.json().catch(()=>({}));
+   const sd=await sr.json().catch(()=>({}));orderWarn(sd);
    if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
    if(sd.job.state==='failed')throw new Error(sd.job.error||'F1X8 could not be started');
    qcReportPoll(p.id,0);
@@ -2243,8 +2244,8 @@ async function stageGen(pid,sid,changes){
   if(sid==='draft'&&useJobs()&&!changes&&!(p.board&&p.board.shots&&!skipOf(p,'board'))){
    /* no storyboard (skipped or not made): one text-to-video clip for the whole video */
    GEN.busy[key]='The Hermes video bot is making the first draft as one video'+(p.brief&&!skipOf(p,'brief')?' from the brief':' from the campaign plan')+'…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',noBoard:true,pieceId:p.id,styleRefs:styleRefsOf(p),resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
-   const sd=await sr.json().catch(()=>({}));
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',noBoard:true,pieceId:p.id,styleRefs:styleRefsOf(p),...campCtx(p),resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));orderWarn(sd);
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
    attachTo(p,'draft',sd.artifact,'Hermes video bot',{recorded:{version:sd.version}});
    p.jobs=p.jobs||{};p.jobs['b:draft']={board:true};saveGenerated();
@@ -2258,8 +2259,8 @@ async function stageGen(pid,sid,changes){
    const okShots=p.board.shots.filter(s=>kst(s)==='rendered'),failedShots=p.board.shots.filter(s=>kst(s)==='failed').map(s=>s.n);
    if(!okShots.length)throw new Error('Every storyboard keyframe failed — regenerate at least one shot first.');
    GEN.busy[key]='The Hermes video bot is rendering '+okShots.length+' clips from the storyboard keyframes'+(failedShots.length?' (shot '+failedShots.join(', ')+' left out: its keyframe failed)':'')+' — they join into one video by themselves…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',pieceId:p.id,styleRefs:styleRefsOf(p),resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
-   const sd=await sr.json().catch(()=>({}));
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',pieceId:p.id,styleRefs:styleRefsOf(p),...campCtx(p),resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));orderWarn(sd);
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
    attachTo(p,'draft',sd.artifact,'Hermes video bot',{recorded:{version:sd.version}});
    p.jobs=p.jobs||{};p.jobs['b:draft']={board:true};saveGenerated();
@@ -2268,13 +2269,14 @@ async function stageGen(pid,sid,changes){
   }
   /* 6.5: the storyboard is a shot list from the approved brief + one keyframe per shot */
   if(sid==='board'&&useJobs()){
-   GEN.busy[key]='Frame is writing the shot list'+(p.brief&&!skipOf(p,'brief')?' from the brief':' from the campaign plan')+'…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',pieceId:p.id,styleRefs:styleRefsOf(p),userInput,refImage:p.refImage||null,piece:storeMeta(p)})});
-   const sd=await sr.json().catch(()=>({}));
+   const plan=Boolean((document.getElementById('gen-plan-board')||{}).checked);
+   GEN.busy[key]=plan?'The storyboard bot is writing the story and the shot list and making every keyframe…':'Frame is writing the shot list'+(p.brief&&!skipOf(p,'brief')?' from the brief':' from the campaign plan')+'…';studioRefresh();
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'board',pieceId:p.id,styleRefs:styleRefsOf(p),...campCtx(p),userInput,refImage:p.refImage||null,...(plan?{plan:true}:{}),piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));orderWarn(sd);
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
    attachTo(p,'board',{...sd.artifact,version:'v'+sd.version},'Frame',{recorded:{version:sd.version}});
    CHECKS[p.id+':board']=sd.checks&&sd.checks.codeChecks?{stage:'board',kind:'spec',passed:sd.checks.passed,results:sd.checks}:null;CHECKS[p.id+':board:all']=undefined;
-   GEN.busy[key]='The Hermes storyboard bot is rendering '+(sd.artifact.shots||[]).length+' keyframes — each shot appears as it lands…';
+   GEN.busy[key]=sd.plan?'The storyboard bot is planning the story, the shot list and every keyframe — they land together…':'The Hermes storyboard bot is rendering '+(sd.artifact.shots||[]).length+' keyframes — each shot appears as it lands…';
    p.jobs=p.jobs||{};p.jobs['b:board']={board:true};saveGenerated();
    studioRefresh();boardPoll(p.id,0);
    return;
@@ -2282,8 +2284,8 @@ async function stageGen(pid,sid,changes){
   /* 6.4: the brief is written from the approved moodboard + thumbnail and checked in code */
   if(sid==='brief'&&useJobs()){
    GEN.busy[key]='Your Hermes brief bot is writing the brief'+(p.mood?' from the moodboard'+(p.thumb?' and thumbnail':''):' from the campaign plan')+'…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'brief',pieceId:p.id,styleRefs:styleRefsOf(p),userInput,piece:storeMeta(p)})});
-   const sd=await sr.json().catch(()=>({}));
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'brief',pieceId:p.id,styleRefs:styleRefsOf(p),...campCtx(p),userInput,piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));orderWarn(sd);
    if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
    if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the brief bot could not be reached');
    p.jobs=p.jobs||{};p.jobs['g:brief']={jobId:sd.job.id};saveGenerated();
@@ -2306,8 +2308,8 @@ async function stageGen(pid,sid,changes){
   if(sid==='thumb'&&useJobs()&&!changes){
    GEN.busy[key]='Art director is writing the cover prompt'+(p.mood?' from the moodboard':' from the campaign plan')+'…';studioRefresh();
    const head=(($('#gen-head-en')||{}).value||'').trim(),headAr=(($('#gen-head-ar')||{}).value||'').trim();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'thumb',pieceId:p.id,styleRefs:styleRefsOf(p),userInput,headline:head,headlineAr:headAr,refImage:p.refImage||null,piece:storeMeta(p)})});
-   const sd=await sr.json().catch(()=>({}));
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'thumb',pieceId:p.id,styleRefs:styleRefsOf(p),...campCtx(p),userInput,headline:head,headlineAr:headAr,refImage:p.refImage||null,piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));orderWarn(sd);
    if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
    if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the render could not be submitted');
    GEN.busy[key]='The Hermes thumbnail bot is rendering the '+sd.aspect+' cover'+(p.refImage?' from your product photo':'')+'…';
@@ -2319,8 +2321,8 @@ async function stageGen(pid,sid,changes){
   /* 6.2: the moodboard is THREE moods to pick from (owner 2026-10-29); each lands as soon as it renders */
   if(sid==='mood'&&useJobs()){
    GEN.busy[key]='Art director is writing three different moods…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'mood',pieceId:p.id,styleRefs:styleRefsOf(p),userInput,refImage:p.refImage||null,piece:storeMeta(p)})});
-   const sd=await sr.json().catch(()=>({}));
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'mood',pieceId:p.id,styleRefs:styleRefsOf(p),...campCtx(p),userInput,refImage:p.refImage||null,piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));orderWarn(sd);
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||((sd.problems||[]).join('; '))||('studio responded '+sr.status));
    const bad=(sd.jobs||[]).filter(j=>j.state==='failed'||j.state==='timed_out');
    if(bad.length===(sd.jobs||[]).length&&bad.length)throw new Error(bad[0].error||'the renders could not be submitted');
@@ -2702,6 +2704,118 @@ function rStyleRefs(p,chat){
   ${list.length?`<span class="mono dim" style="font-size:9px;letter-spacing:.06em">${list.length}/${STYLE_MAX} · USED ON EVERY GENERATION</span>`:''}
  </div>`;
 }
+/* ---------- Hermes coordination (owner 2026-11-02) — docs/hermes-integration.md ----------
+   B: one colourway per campaign (empty = the product's default), sent with every studio call; the server
+   turns it into the locked product spec (model code, official images) every bot is held to.
+   C: an earlier step not approved yet → a warning (the server blocks only in strict mode).
+   D: what each bot says about its own output (QA verdict, story flag, a QA re-render the budget blocked). */
+function campCtx(p){return {productColour:(p&&p.productColour)||null,skipped:STAGES.filter(s=>skipOf(p,s.id)).map(s=>s.id)}}
+function rColour(p){
+ return `<label class="pill" style="gap:6px;cursor:text" title="The product colourway every bot is held to, with its model code and official images. Empty = the product's default colourway." onclick="event.stopPropagation()">COLOUR
+  <input style="width:104px;background:transparent;border:0;border-bottom:1px solid var(--line-2);color:inherit;font:inherit;font-size:11px;padding:1px 2px" value="${esc(p.productColour||'')}" placeholder="default" onchange="colourSet('${p.id}',this.value)"></label>`;
+}
+function colourSet(pid,v){
+ const p=PROJECTS.find(x=>x.id===pid);if(!p)return;
+ p.productColour=String(v||'').trim().slice(0,60)||null;saveGenerated();
+ toast(`<span style="font-size:12.5px"><b style="color:#86efac">Colourway: ${esc(p.productColour||'the product default')}.</b> Every bot gets it from the next generation on.</span>`);
+}
+const ORDER_LABEL={brief:'the brief',mood:'the moodboard',board:'the storyboard',thumb:'the thumbnail',draft:'the first draft'};
+function orderWarn(sd){
+ const w=sd&&sd.orderWarnings;if(!Array.isArray(w)||!w.length)return;
+ toast(`<span style="font-size:12.5px"><b style="color:#fbbf24">Out of order:</b> ${w.map(x=>esc(ORDER_LABEL[x.stage]||x.stage)+(x.state==='missing'?' is not made yet':' is not approved yet')).join(', ')}. The bots work brief → moodboard → storyboard → thumbnail → video; this will go stale when those change.</span>`);
+}
+function qaBadges(x){
+ if(!x)return '';
+ const q=x.qa,v=q&&q.verdict?String(q.verdict).toLowerCase():null;
+ const tip=q?['Bot QA'+(q.checked!=null?' · checked '+q.checked:'')+(q.passed!=null?' · passed '+q.passed:'')+(q.regenerated!=null?' · regenerated '+q.regenerated:'')+(q.dropped!=null?' · dropped '+q.dropped:''),q.product?'Product: '+q.product:'',q.spec_card?'Spec card: '+q.spec_card:'',q.notes?'Notes: '+q.notes:''].filter(Boolean).join('\n'):'';
+ return (q?`<span title="${esc(tip)}">${badge(v==='pass'?'go':v==='fail'?'alert':'gold','BOT QA'+(v?' · '+esc(v.toUpperCase()):''))}</span>`:'')
+  +(x.storyFlag?`<span title="${esc(x.storyFlag)}">${badge('alert','STORY FLAG')}</span>`:'')
+  +(x.budgetBlockedRetry?`<span title="The bot delivered, but max_credits did not allow a QA re-render — look at this one closely.">${badge('gold','QA RE-RENDER BLOCKED BY BUDGET')}</span>`:'')
+  +(x.errorCode==='higgsfield_credits_exhausted'?badge('alert','CREDITS EXHAUSTED — PIPELINE STOPPED'):'');
+}
+function qaNotes(x){
+ const q=x&&x.qa;
+ const t=[q&&q.notes?'QA: '+q.notes:'',q&&q.spec_card?'Spec card: '+q.spec_card:'',x&&x.storyFlag?'Story flag: '+x.storyFlag:''].filter(Boolean);
+ return t.length?`<div class="dim" style="font-size:10.5px;margin-top:4px;line-height:1.5">${t.map(esc).join('<br>')}</div>`:'';
+}
+function qaRow(x){const b=qaBadges(x);return b?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${b}</div>${qaNotes(x)}`:''}
+/* the Higgsfield credits ran out: the pipeline stopped; an admin resumes it after the top-up */
+async function hermesResume(){
+ try{
+  const r=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'hermes-resume'})});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('studio responded '+r.status));
+  toast(`<span style="font-size:12.5px"><b style="color:#86efac">Bots resumed.</b> Re-run the steps that stopped.</span>`);
+ }catch(e){toast(`<b style="color:#f87171">Resume:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
+}
+/* the video bot asked for a new first frame: the storyboard bot re-renders that shot with its note, then the clip retries */
+async function frameFix(pid,n){
+ const p=PROJECTS.find(x=>x.id===pid);if(!p)return;
+ try{
+  const r=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'frame-fix',pieceId:pid,shot:n,...campCtx(p),piece:storeMeta(p)})});
+  const d=await r.json().catch(()=>({}));if(!r.ok||!d.job)throw new Error(d.error||('studio responded '+r.status));
+  if(p.board&&p.board.shots){const bs=p.board.shots.find(x=>x.n===d.boardShot);if(bs){bs.keyframe={state:'pending',jobId:d.job.id};bs.review=null}}
+  const ds=p.draft&&p.draft.shots&&p.draft.shots.find(x=>x.n===n);if(ds&&ds.clip)ds.clip={...ds.clip,needsNewFrame:false,frameFixJob:d.job.id};
+  saveGenerated();GEN.busy[pid+':board']='The storyboard bot is re-rendering shot '+d.boardShot+' for the video bot — the clip renders again from it…';
+  studioRefresh();shotsPoll(pid,'board',0);
+  toast(`<span style="font-size:12.5px"><b style="color:#86efac">Sent to the storyboard bot.</b> Shot ${d.boardShot} is re-rendered with the video bot's note, then part ${n} renders again from the new frame.</span>`);
+ }catch(e){toast(`<b style="color:#f87171">New first frame:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
+}
+/* I: the organizer bot reviews the whole campaign; each fix it asks for runs the matching bot */
+const REVIEW={};
+function rReview(p){
+ const R=REVIEW[p.id]||{},res=R.result;
+ const vb=v=>badge(/pass|ok/i.test(v)?'go':/fail|reject/i.test(v)?'alert':'gold',esc(String(v||'—').toUpperCase()));
+ return `<div class="review-box" style="margin-top:14px;border:1px solid var(--hairline);border-radius:12px;padding:12px;background:rgba(0,0,0,.25)">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="kick">Campaign review</span><span class="dim" style="font-size:11px">the organizer bot checks every asset, the story and where the bots worked from different context</span>
+   <span style="margin-left:auto;display:flex;gap:6px;align-items:center">${R.busy?`<span class="gen-spin"></span><span class="dim" style="font-size:11px">${esc(R.busy)}</span>`:`<button class="btn btn-ghost btn-sm" onclick="reviewRun('${p.id}')">🔍 Review campaign</button>`}</span></div>
+  ${R.err?`<div class="pc-note" style="margin-top:8px">${esc(R.err)}</div>`:''}
+  ${res&&res.ok?`
+   ${res.storyCheck?`<div style="font-size:12px;margin-top:10px"><b style="color:#bae6fd">Story:</b> ${esc(res.storyCheck)}</div>`:''}
+   ${res.review.length?`<div style="display:grid;gap:4px;margin-top:10px">${res.review.map(x=>`<div style="display:flex;gap:8px;align-items:baseline;font-size:12px"><span style="min-width:120px;color:#fff">${esc(x.asset)}</span>${vb(x.verdict)}<span class="dim">${x.defects.map(esc).join(' · ')}</span></div>`).join('')}</div>`:''}
+   ${res.miscommunications.length?`<div style="font-size:12px;margin-top:10px"><b style="color:#fbbf24">Miscommunications:</b><ul style="margin:4px 0 0 18px">${res.miscommunications.map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>`:''}
+   ${res.fixes.length?`<div style="display:grid;gap:6px;margin-top:10px"><span class="kick" style="font-size:10px">Fixes requested</span>${res.fixes.map((f,i)=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px"><b style="color:#fff">${esc(f.to)}${f.shot?' · shot '+f.shot:''}</b><span class="dim" style="flex:1;min-width:180px">${esc(f.fix)}</span>${f.run?`<button class="btn btn-gold btn-sm" ${R.done&&R.done[i]?'disabled':''} onclick="reviewFix('${p.id}',${i})">${R.done&&R.done[i]?'✓ Sent':'Run this fix →'}</button>`:'<span class="dim" style="font-size:11px">no bot for this</span>'}</div>`).join('')}</div>`:''}
+   ${res.qa?`<div style="margin-top:8px">${qaBadges({qa:res.qa})}</div>`:''}`:''}
+ </div>`;
+}
+async function reviewRun(pid){
+ const p=PROJECTS.find(x=>x.id===pid);if(!p)return;
+ REVIEW[pid]={busy:'The organizer bot is reviewing the campaign…'};studioRefresh();
+ try{
+  const r=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'review',pieceId:pid,piece:storeMeta(p)})});
+  const d=await r.json().catch(()=>({}));if(!r.ok||!d.ref)throw new Error(d.error||('studio responded '+r.status));
+  reviewPoll(pid,d.ref,0);
+ }catch(e){REVIEW[pid]={err:'Review: '+e.message};studioRefresh()}
+}
+function reviewPoll(pid,ref,tries){
+ if(tries>120){REVIEW[pid]={err:'The review is still running after 10 minutes — try again later.'};studioRefresh();return}
+ setTimeout(async()=>{
+  try{
+   const r=await authFetch('/api/studio?review='+encodeURIComponent(pid)+'&ref='+encodeURIComponent(ref));const d=await r.json().catch(()=>({}));
+   if(!r.ok)throw new Error(d.error||('studio responded '+r.status));
+   if(d.state==='running'||d.state==='waiting')return reviewPoll(pid,ref,tries+1);
+   if(d.state!=='completed')throw new Error(d.error||('the review '+d.state));
+   REVIEW[pid]=d.result&&d.result.ok?{result:d.result,done:{}}:{err:'The review came back in an unexpected shape'+(d.result&&d.result.problems&&d.result.problems.length?' ('+d.result.problems.join('; ')+')':'')};
+   studioRefresh();
+  }catch(e){REVIEW[pid]={err:'Review: '+e.message};studioRefresh()}
+ },5000);
+}
+async function reviewFix(pid,i){
+ const p=PROJECTS.find(x=>x.id===pid),R=REVIEW[pid];if(!p||!R||!R.result)return;
+ const f=R.result.fixes[i],run=f&&f.run;if(!run)return;
+ R.done=R.done||{};R.done[i]=true;
+ if(run.action==='board-shot'||run.action==='draft-shot'){
+  const stage=run.action==='draft-shot'?'draft':'board';
+  try{
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:run.action,pieceId:pid,shot:run.shot,changes:run.changes,styleRefs:styleRefsOf(p),...campCtx(p),refImage:p.refImage||null,piece:storeMeta(p)})});
+   const sd=await sr.json().catch(()=>({}));if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
+   const sh=p[stage]&&p[stage].shots&&p[stage].shots.find(x=>x.n===run.shot);if(sh){sh[stage==='draft'?'clip':'keyframe']={state:'pending',jobId:sd.job.id};sh.review=null}
+   saveGenerated();studioRefresh();shotsPoll(pid,stage,0);
+  }catch(e){R.done[i]=false;toast(`<b style="color:#f87171">Fix:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`);studioRefresh()}
+  return;
+ }
+ const sid=run.action;STATE.stageSel=BOT_STAGE_IDX[sid]||STATE.stageSel;
+ stageGen(pid,sid,sid==='draft'?undefined:(run.userInput||run.changes||''));
+}
 /* ---------- campaign product reference photos (real product fidelity) ----------
    A campaign holds a LIBRARY of product photos (e.g. closed + open views of a
    foldable); the generator takes one reference per render, so the highlighted
@@ -2980,11 +3094,11 @@ function rMoodPick(p,locked){
    <div style="display:grid;grid-template-columns:repeat(${Math.max(1,imgs.length)},1fr);gap:2px;background:#000">${pics}</div>
    <div style="padding:10px 12px;display:flex;flex-direction:column;gap:6px;flex:1">
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="mono dim" style="font-size:10px">MOOD ${md.n}</span>${on?badge('gold','✓ THE VIDEO FOLLOWS THIS MOOD'):''}${md.state==='failed'?badge('alert','FAILED'):''}</div>
-    <b style="font-size:14px;color:#fff">${esc(md.name)}</b>
+    <b style="font-size:14px;color:#fff">${esc(md.name)}</b>${md.qa||md.budgetBlockedRetry?`<div style="display:flex;gap:6px;flex-wrap:wrap">${qaBadges(md)}</div>`:''}
     <div class="dim" style="font-size:12px;line-height:1.5">${esc(md.pitch||'')}</div>
     ${(d.palette||[]).length?`<div style="display:flex;gap:4px;flex-wrap:wrap">${d.palette.map(c=>`<span title="${esc(c.name)} ${esc(c.hex)} · ${esc(c.role)}" style="display:inline-block;width:16px;height:16px;border-radius:50%;border:1px solid var(--hairline);background:${esc(c.hex)}"></span>`).join('')}</div>`:''}
     <div class="dim" style="font-size:11.5px;line-height:1.55">${[['Setting',d.setting],['Light',d.lighting],['Feel',d.mood]].filter(([,v])=>v).map(([k,v])=>`<div><b style="color:#bae6fd">${k}:</b> <span dir="auto">${esc(v)}</span></div>`).join('')}</div>
-    ${md.state==='failed'&&md.error?`<div style="font-size:11px;color:#fca5a5">${esc(md.error)}</div>`:''}
+    ${md.state==='failed'&&md.error?`<div style="font-size:11px;color:#fca5a5">${esc(md.error)}${md.botNote?' — '+esc(md.botNote):''}</div>`:''}
     ${p.studio&&!locked&&md.state==='rendered'&&!on?`<button class="btn btn-gold btn-sm" style="margin-top:auto" onclick="moodPick('${p.id}',${md.n})">Use this mood</button>`:''}
    </div></div>`};
  const cm=m.moods.find(x=>x.n===chosen),cd=cm&&cm.direction||{};
@@ -3006,7 +3120,7 @@ function rBoard(p,locked){
  const all=CHECKS[key+':all']||[];
  const spec=all.find(c=>c.kind==='spec')||(CHECKS[key]&&CHECKS[key].kind==='spec'?CHECKS[key]:null);
  const vis=(n)=>all.filter(c=>c.kind==='vision').map(c=>c.results&&c.results.images&&c.results.images.find(im=>im.index===n)).find(Boolean)||null;
- const pendingKf=(b.shots||[]).some(s=>!s.keyframe||s.keyframe.state==='pending');
+ const pendingKf=(b.shots||[]).some(s=>!s.keyframe||s.keyframe.state==='pending')||(b.planMode&&b.planState==='rendering');
  if(pendingKf&&!BOARD_POLL[p.id+':board']&&!GEN.busy[key])boardPoll(p.id,0);
  const allApproved=(b.shots||[]).length&&(b.shots||[]).every(s=>s.review&&s.review.decision==='approved');
  const R=spec&&spec.results;
@@ -3019,21 +3133,28 @@ function rBoard(p,locked){
   </div>
   ${R&&R.codeChecks?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${R.codeChecks.map(c=>`<span title="${esc(c.detail)}">${badge(c.passed?'go':'alert',(c.passed?'✓ ':'✗ ')+c.code.replace(/_/g,' ').toUpperCase())}</span>`).join('')}</div>`:''}
   ${R&&R.flags&&R.flags.length?`<div class="dim" style="font-size:11.5px;margin-bottom:10px">${R.flags.map(f=>esc(f)).join(' · ')}</div>`:''}
-  ${b.storyline&&b.storyline.logline?`<div style="border:1px solid var(--hairline);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:rgba(0,0,0,.3);font-size:12.5px;line-height:1.6"><span class="kick">Story</span><div style="margin-top:4px"><b style="color:#fff">${esc(b.storyline.logline)}</b></div><div class="dim" style="margin-top:3px"><b style="color:#86efac">Opens:</b> ${esc(b.storyline.openingScene)} · <b style="color:#fbbf24">Closes:</b> ${esc(b.storyline.closingScene)}</div></div>`:''}
+  ${b.planMode&&b.planState==='rendering'&&!(b.shots||[]).length?`<div class="gen-busy" style="margin-bottom:10px"><span class="gen-spin"></span><div style="font-size:12.5px;line-height:1.6"><b style="color:#bae6fd">The storyboard bot is planning the story, the shot list and every keyframe…</b><div class="dim" style="font-size:11px;margin-top:2px">They land together, usually within a few minutes.</div></div></div>`:''}
+  ${b.planMode&&b.planState==='failed'?`<div class="pc-note" style="margin-bottom:10px;border-color:rgba(248,113,113,0.45)"><b style="color:#fca5a5">The storyboard bot could not plan it:</b> ${esc(b.planError||'')}${b.botNote?' — '+esc(b.botNote):''}</div>`:''}
+  ${b.qa||b.budgetBlockedRetry?qaRow(b):''}
+  ${b.story&&b.story.logline?`<div style="border:1px solid var(--hairline);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:rgba(0,0,0,.3);font-size:12.5px;line-height:1.6"><span class="kick">Story · every keyframe request carries it</span><div style="margin-top:4px"><b style="color:#fff">${esc(b.story.logline)}</b></div>${b.story.product_truth?`<div class="dim" style="margin-top:3px"><b style="color:#86efac">Product truth:</b> ${esc(b.story.product_truth)}</div>`:''}${b.story.emotional_arc?`<div class="dim"><b style="color:#fbbf24">Arc:</b> ${esc(b.story.emotional_arc)}</div>`:''}${(b.story.acts||[]).length?`<ol class="dim" style="margin:4px 0 0 18px">${b.story.acts.map(a=>`<li>${esc(a)}</li>`).join('')}</ol>`:''}</div>`:''}
+  ${!(b.story&&b.story.logline)&&b.storyline&&b.storyline.logline?`<div style="border:1px solid var(--hairline);border-radius:12px;padding:10px 12px;margin-bottom:10px;background:rgba(0,0,0,.3);font-size:12.5px;line-height:1.6"><span class="kick">Story</span><div style="margin-top:4px"><b style="color:#fff">${esc(b.storyline.logline)}</b></div><div class="dim" style="margin-top:3px"><b style="color:#86efac">Opens:</b> ${esc(b.storyline.openingScene)} · <b style="color:#fbbf24">Closes:</b> ${esc(b.storyline.closingScene)}</div></div>`:''}
   ${b.hook&&b.hook.summary?`<div class="dim" style="font-size:11.5px;margin-bottom:10px">F1X8 on the hook keyframe: ${esc(b.hook.summary)}${b.hook.risks&&b.hook.risks.length?' · '+b.hook.risks.map(r=>esc(r.issue||r)).join(' · '):''}</div>`:''}
   <div class="frames" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">${(b.shots||[]).map(sh=>{
-   const kf=sh.keyframe,v=vis(sh.n),rv=sh.review;
-   const art=kf&&kf.state==='rendered'?`<img ${mediaAttrs(kf,'url')} alt="Shot ${sh.n} keyframe" style="width:100%;height:100%;object-fit:cover">`:kf&&kf.state==='failed'?`<div class="dim" style="font-size:11px;padding:10px">Render failed — ${esc(kf.error||'')}</div>`:`<div style="display:flex;align-items:center;gap:8px;padding:10px"><span class="gen-spin"></span><span class="dim" style="font-size:11px">Rendering keyframe…</span></div>`;
+   const kf=sh.keyframe,v=vis(sh.n),rv=sh.review,fr=(kf&&kf.frame)||{};
+   const act=sh.act||fr.act,beatL=sh.beatLabel||fr.beat,pose=sh.devicePose||fr.device_pose,trans=fr.transition;
+   const art=kf&&kf.state==='rendered'?`<img ${mediaAttrs(kf,'url')} alt="Shot ${sh.n} keyframe" style="width:100%;height:100%;object-fit:cover">`:kf&&kf.state==='failed'?`<div class="dim" style="font-size:11px;padding:10px">Render failed — ${esc(kf.error||'')}${kf.botNote?`<br><b style="color:#fbbf24">Bot:</b> ${esc(kf.botNote)}`:''}</div>`:`<div style="display:flex;align-items:center;gap:8px;padding:10px"><span class="gen-spin"></span><span class="dim" style="font-size:11px">Rendering keyframe…</span></div>`;
    return `<div class="frame card" style="overflow:hidden;border-color:${rv?(rv.decision==='approved'?'rgba(110,231,185,.5)':'rgba(248,113,113,0.5)'):'var(--hairline)'}">
     <div class="art" style="height:auto;aspect-ratio:${(b.aspect||'9:16')==='9:16'?'9/12':'16/9'};background:#000;padding:0;position:relative;display:block">${art}<span class="tc" style="position:absolute;left:8px;bottom:8px">SHOT ${sh.n} · ${sh.durationS} s</span></div>
     <div class="p3" style="font-size:11.5px;line-height:1.55;color:var(--muted)">
      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${sh.beat==='opening'?badge('go','OPENING SCENE'):sh.beat==='closing'?badge('gold','CLOSING SCENE'):''}${badge('muted',esc(sh.type.replace('_',' ').toUpperCase()))}${sh.product.visible?badge('c','PRODUCT'+(sh.product.feature?' · '+esc(sh.product.feature):'')):''}${b.hookShot===sh.n?badge('gold','HOOK'):''}
-      ${v?(v.pass?badge('go','CHECK OK'):v.needsReview?badge('gold','NEEDS A LOOK'):badge('alert','FLAGGED')):kf&&kf.state==='rendered'?badge('muted','CHECKING…'):''}${rv?badge(rv.decision==='approved'?'go':'alert',rv.decision==='approved'?'APPROVED':'REJECTED'):''}</div>
+      ${v?(v.pass?badge('go','CHECK OK'):v.needsReview?badge('gold','NEEDS A LOOK'):badge('alert','FLAGGED')):kf&&kf.state==='rendered'?badge('muted','CHECKING…'):''}${rv?badge(rv.decision==='approved'?'go':'alert',rv.decision==='approved'?'APPROVED':'REJECTED'):''}${qaBadges(kf||sh)}${kf&&kf.fixRequest?`<span title="${esc(kf.fixRequest)}">${badge('c','RE-RENDERED FOR THE VIDEO BOT')}</span>`:''}</div>
+     ${act||beatL||pose||trans?`<div class="shot-frame" style="margin-bottom:4px">${act?`<b style="color:#bae6fd">${esc(act)}</b>`:''}${beatL&&beatL!==sh.beat?`${act?' · ':''}${esc(beatL)}`:''}${pose?`<div>Device: ${esc(pose)}</div>`:''}${trans?`<div>→ ${esc(trans)}</div>`:''}</div>`:''}
      <div><b style="color:#fff">${esc(sh.camera)}</b> — ${esc(sh.action)}</div>
      ${sh.onScreenText.en||sh.onScreenText.ar?`<div style="margin-top:4px">Text: <b>${esc(sh.onScreenText.en)}</b>${sh.onScreenText.ar?` <span dir="rtl">${esc(sh.onScreenText.ar)}</span>`:''}</div>`:''}
      ${sh.line.en||sh.line.ar?`<div style="margin-top:2px">Line: “${esc(sh.line.en)}”${sh.line.ar?` <span dir="rtl">${esc(sh.line.ar)}</span>`:''}</div>`:''}
      <div class="dim" style="margin-top:2px">Audio: ${esc(sh.audioCue)} · → ${esc(sh.transition.replace('_',' '))}</div>
      ${v&&v.flags&&v.flags.length?`<div style="margin-top:4px;color:#fca5a5">${v.flags.map(f=>esc(f)).join(' · ')}</div>`:''}
+     ${qaNotes(kf||sh)}
      ${rv&&rv.decision==='rejected'?`<div style="margin-top:4px;color:#fca5a5">Rejected${rv.reasonCode?' · '+esc(rv.reasonCode.replace(/_/g,' ')):''}: ${esc(rv.reason||'')}</div>`:''}
      ${p.studio&&!locked?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
       ${kf&&kf.state==='rendered'&&!(rv&&rv.decision==='approved')?`<button class="btn btn-go btn-sm" onclick="shotDecide('${p.id}',${sh.n},'approved')">Approve shot</button>`:''}
@@ -3060,7 +3181,7 @@ function overrideUpload(pid,stage,shot){
   try{
    toast('<span style="font-size:12.5px">Uploading your file…</span>');
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'override-sign',pieceId:pid,stage,shot,contentType:file.type,piece:storeMeta(p)})});
-   const sd=await sr.json().catch(()=>({}));if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
+   const sd=await sr.json().catch(()=>({}));orderWarn(sd);if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
    if(file.size>sd.maxBytes)throw new Error('the file is larger than '+Math.round(sd.maxBytes/1048576)+' MB');
    const up=await fetch(sd.uploadUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});if(!up.ok)throw new Error('upload failed ('+up.status+')');
    const cr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'override',pieceId:pid,stage,shot,path:sd.path,piece:storeMeta(p)})});
@@ -3148,7 +3269,7 @@ async function saveQcEdit(pid){
  const edits=p.qc.report.fixes.map(f=>{const inc=[...document.querySelectorAll('.qc-inc')].find(e=>e.dataset.id===f.id);const ins=[...document.querySelectorAll('.qc-ins')].find(e=>e.dataset.id===f.id);return {id:f.id,include:inc?inc.checked:f.include,instruction:ins?ins.value:f.instruction}});
  try{
   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'qc-plan-edit',pieceId:pid,edits,piece:storeMeta(p)})});
-  const sd=await sr.json().catch(()=>({}));if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
+  const sd=await sr.json().catch(()=>({}));orderWarn(sd);if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
   delete QC_EDIT[pid];attachTo(p,'qc',{...p.qc,report:{...sd.report,editedBy:'you'},version:'v'+sd.version},'You',{recorded:{version:sd.version}});studioRefresh();
   toast(`<span style="font-size:12.5px"><b style="color:#86efac">Fix plan saved</b> as version ${sd.version} — est. $${sd.report.cost.totalUsd.toFixed(2)}${sd.report.coverage.complete?'':' · some risks left unaddressed'}.</span>`);
  }catch(e){GEN.err[pid+':qc']=e.message;studioRefresh()}
@@ -3159,7 +3280,7 @@ async function qcSendBack(pid){
  if(!reason){toast('<span style="font-size:12.5px;color:#fca5a5">Write why the piece goes back first.</span>');return}
  try{
   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'qc-sendback',pieceId:pid,toStage,reason,name:(AUTH.member&&AUTH.member.name)||'',piece:storeMeta(p)})});
-  const sd=await sr.json().catch(()=>({}));if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
+  const sd=await sr.json().catch(()=>({}));orderWarn(sd);if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
   toast(`<span style="font-size:12.5px"><b style="color:#f87171">Sent back to the ${toStage}.</b> ${sd.reopened?'The stage was reopened.':sd.needsAdmin?'The '+toStage+' is approved — an admin must reopen it.':'Regenerate the parts you need there.'}</span>`);
   studioRefresh();
  }catch(e){GEN.err[pid+':qc']=e.message;studioRefresh()}
@@ -3205,7 +3326,7 @@ async function assembleDraft(pid,stg){
   }
   GEN.busy[key]='Assembling the cut (trim, transitions, overlays, loudness, export)…';studioRefresh();
   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft-assemble',stage:stg,pieceId:pid,piece:storeMeta(p)})});
-  const sd=await sr.json().catch(()=>({}));if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
+  const sd=await sr.json().catch(()=>({}));orderWarn(sd);if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
   p.jobs=p.jobs||{};p.jobs['g:'+stg]={jobId:sd.job.id,meta:{}};saveGenerated();
   jobPoll(pid,stg,sd.job.id,0);
  }catch(e){delete GEN.busy[key];GEN.err[key]=e.message;studioRefresh()}
@@ -3269,7 +3390,7 @@ async function finalVerify(pid){
  const p=PROJECTS.find(x=>x.id===pid);if(!p)return;const key=pid+':final';
  try{GEN.busy[key]='F1X8 is analysing the final cut; each original risk is verified afterwards…';studioRefresh();
   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'final-verify',pieceId:pid,piece:storeMeta(p)})});
-  const sd=await sr.json().catch(()=>({}));if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
+  const sd=await sr.json().catch(()=>({}));orderWarn(sd);if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
   const poll=async(t)=>{if(t>160){delete GEN.busy[key];studioRefresh();return}const r=await authFetch('/api/studio?shots='+encodeURIComponent(pid)+'&stage=final').catch(()=>null);const d=r?await r.json().catch(()=>({})):{};if(d.payload&&d.payload.verification){delete GEN.busy[key];p.final={...p.final,...d.payload};FINAL_DIFF[pid]=d.diff||FINAL_DIFF[pid];saveGenerated();studioRefresh();return}setTimeout(()=>poll(t+1),7500)};
   poll(0);
  }catch(e){delete GEN.busy[key];GEN.err[key]=e.message;studioRefresh()}
@@ -3277,7 +3398,7 @@ async function finalVerify(pid){
 async function finalPackage(pid){
  const p=PROJECTS.find(x=>x.id===pid);if(!p)return;
  try{const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'final-package',pieceId:pid,piece:storeMeta(p)})});
-  const sd=await sr.json().catch(()=>({}));if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
+  const sd=await sr.json().catch(()=>({}));orderWarn(sd);if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
   p.finalPackage={assetPath:sd.assetPath,sha256:sd.sha256,urls:sd.urls};saveGenerated();
   toast(`<span style="font-size:12.5px"><b style="color:#86efac">Package ready.</b> ${sd.urls.manifest?`<a href="${esc(sd.urls.manifest)}" target="_blank" rel="noopener" style="color:#7dd3fc">manifest</a>`:''}${sd.urls.video?` · <a href="${esc(sd.urls.video)}" target="_blank" rel="noopener" style="color:#7dd3fc">video</a>`:''}${sd.urls.thumbnail?` · <a href="${esc(sd.urls.thumbnail)}" target="_blank" rel="noopener" style="color:#7dd3fc">thumbnail</a>`:''} (links valid 7 days)</span>`);
  }catch(e){toast(`<b style="color:#f87171">Package:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
@@ -3336,16 +3457,20 @@ function rDraftOne(p,locked,b,key,pending){
    ${badge('muted','FIRST DRAFT '+esc(b.version||'v1')+' · '+esc(String(b.assembled?b.assembled.durationS:b.totalS||''))+' s · '+esc(b.resolution||''))}${b.fromStoryboard===false?badge('c','NO STORYBOARD'):''}
    ${b.assembled?badge('go','ONE VIDEO · '+b.assembled.width+'×'+b.assembled.height):''}
    ${bad.length?badge('gold',`PART${bad.length>1?'S':''} ${bad.join(', ')} LEFT OUT`):''}
+   ${sh.some(s=>s.stale)?badge('alert',`PART${sh.filter(s=>s.stale).length>1?'S':''} ${sh.filter(s=>s.stale).map(s=>s.n).join(', ')} STALE — KEYFRAME CHANGED`):''}
+   ${sh.some(s=>s.clip&&s.clip.needsNewFrame)?badge('gold','THE VIDEO BOT ASKED FOR A NEW FIRST FRAME'):''}
+   ${sh.some(s=>s.clip&&s.clip.errorCode==='higgsfield_credits_exhausted')?`${badge('alert','HIGGSFIELD CREDITS EXHAUSTED — PIPELINE STOPPED')}<button class="btn btn-ghost btn-sm" onclick="hermesResume()" title="After topping up the Higgsfield plan (admin)">Resume bots</button>`:''}
    ${b.assembledChecks?(b.assembledChecks.every(c=>c.passed)?badge('go','CHECKS PASSED'):badge('alert','CHECKS NEED A LOOK')):''}
   </div>
   ${vid}${status}
   ${b.assembledChecks&&!b.assembledChecks.every(c=>c.passed)?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${b.assembledChecks.filter(c=>!c.passed).map(c=>`<span title="${esc(c.detail)}">${badge('alert','✗ '+c.code.replace(/_/g,' ').toUpperCase())}</span>`).join('')}</div>`:''}
   ${p.studio&&!locked&&b.assembled&&sh.some(s=>s.onScreenText&&(s.onScreenText.en||s.onScreenText.ar))&&!GEN.busy[key]?`<div style="margin:12px 0 0"><button class="btn btn-ghost btn-sm" onclick="assembleDraft('${p.id}','draft')">Add the on-screen text &amp; rebuild the video</button> <span class="dim" style="font-size:11px">Text is drawn in your browser (Arabic shaped correctly) and burnt into the video.</span></div>`:''}
-  ${sh.length>1||(sh[0]&&sh[0].clip&&sh[0].clip.state==='failed')?`<details style="margin-top:14px"><summary class="dim" style="cursor:pointer;font-size:12px">The ${sh.length} part${sh.length>1?'s':''} this video is made of — re-render one or use your own clip</summary>
+  ${sh.length>1||(sh[0]&&sh[0].clip&&sh[0].clip.state==='failed')?`<details style="margin-top:14px" ${sh.some(s=>s.stale||(s.clip&&s.clip.needsNewFrame))?'open':''}><summary class="dim" style="cursor:pointer;font-size:12px">The ${sh.length} part${sh.length>1?'s':''} this video is made of — re-render one or use your own clip</summary>
   <div class="frames" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));margin-top:10px">${sh.map(s=>{const c=s.clip;
-   const art=c&&c.state==='rendered'?`<video controls playsinline muted ${mediaAttrs(c,'url')} style="width:100%;height:100%;object-fit:cover;background:#000"></video>`:c&&c.state==='failed'?`<div class="dim" style="font-size:11px;padding:10px">Render failed — left out of the video. ${esc(c.error||'')}</div>`:`<div style="display:flex;align-items:center;gap:8px;padding:10px"><span class="gen-spin"></span><span class="dim" style="font-size:11px">Rendering…</span></div>`;
+   const art=c&&c.state==='rendered'?`<video controls playsinline muted ${mediaAttrs(c,'url')} style="width:100%;height:100%;object-fit:cover;background:#000"></video>`:c&&c.state==='failed'?`<div class="dim" style="font-size:11px;padding:10px">Render failed — left out of the video. ${esc(c.error||'')}${c.botNote?`<br><b style="color:#fbbf24">Video bot:</b> ${esc(c.botNote)}`:''}</div>`:`<div style="display:flex;align-items:center;gap:8px;padding:10px"><span class="gen-spin"></span><span class="dim" style="font-size:11px">Rendering…</span></div>`;
    return `<div class="frame card" style="overflow:hidden"><div class="art" style="height:auto;aspect-ratio:${(b.aspect||'9:16')==='9:16'?'9/12':'16/9'};background:#000;padding:0;position:relative;display:block">${art}<span class="tc" style="position:absolute;left:8px;bottom:8px">PART ${s.n} · ${s.durationS} s</span></div>
-    ${p.studio&&!locked?`<div class="p3" style="display:flex;gap:6px;flex-wrap:wrap">${c&&c.state!=='pending'?`<button class="btn btn-gold btn-sm" onclick="shotRegenForm('${p.id}',${s.n},'draft')">↻ Re-render</button>`:''}<button class="btn btn-ghost btn-sm" onclick="overrideUpload('${p.id}','draft',${s.n})">⬆ Own clip</button></div><div id="shot-form-draft-${s.n}"></div>`:''}</div>`}).join('')}</div></details>`:''}
+    ${s.stale||qaBadges(c)?`<div class="p3" style="display:flex;gap:6px;flex-wrap:wrap;padding-bottom:0">${s.stale?`<span title="${esc(s.stale.reason)}">${badge('alert','STALE — KEYFRAME CHANGED')}</span>`:''}${qaBadges(c)}</div>${qaNotes(c)}`:''}
+    ${p.studio&&!locked?`<div class="p3" style="display:flex;gap:6px;flex-wrap:wrap">${s.stale&&c&&c.state!=='pending'?`<button class="btn btn-go btn-sm" onclick="shotRegen('${p.id}',${s.n},'draft')" title="Render this part again from the storyboard shot's current keyframe">↻ Re-render from current keyframe</button>`:''}${c&&c.needsNewFrame&&!c.frameFixJob?`<button class="btn btn-go btn-sm" onclick="frameFix('${p.id}',${s.n})" title="The storyboard bot re-renders this shot with the video bot's note, then this part renders again from the new frame">🖼 New first frame &amp; retry</button>`:''}${c&&c.state!=='pending'?`<button class="btn btn-gold btn-sm" onclick="shotRegenForm('${p.id}',${s.n},'draft')">↻ Re-render</button>`:''}<button class="btn btn-ghost btn-sm" onclick="overrideUpload('${p.id}','draft',${s.n})">⬆ Own clip</button></div><div id="shot-form-draft-${s.n}"></div>`:''}</div>`}).join('')}</div></details>`:''}
   ${GEN.err[key]?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[key])}</div>`:''}
   ${p.studio?regenBox(p,'draft'):''}`;
 }
@@ -3357,7 +3482,7 @@ async function shotDecide(pid,n,decision,stage){
  if(decision==='rejected'&&!reason){toast('<span style="font-size:12.5px;color:#fca5a5">Write what is wrong with the shot first.</span>');return}
  try{
   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'shot-decide',stage,pieceId:pid,shot:n,decision,reason,reasonCode,name:(AUTH.member&&AUTH.member.name)||'',piece:storeMeta(p)})});
-  const sd=await sr.json().catch(()=>({}));if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
+  const sd=await sr.json().catch(()=>({}));orderWarn(sd);if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
   const sh=p[stage].shots.find(x=>x.n===n);if(sh)sh.review=sd.review;saveGenerated();studioRefresh();
   toast(`<span style="font-size:12.5px"><b style="color:${decision==='approved'?'#86efac':'#f87171'}">Shot ${n} ${decision}.</b> ${sd.pending&&sd.pending.length?sd.pending.length+' shot(s) still to approve.':'Every shot is approved — record the stage approval.'}</span>`);
  }catch(e){toast(`<b style="color:#f87171">Shot ${n}:</b> <span style="font-size:12.5px">${esc(e.message)}</span>`)}
@@ -3367,8 +3492,8 @@ async function shotRegen(pid,n,stage){
  const p=PROJECTS.find(x=>x.id===pid);if(!p||!p[stage]||!p[stage].shots)return;
  const changes=(($('#sg-changes-'+n)||{}).value||'').trim();
  try{
-  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:stage==='draft'?'draft-shot':'board-shot',pieceId:pid,shot:n,changes,styleRefs:styleRefsOf(p),refImage:p.refImage||null,piece:storeMeta(p)})});
-  const sd=await sr.json().catch(()=>({}));if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
+  const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:stage==='draft'?'draft-shot':'board-shot',pieceId:pid,shot:n,changes,styleRefs:styleRefsOf(p),...campCtx(p),refImage:p.refImage||null,piece:storeMeta(p)})});
+  const sd=await sr.json().catch(()=>({}));orderWarn(sd);if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
   if(sd.job.state==='failed'||sd.job.state==='timed_out')throw new Error(sd.job.error||'the render could not be submitted');
   const sh=p[stage].shots.find(x=>x.n===n);if(sh){sh[slot]={state:'pending',jobId:sd.job.id};sh.review=null}saveGenerated();
   GEN.busy[pid+':'+stage]=(slot==='clip'?'The Hermes video bot is re-rendering shot ':'The Hermes storyboard bot is re-rendering shot ')+n+'…';studioRefresh();shotsPoll(pid,stage,0);
@@ -3439,7 +3564,7 @@ async function saveBriefEdit(pid){
  e.caption.en=v('captionEn').trim();e.caption.ar=v('captionAr').trim();e.hashtags.en=tags(v('hashEn'));e.hashtags.ar=tags(v('hashAr'));e.mandatories=lines(v('mandatories'));e.doNots=lines(v('doNots'));
  try{
   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'brief-edit',pieceId:p.id,spec:e,briefVersion:p.brief.briefVersion,piece:storeMeta(p)})});
-  const sd=await sr.json().catch(()=>({}));if(!sr.ok||!sd.artifact)throw new Error(sd.error||((sd.problems||[]).join('; '))||('studio responded '+sr.status));
+  const sd=await sr.json().catch(()=>({}));orderWarn(sd);if(!sr.ok||!sd.artifact)throw new Error(sd.error||((sd.problems||[]).join('; '))||('studio responded '+sr.status));
   delete BRIEF_EDIT[pid];delete GEN.err[pid+':brief-edit'];
   attachTo(p,'brief',{...sd.artifact,version:'v'+sd.version},'You',{recorded:{version:sd.version}});
   CHECKS[p.id+':brief']=sd.checks&&sd.checks.codeChecks?{stage:'brief',passed:sd.checks.passed,results:sd.checks}:null;
@@ -3493,7 +3618,7 @@ async function composeCover(pid){
   const blob=await new Promise(ok=>cv.toBlob(ok,'image/png'));
   const b64=await new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.onerror=()=>no(new Error('read failed'));fr.readAsDataURL(blob)});
   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'thumb-composite',pieceId:p.id,data:b64,overlay:{...ov,baseAssetPath:p.thumb.assetPath},piece:storeMeta(p)})});
-  const sd=await sr.json().catch(()=>({}));if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
+  const sd=await sr.json().catch(()=>({}));orderWarn(sd);if(!sr.ok)throw new Error(sd.error||('studio responded '+sr.status));
   attachTo(p,'thumb',{...p.thumb,imageUrl:null,assetPath:sd.assetPath,composite:true,version:'v'+sd.version,title:ov.headline||ov.headlineAr,sub:''},'You',{recorded:{version:sd.version}});
   toast(`<span style="font-size:12.5px"><b style="color:#86efac">Cover composited</b> and stored as version ${sd.version} — ready for approval.</span>`);
   studioRefresh();
@@ -5038,7 +5163,7 @@ function stageArtifactInner(p,n){
    <img class="gen-media" ${mediaAttrs(p.mood,'imageUrl')} alt="Generated moodboard">${dirNote(p.mood)}${p.studio?regenBox(p,'mood'):''}`:`
    <div class="mood">${p.mood.tiles.map(t=>`<div style="background:linear-gradient(135deg,${t[0]},${t[1]})"><span>${t[2]}</span></div>`).join('')}</div>
    <p class="dim" style="font-size:12.5px;line-height:1.65;margin-top:12px">${p.mood.note}</p>`):'');
-  case 'thumb':return head(done)+(p.thumb?((p.thumb.imageUrl||p.thumb.assetPath)&&p.thumb.overlay?rThumbCover(p):p.thumb.imageUrl?`
+  case 'thumb':return head(done)+(p.thumb?((p.thumb.imageUrl||p.thumb.assetPath)&&p.thumb.overlay?rThumbCover(p)+qaRow(p.thumb):p.thumb.imageUrl?`
    <img class="gen-media" style="max-width:560px;aspect-ratio:16/9;object-fit:cover" ${mediaAttrs(p.thumb,'imageUrl')} alt="Generated thumbnail">${dirNote(p.thumb)}${p.studio?regenBox(p,'thumb'):''}`:`
    <div style="max-width:520px"><div class="thumb169" style="background:linear-gradient(120deg,${p.thumb.g[0]},${p.thumb.g[1]})">
     <span class="play">▶</span><div class="tt">${p.thumb.title}<div class="mono" style="font-size:10px;font-weight:400;letter-spacing:.14em;margin-top:5px;color:rgba(255,255,255,.75)">${p.thumb.sub.toUpperCase()}</div></div></div></div>
@@ -5174,7 +5299,7 @@ function rStudio(){
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:5px;align-items:center">
        ${p.trend?badge('ai','TREND · '+esc(p.trend.toUpperCase())):badge('gold','OWN IDEA')}<span class="dim mono" style="font-size:10.5px">${esc(p.product)} · ${p.markets.map(esc).join(' · ')}</span>${p.platforms.map(plat).join(' ')}</div></div></div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-     ${p.studio?rRefControl(p):''}
+     ${p.studio?rRefControl(p):''}${p.studio?rColour(p):''}
      <div class="stage-dots">${STAGES.map(s=>`<i class="${s.n<p.stage?'done':s.n===p.stage?'cur':''}"></i>`).join('')}</div>
     </div>
    </div>
@@ -5184,6 +5309,7 @@ function rStudio(){
       <h4>${s.l}</h4><div class="role">${s.agent}</div></button>`).join('')}
    </div>
    ${p.studio||p.generated?stepsPick(p):''}
+   ${p.studio&&useJobs()?rReview(p):''}
    <div style="margin-top:18px;border-top:1px solid var(--hairline);padding-top:18px">${stageArtifact(p,sel)}</div>
   </div>
 

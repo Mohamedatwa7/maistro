@@ -17,7 +17,10 @@
 //   brief → maistro-brief       the structured brief        { brief }
 //   board → maistro-storyboard  storyboard keyframes        { frames: [{ index, image, … }], note }
 //   video → maistro-video       draft/final clips (i2v)     { video, duration_s, resolution, aspect, note }
-// Any bot may answer { error, note } instead. The bots generate with Higgsfield credits on the owner's
+//   organizer → maistro-organizer  campaign review          { review, story_check, miscommunications, fixes_requested }
+// Every reply also carries qa { checked, passed, regenerated, dropped, product, spec_card, notes, verdict }.
+// Any bot may answer { error, note, error_code?, fallback? } instead. The session ids, the product spec, the
+// budgets and the response schemas live in api/_studio/hermes-contract.js (docs/hermes-integration.md). The bots generate with Higgsfield credits on the owner's
 // plan; their files are public CloudFront URLs (d8j0ntlcm91z4.cloudfront.net).
 // The dispatch to Hermes (/api/hermes, /api/ingest, origin external_hermes) is a separate path.
 //
@@ -26,13 +29,16 @@
 //   HERMES_BOT_<ROLE>       profile name per bot; unset = the maistro-* profile above
 //   HERMES_KEY_<ROLE>       that profile's key; else HERMES_KEY_<PROFILE> as named in the bots'
 //                           maistro_api_keys.env (e.g. HERMES_KEY_MAISTRO_VIDEO); else HERMES_API_KEY
-//   ROLE ∈ MOOD, THUMB, BRIEF, BOARD, VIDEO
+//   ROLE ∈ MOOD, THUMB, BRIEF, BOARD, VIDEO, ORGANIZER
+//   MAISTRO_HERMES_BUDGETS          max_credits overrides (JSON; hermes-contract.js BUDGET_DEFAULTS)
+//   MAISTRO_HERMES_TEST_MODE=1      every run in TEST MODE: --dry-run only, max_credits 1 (below any image)
 //   MAISTRO_HERMES_USD_PER_CREDIT  assumed $ per Higgsfield credit for the budget gate (default 0.06)
 const { fetchT } = require('../_http.js');
 const refsMod = require('../_studio/refs.js');
+const C = require('../_studio/hermes-contract.js');
 
-const ROLES = ['mood', 'thumb', 'brief', 'board', 'video'];
-const PROFILES = { mood: 'maistro-moodboard', thumb: 'maistro-thumbnail', brief: 'maistro-brief', board: 'maistro-storyboard', video: 'maistro-video' };
+const ROLES = ['mood', 'thumb', 'brief', 'board', 'video', 'organizer'];
+const PROFILES = { mood: 'maistro-moodboard', thumb: 'maistro-thumbnail', brief: 'maistro-brief', board: 'maistro-storyboard', video: 'maistro-video', organizer: 'maistro-organizer' };
 const PROFILE_RE = /^[a-zA-Z0-9_-]{1,64}$/;
 
 /** Which bot makes a job: video for clips, brief for the brief, else the stage's own image bot. */
@@ -58,13 +64,18 @@ function config(role) {
 
 const isHttps = (u) => typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/.test(u);
 
+const QA = '"qa": {"checked": <n>, "passed": <n>, "regenerated": <n>, "dropped": <n>, "product": "<what you verified about the device>", "spec_card": "<the product spec card you held it to>", "notes": "<QA notes>", "verdict": "pass|warn|fail"}';
+const FRAME = '{"index": <shot_index>, "act": "<act>", "beat": "<beat>", "image": "<https URL>", "duration_s": <seconds>, "shot_size": "<size>", "angle": "<angle>", "lens": "<lens>", "move": "<camera move>", "action": "<action>", "device_pose": "<how the device is held/shown, or not in frame>", "light": "<light>", "vo": "<voice-over or empty>", "transition": "<transition into the next shot>", ' + QA + ', "story_flag": "<only if this shot breaks the story or shot list, else omit>"}';
 /** What the bot must hand back, appended to every run's instructions. */
-function outputContract(role, n = 1) {
-  const refuse = ' If you will not make it because it breaks your content policy, reply instead with ONLY {"refused": "<one-line reason>"} in the same kind of block. On any other failure reply {"error": "<what went wrong>", "note": "..."}.';
-  if (role === 'brief') return 'When you are done, reply with ONLY one JSON object inside a ```json code block: {"brief": <the brief, exactly in the BRIEF JSON SCHEMA given in the task>}. On failure reply {"error": "<what went wrong>"}. No other text.';
-  if (role === 'video') return 'When you are done, reply with ONLY one JSON object inside a ```json code block: {"video": "<https URL of the finished MP4 clip>", "duration_s": <seconds>, "resolution": "<resolution>", "aspect": "<aspect>", "note": "<one line on what you made>"}. The URL must be publicly downloadable over https for at least 24 hours. No other text.' + refuse;
-  if (role === 'board') return 'When you are done, reply with ONLY one JSON object inside a ```json code block: {"frames": [{"index": 1, "image": "<https URL>", "duration_s": <seconds>, "shot": "<shot>", "camera": "<camera>", "vo": "<voice-over or empty>"}], "note": "<one line on what you made>"}: exactly ONE frame, for the one shot in the task (the shot list is already written and approved). The image must be a PNG, JPG or WebP publicly downloadable over https for at least 24 hours. Never put text, captions or logos inside the image. No other text.' + refuse;
-  return `When you are done, reply with ONLY one JSON object inside a \`\`\`json code block: {"images": [${n > 1 ? `<exactly ${n} https URLs>` : '"<https URL>"'}], "note": "<one line on what you made>"}. Every URL must be a PNG, JPG or WebP that is publicly downloadable over https for at least 24 hours. Never put text, captions or logos inside the image unless the task asks for it. No other text.${refuse}`;
+function outputContract(role, n = 1, opts = {}) {
+  const refuse = ' If you will not make it because it breaks your content policy, reply instead with ONLY {"refused": "<one-line reason>"} in the same kind of block. On any other failure reply {"error": "<what went wrong>", "note": "<what Maistro or another bot should change>", "error_code": "<code, e.g. higgsfield_credits_exhausted>", "fallback": "<optional>"}.';
+  const budget = ' If max_credits stopped a QA re-render, still deliver your best result and add "budget_blocked_retry": true.';
+  if (role === 'organizer') return 'Reply with ONLY one JSON object inside a ```json code block: {"review": [{"asset": "<asset>", "verdict": "pass|warn|fail", "defects": ["..."]}], "story_check": "<does the campaign tell one story>", "miscommunications": ["<where bots worked from different context>"], "fixes_requested": [{"to": "<maistro-storyboard|maistro-video|maistro-moodboard|maistro-thumbnail|maistro-brief>", "shot": <shot number or null>, "fix": "<the change>"}], ' + QA + '}. No other text.';
+  if (role === 'brief') return 'When you are done, reply with ONLY one JSON object inside a ```json code block: {"brief": <the brief, exactly in the BRIEF JSON SCHEMA given in the task>}. On failure reply {"error": "<what went wrong>", "note": "..."}. No other text.';
+  if (role === 'video') return `When you are done, reply with ONLY one JSON object inside a \`\`\`json code block: {"video": "<https URL of the finished MP4 clip>", "first_frame": "<the first_frame_url you used>", "duration_s": <seconds>, "resolution": "<resolution>", "aspect": "<aspect>", "note": "<one line on what you made>", ${QA}}. The URL must be publicly downloadable over https for at least 24 hours. If the first frame cannot work (filter, product not visible enough), reply with the error and say in "note" exactly what new first frame you need. No other text.${budget}${refuse}`;
+  if (role === 'board' && opts.plan) return `When you are done, reply with ONLY one JSON object inside a \`\`\`json code block: {"story": {"logline": "...", "product_truth": "...", "emotional_arc": "...", "acts": ["..."]}, "frames": [${FRAME}, …one per shot, in order], "note": "<one line on what you made>", ${QA}}. Every image a PNG, JPG or WebP publicly downloadable over https for at least 24 hours. No other text.${budget}${refuse}`;
+  if (role === 'board') return `When you are done, reply with ONLY one JSON object inside a \`\`\`json code block: {"frames": [${FRAME}], "note": "<one line on what you made>", ${QA}}: exactly ONE frame, for shot shot_index of shot_count (the shot list is already written and approved; keep the story, the character and the look continuous with previous_keyframe_urls). The image must be a PNG, JPG or WebP publicly downloadable over https for at least 24 hours. No other text.${budget}${refuse}`;
+  return `When you are done, reply with ONLY one JSON object inside a \`\`\`json code block: {"images": [${n > 1 ? `<exactly ${n} https URLs>` : '"<https URL>"'}], ${role === 'mood' ? '"variation_plan": ["<what each image varies>"], "swap_proposals": ["<optional swaps you suggest>"], ' : ''}"note": "<one line on what you made>", ${QA}}. Every URL must be a PNG, JPG or WebP that is publicly downloadable over https for at least 24 hours. No other text.${budget}${refuse}`;
 }
 
 // Seedance 2.0 (the video bot's default) makes 4–15 s clips; the image bots take 1k/2k/4k
@@ -88,47 +99,72 @@ const PRODUCT_MODEL_RULE = [
 // the product reference: the 3D model's views (payload.refs, hero first) or the one campaign photo (payload.ref)
 const styleRefs = (payload) => (Array.isArray(payload.styleRefs) ? payload.styleRefs.filter(isHttps).slice(0, refsMod.MAX) : []);
 const productRefs = (payload) => [...new Set([payload.ref, ...(Array.isArray(payload.refs) ? payload.refs : [])].filter(isHttps))].slice(0, 4);
+/** The campaign's locked product (hermes-contract productSpec), on every request to every bot. */
+const productOf = (payload) => (payload.productSpec && payload.productSpec.family ? payload.productSpec : C.productSpec({ family: (payload.meta && payload.meta.product) || payload.product || '' }));
+/** Official images first (payload.productImages), then the 3D views / campaign photo. */
+const productImagesOf = (payload) => [...new Set([...(Array.isArray(payload.productImages) ? payload.productImages : []), ...productRefs(payload)].filter(isHttps))].slice(0, 4);
+const testPrefix = (payload) => (C.testMode(payload) ? `${C.TEST_MODE_INSTRUCTION}\n\n` : '');
+
 function renderRun(payload, role) {
   const n = role === 'mood' && Number(payload.batch) > 1 ? Math.min(8, Number(payload.batch)) : 1;
+  const plan = role === 'board' && Boolean(payload.planMode);
+  const sc = role === 'board' && !plan && payload.shotContext ? payload.shotContext : null;
   const task = role === 'video' ? 'Make one video clip (image-to-video when first_frame_url is given: the clip starts exactly on that keyframe, keeping its product, character, setting and lighting).'
     : role === 'mood' ? `Make the moodboard: ${n} cohesive image variations of one art direction.`
     : role === 'thumb' ? 'Make the thumbnail / cover key visual, with no headline text (Maistro sets the type itself).'
+    : plan ? 'Write the story and shot list, then make all keyframes'
+    : sc ? `Make ONE storyboard keyframe: shot ${sc.shot_index} of ${sc.shot_count} (the shot list is already written and approved; do not write a new one).`
     : 'Make ONE storyboard keyframe for the one shot described (the shot list is already written and approved; do not write a new one).';
   const anchors = Array.isArray(payload.anchorUrls) ? payload.anchorUrls.filter(isHttps).slice(0, 4) : [];
+  const product = productOf(payload);
+  const perImage = imageRes(payload.resolution) === '4k' ? 4 : 2;
   const req = {
-    task: `${task} For a Samsung Gulf social campaign.`,
+    task: `${task}${plan ? '.' : ''} For a Samsung Gulf social campaign.`,
     prompt: String(payload.prompt || ''),
     aspect: payload.aspect_ratio || (role === 'video' || role === 'board' ? '9:16' : '16:9'),
     resolution: role === 'video' ? videoRes(payload.resolution) : imageRes(payload.resolution),
     count: n,
+    product,
+    product_image_urls: productImagesOf(payload),
     ...(role === 'video' ? { duration: clipSeconds(payload.duration), audio: payload.generateAudio !== false } : {}),
     ...(role === 'video' && isHttps(payload.imageUrl) ? { first_frame_url: payload.imageUrl } : {}),
-    ...(productRefs(payload).length ? { product_image_urls: productRefs(payload) } : {}),
-    ...(anchors.length ? { moodboard_image_urls: anchors } : {}),
+    ...(anchors.length ? { moodboard_image_urls: anchors, moodboard_images: anchors.map((url) => ({ url, look_reference: true })) } : {}),
+    ...(sc ? { shot_index: sc.shot_index, shot_count: sc.shot_count, story: sc.story || null, shot_list: sc.shot_list || [], previous_keyframe_urls: (payload.previousKeyframeUrls || []).filter(isHttps) } : {}),
+    ...(plan && payload.planContext ? { brief: payload.planContext.brief || null, story: payload.planContext.story || null, shot_count_range: [4, 8], target_duration_s: payload.planContext.targetDurationS || null } : {}),
+    ...(payload.fixRequest ? { fix_request: String(payload.fixRequest).slice(0, 1200) } : {}),
     ...(styleRefs(payload).length ? { style_reference_urls: styleRefs(payload) } : {}),
-    ...(Number.isInteger(payload.seed) ? { seed: payload.seed } : {}),
     ...(payload.meta && payload.meta.changes ? { reviewer_changes: String(payload.meta.changes) } : {}),
-    max_credits: maxCredits(role, payload, n),
+    max_credits: C.testMode(payload) ? C.TEST_MODE_MAX_CREDITS : C.budgetFor(role, { perImage, n, plan, frames: plan ? 8 : 0, videoCredits: role === 'video' ? credits('video', payload) : 0 }),
   };
+  const endCard = /end[\s_-]?card|clean plate|logo/i.test(req.prompt) && role !== 'video';
   const rules = [
-    'The prompt was written by Maistro\'s art director from the approved earlier stages: follow it closely.',
-    req.product_image_urls ? 'The device shown MUST be exactly the product in product_image_urls (same form factor, cameras, colours and finish); never invent a different device.' : null,
+    plan ? 'Plan the whole storyboard yourself from the brief: the story first, then 4–8 shots, then one keyframe per shot, continuous in character, product and look.' : 'The prompt was written by Maistro\'s art director from the approved earlier stages: follow it closely.',
+    `The device is exactly the ${C.productLine(product)}: the locked product spec in "product". ${req.product_image_urls.length ? 'product_image_urls are its official images (front, back, side): same form factor, cameras, colour and finish; never invent a different device or colourway.' : 'Hold it to that model and colourway exactly.'}`,
     payload.productModel ? PRODUCT_MODEL_RULE : null,
-    req.moodboard_image_urls ? 'Match the palette, light and styling of moodboard_image_urls (the approved moodboard).' : null,
+    req.moodboard_images ? C.LOOK_REF_RULE : null,
+    sc ? 'shot_list is the full approved list and story the campaign story: make this keyframe the shot at shot_index so it cuts with its neighbours; previous_keyframe_urls are the approved keyframes before it (match the character, wardrobe, setting and light).' : null,
+    req.fix_request ? 'fix_request is what the video bot (or the reviewer) needs from this frame: apply it, keep the shot\'s place in the story.' : null,
     req.style_reference_urls ? refsMod.BOT_RULE : null,
-    req.seed != null ? 'Use the seed if your generator takes one, so this can be re-rendered the same way.' : null,
     req.reviewer_changes ? 'Apply only the reviewer_changes; keep everything else.' : null,
+    role !== 'video' ? C.TEXT_RULE : null,
+    role !== 'video' && (endCard || plan) ? C.END_CARD_RULE : null,
     role === 'video' && req.audio ? 'Native audio, no music you cannot license.' : null,
   ].filter(Boolean).join(' ');
-  return { input: JSON.stringify(req), instructions: `${rules}\n\n${outputContract(role, n)}` };
+  return { input: JSON.stringify(req), instructions: `${testPrefix(payload)}${rules}\n\n${outputContract(role, n, { plan })}` };
 }
 
 /** The run body for the brief bot: Maistro's brief rules + the campaign context + the schema to fill. */
 function briefRun(payload) {
+  const product = productOf(payload), imgs = productImagesOf(payload);
   return {
-    input: `${payload.context}${styleRefs(payload).length ? `\n\nREFERENCE IMAGES FROM THE USER (open and look at each): ${styleRefs(payload).join(' ')}\n${refsMod.BRIEF_RULE}` : ''}\n\nBRIEF JSON SCHEMA (your "brief" must validate against it):\n${JSON.stringify(payload.schema)}`,
-    instructions: `${payload.system}\n\n${outputContract('brief')}`,
+    input: `${payload.context}\n\nPRODUCT (locked spec; the brief names exactly this model and colourway): ${JSON.stringify({ product, product_image_urls: imgs })}${styleRefs(payload).length ? `\n\nREFERENCE IMAGES FROM THE USER (open and look at each): ${styleRefs(payload).join(' ')}\n${refsMod.BRIEF_RULE}` : ''}\n\nBRIEF JSON SCHEMA (your "brief" must validate against it):\n${JSON.stringify(payload.schema)}`,
+    instructions: `${testPrefix(payload)}${payload.system}\n\n${outputContract('brief')}`,
   };
+}
+
+/** The organizer bot's campaign review: it reads the campaign ledger on the Hermes side. */
+function reviewRun(legacyId, opts = {}) {
+  return { input: `review campaign ${C.campaignKey(legacyId)}`, instructions: `${testPrefix(opts)}${outputContract('organizer')}` };
 }
 
 function classify(status, text) {
@@ -207,14 +243,20 @@ async function status(ref) {
   if (raw === 'cancelled') return { status: 'canceled', raw_status: raw, error: `Hermes run ${raw}` };
   if (raw !== 'completed') return { status: 'failed', raw_status: raw, error: (d.error && (d.error.message || d.error)) || `Hermes run ${raw || 'failed'}` };
   const j = parseOutput(d.output);
+  const it = C.interpret(m[1], j);
   // the bot declined on policy grounds: the job service treats it like a provider moderation (explained, never resubmitted)
-  if (j.refused) return { status: 'nsfw', raw_status: raw, error: String(j.refused).slice(0, 300) };
-  // { error, note }: the bot could not make it (missing field, generator failure, over max_credits)
-  if (j.error) return { status: 'failed', raw_status: 'bot_error', error: `the ${c.profile} bot: ${String(typeof j.error === 'string' ? j.error : JSON.stringify(j.error)).slice(0, 240)}` };
-  const frames = Array.isArray(j.frames) ? [...j.frames].sort((a, b) => (Number(a && a.index) || 0) - (Number(b && b.index) || 0)).map((f) => f && (f.image || f.url)) : [];
-  const images = (Array.isArray(j.images) ? j.images : j.image ? [j.image] : frames).map((x) => (x && typeof x === 'object' ? x.url : x)).filter(isHttps);
+  if (it.kind === 'refused') return { status: 'nsfw', raw_status: raw, error: it.reason };
+  // { error, note, error_code?, fallback? }: the bot could not make it; the job service routes it (hermes-contract botError)
+  if (it.kind === 'error') return { status: 'failed', raw_status: 'bot_error', error: `the ${c.profile} bot: ${it.error.error.slice(0, 240)}${it.error.note ? ` (${it.error.note.slice(0, 200)})` : ''}`, botError: it.error };
+  if (m[1] === 'organizer') return { status: 'completed', raw_status: raw, parsed: j, problems: it.problems, usage: d.usage || null };
+  const frameUrls = (it.frames || []).map((f) => f.image);
+  const images = (Array.isArray(j.images) ? j.images : j.image ? [j.image] : frameUrls).map((x) => (x && typeof x === 'object' ? x.url : x)).filter(isHttps);
   const video = isHttps(j.video) ? j.video : j.video && isHttps(j.video.url) ? j.video.url : null;
-  return { status: 'completed', raw_status: raw, images, video, brief: j.brief && typeof j.brief === 'object' ? j.brief : null, note: typeof j.note === 'string' ? j.note.slice(0, 500) : '', usage: d.usage || null, runtime: d.runtime || null };
+  return {
+    status: 'completed', raw_status: raw, images, video, brief: j.brief && typeof j.brief === 'object' ? j.brief : null, note: it.note, usage: d.usage || null, runtime: d.runtime || null,
+    qa: it.qa, storyFlag: it.storyFlag || ((it.frames || []).find((f) => f.story_flag) || {}).story_flag || null, budgetBlockedRetry: it.budgetBlockedRetry, problems: it.problems,
+    ...(it.frames ? { frames: it.frames, story: it.story } : {}), ...(it.variationPlan ? { variationPlan: it.variationPlan, swapProposals: it.swapProposals } : {}),
+  };
 }
 
 // The bots spend Higgsfield credits (MAISTRO_INTEGRATION.md "Media facts"): Nano Banana Pro 2 per image
@@ -224,8 +266,8 @@ function credits(role, payload = {}, n = 1) {
   if (role === 'video') return VIDEO_CREDITS_PER_S[videoRes(payload.resolution)] * clipSeconds(payload.duration);
   return (imageRes(payload.resolution) === '4k' ? 4 : 2) * n;
 }
-/** The cap the bot's media helper holds the run to: the priced cost plus headroom, never above its 150 default. */
-const maxCredits = (role, payload, n) => Math.min(150, Math.max(4, Math.ceil(credits(role, payload, n) * 1.25)));
+/** The cap the bot's media helper holds the run to (hermes-contract budgets: QA re-renders included, at most 150). */
+const maxCredits = (role, payload = {}, n = 1) => C.budgetFor(role, { perImage: imageRes(payload.resolution) === '4k' ? 4 : 2, n, plan: Boolean(payload.planMode), frames: payload.planMode ? 8 : 0, videoCredits: role === 'video' ? credits('video', payload) : 0 });
 const usdPerCredit = () => { const v = Number(process.env.MAISTRO_HERMES_USD_PER_CREDIT); return Number.isFinite(v) && v > 0 ? v : 0.06; };
 /** A render priced from the credit table: { usd, credits, basis }. */
 function priceRender(role, payload = {}) {
@@ -241,4 +283,4 @@ async function estimate(endpoint, body = {}) {
   return priceRender(video ? 'video' : 'mood', { ...body, batch: body.batch_size || body.batch });
 }
 
-module.exports = { ROLES, PROFILES, roleFor, credits, maxCredits, priceRender, config, renderRun, briefRun, outputContract, parseOutput, submit, status, classify, estimate };
+module.exports = { ROLES, PROFILES, roleFor, credits, maxCredits, priceRender, config, renderRun, briefRun, reviewRun, outputContract, productOf, productImagesOf, parseOutput, submit, status, classify, estimate };

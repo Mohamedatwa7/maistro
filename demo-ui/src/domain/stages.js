@@ -104,7 +104,11 @@ function transition(kind, from, t) {
 /** What each rebuilt Studio stage is BUILT FROM (6.9 lineage + invalidation). Distinct from
  *  prerequisites(): the legacy page may generate in any order, but a version always records the
  *  upstream versions that existed when it was made. */
-const CONSUMES = { plan: [], mood: ["plan"], thumb: ["mood"], brief: ["mood", "thumb"], board: ["brief", "mood"], draft: ["board"], qc: ["draft"], final: ["qc", "draft"] };
+// Owner 2026-11-02 (Hermes coordination): the pipeline runs brief → moodboard → storyboard → thumbnail → video, so a
+// new brief makes the moodboard and the thumbnail stale, a new moodboard the storyboard and the thumbnail.
+const CONSUMES = { plan: [], brief: ["plan"], mood: ["plan", "brief"], board: ["brief", "mood"], thumb: ["brief", "mood"], draft: ["board"], qc: ["draft"], final: ["qc", "draft"] };
+/** Dependency order (upstream first) — staleness propagates along it. Not the stored stage positions. */
+const PIPELINE_ORDER = ["plan", "brief", "mood", "board", "thumb", "draft", "qc", "final"];
 
 /** Stale stages: a stage whose current version recorded an input version that is no longer that
  *  input stage's current version. Pure. `stages` = [{kind, current_version_id}], `inputsById` =
@@ -113,8 +117,8 @@ function staleStages(stages, inputsById) {
   const cur = new Map(stages.map((s) => [s.kind, s.current_version_id || null]));
   const byKind = new Map(stages.map((s) => [s.kind, s]));
   const stale = new Map();
-  // in pipeline order, so staleness propagates: a stage built from a stale (out-of-date) upstream is stale too
-  for (const kind of STAGE_KINDS) {
+  // in dependency order, so staleness propagates: a stage built from a stale (out-of-date) upstream is stale too
+  for (const kind of PIPELINE_ORDER) {
     const s = byKind.get(kind);
     if (!s || !s.current_version_id) continue;
     const inputs = inputsById.get(s.current_version_id);
@@ -139,4 +143,4 @@ function pieceStatus(stages) {
   return "in_production";
 }
 
-module.exports = { STAGE_KINDS, STAGE_STATES, ORIGINS, ROLES, FINAL_APPROVER_ROLES, STAGE_APPROVER_ROLES, CONSUMES, stagePosition, prerequisites, prerequisitesMet, readyStages, transition, pieceStatus, staleStages };
+module.exports = { STAGE_KINDS, STAGE_STATES, ORIGINS, ROLES, FINAL_APPROVER_ROLES, STAGE_APPROVER_ROLES, CONSUMES, PIPELINE_ORDER, stagePosition, prerequisites, prerequisitesMet, readyStages, transition, pieceStatus, staleStages };

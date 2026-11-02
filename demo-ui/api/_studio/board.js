@@ -12,7 +12,7 @@ const { registerPrompt, recordGeneration } = require('../_records.js');
 const { withImages } = require('./refs.js');
 const { queryRows } = require('../_supabase.js');
 
-const VERSION = 'storyboard-v2-2026-10-29'; // v2: opening and closing scenes, the brief's storyline
+const VERSION = 'storyboard-v3-2026-11-02'; // v2: opening and closing scenes, the brief's storyline; v3: the story + act, angle, lens, move, device pose per shot (the storyboard bot reads them)
 const CHECK_VERSION = 'storyboard-check-v1-2026-10-21';
 const MODEL = () => process.env.MAISTRO_STUDIO_MODEL || 'claude-opus-5-5';
 const CHECK_MODEL = () => process.env.MAISTRO_VISION_MODEL || 'claude-sonnet-5-5';
@@ -25,22 +25,25 @@ const HOOK_WINDOW_S = 3;
 
 const SHOT = {
   type: 'object', additionalProperties: false,
-  required: ['n', 'beat', 'durationS', 'type', 'camera', 'action', 'product', 'onScreenText', 'line', 'audioCue', 'transition'],
+  required: ['n', 'beat', 'act', 'durationS', 'type', 'camera', 'angle', 'lens', 'move', 'action', 'devicePose', 'product', 'onScreenText', 'line', 'audioCue', 'transition'],
   properties: {
-    n: { type: 'integer' }, beat: { type: 'string', enum: BEATS }, durationS: { type: 'number' }, type: { type: 'string', enum: SHOT_TYPES }, camera: { type: 'string' }, action: { type: 'string' },
+    n: { type: 'integer' }, beat: { type: 'string', enum: BEATS }, act: { type: 'string' }, durationS: { type: 'number' }, type: { type: 'string', enum: SHOT_TYPES }, camera: { type: 'string' },
+    angle: { type: 'string' }, lens: { type: 'string' }, move: { type: 'string' }, action: { type: 'string' }, devicePose: { type: 'string' },
     product: { type: 'object', additionalProperties: false, required: ['visible', 'feature'], properties: { visible: { type: 'boolean' }, feature: { type: 'string' } } },
     onScreenText: { type: 'object', additionalProperties: false, required: ['en', 'ar'], properties: { en: { type: 'string' }, ar: { type: 'string' } } },
     line: { type: 'object', additionalProperties: false, required: ['en', 'ar'], properties: { en: { type: 'string' }, ar: { type: 'string' } } },
     audioCue: { type: 'string' }, transition: { type: 'string', enum: TRANSITIONS },
   },
 };
-const SCHEMA = { type: 'object', additionalProperties: false, required: ['shots', 'hookShot', 'notes'], properties: { shots: { type: 'array', items: SHOT }, hookShot: { type: 'integer' }, notes: { type: 'string' } } };
+const STORY = { type: 'object', additionalProperties: false, required: ['logline', 'product_truth', 'emotional_arc', 'acts'], properties: { logline: { type: 'string' }, product_truth: { type: 'string' }, emotional_arc: { type: 'string' }, acts: { type: 'array', items: { type: 'string' } } } };
+const SCHEMA = { type: 'object', additionalProperties: false, required: ['story', 'shots', 'hookShot', 'notes'], properties: { story: STORY, shots: { type: 'array', items: SHOT }, hookShot: { type: 'integer' }, notes: { type: 'string' } } };
 
 const SYSTEM = [
   'You are Frame, the storyboard writer inside MAISTRO (Samsung Gulf social video). You turn an APPROVED BRIEF into a precise shot list that a video model will render shot by shot.',
   'STORY: the shots tell the brief\'s STORYLINE scene by scene, with clear cause and effect. Shot 1 is the OPENING SCENE (beat "opening"): it sets up the story and carries the hook. The middle shots play the story beats in order (beat "story"). The second-to-last shot is the CLOSING SCENE (beat "closing"): it resolves the story with the product and lands the key message. The last shot is the end card (beat "end_card"). When there is no storyline, write a simple one yourself and follow it the same way. A recurring person looks the same in every shot (same look, hair and wardrobe as the storyline\'s protagonist).',
-  'Rules: between 4 and 8 shots; the durations add up to the brief\'s target duration; the hook lands inside the first 3 seconds; every feature the brief lists appears in a shot where the product is visible; the key message appears as on-screen text or a line; the CTA appears in the last two shots; the final shot is the end card (type "end_card": Samsung logo, no product action, a hold).',
-  'Each shot: one camera angle AND movement in `camera` (e.g. "low angle, slow push-in"), one concrete action, whether the product is visible and which catalog feature it shows ("" when none), on-screen text en/ar ("" when none — keep it to a few words, it is overlaid in code), the voiceover or caption line en/ar, an audio cue, and the transition INTO the next shot.',
+  'Rules: between 4 and 8 shots; the durations add up to the brief\'s target duration; the hook lands inside the first 3 seconds; every feature the brief lists appears in a shot where the product is visible; the key message appears as on-screen text or a line; the CTA appears in the last two shots; the final shot is the end card (type "end_card": a clean plate held for the logo, no product action; the logo itself is composited in post, never generated).',
+  'First write the STORY: a one-line logline, the product truth it proves, the emotional arc, and the acts (one line each). Every shot names its act.',
+  'Each shot: one camera angle AND movement in `camera` (e.g. "low angle, slow push-in"), the same split into `angle`, `lens` (e.g. "35mm", "macro 100mm") and `move`, how the device is held or shown in `devicePose` ("not in frame" when absent), one concrete action, whether the product is visible and which catalog feature it shows ("" when none), on-screen text en/ar ("" when none — keep it to a few words, it is overlaid in code), the voiceover or caption line en/ar, an audio cue, and the transition INTO the next shot.',
   'Follow the trend\'s mechanic beat by beat so the piece is recognisable as the trend, inside the approved moodboard\'s setting, palette and lighting. The product is only ever the catalog product; never describe its shape beyond the catalog look line. Arabic lines read as native Gulf Arabic, never literal translations. No real identifiable people, no competitor devices, nothing against the cultural rules.',
   'Return the shots, which shot carries the hook, and a one-line note for the user.',
 ].join('\n');
@@ -183,24 +186,42 @@ function checkFlags(check) {
 
 /** The Soul prompt for one shot's keyframe, anchored to the direction, the product (its 3D model when there is
  *  one, else the reference photo or the catalog look) and the storyline's recurring character. */
-function keyframePrompt(shot, direction, productLook, refAttached, { model = false, storyline = null } = {}) {
+function keyframePrompt(shot, direction, productLook, refAttached, { model = false, storyline = null, productLine = '' } = {}) {
   const d = direction || {};
   const pal = (d.palette || []).map((c) => `${c.name} ${c.hex}`).join(', ');
   const exact = model ? 'The device is the exact product from the reference renders of its 3D model — identical shape, proportions, size, colour, camera layout and buttons' : 'The device is the exact product from the reference image';
   const product = shot.product.visible ? (refAttached ? exact : productLook ? `The device is exactly: ${productLook}` : 'no device shown') + (shot.product.feature ? `, showing ${shot.product.feature}` : '') + '.' : 'No phone or device in frame.';
-  const type = shot.type === 'end_card' ? 'A clean end-card frame: Samsung Blue background, empty centre for a logo overlaid later' : `${shot.beat === 'opening' ? 'Opening scene of the story — ' : shot.beat === 'closing' ? 'Closing scene of the story — ' : ''}${shot.type.replace('_', ' ')} shot, ${shot.camera}`;
+  const type = shot.type === 'end_card' ? 'A clean end-card plate: Samsung Blue background, the centre left empty (the official Samsung lettermark is composited in post; do not draw any logo)' : `${shot.beat === 'opening' ? 'Opening scene of the story — ' : shot.beat === 'closing' ? 'Closing scene of the story — ' : ''}${shot.type.replace('_', ' ')} shot, ${shot.camera}`;
   const who = shot.type !== 'end_card' && storyline && storyline.protagonist && !/^none\b/i.test(storyline.protagonist) ? ` Recurring character when a person is in frame: ${storyline.protagonist}.` : '';
-  return `${type}. ${shot.action}${who} ${product} Setting: ${d.setting || 'as the moodboard'}. ${d.lighting ? `Lighting: ${d.lighting}.` : ''} ${d.styling ? `Styling: ${d.styling}.` : ''} ${d.wardrobe ? `Wardrobe: ${d.wardrobe}.` : ''} Palette: ${pal || 'Samsung Blue #1428A0 present and intentional'}. ${d.cameraFeel ? `Camera feel: ${d.cameraFeel}.` : ''} Single still frame, cinematic, no text, no logos, no competitor devices, no real identifiable people.`.replace(/\s+/g, ' ').trim();
+  // H: the bot never draws a logo — an end card's "Samsung logo …" becomes a clean plate (the lettermark is composited in post)
+  const action = shot.type === 'end_card' ? String(shot.action || '').replace(/\b(samsung\s+)?(logo|lettermark|wordmark)s?\b/gi, 'clean plate') : shot.action;
+  return `${type}. ${action}${who} ${product} Setting: ${d.setting || 'as the moodboard'}. ${d.lighting ? `Lighting: ${d.lighting}.` : ''} ${d.styling ? `Styling: ${d.styling}.` : ''} ${d.wardrobe ? `Wardrobe: ${d.wardrobe}.` : ''} Palette: ${pal || 'Samsung Blue #1428A0 present and intentional'}. ${d.cameraFeel ? `Camera feel: ${d.cameraFeel}.` : ''}${shot.product.visible && productLine ? ` Product: ${productLine}.` : ''}${shot.devicePose && shot.product.visible ? ` Device pose: ${shot.devicePose}.` : ''} Single still frame, cinematic, no generated text, no third-party logos (the device keeps its own official SAMSUNG wordmark), no competitor devices, no real identifiable people.`.replace(/\s+/g, ' ').trim();
+}
+
+/** PLAN mode: the storyboard bot's brief for writing the story, the shot list and every keyframe itself. */
+function planPrompt({ piece, brief, direction, productLine, userInput }) {
+  const d = direction || {};
+  const sp = brief && brief.payload && brief.payload.spec ? brief.payload.spec : null;
+  const pal = (d.palette || []).map((c) => `${c.name} ${c.hex}`).join(', ');
+  return [
+    `Storyboard for the Samsung Gulf social campaign "${piece.title}"${piece.trend_name ? `, adapting the trend "${piece.trend_name}"` : ''}.`,
+    `Key message: ${(sp && sp.keyMessage) || piece.key_message || piece.title}.${sp && sp.cta ? ` CTA: ${sp.cta}.` : ''}`,
+    `Product: ${productLine || piece.product}.`,
+    `Setting: ${d.setting || 'as the moodboard'}.${d.lighting ? ` Lighting: ${d.lighting}.` : ''}${pal ? ` Palette: ${pal}.` : ''}${d.wardrobe ? ` Wardrobe: ${d.wardrobe}.` : ''}`,
+    'Shot 1 is the opening scene and lands the hook inside 3 seconds; the second-to-last shot resolves the story with the product; the last shot is an end-card clean plate.',
+    userInput ? `The user asked: ${String(userInput).slice(0, 600)}.` : '',
+    'Cinematic stills, no generated text, no third-party logos, no competitor devices, no real identifiable people.',
+  ].filter(Boolean).join(' ');
 }
 
 /** The stored storyboard artifact: the shot list with empty keyframe slots the jobs fill in. */
 function artifactFrom(list, meta) {
   return {
     shots: list.shots.map((s) => ({ ...s, keyframe: null, review: null })),
-    hookShot: list.hookShot, notes: list.notes, storyline: meta.storyline || null, totalS: Math.round(list.shots.reduce((a, s) => a + s.durationS, 0) * 10) / 10,
+    hookShot: list.hookShot, notes: list.notes, storyline: meta.storyline || null, story: meta.story || list.story || null, totalS: Math.round(list.shots.reduce((a, s) => a + s.durationS, 0) * 10) / 10,
     boardVersion: meta.promptVersion || VERSION, briefVersionId: meta.briefVersionId || null, briefApproved: Boolean(meta.briefApproved), moodApproved: Boolean(meta.moodApproved), aspect: meta.aspect || '9:16',
     prompt: `storyboard of ${list.shots.length} shots`, note: list.notes, rev: 0,
   };
 }
 
-module.exports = { VERSION, CHECK_VERSION, SYSTEM, SCHEMA, CHECK_SCHEMA, SHOT_TYPES, TRANSITIONS, BEATS, normalizeBeats, DURATION_TOLERANCE, HOOK_WINDOW_S, validateShape, codeChecks, briefFor, userMessage, shotList, mechanicCheck, checkFlags, keyframePrompt, artifactFrom };
+module.exports = { planPrompt, VERSION, CHECK_VERSION, SYSTEM, SCHEMA, CHECK_SCHEMA, SHOT_TYPES, TRANSITIONS, BEATS, normalizeBeats, DURATION_TOLERANCE, HOOK_WINDOW_S, validateShape, codeChecks, briefFor, userMessage, shotList, mechanicCheck, checkFlags, keyframePrompt, artifactFrom };

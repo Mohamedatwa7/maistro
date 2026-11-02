@@ -11,6 +11,7 @@ const { ensurePiece, recordVersion, StoreError } = require('./_store.js');
 const { prerequisitesMet, transition } = require('../src/domain/stages.js');
 const higgsfield = require('./_adapters/higgsfield.js'); // legacy rows only: new renders go to Hermes
 const hermes = require('./_adapters/hermes.js');
+const C = require('./_studio/hermes-contract.js');
 const f1x8 = require('./_adapters/f1x8.js');
 const storage = require('./_adapters/storage.js');
 const { recordGeneration } = require('./_records.js');
@@ -165,9 +166,16 @@ async function advance(job) {
           job = { ...job, payload: { ...job.payload, anchorUrls: anchorUrls.filter(Boolean) } };
           await patchRows('jobs', `id=eq.${q(job.id)}`, { payload: job.payload });
         }
+        // the storyboard bot sees the approved keyframes before its shot: signed once (24 h), kept on the job
+        if (job.kind === 'hermes_image' && job.payload.shotContext && !job.payload.previousKeyframeUrls && job.payload.attachTo && job.payload.attachTo.versionId) {
+          job = { ...job, payload: { ...job.payload, previousKeyframeUrls: await previousKeyframes(job.payload.attachTo.versionId, job.payload.attachTo.shot) } };
+          await patchRows('jobs', `id=eq.${q(job.id)}`, { payload: job.payload });
+        }
         const role = job.kind.startsWith('hermes') ? hermes.roleFor(job.kind, job.payload.stage) : null;
+        // a bot said the Higgsfield credits are exhausted: nothing new is sent until an operator resumes
+        if (role) { const halt = await hermesHalted(); if (halt) { await fail(job, 'failed', halt); return 'failed'; } }
         const sub = role
-          ? await hermes.submit(role, job.kind === 'hermes_brief' ? hermes.briefRun(job.payload) : hermes.renderRun(job.payload, role), { idempotencyKey: job.payload.resubmits ? `${job.id}:${job.payload.resubmits}` : job.id, sessionId: `maistro-${job.payload.pieceId}-${job.payload.stage}` })
+          ? await hermes.submit(role, job.kind === 'hermes_brief' ? hermes.briefRun(job.payload) : hermes.renderRun(job.payload, role), { idempotencyKey: job.payload.resubmits ? `${job.id}:${job.payload.resubmits}` : job.id, sessionId: C.sessionId(job.payload.pieceId, role, job.payload.sessionVersion) })
           : job.kind.startsWith('higgsfield')
           ? await higgsfield.submit({ ...job.payload, kind: job.kind === 'higgsfield_image' ? 'image' : 'video' }, { idempotencyKey: job.id })
           : await f1x8.submit({ kind: job.kind === 'f1x8_video' ? 'video' : 'image', assetUrl: await assetUrlFor(job.payload), title: job.payload.title, description: job.payload.description, expectSha256: job.payload.expectSha256 || null });
@@ -210,8 +218,10 @@ async function assetUrlFor(payload) {
   return payload.assetUrl;
 }
 
-async function fail(job, state, error) {
-  await finish(job, { state, error: String(error || '').slice(0, 300) });
+async function fail(job, state, error, botError = null) {
+  await finish(job, { state, error: String(error || '').slice(0, 300), ...(botError ? { result: { botError } } : {}) });
+  // what the page shows on the failed slot: the bot's note, its error code, and whether it asked for a new first frame
+  const said = botError ? { botNote: botError.note || null, errorCode: botError.errorCode || null, fallback: botError.fallback || null, needsNewFrame: Boolean(botError.wantsNewFrame && isVideoKind(job.kind)) } : {};
   await jobRecord(job, { status: state === 'timed_out' ? 'timed_out' : /moderated|nsfw/i.test(String(error)) ? 'refused' : 'failed', error });
   if (job.payload && job.payload.attachTo && job.payload.attachTo.mood && RENDER_KINDS.includes(job.kind)) {
     // a failed mood marks that mood and its image slots; the other moods keep rendering
@@ -221,11 +231,17 @@ async function fail(job, state, error) {
       await updateShots(versionId, (payload) => {
         if (!Array.isArray(payload.moods) || !payload.moods[mood - 1]) return null;
         const moods = payload.moods.map((m) => ({ ...m })); const images = (payload.images || []).map((x) => ({ ...x }));
-        moods[mood - 1] = { ...moods[mood - 1], state: 'failed', error: String(error || '').slice(0, 200), jobId: job.id };
+        moods[mood - 1] = { ...moods[mood - 1], state: 'failed', error: String(error || '').slice(0, 200), jobId: job.id, ...said };
         for (let k = slotOf(mood); k < slotOf(mood) + PER_MOOD; k++) if (images[k] && images[k].state !== 'rendered') images[k] = { ...images[k], state: 'failed' };
         return { ...payload, moods, images };
       });
     } catch (e) { console.warn('[jobs] mood failure could not be recorded:', e.message); }
+    await settleBoardStage(job);
+    return;
+  }
+  if (job.payload && job.payload.planMode && job.payload.attachTo && RENDER_KINDS.includes(job.kind)) {
+    // PLAN mode: the one run that makes the whole storyboard failed
+    try { await updateShots(job.payload.attachTo.versionId, (payload) => ({ ...payload, planState: 'failed', planError: String(error || '').slice(0, 300), ...said })); } catch (e) { console.warn('[jobs] plan failure could not be recorded:', e.message); }
     await settleBoardStage(job);
     return;
   }
@@ -238,7 +254,7 @@ async function fail(job, state, error) {
         if (!Array.isArray(payload.shots) || !payload.shots[shot - 1]) return null;
         const shots = payload.shots.map((s) => ({ ...s }));
         const prev = shots[shot - 1][slot];
-        shots[shot - 1] = { ...shots[shot - 1], [slot]: prev && prev.state === 'rendered' ? { ...prev, lastError: String(error || '').slice(0, 200) } : { state: 'failed', error: String(error || '').slice(0, 200), jobId: job.id, at: nowIso() } };
+        shots[shot - 1] = { ...shots[shot - 1], [slot]: prev && prev.state === 'rendered' ? { ...prev, lastError: String(error || '').slice(0, 200), ...said } : { state: 'failed', error: String(error || '').slice(0, 200), jobId: job.id, at: nowIso(), ...said } };
         return { ...payload, shots };
       });
     } catch (e) { console.warn('[jobs] shot failure could not be recorded:', e.message); }
@@ -308,6 +324,18 @@ async function pollRender(job) {
     }
     if (meta.direction) { artifact.direction = meta.direction; artifact.directionVersion = meta.directionVersion || null; }
     if (meta.overlay) { artifact.overlay = meta.overlay; artifact.textSide = meta.textSide || null; artifact.promptVersion = meta.promptVersion || null; artifact.moodApproved = Boolean(meta.moodApproved); }
+    // what the bot says about its own output (hermes-contract): QA verdict, story flag, a QA re-render max_credits blocked
+    if (viaHermes) {
+      artifact.qa = st.qa || null;
+      if (st.storyFlag) artifact.storyFlag = st.storyFlag;
+      if (st.budgetBlockedRetry) artifact.budgetBlockedRetry = true;
+      if (st.problems && st.problems.length) artifact.contractProblems = st.problems.slice(0, 8);
+      if (st.variationPlan && st.variationPlan.length) { artifact.variationPlan = st.variationPlan; artifact.swapProposals = st.swapProposals || []; }
+      if (st.frames && st.frames[0] && !job.payload.planMode) { const { image, ...frame } = st.frames[0]; artifact.frame = frame; }
+      if (meta.builtFrom) artifact.builtFrom = meta.builtFrom;
+    }
+    // PLAN mode: the storyboard bot wrote the story, the shot list and every keyframe in one run
+    if (job.payload.planMode) return attachPlan(job, st, copy);
     // one of the three moods fills its image slots on the moodboard version
     if (job.payload.attachTo && job.payload.attachTo.mood) return attachMood(job, { artifact, sourceUrl, copy, meta });
     // 6.5: a storyboard keyframe fills a shot slot on an existing version instead of making a new one
@@ -334,6 +362,21 @@ async function pollRender(job) {
     }
     try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: `${stage} rendered by job` }); } catch (e) { console.warn('[jobs] spec sync failed:', e.message); }
     return 'succeeded';
+  }
+  if (st.status === 'failed' && st.botError && st.botError.creditsExhausted) {
+    // owner rule: stop the pipeline and alert the operator; never retried
+    await fail(job, 'failed', `Higgsfield credits are exhausted${st.botError.fallback ? ` (the bot suggests ${st.botError.fallback})` : ''}: the pipeline is stopped and nothing retries. Top up the plan, then resume the bots.`, st.botError);
+    await haltPipeline(job, st.botError);
+    return 'failed';
+  }
+  if (st.status === 'failed' && st.botError) {
+    await fail(job, 'failed', st.error, st.botError);
+    // the video bot asked for a new first frame: the storyboard bot re-renders that shot, then the clip retries
+    // (automatic only with MAISTRO_HERMES_AUTO_FRAME_FIX=1 — it spends; otherwise the page offers the button)
+    if (st.botError.wantsNewFrame && isVideoKind(job.kind) && process.env.MAISTRO_HERMES_AUTO_FRAME_FIX === '1') {
+      try { await frameFix({ clipJob: job, note: st.botError.note || st.botError.error }); } catch (e) { console.warn('[jobs] frame fix not routed:', e.message); }
+    }
+    return 'failed';
   }
   if (['failed', 'nsfw', 'canceled'].includes(st.status)) {
     await fail(job, 'failed', st.status === 'nsfw' ? (viaHermes && st.error ? `moderated by the bot (${st.error}) — nothing was generated` : 'moderated (nsfw) — nothing was generated') : st.error ? String(st.error) : `provider reported ${st.status}`);
@@ -534,7 +577,7 @@ async function attachMood(job, { artifact, sourceUrl, copy, meta }) {
         const g = got[k];
         images[at + k] = g ? { ...images[at + k], mood, state: 'rendered', url: g.url, assetPath: g.assetPath || null, sha256: g.sha256 || null, jobId: job.id } : { ...images[at + k], mood, state: 'failed' };
       }
-      moods[mood - 1] = { ...moods[mood - 1], state: 'rendered', jobId: job.id, error: null, botNote: artifact.note || null, madeBy: artifact.madeBy || null };
+      moods[mood - 1] = { ...moods[mood - 1], state: 'rendered', jobId: job.id, error: null, botNote: artifact.note || null, madeBy: artifact.madeBy || null, qa: artifact.qa || null, budgetBlockedRetry: Boolean(artifact.budgetBlockedRetry), ...(artifact.variationPlan ? { variationPlan: artifact.variationPlan, swapProposals: artifact.swapProposals || [] } : {}) };
       const first = images.find((x) => x.state === 'rendered');
       return { ...payload, moods, images, imageUrl: first ? first.url : null, assetPath: first ? first.assetPath : null };
     });
@@ -559,6 +602,7 @@ async function attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage, slo
   const { versionId, shot } = job.payload.attachTo;
   const history = `${slot}History`;
   const keyframe = { state: 'rendered', url: sourceUrl, assetPath: copy ? copy.path : null, sha256: copy ? copy.sha256 : null, size: copy ? copy.size : null, jobId: job.id, prompt: meta.prompt || '', seed: job.payload.seed != null ? job.payload.seed : null, v: job.payload.v || 0, at: nowIso(), ...(slot === 'clip' ? { durationS: job.payload.duration || null, resolution: job.payload.resolution || null, fromKeyframe: job.payload.imageAssetPath || null } : {}) };
+  Object.assign(keyframe, { qa: artifact.qa || null, storyFlag: artifact.storyFlag || null, budgetBlockedRetry: Boolean(artifact.budgetBlockedRetry), botNote: artifact.note || null, ...(artifact.frame ? { frame: artifact.frame } : {}), ...(job.payload.fixRequest ? { fixRequest: String(job.payload.fixRequest).slice(0, 300) } : {}) });
   let shots = null;
   try {
     const r = await updateShots(versionId, (payload) => {
@@ -572,6 +616,7 @@ async function attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage, slo
     shots = r.payload.shots;
   } catch (e) { await fail(job, 'failed', `keyframe could not be attached: ${String(e.message || e).slice(0, 160)}`); return 'failed'; }
   await finish(job, { state: 'succeeded', error: null, result: { attached: { versionId, shot, slot }, [slot]: keyframe, copiedIn: Boolean(copy) } });
+  if (slot === 'keyframe' && job.payload.retryClip) { try { await queueRetryClip(job, keyframe); } catch (e) { console.warn('[jobs] clip retry not queued:', e.message); } }
   await jobRecord(job, { status: 'succeeded', outputAssets: [{ url: sourceUrl, assetPath: keyframe.assetPath, sha256: keyframe.sha256, versionId, shot }] });
   if (job.payload.autoCheck && slot === 'keyframe') {
     try {
@@ -591,6 +636,122 @@ async function attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage, slo
   }
   if (await settleBoardStage(job)) await autoAssemble(job);
   try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: `${stage} shot ${shot} ${slot}` }); } catch (e) { /* best effort */ }
+  return 'succeeded';
+}
+
+/** The keyframes before `shot` on a storyboard version that a clip/keyframe may follow (rendered, not
+ *  rejected), as URLs the bot can open: stored copies signed for 24 h, else the provider URL. */
+async function previousKeyframes(versionId, shot) {
+  const [v] = await queryRows('artifact_versions', `select=payload&id=eq.${q(versionId)}&limit=1`);
+  const shots = v && v.payload && Array.isArray(v.payload.shots) ? v.payload.shots : [];
+  const out = [];
+  for (const s of shots.filter((x) => x.n < Number(shot)).slice(-7)) {
+    const kf = C.currentKeyframe(s);
+    if (!kf) continue;
+    try { out.push(kf.assetPath ? await storage.signedUrl(kf.assetPath, 24 * 3600) : kf.url); } catch (e) { if (kf.url) out.push(kf.url); }
+  }
+  return out.filter((u) => typeof u === 'string' && /^https:\/\//.test(u));
+}
+
+// ---------- Higgsfield credits exhausted: stop and alert ----------
+const HALT_KIND = 'hermes_credits_exhausted';
+const haltMinutes = () => { const v = Number(process.env.MAISTRO_HERMES_HALT_MIN); return Number.isFinite(v) && v > 0 ? v : 60; };
+/** An open halt alert younger than the window → the reason no Hermes run is sent; else null. */
+async function hermesHalted() {
+  const rows = await queryRows('ops_alerts', `select=id,at,message&kind=eq.${HALT_KIND}&resolved_at=is.null&order=at.desc&limit=1`).catch(() => []);
+  const a = rows[0];
+  if (!a || Date.now() - Date.parse(a.at) > haltMinutes() * 60000) return null;
+  return `Hermes renders are paused: ${String(a.message).slice(0, 160)} (an admin resumes them in the studio, or they resume ${haltMinutes()} min after the alert)`;
+}
+/** Cancel the piece's other live Hermes renders and raise one critical alert (+ the owner's webhook). */
+async function haltPipeline(job, botError) {
+  try {
+    await patchRows('jobs', `piece_id=eq.${q(job.piece_id)}&state=in.(${LIVE_STATES})&kind=in.(hermes_image,hermes_video,hermes_brief)&id=neq.${q(job.id)}`, { state: 'cancelled', finished_at: nowIso(), next_poll_at: null, error: 'cancelled: Higgsfield credits are exhausted (pipeline stopped)' });
+  } catch (e) { console.warn('[jobs] could not cancel live renders:', e.message); }
+  const message = `Higgsfield credits exhausted (${job.payload.bot || 'a Hermes bot'}, campaign ${job.payload.pieceId})${botError.fallback ? `; fallback suggested: ${botError.fallback}` : ''}`;
+  try {
+    const open = await queryRows('ops_alerts', `select=id&kind=eq.${HALT_KIND}&resolved_at=is.null&limit=1`);
+    if (!open.length) await insertRows('ops_alerts', [{ at: nowIso(), kind: HALT_KIND, severity: 'critical', message, details: { pieceId: job.payload.pieceId, jobId: job.id, errorCode: botError.errorCode, fallback: botError.fallback, note: botError.note } }]);
+    const hook = process.env.MAISTRO_ALERT_WEBHOOK;
+    if (hook && !open.length) { const { fetchT } = require('./_http.js'); await fetchT(hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: `Maistro: ${message}. Renders are paused.` }) }, { timeoutMs: 10000 }).catch(() => null); }
+  } catch (e) { console.warn('[jobs] halt alert not raised:', e.message); }
+  await settleBoardStage(job).catch(() => null);
+}
+/** An admin resumes the bots after a top-up: resolves the open halt alert. */
+async function resumeHermes() {
+  const rows = await patchRows('ops_alerts', `kind=eq.${HALT_KIND}&resolved_at=is.null`, { resolved_at: nowIso() });
+  return rows.length;
+}
+
+// ---------- the video bot asked for a new first frame ----------
+/** Queue a storyboard re-render of the clip's shot with the video bot's note as fix_request; when it lands the
+ *  clip is rendered again from the new frame (queueRetryClip). Refused when the storyboard is approved. */
+async function frameFix({ clipJob, note, generatedBy = null }) {
+  const p = clipJob.payload || {};
+  if (!isVideoKind(clipJob.kind) || p.stage !== 'draft' || !p.attachTo) throw Object.assign(new Error('only a first-draft clip can ask for a new first frame'), { status: 409 });
+  const fromJobId = p.meta && p.meta.fromKeyframeJob;
+  const kfJob = fromJobId ? await getJob(fromJobId) : null;
+  if (!kfJob || kfJob.kind !== 'hermes_image' || !kfJob.payload || !kfJob.payload.attachTo) throw Object.assign(new Error('the clip\'s keyframe was not made by the storyboard bot (uploaded or missing): re-render the storyboard shot by hand'), { status: 409 });
+  const [bs] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${q(clipJob.piece_id)}&kind=eq.board&limit=1`);
+  if (!bs || !bs.current_version_id) throw Object.assign(new Error('no storyboard version'), { status: 409 });
+  if (bs.state === 'approved') throw Object.assign(new Error('the storyboard is approved; reopen it to re-render a frame'), { status: 409 });
+  const live = await queryRows('jobs', `select=id,payload&stage_id=eq.${q(bs.id)}&kind=eq.hermes_image&state=in.(${LIVE_STATES})&limit=50`);
+  const boardShot = kfJob.payload.attachTo.shot;
+  if (live.some((j) => j.payload && j.payload.attachTo && Number(j.payload.attachTo.shot) === Number(boardShot))) throw Object.assign(new Error(`storyboard shot ${boardShot} is already rendering`), { status: 409, code: 'busy' });
+  const { anchorUrls, previousKeyframeUrls, budgetChecked, estimateBasis, budgetWarning, resubmits, v, bot, retryClip, ...base } = kfJob.payload;
+  const clipPayload = (({ imageUrl, budgetChecked: b2, estimateBasis: e2, budgetWarning: w2, resubmits: r2, v: v2, bot: bot2, ...rest }) => rest)(p);
+  const payload = { ...base, attachTo: { versionId: bs.current_version_id, shot: boardShot }, fixRequest: String(note || '').slice(0, 1200), generatedBy: generatedBy || p.generatedBy || null,
+    meta: { ...(base.meta || {}), changes: null, prompt: base.prompt }, retryClip: { draftVersionId: p.attachTo.versionId, draftShot: p.attachTo.shot, draftStageId: clipJob.stage_id, failedJobId: clipJob.id, clipPayload } };
+  const [row] = await insertRows('jobs', [{ piece_id: clipJob.piece_id, stage_id: bs.id, kind: 'hermes_image', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload }], { returning: true });
+  await patchRows('stages', `id=eq.${q(bs.id)}`, { state: 'generating' }).catch(() => null);
+  try {
+    await updateShots(p.attachTo.versionId, (pl) => {
+      if (!Array.isArray(pl.shots) || !pl.shots[p.attachTo.shot - 1]) return null;
+      const shots = pl.shots.map((x) => ({ ...x }));
+      shots[p.attachTo.shot - 1] = { ...shots[p.attachTo.shot - 1], clip: { ...(shots[p.attachTo.shot - 1].clip || {}), frameFixJob: row.id, needsNewFrame: false } };
+      return { ...pl, shots };
+    });
+  } catch (e) { /* the button state only */ }
+  return row;
+}
+/** The fixed keyframe landed: render the clip again from it (the draft shot now names the new keyframe). */
+async function queueRetryClip(kfJob, keyframe) {
+  const rc = kfJob.payload.retryClip;
+  const { imageAssetPath, imageUrl, ...rest } = rc.clipPayload || {};
+  const payload = { ...rest, ...(keyframe.assetPath ? { imageAssetPath: keyframe.assetPath } : { imageUrl: keyframe.url }), meta: { ...(rest.meta || {}), fromKeyframeJob: kfJob.id }, retriedFrom: rc.failedJobId };
+  await updateShots(rc.draftVersionId, (pl) => {
+    if (!Array.isArray(pl.shots) || !pl.shots[rc.draftShot - 1]) return null;
+    const shots = pl.shots.map((x) => ({ ...x }));
+    shots[rc.draftShot - 1] = { ...shots[rc.draftShot - 1], keyframe: { url: keyframe.url, assetPath: keyframe.assetPath, sha256: keyframe.sha256, jobId: kfJob.id }, clip: { state: 'pending', retriedFrom: rc.failedJobId } };
+    return { ...pl, shots };
+  });
+  const [row] = await insertRows('jobs', [{ piece_id: kfJob.piece_id, stage_id: rc.draftStageId, kind: 'hermes_video', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload }], { returning: true });
+  await patchRows('stages', `id=eq.${q(rc.draftStageId)}`, { state: 'generating' }).catch(() => null);
+  return row;
+}
+
+/** PLAN mode landed: every frame is copied in and becomes a shot (with its keyframe) on the storyboard version
+ *  the job names; the bot's story and per-frame fields (act, beat, device pose, transition, QA) are kept. */
+async function attachPlan(job, st, firstCopy) {
+  const { versionId } = job.payload.attachTo || {};
+  const frames = (st.frames || []).filter((f) => typeof f.image === 'string' && /^https:\/\//.test(f.image)).slice(0, 8);
+  if (!versionId || !frames.length) { await fail(job, 'failed', 'the storyboard bot returned no usable frames'); return 'failed'; }
+  const shots = C.shotsFromFrames(frames);
+  for (let i = 0; i < frames.length; i++) {
+    let c = i === 0 && firstCopy && st.images[0] === frames[0].image ? firstCopy : null;
+    if (!c) { try { c = await storage.copyIn(frames[i].image, `pieces/${job.payload.pieceId}/board`, 'image/png'); } catch (e) { console.warn('[jobs] asset copy-in failed:', e.message); } }
+    const { image, ...frame } = frames[i];
+    shots[i].keyframe = { state: 'rendered', url: image, assetPath: c ? c.path : null, sha256: c ? c.sha256 : null, size: c ? c.size : null, jobId: job.id, prompt: '', at: nowIso(), qa: frames[i].qa, storyFlag: frames[i].story_flag, frame, botNote: st.note || null };
+    shots[i].review = null;
+  }
+  try {
+    const r = await updateShots(versionId, (payload) => ({ ...payload, shots, story: st.story || null, hookShot: 1, totalS: Math.round(shots.reduce((a, x) => a + (Number(x.durationS) || 0), 0) * 10) / 10, note: st.note || payload.note, qa: st.qa || null, budgetBlockedRetry: Boolean(st.budgetBlockedRetry), planState: 'rendered', prompt: `storyboard of ${shots.length} shots (planned by the storyboard bot)` }));
+    if (r.unchanged) { await fail(job, 'failed', 'storyboard version not found'); return 'failed'; }
+  } catch (e) { await fail(job, 'failed', `plan could not be attached: ${String(e.message || e).slice(0, 160)}`); return 'failed'; }
+  await finish(job, { state: 'succeeded', error: null, result: { attached: { versionId, shots: shots.length }, plan: true } });
+  await jobRecord(job, { status: 'succeeded', outputAssets: shots.map((x) => ({ url: x.keyframe.url, assetPath: x.keyframe.assetPath, sha256: x.keyframe.sha256, versionId, shot: x.n })) });
+  await settleBoardStage(job);
+  try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: 'storyboard planned by the bot' }); } catch (e) { /* best effort */ }
   return 'succeeded';
 }
 
@@ -806,4 +967,4 @@ async function jobsForPiece(legacyId, limit = 50) {
   return out;
 }
 
-module.exports = { KINDS, createJob, getJob, advance, advanceStage, tick, jobsForPiece, publicJob, settleBoardStage, updateShots, pieceBudget, dailySpend, POLL_S, TIMEOUT_S };
+module.exports = { KINDS, createJob, getJob, advance, advanceStage, tick, jobsForPiece, publicJob, settleBoardStage, updateShots, pieceBudget, dailySpend, POLL_S, TIMEOUT_S, frameFix, resumeHermes, hermesHalted, previousKeyframes };

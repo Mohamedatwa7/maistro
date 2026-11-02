@@ -31,9 +31,9 @@ test('validateShape and codeChecks: 3–8 numbered shots; duration within ±10 %
   const bad = BD.codeChecks({ ...SHOTS, hookShot: 3, shots: [{ ...SHOTS.shots[0], durationS: 6, product: { visible: true, feature: 'camera' } }, { ...SHOTS.shots[1], onScreenText: { en: '', ar: '' }, line: { en: '', ar: '' }, product: { visible: true, feature: 'hinge' } }, { ...SHOTS.shots[2], line: { en: '', ar: '' }, product: { visible: false, feature: '' } }, { ...SHOTS.shots[3], type: 'wide', onScreenText: { en: '', ar: '' }, action: 'fade' }] }, { spec: SPEC });
   assert.deepEqual(bad.filter((c) => !c.passed).map((c) => c.code), ['duration_matches_brief', 'hook_in_first_seconds', 'features_covered', 'key_message_present', 'cta_at_end', 'end_card']);
   const kp = BD.keyframePrompt(SHOTS.shots[0], DIRECTION, '2026 clamshell flip foldable', false);
-  assert.match(kp, /^Opening scene of the story — close up shot, low angle, slow push-in\. A hand pauses/); assert.match(kp, /exactly: 2026 clamshell flip foldable, showing FlexWindow/); assert.match(kp, /Samsung Blue #1428A0/); assert.match(kp, /no text, no logos/);
+  assert.match(kp, /^Opening scene of the story — close up shot, low angle, slow push-in\. A hand pauses/); assert.match(kp, /exactly: 2026 clamshell flip foldable, showing FlexWindow/); assert.match(kp, /Samsung Blue #1428A0/); assert.match(kp, /no generated text, no third-party logos/);
   assert.match(BD.keyframePrompt(SHOTS.shots[0], DIRECTION, 'x', true), /exact product from the reference image/);
-  assert.match(BD.keyframePrompt(SHOTS.shots[3], DIRECTION, 'x', false), /end-card frame/);
+  const ek = BD.keyframePrompt(SHOTS.shots[3], DIRECTION, 'x', false); assert.match(ek, /end-card plate/); assert.match(ek, /composited in post; do not draw any logo/); assert.doesNotMatch(ek, /Samsung logo end card/, 'the bot is never asked to draw the logo');
   // the story: opening and closing scenes by position, the protagonist on every keyframe, the 3D model held exactly
   const mislabelled = BD.normalizeBeats({ ...SHOTS, shots: SHOTS.shots.map((x) => ({ ...x, beat: 'story' })) });
   assert.deepEqual(mislabelled.shots.map((x) => x.beat), ['opening', 'story', 'closing', 'end_card']);
@@ -84,7 +84,15 @@ test('POST /api/studio action board: needs the brief; shot list version with che
     assert.deepEqual(kjobs[0].payload.meta.anchors.map((a) => a.index), [2], 'only the selected mood tile anchors the keyframes'); assert.equal(kjobs[0].payload.meta.hookCheck, true); assert.equal(kjobs[3].payload.meta.hookCheck, false);
     assert.equal(kjobs[0].payload.ref, 'https://sb.test/storage/v1/object/public/refs/products/flip.jpg', 'product visible → reference path'); assert.equal(kjobs[3].payload.ref, undefined, 'end card: no product, no reference'); assert.equal(kjobs[3].payload.meta.expectProduct, false);
     assert.match(kjobs[1].payload.prompt, /^medium shot, eye level, static\. The caption reveal beat/);
-    assert.ok(kjobs.every((j) => Number.isInteger(j.payload.seed) && j.payload.seed >= 1 && j.payload.seed <= 1000000), 'a seed per keyframe job'); assert.equal(JSON.parse(hf.runs[3].body.input).seed, kjobs[3].payload.seed, 'each keyframe run carries its seed'); assert.ok(hf.runs.every((x) => x.profile === 'storyboard'), 'the storyboard bot makes the keyframes'); assert.match(kjobs[1].payload.prompt, /exact product from the reference image, showing FlexWindow cover screen/);
+    assert.ok(kjobs.every((j) => Number.isInteger(j.payload.seed) && j.payload.seed >= 1 && j.payload.seed <= 1000000), 'a seed per keyframe job'); assert.equal(JSON.parse(hf.runs[3].body.input).seed, undefined, 'the seed stays on the job record; the Hermes generator cannot use one, so it is never sent'); assert.ok(hf.runs.every((x) => x.profile === 'storyboard'), 'the storyboard bot makes the keyframes'); assert.match(kjobs[1].payload.prompt, /exact product from the reference image, showing FlexWindow cover screen/);
+    // A + B + G (owner 2026-11-02): every keyframe request knows its place in the story and the locked product; the session is the ledger's
+    { const ins = hf.runs.map((x) => JSON.parse(x.body.input)); const k2 = ins.find((x) => x.shot_index === 2);
+      assert.ok(k2, 'shot 2 carries its index'); assert.equal(k2.shot_count, 4); assert.deepEqual(k2.shot_list.map((x) => x.index), [1, 2, 3, 4]); assert.equal(k2.story.logline, SPEC.storyline.logline);
+      assert.deepEqual(Object.keys(k2.shot_list[0]).sort(), ['act', 'action', 'angle', 'beat', 'device_pose', 'duration_s', 'index', 'lens', 'move', 'shot_size', 'transition']);
+      assert.deepEqual(k2.previous_keyframe_urls, [], 'nothing rendered before it yet');
+      assert.ok(ins.every((x) => x.product && x.product.family === 'Galaxy Z Flip8' && Array.isArray(x.product_image_urls) && x.product_image_urls.length), 'the product and its images on every keyframe, the end card too');
+      assert.ok(ins.every((x) => x.max_credits >= 6), 'room for two QA re-renders');
+      assert.ok(hf.runs.every((x) => x.body.session_id === 'maistro-gen-bd1-board'), 'storyboard v1: the bare ledger session'); }
     const stageRow = pg.tables.stages.find((s) => s.kind === 'board'); assert.equal(stageRow.state, 'generating');
     assert.ok(pg.tables.generation_records.some((g) => g.prompt_name === 'studio.storyboard' && g.status === 'succeeded'));
     // renders complete one by one: shot slots fill, the version number stays 1, checks queue with the previous keyframe as an anchor
