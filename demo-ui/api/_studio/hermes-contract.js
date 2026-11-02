@@ -42,12 +42,27 @@ const reviewSessionId = (legacyId, ts = Date.now()) => `maistro-review-${campaig
 // referenceImages: the official Samsung Gulf gallery shots for that model code (samsung.com/ae, flattened on white),
 // served from our own /assets (open past the coming-soon gate) so the links never break for the bots.
 const ASSET_BASE = 'https://www.ma1stro.com/assets/products';
+const slugOf = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+/** The shipped views of a product, per colour: assets/products/<family>/<colour>-<view>.jpg */
+const shipped = (family, colours, views) => colours.flatMap((colour) => views.map((view) => ({ url: `${ASSET_BASE}/${slugOf(family)}/${slugOf(colour)}-${view}.jpg`, view, colour })));
+// folds: front = the closed cover screen, open-front = unfolded (the product moment); samsung.com/ae has no open-back shot
+const FOLD_VIEWS = ['front', 'back', 'side', 'open-front'];
 const PRODUCT_SPECS = {
   'Galaxy S26 Ultra': {
     defaultColour: 'Sky Blue', codes: { 'Sky Blue': 'SM-S948BLBIMEA' },
-    referenceImages: ['front', 'back', 'side', 'back-three-quarter'].map((view) => ({ url: `${ASSET_BASE}/galaxy-s26-ultra/sky-blue-${view}.jpg`, view, colour: 'Sky Blue' })),
+    referenceImages: shipped('Galaxy S26 Ultra', ['Sky Blue'], ['front', 'back', 'side', 'back-three-quarter']),
+  },
+  'Galaxy Z Fold8': {
+    defaultColour: 'Cream', modelFamily: 'SM-F971B', codes: { Cream: 'SM-F971BZWIMEA', Graphite: 'SM-F971BZKIMEA', Lavender: 'SM-F971BLVOMEA' },
+    referenceImages: shipped('Galaxy Z Fold8', ['Cream', 'Graphite', 'Lavender'], FOLD_VIEWS),
+  },
+  'Galaxy Z Fold8 Ultra': {
+    defaultColour: 'Cream', modelFamily: 'SM-F976B', codes: { Cream: 'SM-F976BZWIMEA', Graphite: 'SM-F976BZKIMEA', 'Violet Shadow': 'SM-F976BZVOMEA' },
+    referenceImages: shipped('Galaxy Z Fold8 Ultra', ['Cream', 'Graphite', 'Violet Shadow'], FOLD_VIEWS),
   },
 };
+/** The colourways Maistro knows for a product (for the page's colour picker). */
+const coloursOf = (family) => { const k = Object.keys(PRODUCT_SPECS).find((x) => x.toLowerCase() === String(family || '').trim().toLowerCase()); return k ? Object.keys(PRODUCT_SPECS[k].codes) : []; };
 const norm = (s) => String(s || '').trim().toLowerCase();
 
 /** @returns {ProductSpec} */
@@ -68,7 +83,7 @@ function productLine(spec) {
   return `Samsung ${spec.family.replace(/^Samsung\s+/i, '')}${spec.colour ? ` in ${spec.colour}` : ''}${spec.model_code ? ` (${spec.model_code})` : ''}`;
 }
 const isHttps = (u) => typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/.test(u);
-const VIEW_ORDER = ['front', 'back', 'side'];
+const VIEW_ORDER = ['front', 'back', 'side', 'open-front'];
 /** Official images (front, back, side — the catalog's, in the campaign colour) first, then the fallbacks
  *  (the product's 3D-model views, the campaign photo). https only, no repeats, at most `max`. */
 function productImages(spec, catalog, fallbacks = [], max = 4) {
@@ -86,11 +101,13 @@ function productImages(spec, catalog, fallbacks = [], max = 4) {
 // Nano Banana Pro: 2 credits per 2k image, 4 at 4k. A keyframe gets the image plus two QA re-renders.
 // Override any of these with MAISTRO_HERMES_BUDGETS='{"keyframe":8}' (numbers only).
 const BUDGET_DEFAULTS = { keyframe: 6, moodPerImage: 6, thumb: 6, planFrame: 6, videoHeadroom: 1.25, videoMin: 4, cap: 150 };
+// production floors (owner 2026-11-02): an override can raise a budget, never take it below these
+const BUDGET_FLOORS = { keyframe: 6, moodPerImage: 6, thumb: 6, planFrame: 6, videoHeadroom: 1.25, videoMin: 4, cap: 60 };
 function budgets() {
   let o = {};
   try { o = JSON.parse(process.env.MAISTRO_HERMES_BUDGETS || '{}') || {}; } catch (e) { o = {}; }
   const out = { ...BUDGET_DEFAULTS };
-  for (const k of Object.keys(out)) if (Number.isFinite(Number(o[k])) && Number(o[k]) > 0) out[k] = Number(o[k]);
+  for (const k of Object.keys(out)) if (Number.isFinite(Number(o[k])) && Number(o[k]) > 0) out[k] = Math.max(BUDGET_FLOORS[k], Number(o[k]));
   return out;
 }
 /** max_credits for one run. perImage = 2 or 4; n = images; frames = PLAN-mode shot count; videoCredits = priced clip. */
@@ -111,7 +128,8 @@ function budgetFor(role, { perImage = 2, n = 1, frames = 0, videoCredits = 0, pl
 const TEST_MODE_INSTRUCTION = 'TEST MODE: run every maistro_media.py command with --dry-run only and set image/video URLs to "dry-run".';
 // 1, not 0: below the cost of any image (2), and never mistaken for "unset" by the media helper
 const TEST_MODE_MAX_CREDITS = 1;
-const testMode = (payload) => process.env.MAISTRO_HERMES_TEST_MODE === '1' || Boolean(payload && payload.testMode);
+// the env switch never applies on the production deployment; a job only carries testMode when a test sets it
+const testMode = (payload) => (process.env.MAISTRO_HERMES_TEST_MODE === '1' && process.env.VERCEL_ENV !== 'production') || Boolean(payload && payload.testMode);
 
 // ---------- what the bots are told about text and logos ----------
 const TEXT_RULE = '"No logos / no text" means: no generated text, captions or third-party logos in the image. The product\'s own official SAMSUNG wordmark on its back stays, exactly as on the real device.';
@@ -233,6 +251,11 @@ function currentKeyframe(boardShot) {
   if (boardShot.review && boardShot.review.decision === 'rejected') return null;
   return kf;
 }
+/** The keyframe a clip must start on (owner 2026-11-02): rendered AND approved by a reviewer. */
+function approvedKeyframe(boardShot) {
+  const kf = currentKeyframe(boardShot);
+  return kf && boardShot.review && boardShot.review.decision === 'approved' ? kf : null;
+}
 const kfId = (kf) => (kf ? kf.assetPath || kf.url || kf.jobId || null : null); // clip.fromKeyframe is the keyframe's asset path
 /** Draft shots whose clip was made from a keyframe that is no longer the storyboard shot's current one.
  *  → [{ n, boardShot, from, current }] */
@@ -290,6 +313,23 @@ function shotsFromFrames(frames) {
   });
 }
 
+// ---------- product focus: the Galaxy Z Fold8 family (owner 2026-11-02) ----------
+const FOCUS_PRODUCTS = ['Galaxy Z Fold8', 'Galaxy Z Fold8 Ultra'];
+/** Share of new campaign ideas steered to the focus family: MAISTRO_FOCUS_WEIGHT 0–1, default 0.5. */
+const focusWeight = () => { const v = Number(process.env.MAISTRO_FOCUS_WEIGHT); return Number.isFinite(v) && v >= 0 && v <= 1 ? v : 0.5; };
+const FOCUS_INSTRUCTION = 'PRODUCT FOCUS (Samsung Gulf priority): feature the Galaxy Z Fold8 or the Galaxy Z Fold8 Ultra in this campaign, whichever fits the trend better. Pick an angle where the UNFOLD is the story\'s product moment: the device opening from phone to big screen is the turn the whole piece builds to.';
+/** Does the user's own input already name a catalog product? Then the focus never overrides it. */
+function namesProduct(text, catalogNames = []) {
+  const t = String(text || '').toLowerCase();
+  if (!t) return false;
+  return catalogNames.some((n) => t.includes(String(n).toLowerCase())) || /\b(fold\s?\d|flip\s?\d|s\d{2}|watch\s?\d|buds|tab\s?s\d|bespoke|the frame|neo qled|oled|odyssey|galaxy book|ring)\b/i.test(t);
+}
+/** Steer this idea to the focus family? Never when the user picked a product; else with probability focusWeight(). */
+function focusPick({ userProduct, userText, catalogNames = [], rand = Math.random } = {}) {
+  if (userProduct || namesProduct(userText, catalogNames)) return false;
+  return rand() < focusWeight();
+}
+
 // ---------- logging ----------
 /** Deep copy with secrets out: auth headers/keys masked, signed-URL tokens (?token=, X-Amz-Signature…) redacted. */
 function redact(v) {
@@ -301,9 +341,9 @@ function redact(v) {
 
 module.exports = {
   SESSION_RE, ROLE_SUFFIX, campaignKey, sessionId, parseSessionId, reviewSessionId,
-  PRODUCT_SPECS, productSpec, productLine, productImages,
-  BUDGET_DEFAULTS, budgets, budgetFor,
+  PRODUCT_SPECS, productSpec, productLine, productImages, coloursOf,
+  BUDGET_DEFAULTS, BUDGET_FLOORS, budgets, budgetFor, FOCUS_PRODUCTS, focusWeight, FOCUS_INSTRUCTION, namesProduct, focusPick,
   TEST_MODE_INSTRUCTION, TEST_MODE_MAX_CREDITS, testMode, TEXT_RULE, END_CARD_RULE, LOOK_REF_RULE,
   SCHEMAS, validate, normQa, normFrame, normStory, wantsNewFrame, botError, interpret, reviewResult, fixAction,
-  ORDER, orderCheck, orderMode, currentKeyframe, staleClips, botShot, storyFrom, shotsFromFrames, redact,
+  ORDER, orderCheck, orderMode, currentKeyframe, approvedKeyframe, staleClips, botShot, storyFrom, shotsFromFrames, redact,
 };

@@ -81,8 +81,8 @@ test('products3d: the draft sends the 3D views with clips that show the device (
     let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-p3', stage: 'plan', artifact: { title: 'P', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] }, piece: { title: 'P', product: 'Galaxy Z Flip8', platforms: ['tiktok'] } } }), r);
     const store = require('../../api/_store.js');
     await store.recordVersion('gen-p3', 'board', { aspect: '9:16', shots: [
-      { n: 1, durationS: 3, camera: 'push-in', action: 'the phone opens', product: { visible: true }, keyframe: { state: 'rendered', assetPath: 'pieces/gen-p3/board/k1.png' } },
-      { n: 2, durationS: 3, camera: 'pan', action: 'a street', product: { visible: false }, keyframe: { state: 'rendered', assetPath: 'pieces/gen-p3/board/k2.png' } },
+      { n: 1, durationS: 3, camera: 'push-in', action: 'the phone opens', product: { visible: true }, keyframe: { state: 'rendered', assetPath: 'pieces/gen-p3/board/k1.png' }, review: { decision: 'approved' } },
+      { n: 2, durationS: 3, camera: 'pan', action: 'a street', product: { visible: false }, keyframe: { state: 'rendered', assetPath: 'pieces/gen-p3/board/k2.png' }, review: { decision: 'approved' } },
     ], rev: 0 }, { producedBy: 'hermes', kind: 'image' });
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft', pieceId: 'gen-p3' } }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));

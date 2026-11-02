@@ -1925,7 +1925,7 @@ async function cpPlan(payload,direction){
   syncStage(p,'plan',plan);
   BOT.payload=payload;BOT.step='menu';
   saveGenerated();
-  cpSay(`Campaign <b>“${esc(p.title)}”</b> is set — ${esc(p.product)}, key message “${esc(plan.msg)}”. The create-boxes below are unlocked: open any stage, tell it what you want <b>in plain words</b>, and hit Generate — the AI Creative Director turns your words into a professional prompt, keeps every piece visually consistent with the ones before it, and fills the placeholder with the real result.`);
+  cpSay(`Campaign <b>“${esc(p.title)}”</b> is set — ${esc(p.product)}${plan.productFocus?' <span class="dim">(the Z Fold8 focus picked it — name another product in your direction to change it before anything is approved)</span>':''}, key message “${esc(plan.msg)}”. The create-boxes below are unlocked: open any stage, tell it what you want <b>in plain words</b>, and hit Generate — the AI Creative Director turns your words into a professional prompt, keeps every piece visually consistent with the ones before it, and fills the placeholder with the real result.`);
   BOT.chips=[{t:'＋ New campaign',a:'new'}];
   toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Hermes',1)}<div style="font-size:12.5px"><b>“${esc(p.title)}”</b> is planned — the stage boxes are unlocked.</div></div>`);
  }catch(e){
@@ -2241,7 +2241,8 @@ async function stageGen(pid,sid,changes){
    return;
   }
   /* 6.6: the first draft is one clip per storyboard shot — it needs the keyframes, not the storyboard's approval */
-  if(sid==='draft'&&useJobs()&&!changes&&!(p.board&&p.board.shots&&!skipOf(p,'board'))){
+  if(sid==='draft'&&useJobs()&&!changes&&!skipOf(p,'board')&&!(p.board&&p.board.shots))throw new Error('Make the storyboard first — every clip starts on an approved keyframe (or skip the storyboard step to make one clip from the brief).');
+  if(sid==='draft'&&useJobs()&&!changes&&skipOf(p,'board')){
    /* no storyboard (skipped or not made): one text-to-video clip for the whole video */
    GEN.busy[key]='The Hermes video bot is making the first draft as one video'+(p.brief&&!skipOf(p,'brief')?' from the brief':' from the campaign plan')+'…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',noBoard:true,pieceId:p.id,styleRefs:styleRefsOf(p),...campCtx(p),resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
@@ -2256,9 +2257,11 @@ async function stageGen(pid,sid,changes){
    const kst=s=>s.keyframe&&s.keyframe.state;
    const pendingShots=p.board.shots.filter(s=>kst(s)!=='rendered'&&kst(s)!=='failed').map(s=>s.n);
    if(pendingShots.length)throw new Error('The storyboard keyframes are still rendering — shot '+pendingShots.join(', ')+' pending.');
-   const okShots=p.board.shots.filter(s=>kst(s)==='rendered'),failedShots=p.board.shots.filter(s=>kst(s)==='failed').map(s=>s.n);
-   if(!okShots.length)throw new Error('Every storyboard keyframe failed — regenerate at least one shot first.');
-   GEN.busy[key]='The Hermes video bot is rendering '+okShots.length+' clips from the storyboard keyframes'+(failedShots.length?' (shot '+failedShots.join(', ')+' left out: its keyframe failed)':'')+' — they join into one video by themselves…';studioRefresh();
+   const unrev=p.board.shots.filter(s=>kst(s)==='rendered'&&!s.review).map(s=>s.n);
+   if(unrev.length)throw new Error('Approve or reject storyboard shot'+(unrev.length>1?'s ':' ')+unrev.join(', ')+' first — every clip starts on an approved keyframe.');
+   const okShots=p.board.shots.filter(s=>kst(s)==='rendered'&&s.review&&s.review.decision==='approved'),failedShots=p.board.shots.filter(s=>kst(s)==='failed'||(s.review&&s.review.decision==='rejected')).map(s=>s.n);
+   if(!okShots.length)throw new Error('No approved storyboard keyframe — approve at least one shot first.');
+   GEN.busy[key]='The Hermes video bot is rendering '+okShots.length+' clips from the approved storyboard keyframes'+(failedShots.length?' (shot '+failedShots.join(', ')+' left out: failed or rejected)':'')+' — they join into one video by themselves…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',pieceId:p.id,styleRefs:styleRefsOf(p),...campCtx(p),resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));orderWarn(sd);
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
@@ -2710,9 +2713,13 @@ function rStyleRefs(p,chat){
    C: an earlier step not approved yet → a warning (the server blocks only in strict mode).
    D: what each bot says about its own output (QA verdict, story flag, a QA re-render the budget blocked). */
 function campCtx(p){return {productColour:(p&&p.productColour)||null,skipped:STAGES.filter(s=>skipOf(p,s.id)).map(s=>s.id)}}
+/* the colourways with official images and model codes (api/_studio/hermes-contract.js PRODUCT_SPECS) */
+const PRODUCT_COLOURS={'Galaxy S26 Ultra':['Sky Blue'],'Galaxy Z Fold8':['Cream','Graphite','Lavender'],'Galaxy Z Fold8 Ultra':['Cream','Graphite','Violet Shadow']};
 function rColour(p){
- return `<label class="pill" style="gap:6px;cursor:text" title="The product colourway every bot is held to, with its model code and official images. Empty = the product's default colourway." onclick="event.stopPropagation()">COLOUR
-  <input style="width:104px;background:transparent;border:0;border-bottom:1px solid var(--line-2);color:inherit;font:inherit;font-size:11px;padding:1px 2px" value="${esc(p.productColour||'')}" placeholder="default" onchange="colourSet('${p.id}',this.value)"></label>`;
+ const known=PRODUCT_COLOURS[p.product]||[];
+ return `<label class="pill" style="gap:6px;cursor:text" title="The product colourway every bot is held to, with its model code and official images. Empty = the product's default colourway${known.length?' ('+known[0]+')':''}." onclick="event.stopPropagation()">COLOUR
+  <input list="colours-${p.id}" style="width:104px;background:transparent;border:0;border-bottom:1px solid var(--line-2);color:inherit;font:inherit;font-size:11px;padding:1px 2px" value="${esc(p.productColour||'')}" placeholder="${esc(known[0]||'default')}" onchange="colourSet('${p.id}',this.value)">
+  <datalist id="colours-${p.id}">${known.map(c=>`<option value="${esc(c)}">`).join('')}</datalist></label>`;
 }
 function colourSet(pid,v){
  const p=PROJECTS.find(x=>x.id===pid);if(!p)return;
@@ -3063,6 +3070,24 @@ function moodsPoll(pid,tries){
   }catch(e){moodsPoll(pid,tries+1)}
  },POLL_MS.shots);
 }
+/* "Try with Z Fold8" (owner 2026-11-02): the same trend, angle and look as a NEW campaign on the Fold8 family; the
+   current campaign keeps its product (a product never changes silently). The planner is told to make the unfold the moment. */
+function foldTry(pid,moodN,i){
+ const p=PROJECTS.find(x=>x.id===pid);if(!p||!p.mood)return;
+ const md=(p.mood.moods||[]).find(x=>x.n===moodN);const sp=md&&md.swapProposals&&md.swapProposals[i];if(!sp)return;
+ const text=typeof sp==='string'?sp:JSON.stringify(sp);
+ const product=/ultra/i.test(text)?'Galaxy Z Fold8 Ultra':'Galaxy Z Fold8';
+ const base=p.src||{name:p.title,markets:p.markets,platform:(p.platforms||[])[0]||'tiktok'};
+ const payload={...base,name:(p.title+' · '+product.replace('Galaxy ','')).slice(0,60),userProduct:product,
+  userCreativeDirection:`The same trend, angle and look as the campaign “${p.title}” (${md.name}${md.direction&&md.direction.setting?': '+md.direction.setting:''}), featuring the ${product}. Make the unfold the story's product moment. The moodboard bot's swap idea: ${text}`.slice(0,1500)};
+ Object.assign(BOT,{step:'direction',msgs:[],chips:[],proj:null,payload:null,pendingPayload:payload,busy:false});
+ const np=cpDraft(payload.name,payload);
+ np.styleRefs=styleRefsOf(p).slice();
+ cpSay(`New campaign on the <b>${esc(product)}</b>, from <b>“${esc(p.title)}”</b>'s ${esc(md.name)} mood — <b>“${esc(p.title)}”</b> keeps ${esc(p.product)}.`);
+ cpPlan(payload,payload.userCreativeDirection);
+ studioRefresh();
+ toast(`<span style="font-size:12.5px"><b style="color:#86efac">Planning a ${esc(product)} version</b> as a new campaign — “${esc(p.title)}” keeps ${esc(p.product)}.</span>`);
+}
 /* the person picks the mood the brief, storyboard and video follow */
 async function moodPick(pid,n){
  const p=PROJECTS.find(x=>x.id===pid);if(!p||!p.mood)return;
@@ -3099,6 +3124,7 @@ function rMoodPick(p,locked){
     ${(d.palette||[]).length?`<div style="display:flex;gap:4px;flex-wrap:wrap">${d.palette.map(c=>`<span title="${esc(c.name)} ${esc(c.hex)} · ${esc(c.role)}" style="display:inline-block;width:16px;height:16px;border-radius:50%;border:1px solid var(--hairline);background:${esc(c.hex)}"></span>`).join('')}</div>`:''}
     <div class="dim" style="font-size:11.5px;line-height:1.55">${[['Setting',d.setting],['Light',d.lighting],['Feel',d.mood]].filter(([,v])=>v).map(([k,v])=>`<div><b style="color:#bae6fd">${k}:</b> <span dir="auto">${esc(v)}</span></div>`).join('')}</div>
     ${md.state==='failed'&&md.error?`<div style="font-size:11px;color:#fca5a5">${esc(md.error)}${md.botNote?' — '+esc(md.botNote):''}</div>`:''}
+    ${(md.swapProposals||[]).length?`<details style="font-size:11px"><summary class="dim" style="cursor:pointer">Swap ideas from the moodboard bot (${md.swapProposals.length})</summary><div style="display:grid;gap:6px;margin-top:6px">${md.swapProposals.map((sp,i)=>`<div class="dim" style="line-height:1.5">${esc(typeof sp==='string'?sp:JSON.stringify(sp))}${/fold\s?8/i.test(typeof sp==='string'?sp:JSON.stringify(sp))&&!/fold\s?8/i.test(p.product||'')?`<div style="margin-top:4px"><button class="btn btn-gold btn-sm" onclick="foldTry('${p.id}',${md.n},${i})" title="Starts a NEW campaign with the same trend and look on the Z Fold8 — this campaign keeps its product">Try with Z Fold8${/ultra/i.test(typeof sp==='string'?sp:JSON.stringify(sp))?' Ultra':''} →</button></div>`:''}</div>`).join('')}</div></details>`:''}
     ${p.studio&&!locked&&md.state==='rendered'&&!on?`<button class="btn btn-gold btn-sm" style="margin-top:auto" onclick="moodPick('${p.id}',${md.n})">Use this mood</button>`:''}
    </div></div>`};
  const cm=m.moods.find(x=>x.n===chosen),cd=cm&&cm.direction||{};

@@ -161,14 +161,19 @@ module.exports = async (req, res) => {
     const client = new Anthropic({ timeout: 110000, maxRetries: 1 }); // under the 120 s function limit
     const kb = await brandPrompts();
     const system = systemPrompt(kb);
+    // owner 2026-11-02: a share of new campaign ideas features the Galaxy Z Fold8 family (MAISTRO_FOCUS_WEIGHT), never
+    // when the user named a product; the plan says so (productFocus) so nobody is surprised by the pick
+    const C = require('../_studio/hermes-contract.js');
+    const productFocus = stage === 'plan' && C.focusPick({ userProduct: trend.userProduct, userText: `${trend.userCreativeDirection || ''} ${trend.userConcept || ''} ${trend.name || ''}`, catalogNames: require('../_brand.js').PRODUCT_CATALOG.map((p) => p.name) });
     const user =
       `You are ${spec.agent}. Today is ${new Date().toDateString()}.\n\n` +
       `TREND (from TrendRadar):\n${JSON.stringify(trend, null, 2)}\n\n` +
       (project ? `PROJECT SO FAR (earlier stage artifacts):\n${JSON.stringify(project, null, 2)}\n\n` : '') +
-      `TASK: ${spec.instruction}`;
+      `TASK: ${spec.instruction}` +
+      (productFocus ? `\n\n${C.FOCUS_INSTRUCTION}` : '');
     registerPrompt(`hermes.${stage}`, PROMPT_VERSION, `SYSTEM:\n${systemPrompt({ PRODUCTS_PROMPT: '{{PRODUCTS_PROMPT}}', BRAND_PROMPT: '{{BRAND_PROMPT}}' })}\n\nUSER:\n{{agent}} {{date}} {{trend}} {{project}} TASK: ${spec.instruction}`, ['PRODUCTS_PROMPT', 'BRAND_PROMPT', 'agent', 'date', 'trend', 'project']);
     const t0 = Date.now();
-    const rec = { kind: 'claude', legacyPieceId: (project && project.id) || null, stage, model: MODEL, promptName: `hermes.${stage}`, promptVersion: PROMPT_VERSION, resolvedPrompt: `${system}\n\n${user}`, userPrompt: user, kbFingerprint: kb.kbFingerprint, params: { max_tokens: 8000, thinking: 'adaptive' }, memberId: req.member ? req.member.id : null };
+    const rec = { kind: 'claude', legacyPieceId: (project && project.id) || null, stage, model: MODEL, promptName: `hermes.${stage}`, promptVersion: PROMPT_VERSION, resolvedPrompt: `${system}\n\n${user}`, userPrompt: user, kbFingerprint: kb.kbFingerprint, params: { max_tokens: 8000, thinking: 'adaptive', productFocus }, memberId: req.member ? req.member.id : null };
     let response;
     try {
       response = await client.messages.create({
@@ -184,6 +189,7 @@ module.exports = async (req, res) => {
     const text = response.content.find((b) => b.type === 'text');
     if (!text) { await recordGeneration({ ...rec, status: 'failed', error: `no text block (stop_reason ${response.stop_reason})`, latencyMs: Date.now() - t0, usage: response.usage }); throw new Error(`no text block in response (stop_reason: ${response.stop_reason})`); }
     const artifact = spec.map(JSON.parse(text.text));
+    if (productFocus) artifact.productFocus = true;
     await recordGeneration({ ...rec, status: 'succeeded', latencyMs: Date.now() - t0, usage: response.usage || null, outputAssets: [{ type: 'artifact', stage }] });
 
     res.setHeader('Cache-Control', 'no-store');

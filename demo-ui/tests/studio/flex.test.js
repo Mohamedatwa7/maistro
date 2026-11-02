@@ -26,11 +26,16 @@ function setup() {
   return { pg, hf: H.state, h, call, done };
 }
 
-test('first draft with no storyboard: ONE text-to-video clip from the plan (no first frame); when it lands the cut is assembled by itself; the final takes that cut when there is no approved QC', async () => {
+test('first draft with the storyboard SKIPPED: ONE text-to-video clip from the plan (no first frame) — without a storyboard and without the skip it is refused (owner 2026-11-02); when it lands the cut is assembled by itself; the final takes that cut when there is no approved QC', async () => {
   const { pg, hf, h, call, done } = setup();
   try {
     await call(h.pieces, PLAN('gen-fx1'));
     let r = await call(h.studio, { action: 'draft', pieceId: 'gen-fx1', resolution: '720p' });
+    assert.equal(r.statusCode, 409); assert.match(r.body.error, /make the storyboard first/);
+    r = await call(h.studio, { action: 'draft', noBoard: true, pieceId: 'gen-fx1', resolution: '720p' });
+    assert.equal(r.statusCode, 409, 'noBoard alone is not a skip');
+    assert.equal((pg.tables.jobs || []).filter((j) => j.kind === 'hermes_video').length, 0, 'nothing rendered while refused');
+    r = await call(h.studio, { action: 'draft', noBoard: true, skipped: ['board'], pieceId: 'gen-fx1', resolution: '720p' });
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     assert.equal(r.body.artifact.fromStoryboard, false); assert.equal(r.body.artifact.shots.length, 1); assert.equal(r.body.artifact.boardVersionId, null);
     assert.equal(r.body.artifact.aspect, '9:16', 'TikTok → vertical');
@@ -58,7 +63,7 @@ test('auto-assembly: a failed clip is left out — the other clips still join in
     await call(h.pieces, PLAN('gen-fx2'));
     const store = require('../../api/_store.js');
     const kf = (n) => ({ state: 'rendered', url: `https://cdn/k${n}.png`, assetPath: `pieces/gen-fx2/board/k${n}.png`, sha256: 'f'.repeat(64) });
-    const shot = (n) => ({ n, durationS: 3, type: 'medium', camera: `camera ${n}`, action: `action ${n}`, product: { visible: false }, onScreenText: { en: '', ar: '' }, line: { en: '', ar: '' }, audioCue: '', transition: 'cut', keyframe: kf(n), review: null });
+    const shot = (n) => ({ n, durationS: 3, type: 'medium', camera: `camera ${n}`, action: `action ${n}`, product: { visible: false }, onScreenText: { en: '', ar: '' }, line: { en: '', ar: '' }, audioCue: '', transition: 'cut', keyframe: kf(n), review: { decision: 'approved', by: 'N' } });
     await store.recordVersion('gen-fx2', 'board', { shots: [shot(1), shot(2), shot(3)], totalS: 9, aspect: '9:16', prompt: 'p', note: 'n', rev: 0 }, { producedBy: 'claude', kind: 'text' });
     let r = await call(h.studio, { action: 'draft', pieceId: 'gen-fx2' }); assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     const cj = pg.tables.jobs.filter((j) => j.kind === 'hermes_video'); assert.equal(cj.length, 3);

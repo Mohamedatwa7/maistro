@@ -9,6 +9,7 @@ const PRODUCT_CATALOG = [
   { name: 'Galaxy S26 Ultra', look: '2026 flagship bar phone, titanium frame, boxy flat edges, large camera array' },
   { name: 'Galaxy S26', look: '2026 flagship bar phone, slim flat-edged design' },
   { name: 'Galaxy Z Fold8', look: '2026 book-style foldable, opens into a tablet, near-invisible crease, ultra-thin' },
+  { name: 'Galaxy Z Fold8 Ultra', look: '2026 flagship book-style foldable, wider cover screen, opens into a larger near-square tablet, triple camera' },
   { name: 'Galaxy Z Flip8', look: '2026 clamshell flip foldable, large FlexWindow cover screen when closed' },
   { name: 'Galaxy A56 5G', look: 'mid-range 2026 bar phone, clean minimal design' },
   { name: 'Galaxy Tab S12', look: '2026 flagship tablet, large edge-to-edge display, S Pen included, 23h battery' },

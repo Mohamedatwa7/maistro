@@ -6,8 +6,9 @@ const { req, res, api, mockFetch, json, text, anthropicReply } = require('../hel
 const TREND = { name: 'Setup line then deadpan punchline', type: 'format', markets: ['UAE'], platform: 'tiktok' };
 
 test('hermes: validation and the plan stage mapping (th from themeDark/themeAccent)', async () => {
-  const f = mockFetch([['api.anthropic.com', () => anthropicReply({ title: 'Deadpan Fold', product: 'Galaxy Z Fold8', msg: 'Unfold the joke', angle: 'a', markets: ['UAE'], platforms: ['tiktok'], themeDark: '#101010', themeAccent: '#404040' })]]);
-  const h = api('hermes.js', { ANTHROPIC_API_KEY: 'k' });
+  const sent = [];
+  const f = mockFetch([['api.anthropic.com', (u, init) => { sent.push(JSON.parse(init.body)); return anthropicReply({ title: 'Deadpan Fold', product: 'Galaxy Z Fold8', msg: 'Unfold the joke', angle: 'a', markets: ['UAE'], platforms: ['tiktok'], themeDark: '#101010', themeAccent: '#404040' }); }]]);
+  const h = api('hermes.js', { ANTHROPIC_API_KEY: 'k', MAISTRO_FOCUS_WEIGHT: '0' });
   try {
     let r = res(); await h.handler(req({ method: 'GET' }), r); assert.equal(r.statusCode, 405);
     r = res(); await h.handler(req({ method: 'POST', body: { stage: 'nope', trend: TREND } }), r); assert.equal(r.statusCode, 400);
@@ -16,6 +17,16 @@ test('hermes: validation and the plan stage mapping (th from themeDark/themeAcce
     assert.equal(r.statusCode, 200);
     assert.deepEqual(r.body, { stage: 'plan', agent: 'Hermes', artifact: { title: 'Deadpan Fold', product: 'Galaxy Z Fold8', msg: 'Unfold the joke', angle: 'a', markets: ['UAE'], platforms: ['tiktok'], th: ['#101010', '#404040'] } });
     assert.equal(r.headers['cache-control'], 'no-store');
+    assert.doesNotMatch(sent.at(-1).messages[0].content, /PRODUCT FOCUS/, 'weight 0: no focus');
+    // owner 2026-11-02: with the focus on, the planner is told to feature the Fold8 family and make the unfold the moment
+    process.env.MAISTRO_FOCUS_WEIGHT = '1';
+    r = res(); await h.handler(req({ method: 'POST', body: { stage: 'plan', trend: TREND } }), r);
+    assert.equal(r.body.artifact.productFocus, true); assert.match(sent.at(-1).messages[0].content, /PRODUCT FOCUS[^]*Galaxy Z Fold8 Ultra[^]*UNFOLD/);
+    // …never when the user named a product
+    r = res(); await h.handler(req({ method: 'POST', body: { stage: 'plan', trend: { ...TREND, userProduct: 'Galaxy S26 Ultra' } } }), r);
+    assert.equal(r.body.artifact.productFocus, undefined); assert.doesNotMatch(sent.at(-1).messages[0].content, /PRODUCT FOCUS/);
+    r = res(); await h.handler(req({ method: 'POST', body: { stage: 'mood', trend: TREND } }), r);
+    assert.doesNotMatch(sent.at(-1).messages[0].content, /PRODUCT FOCUS/, 'only new ideas (the plan), never a later stage');
   } finally { f.restore(); h.restore(); }
 });
 

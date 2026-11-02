@@ -60,12 +60,12 @@ The ledger regex on the Hermes side is `^maistro-gen-([A-Za-z0-9]+)-([a-z]+)`.
 |---|---|---|
 | `task`, `prompt`, `aspect`, `resolution`, `count` | all render bots | as before |
 | `product` | all, brief included | `{ family, colour, model_code }` — the campaign's locked spec |
-| `product_image_urls` | all, brief included | official front, back, side images (KB catalog `referenceImages`, campaign colour), then the 3D-model views, then the campaign photo |
+| `product_image_urls` | all, brief included | 2–4 official images of the locked model and colour: front, back, side, and for folds the open view (see "Products" below); else the 3D-model views or the campaign photo |
 | `moodboard_image_urls` + `moodboard_images` | mood, thumb, board | `moodboard_images: [{ url, look_reference: true }]`; the rules say look only, never the device in them (F) |
 | `shot_index`, `shot_count`, `story`, `shot_list`, `previous_keyframe_urls` | board (one keyframe) | see A below |
 | `brief`, `story`, `shot_count_range`, `target_duration_s` | board (PLAN mode) | see A below |
 | `fix_request` | board | the video bot's note (D) or a review fix |
-| `first_frame_url`, `duration`, `audio` | video | the first frame is the storyboard shot's **current** keyframe (C) |
+| `first_frame_url`, `duration`, `audio` | video | the first frame is the storyboard shot's **approved** keyframe (C) |
 | `style_reference_urls` | render bots | the user's own reference images |
 | `reviewer_changes` | render bots | a re-render's requested changes |
 | `max_credits` | render bots | from the budgets below (E); 1 in TEST MODE |
@@ -76,8 +76,12 @@ The product spec:
   - The family is the campaign's product.
   - The colour comes from the request's `productColour` (the COLOUR field in the studio header), else the plan
     version's `productColour`, else the product's default.
-  - The model code comes from `PRODUCT_SPECS` (for example, Galaxy S26 Ultra / Sky Blue / SM-S948BLBIMEA) and the
-    KB catalog's `modelCodes`. **A code that isn't known is sent as `null`, never guessed.**
+  - The model code comes from `PRODUCT_SPECS` and the KB catalog's `modelCodes`. **A code that isn't known is
+    sent as `null`, never guessed.**
+  - **The product is locked** once anything in the campaign is approved: a plan with another product is refused
+    (409 `product_locked`). Before that, a re-plan may change it; the campaign follows the plan and the change is
+    written to the audit log (`piece.product`). It never changes silently. A new campaign's "Planning…"
+    placeholder is replaced by the planned product.
 - **Generic look line removed:** the bots no longer receive the catalog look line ("2026 flagship bar phone…").
   Every prompt says "Samsung Galaxy S26 Ultra in Sky Blue (SM-S948BLBIMEA)" instead.
 - **Dropped fields (F):** `seed` is no longer sent. The generator can't use it, but Maistro still records it on
@@ -90,6 +94,36 @@ The product spec:
   - The page composites the official white lettermark in post. *(Gap: the brand-kit lettermark asset and the
     composite step are not in the repo yet; see "Remaining gaps".)*
 
+### Products
+
+| Product | Colourways (model code) | Images per colourway |
+|---|---|---|
+| Galaxy S26 Ultra | Sky Blue (SM-S948BLBIMEA) | front, back, side, back three-quarter |
+| Galaxy Z Fold8 | Cream (SM-F971BZWIMEA), Graphite (SM-F971BZKIMEA), Lavender (SM-F971BLVOMEA) | front (cover screen), back, side, open-front |
+| Galaxy Z Fold8 Ultra | Cream (SM-F976BZWIMEA), Graphite (SM-F976BZKIMEA), Violet Shadow (SM-F976BZVOMEA) | front, back, side (angled back), open-front |
+
+- **Source:** the official Samsung Gulf gallery shots for each model code (samsung.com/ae), flattened on white.
+- **Hosting:** `assets/products/<family>/<colour>-<view>.jpg`, served at
+  `https://www.ma1stro.com/assets/products/…` (open past the coming-soon gate). They're listed in `PRODUCT_SPECS`.
+- **Precedence:** a KB catalog entry's own `referenceImages` win when present.
+- **Default colourway:** the first in the table (Fold8 and Fold8 Ultra: Cream).
+- **Colour picker:** the page's COLOUR field offers these colourways.
+- **Catalog:** the Fold8 Ultra is in the code catalog (`api/_brand.js`). The code catalog fills in products the
+  KB doesn't have yet, both in the planning prompt and in the studio.
+
+### Product focus: the Galaxy Z Fold8 family
+
+- **How it works:** `MAISTRO_FOCUS_WEIGHT` (default 0.5) is the share of new campaign plans (`/api/hermes`
+  stage `plan`, which the copilot and the trend → campaign flow use) told to feature the Galaxy Z Fold8 or Fold8
+  Ultra. The angle makes **the unfold the story's product moment**.
+- **When it doesn't apply:** never when the user picked a product (`userProduct`) or named one in their direction,
+  and never on any stage after the plan.
+- **Visibility:** the plan returns `productFocus: true`, the chat says the focus picked the product, and the
+  generation record stores it.
+- **"Try with Z Fold8":** the moodboard bot's `swap_proposals` show on each mood. One that mentions the Fold8 gets
+  a "Try with Z Fold8 [Ultra] →" button. It plans a **new** campaign with the same trend, look and references on
+  that product, and the original keeps its product.
+
 ### A. Storyboard keyframes
 
 - **Default mode:** Claude writes the shot list (`storyboard-v3`).
@@ -100,8 +134,8 @@ The product spec:
     - `story`: the shot list's story, else one built from the brief's storyline.
     - `shot_list`: the whole approved list as `{ index, act, beat, shot_size, angle, lens, move, action,
       device_pose, duration_s, transition }`.
-    - `previous_keyframe_urls`: the rendered, not-rejected keyframes of the earlier shots. They are signed for
-      24 h when the job is submitted and kept on the job.
+    - `previous_keyframe_urls`: the **approved** keyframes of the earlier shots. They are signed for 24 h when the
+      job is submitted and kept on the job.
 - **PLAN mode** (the "Let the storyboard bot plan it" checkbox, `plan: true`, or `MAISTRO_BOARD_PLAN_MODE=1`):
   - One run with the task "Write the story and shot list, then make all keyframes".
   - The reply `{ story, frames[], note, qa }` becomes the storyboard version's shots, each with its keyframe and
@@ -110,10 +144,26 @@ The product spec:
 The storyboard page shows the story, each shot's act, device pose and transition, the bot's QA verdict, notes and
 spec card, and any story flag.
 
+**The video waits for the storyboard (owner 2026-11-02; this replaces the 2026-10-28/29 "no step waits" rule):**
+
+- **Approved keyframes only:** the first draft is refused (409 `prerequisites`) while a keyframe is rendering or
+  a rendered shot is not yet approved or rejected.
+- **What becomes a clip:** each approved shot becomes one clip, and its `first_frame_url` is that approved
+  keyframe. Failed and rejected shots are left out. At least one shot must be approved.
+- **Re-renders:** a clip re-render needs the shot's keyframe approved, and uses it.
+- **Skipping the storyboard:** one text-to-video clip from the brief is made only when the storyboard step is
+  explicitly **skipped**. Without a storyboard and without the skip, the draft is refused.
+
 ### E. Budgets (`max_credits`)
 
 Change these in one place: `BUDGET_DEFAULTS` in the contract, or the env var
 `MAISTRO_HERMES_BUDGETS='{"keyframe":8}'`. A 2k Nano Banana Pro image costs 2 credits; a 4k image costs 4.
+
+- **Floors:** an override can raise a budget, never take it below `BUDGET_FLOORS`: keyframe 6, thumbnail 6,
+  moodboard 6 per image, video headroom 1.25.
+- **Test cap:** `max_credits` 1 only reaches a job that a test explicitly marks `testMode`. The
+  `MAISTRO_HERMES_TEST_MODE` env switch is ignored on the production deployment (`VERCEL_ENV=production`).
+- Tests assert all of this.
 
 | Run | Default |
 |---|---|
@@ -197,21 +247,29 @@ How Maistro handles a reply:
 
 ## TEST MODE (no spend)
 
-- **How it works:** with `payload.testMode` or `MAISTRO_HERMES_TEST_MODE=1`, every run's instructions begin with
+- **How it works:** with `payload.testMode` or `MAISTRO_HERMES_TEST_MODE=1` (outside production), every run's instructions begin with
   `TEST MODE: run every maistro_media.py command with --dry-run only and set image/video URLs to "dry-run".` and
   `max_credits` is 1, below the cost of any image (2), and never 0, which a helper could read as "unset".
 - **Why the cap matters:** the media helper cannot spend even if a bot ignores the instruction.
-- **Script:** `node scripts/hermes-dryrun.js` runs the whole pipeline on `zztest01` through the real gateway. It
-  prints each request with secrets and signed-URL tokens redacted, and each parsed reply.
+- **Script:** `node scripts/hermes-dryrun.js <key-file>` runs brief → moodboard → **storyboard** → thumbnail →
+  video → review on `zztest01` through the real gateway. The product defaults to Galaxy Z Fold8 / Cream; change it
+  with `--product=`, `--colour=` and `--campaign=zz…` (only `zz…` ids are accepted).
+  - It prints each request with secrets and signed-URL tokens redacted, and each parsed reply.
+  - The video's `first_frame_url` is the storyboard keyframe. In TEST MODE the storyboard returns "dry-run", so the
+    product's official front image stands in, labelled as such.
+  - `tests/studio/hermes-followup.test.js` runs the same script against a mocked gateway and asserts the order
+    and the first frame.
 
 ## Remaining gaps
 
-- **Official product images:** Galaxy S26 Ultra / Sky Blue ships its official Samsung Gulf gallery shots (front,
-  back, side, back three-quarter) in `assets/products/galaxy-s26-ultra/` (served at `/assets/…`), listed in `PRODUCT_SPECS`. Other
-  products and colourways fall back to the 3D-model views or the campaign photo until their images are added there
-  or to the KB catalog's `referenceImages`.
-- **Model codes:** only Galaxy S26 Ultra / Sky Blue (SM-S948BLBIMEA) is known. Other products send
-  `model_code: null` until `modelCodes` is added to their catalog entry.
+- **Products without images:** only the products in "Products" above have official images. Any other product
+  or colourway falls back to the 3D-model views or the campaign photo, and can go out with an empty
+  `product_image_urls`. Add its gallery shots the same way to close that.
+- **No open-back view:** samsung.com/ae publishes none for the Fold8 family. The Fold8 Ultra has no edge-on shot,
+  so its "side" is the angled back.
+- **Hosting:** the images live in Maistro's `/assets`, not Supabase `refs/products/…`. They're public, versioned
+  with the code, and need no storage key.
+- **Model codes:** products outside the table send `model_code: null` until `modelCodes` is added.
 - **Logo composite:** compositing the official lettermark in post needs the brand-kit asset. The bots are no
   longer asked to draw it, but the composite step is not built.
 - **PLAN mode checks:** PLAN-mode frames get the bot's own QA. The per-keyframe vision check and the F1X8 hook

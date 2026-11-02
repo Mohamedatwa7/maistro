@@ -124,7 +124,9 @@ const rejection_taxonomy = [
  *  documents, so a seeded database changes nothing until the owner edits. */
 function buildPrompts(docs) {
   const get = (kind, key) => (docs.find((d) => d.kind === kind && d.key === key) || {}).content;
-  const products = docs.filter((d) => d.kind === 'product_catalog' && !d.key.startsWith('_')).map((d) => d.content);
+  const fromKb = docs.filter((d) => d.kind === 'product_catalog' && !d.key.startsWith('_')).map((d) => d.content);
+  // a product added to the code catalog (api/_brand.js) reaches the prompts before the owner adds it to the KB
+  const products = fromKb.length ? [...fromKb, ...PRODUCT_CATALOG.filter((p) => !fromKb.some((k) => String(k.name).toLowerCase() === p.name.toLowerCase()))] : fromKb;
   const productsPrompt = products.length
     ? 'CURRENT SAMSUNG PRODUCT CATALOG (2026) — campaigns may ONLY feature these, exactly by these names:\n'
       + products.map((p) => `- ${p.name}: ${p.look}`).join('\n')

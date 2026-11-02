@@ -83,7 +83,10 @@ const recordBriefChecks = ({ piece, legacyId, versionId, brief, ctx, member }) =
 
 async function kbBits(product) {
   const docs = await activeDocuments();
-  const cat = docs.find((d) => d.kind === 'product_catalog' && d.key.toLowerCase() === String(product || '').toLowerCase());
+  const kbCat = docs.find((d) => d.kind === 'product_catalog' && d.key.toLowerCase() === String(product || '').toLowerCase());
+  // the code catalog fills in a product the KB does not have yet (e.g. Galaxy Z Fold8 Ultra, 2026-11-02)
+  const codeCat = kbCat ? null : require('../_brand.js').PRODUCT_CATALOG.find((p) => p.name.toLowerCase() === String(product || '').trim().toLowerCase());
+  const cat = kbCat || (codeCat ? { content: { name: codeCat.name, look: codeCat.look } } : null);
   const colors = (docs.find((d) => d.kind === 'brand_kb' && d.key === 'colors') || {}).content;
   const market = (docs.find((d) => d.kind === 'market_context' && d.key === 'gcc') || {}).content;
   return { productLook: cat ? cat.content.look : null, catalog: cat ? cat.content : null, palette: colors && colors.palette ? colors.palette : {}, rules: market && market.culturalRules ? market.culturalRules : [] };
@@ -628,13 +631,21 @@ module.exports = async (req, res) => {
       // text-to-video clip written from the brief / campaign plan. Either way the clips join into one video by themselves.
       const [bs] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.board&limit=1`);
       const [bv] = bs && bs.current_version_id ? await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(bs.current_version_id)}&limit=1`) : [];
-      const bshots = b.noBoard ? [] : bv && bv.payload && Array.isArray(bv.payload.shots) ? bv.payload.shots : [];
+      // owner 2026-11-02 (replaces 2026-10-28/29): the video waits for the storyboard. Every clip starts on its shot's
+      // APPROVED keyframe; a draft without a storyboard is allowed only when the storyboard step is explicitly skipped.
+      const boardSkipped = Boolean(b.noBoard) && Array.isArray(b.skipped) && b.skipped.includes('board');
+      if (b.noBoard && !boardSkipped) return res.status(409).json({ error: 'make the storyboard first: every clip starts on an approved keyframe (or skip the storyboard step to make one clip from the brief)', code: 'prerequisites' });
+      const bshots = boardSkipped ? [] : bv && bv.payload && Array.isArray(bv.payload.shots) ? bv.payload.shots : [];
+      if (!boardSkipped && !bshots.length) return res.status(409).json({ error: 'make the storyboard first: every clip starts on an approved keyframe (or skip the storyboard step to make one clip from the brief)', code: 'prerequisites' });
       const kfRendered = (x) => x.keyframe && x.keyframe.state === 'rendered';
       const kfFailed = (x) => x.keyframe && x.keyframe.state === 'failed';
+      const kfRejected = (x) => x.review && x.review.decision === 'rejected';
       const pendingShots = bshots.filter((x) => !kfRendered(x) && !kfFailed(x)).map((x) => x.n);
       if (pendingShots.length) return res.status(409).json({ error: `the storyboard keyframes are still rendering — shot${pendingShots.length > 1 ? 's' : ''} ${pendingShots.join(', ')} pending`, code: 'prerequisites', pending: pendingShots });
-      const skippedShots = bshots.filter(kfFailed).map((x) => x.n);
-      if (bshots.length && skippedShots.length === bshots.length) return res.status(409).json({ error: 'every storyboard keyframe failed — regenerate at least one shot first', code: 'prerequisites', pending: skippedShots });
+      const unreviewed = bshots.filter((x) => kfRendered(x) && !x.review).map((x) => x.n);
+      if (unreviewed.length) return res.status(409).json({ error: `approve or reject storyboard shot${unreviewed.length > 1 ? 's' : ''} ${unreviewed.join(', ')} first — every clip starts on an approved keyframe`, code: 'prerequisites', pending: unreviewed });
+      const skippedShots = bshots.filter((x) => kfFailed(x) || kfRejected(x)).map((x) => x.n);
+      if (bshots.length && skippedShots.length === bshots.length) return res.status(409).json({ error: 'no approved storyboard keyframe — every shot failed or was rejected; regenerate and approve at least one', code: 'prerequisites', pending: skippedShots });
       const resolution = ['480p', '720p', '1080p'].includes(b.resolution) ? b.resolution : '720p';
       const motion = (x) => `${x.camera}. ${x.action} ${x.product && x.product.visible ? 'The device stays exactly as in the first frame — no morphing, no extra buttons, no logos.' : ''} Present tense, one continuous motion, no cuts, no on-screen text, no captions.`.replace(/\s+/g, ' ').trim();
       const clipDuration = (x) => Math.min(30, Math.max(4, Math.ceil(Number(x.durationS) || 4))); // 4–30 s clips; the assembly trims to the shot
@@ -655,7 +666,8 @@ module.exports = async (req, res) => {
         if (liveRows.some((j) => j.kind === 'hermes_video' && j.payload && j.payload.attachTo && Number(j.payload.attachTo.shot) === n)) return res.status(409).json({ error: `shot ${n} is already rendering`, code: 'busy' });
         const bn = dv.payload.shots[n - 1].boardShot || n;
         // C: a clip always starts on the storyboard shot's CURRENT keyframe (a re-rendered frame replaces the old one)
-        const cur = dv.payload.shots[n - 1].boardShot && bshots[bn - 1] ? C.currentKeyframe(bshots[bn - 1]) : null;
+        const cur = dv.payload.shots[n - 1].boardShot && bshots[bn - 1] ? C.approvedKeyframe(bshots[bn - 1]) : null;
+        if (dv.payload.shots[n - 1].boardShot && !cur) return res.status(409).json({ error: `approve storyboard shot ${bn}'s keyframe first — the clip starts on the approved keyframe`, code: 'prerequisites' });
         const curRef = cur ? { url: cur.url || null, assetPath: cur.assetPath || null, sha256: cur.sha256 || null, jobId: cur.jobId || null } : null;
         const x = { ...dv.payload.shots[n - 1], keyframe: curRef || dv.payload.shots[n - 1].keyframe || (dv.payload.shots[n - 1].textPrompt ? null : bshots[bn - 1] && bshots[bn - 1].keyframe) };
         if (!x.keyframe && !x.textPrompt) return res.status(409).json({ error: `shot ${n} has no keyframe`, code: 'no_keyframe' });
@@ -667,7 +679,7 @@ module.exports = async (req, res) => {
         return res.status(200).json({ ok: true, shot: n, job: jobsSvc.publicJob(fresh || job, legacyId) });
       }
       const aspect = draftAspect;
-      let shots = bshots.filter(kfRendered).map((x, i) => ({ n: i + 1, boardShot: x.n, durationS: x.durationS, type: x.type, camera: x.camera, action: x.action, product: x.product, onScreenText: x.onScreenText, line: x.line, audioCue: x.audioCue, transition: x.transition, keyframe: { url: x.keyframe.url || null, assetPath: x.keyframe.assetPath || null, sha256: x.keyframe.sha256 || null, jobId: x.keyframe.jobId || null }, clipDurationS: clipDuration(x), clip: null, review: null }));
+      let shots = bshots.filter((x) => C.approvedKeyframe(x)).map((x, i) => ({ n: i + 1, boardShot: x.n, durationS: x.durationS, type: x.type, camera: x.camera, action: x.action, product: x.product, onScreenText: x.onScreenText, line: x.line, audioCue: x.audioCue, transition: x.transition, keyframe: { url: x.keyframe.url || null, assetPath: x.keyframe.assetPath || null, sha256: x.keyframe.sha256 || null, jobId: x.keyframe.jobId || null }, clipDurationS: clipDuration(x), clip: null, review: null }));
       if (!shots.length) {
         // no storyboard: one clip for the whole video, from the brief (or the campaign plan when there is no brief)
         const brief0 = await boardMod.briefFor(piece.id);
@@ -684,7 +696,7 @@ module.exports = async (req, res) => {
         shots = [{ n: 1, boardShot: null, durationS: targetS, type: 'full', camera: '', action: '', product: { visible: true }, onScreenText: null, line: null, audioCue: null, transition: 'none', keyframe: null, textPrompt, clipDurationS: targetS, clip: null, review: null }];
       }
       const totalS = Math.round(shots.reduce((a, x) => a + (Number(x.durationS) || 0), 0) * 10) / 10;
-      const artifact = { shots, totalS, aspect, resolution, fromStoryboard: bshots.length > 0, boardVersionId: bshots.length ? bv.id : null, boardVersion: bshots.length ? bv.version : null, boardApproved: bshots.length ? bs.state === 'approved' : null, skippedShots, dur: `${totalS}s`, audio: 'Native audio per clip (Hermes video bot); loudness normalised at assembly', variants: [{ a: aspect, l: resolution, k: 'original', st: 'rendering' }], videoUrl: null, assembled: null, prompt: bshots.length ? `first draft from storyboard v${bv.version}: ${shots.length} clips` : shots[0].textPrompt, note: `${bshots.length ? 'One clip per storyboard shot from the Hermes video bot, driven by its keyframe; the clips join into one video by themselves.' : 'One clip for the whole video from the Hermes video bot (no storyboard).'}${skippedShots.length ? ` Storyboard shot${skippedShots.length > 1 ? 's' : ''} ${skippedShots.join(', ')} left out: the keyframe failed.` : ''}`, draftVersion: 'draft-v1-2026-10-21', rev: 0 };
+      const artifact = { shots, totalS, aspect, resolution, fromStoryboard: bshots.length > 0, boardVersionId: bshots.length ? bv.id : null, boardVersion: bshots.length ? bv.version : null, boardApproved: bshots.length ? bs.state === 'approved' : null, skippedShots, dur: `${totalS}s`, audio: 'Native audio per clip (Hermes video bot); loudness normalised at assembly', variants: [{ a: aspect, l: resolution, k: 'original', st: 'rendering' }], videoUrl: null, assembled: null, prompt: bshots.length ? `first draft from storyboard v${bv.version}: ${shots.length} clips` : shots[0].textPrompt, note: `${bshots.length ? 'One clip per storyboard shot from the Hermes video bot, starting on its approved keyframe; the clips join into one video by themselves.' : 'One clip for the whole video from the Hermes video bot (the storyboard step is skipped).'}${skippedShots.length ? ` Storyboard shot${skippedShots.length > 1 ? 's' : ''} ${skippedShots.join(', ')} left out: the keyframe failed or was rejected.` : ''}`, draftVersion: 'draft-v1-2026-10-21', rev: 0 };
       const out = await recordVersion(legacyId, 'draft', artifact, { piece: b.piece || {}, producedBy: 'hermes', kind: 'video', generatedBy: req.member ? req.member.id : null });
       const jobs = await submitAll(await insertRows('jobs', styled(shots.map((x) => clipJob(out.versionId, x, '', out.version))), { returning: true }), ds.id, legacyId);
       try { const { syncSpec } = require('../_spec.js'); await syncSpec(legacyId, { memberId: req.member ? req.member.id : null, note: 'first draft clips queued' }); } catch (e) { /* best effort */ }

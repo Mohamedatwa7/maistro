@@ -639,14 +639,14 @@ async function attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage, slo
   return 'succeeded';
 }
 
-/** The keyframes before `shot` on a storyboard version that a clip/keyframe may follow (rendered, not
- *  rejected), as URLs the bot can open: stored copies signed for 24 h, else the provider URL. */
+/** The APPROVED keyframes before `shot` on a storyboard version, as URLs the bot can open: stored copies
+ *  signed for 24 h, else the provider URL. */
 async function previousKeyframes(versionId, shot) {
   const [v] = await queryRows('artifact_versions', `select=payload&id=eq.${q(versionId)}&limit=1`);
   const shots = v && v.payload && Array.isArray(v.payload.shots) ? v.payload.shots : [];
   const out = [];
   for (const s of shots.filter((x) => x.n < Number(shot)).slice(-7)) {
-    const kf = C.currentKeyframe(s);
+    const kf = C.approvedKeyframe(s);
     if (!kf) continue;
     try { out.push(kf.assetPath ? await storage.signedUrl(kf.assetPath, 24 * 3600) : kf.url); } catch (e) { if (kf.url) out.push(kf.url); }
   }
