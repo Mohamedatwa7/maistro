@@ -138,6 +138,10 @@ The product spec:
       job is submitted and kept on the job.
 - **PLAN mode** (the "Let the storyboard bot plan it" checkbox, `plan: true`, or `MAISTRO_BOARD_PLAN_MODE=1`):
   - One run with the task "Write the story and shot list, then make all keyframes".
+  - **Time limit:** 75 minutes (`PLAN_TIMEOUT_S` in `api/_jobs.js`), not one image's 20, because the run makes every
+    keyframe with its QA on a ~1M-token context. On a timeout the error says to untick PLAN mode and render shot by
+    shot. Every Hermes job gets one last status check at its limit, so a run that just finished is still taken.
+    Maistro does not cancel the bot's run on a timeout; it may still finish and spend on the Hermes side.
   - The reply `{ story, frames[], note, qa }` becomes the storyboard version's shots, each with its keyframe and
     the per-frame `act`, `beat`, `device_pose`, `transition`, `qa` and `story_flag`.
 

@@ -34,6 +34,10 @@ const KIND_STAGE = { hermes_image: ['mood', 'thumb', 'board'], hermes_video: ['d
 // 2026-10-29 (owner: "the videos and storyboard take way too much time to show up"): Hermes renders are
 // asked about every 8 s (images) and 15 s (clips) — a status read is one cheap GET
 const POLL_S = { hermes_image: 8, hermes_video: 15, hermes_brief: 10, higgsfield_image: 20, higgsfield_video: 45, f1x8_image: 60, f1x8_video: 90, vision_check: 150, assemble: 290, clip_check: 200 };
+// PLAN mode is one run that writes the story and makes every keyframe (up to 8, each with its QA, on a ~1M-token
+// context): far longer than one image, so it gets its own limit
+const PLAN_TIMEOUT_S = 75 * 60;
+const timeoutOf = (job) => (job.payload && job.payload.planMode ? PLAN_TIMEOUT_S : TIMEOUT_S[job.kind] || 1800);
 const TIMEOUT_S = { hermes_image: 20 * 60, hermes_video: 45 * 60, hermes_brief: 15 * 60, higgsfield_image: 15 * 60, higgsfield_video: 20 * 60, f1x8_image: 30 * 60, f1x8_video: 45 * 60, vision_check: 10 * 60, assemble: 15 * 60, clip_check: 10 * 60 };
 const MAX_SUBMIT_ATTEMPTS = 3;
 // A job about to be submitted is leased for longer than the submit itself can take (the 30 s Hermes POST timeout,
@@ -132,8 +136,13 @@ async function advance(job) {
   if (!claimed) return job.state; // someone else has it, or not due yet
   job = claimed;
   const started = new Date(job.started_at || job.created_at).getTime();
-  if (Date.now() - started > (TIMEOUT_S[job.kind] || 1800) * 1000) {
-    await fail(job, 'timed_out', `no result after ${Math.round((TIMEOUT_S[job.kind] || 1800) / 60)} minutes`);
+  if (Date.now() - started > timeoutOf(job) * 1000) {
+    // one last look before giving up: a run that finished since the previous poll is still taken
+    if (job.provider_ref && job.kind.startsWith('hermes')) {
+      const last = await (job.kind === 'hermes_brief' ? pollBrief(job) : pollRender(job)).catch(() => 'running');
+      if (!['queued', 'running'].includes(last)) return last;
+    }
+    await fail(job, 'timed_out', `no result after ${Math.round(timeoutOf(job) / 60)} minutes${job.payload && job.payload.planMode ? ' (untick "Let the storyboard bot plan it" to render the storyboard shot by shot)' : ''}`);
     return 'timed_out';
   }
   try {
@@ -967,4 +976,4 @@ async function jobsForPiece(legacyId, limit = 50) {
   return out;
 }
 
-module.exports = { KINDS, createJob, getJob, advance, advanceStage, tick, jobsForPiece, publicJob, settleBoardStage, updateShots, pieceBudget, dailySpend, POLL_S, TIMEOUT_S, frameFix, resumeHermes, hermesHalted, previousKeyframes };
+module.exports = { KINDS, createJob, getJob, advance, advanceStage, tick, jobsForPiece, publicJob, settleBoardStage, updateShots, pieceBudget, dailySpend, POLL_S, TIMEOUT_S, PLAN_TIMEOUT_S, timeoutOf, frameFix, resumeHermes, hermesHalted, previousKeyframes };
