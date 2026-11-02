@@ -42,14 +42,14 @@ const CampaignBody = z.object({
   platforms: z.array(str(40)).min(1).max(4),
   source: z.literal('hermes'),
 });
-const BriefBody = z.object({ brief: z.record(z.any()) });
+const BriefBody = z.object({ brief: z.record(z.string(), z.any()) });
 const AssetBody = z.object({
   kind: z.enum(['moodboard', 'thumbnail', 'keyframe', 'video']),
   url: z.string().url().startsWith('https://'),
   direction: z.number().int().min(1).max(3).optional(),
   shot_index: z.number().int().min(1).max(12).optional(),
   shot_count: z.number().int().min(1).max(12).optional(),
-  meta: z.record(z.any()).optional().default({}),
+  meta: z.record(z.string(), z.any()).optional().default({}),
 }).superRefine((b, ctx) => {
   if (b.kind === 'moodboard' && b.direction == null) ctx.addIssue({ code: 'custom', path: ['direction'], message: 'Required' });
   if (b.kind === 'keyframe' && b.shot_index == null) ctx.addIssue({ code: 'custom', path: ['shot_index'], message: 'Required' });
@@ -69,18 +69,19 @@ const StoryboardBody = z.object({
 
 class HttpError extends Error { constructor(status, body) { super(body.error); this.status = status; this.body = body; } }
 
-/** zod result → 422 body: the missing fields, then every other problem as "path: message" */
-function invalid(err) {
+/** zod result → 422 body: the fields absent from the body, then every other problem as "path: message" */
+function invalid(err, body) {
   const missing = [], problems = [];
+  const at = (path) => path.reduce((v, k) => (v != null && typeof v === 'object' ? v[k] : undefined), body);
   for (const i of err.issues) {
     const path = i.path.join('.') || '$';
-    if (i.message === 'Required') missing.push(path); else problems.push(`${path}: ${i.message}`);
+    if (i.path.length && at(i.path) === undefined) { if (!missing.includes(path)) missing.push(path); } else problems.push(`${path}: ${i.message}`);
   }
   return new HttpError(422, { error: 'validation failed', code: 'invalid', missing, problems });
 }
 function parse(schema, body) {
   const r = schema.safeParse(body);
-  if (!r.success) throw invalid(r.error);
+  if (!r.success) throw invalid(r.error, body);
   return r.data;
 }
 
