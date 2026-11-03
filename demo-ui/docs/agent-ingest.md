@@ -284,11 +284,15 @@ login throttle.
 node scripts/agent-ingest-smoke.js <file holding the key> [--base=https://www.ma1stro.com]
 ```
 
-The script does four things:
+The script:
 
-1. Creates "zz test · agent ingest" (Galaxy Z Fold8, Cream).
-2. Sends the same create again with the same Idempotency-Key, to show the replay.
-3. Sends a create with fields missing, to show the 422.
-4. Reads the campaign back.
+1. Checks the key with `GET /me`.
+2. Creates a TEST campaign "zz test · agent ingest" (Galaxy Z Flip8 Pink, with Galaxy Buds4 White as a
+   supporting product).
+3. Sends the same create again with the same Idempotency-Key, to show the replay.
+4. Sends a create with fields missing, and one with an unknown product, to show the 422s.
+5. Reads the campaign back, finds it by `external_ref` in the list, deletes it, and checks it answers 404 after.
+
+The prompt Hermes's bots follow is `docs/hermes-agent-prompt.md`.
 
 It never prints the key, approves nothing and spends nothing.
