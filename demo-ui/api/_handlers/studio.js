@@ -396,6 +396,7 @@ module.exports = async (req, res) => {
       if (r.unchanged) return res.status(409).json({ error: `shot ${n} was re-rendered while you reviewed it — look at the new ${slot}`, code: 'keyframe_changed' });
       const shots = r.payload.shots;
       try { await insertRows('audit_log', [{ actor: req.member ? req.member.id : null, action: `${sk}.shot.${decision}`, entity: 'artifact_version', entity_id: v.id, after: { pieceId: legacyId, shot: n, reasonCode: review.reasonCode, reason: review.reason } }]); } catch (e) { /* best effort */ }
+      { const m = shots[n - 1][slot]; await require('../_agent-hooks.js').notifyHermes({ type: 'shot.review', campaignId: legacyId, stage: sk, shot: n, versionId: v.id, assetId: (m && m.agentAssetId) || null, decision, comment: { author: review.by, text: review.reason || '', reasonCode: review.reasonCode, createdAt: review.at } }); }
       return res.status(200).json({ ok: true, shot: n, review, pending: shots.filter((s) => !s.review || s.review.decision !== 'approved').map((s) => s.n) });
     }
     if (b.action === 'board-shot') {

@@ -61,6 +61,15 @@ const PRODUCT_SPECS = {
     referenceImages: shipped('Galaxy Z Fold8 Ultra', ['Cream', 'Graphite', 'Violet Shadow'], FOLD_VIEWS),
   },
 };
+// Colourways and model codes known for the agent ingest product lock only (api/_handlers/agent.js), as supplied by
+// the Hermes operator (MAISTRO_OWNER_REQUEST, 2026-11-03). Not render specs: no official images ship for these yet,
+// so the Studio bots keep treating them as catalog products. null = colour known, code not yet confirmed.
+const AGENT_PRODUCT_CODES = {
+  'Galaxy Z Flip8': { defaultColour: 'Cream', codes: { Cream: 'SM-F776BZWOMEA', Graphite: 'SM-F776BZKOMEA', Pink: 'SM-F776BLIPMEA', Mint: null } },
+  'Galaxy Buds4': { defaultColour: 'White', codes: { White: 'SM-R540NZWAMEA', Black: 'SM-R540NZKAMEA' } },
+  'Galaxy Buds4 Pro': { codes: {} },
+  'Bespoke AI Fridge': { defaultColour: 'Snow White', aliases: ['Bespoke AI Refrigerator', 'Bespoke AI Refrigerators'], codes: { 'Snow White': 'RS80F64G1VRE' } },
+};
 /** The colourways Maistro knows for a product (for the page's colour picker). */
 const coloursOf = (family) => { const k = Object.keys(PRODUCT_SPECS).find((x) => x.toLowerCase() === String(family || '').trim().toLowerCase()); return k ? Object.keys(PRODUCT_SPECS[k].codes) : []; };
 const norm = (s) => String(s || '').trim().toLowerCase();
@@ -341,7 +350,7 @@ function redact(v) {
 
 module.exports = {
   SESSION_RE, ROLE_SUFFIX, campaignKey, sessionId, parseSessionId, reviewSessionId,
-  PRODUCT_SPECS, productSpec, productLine, productImages, coloursOf,
+  PRODUCT_SPECS, AGENT_PRODUCT_CODES, productSpec, productLine, productImages, coloursOf,
   BUDGET_DEFAULTS, BUDGET_FLOORS, budgets, budgetFor, FOCUS_PRODUCTS, focusWeight, FOCUS_INSTRUCTION, namesProduct, focusPick,
   TEST_MODE_INSTRUCTION, TEST_MODE_MAX_CREDITS, testMode, TEXT_RULE, END_CARD_RULE, LOOK_REF_RULE,
   SCHEMAS, validate, normQa, normFrame, normStory, wantsNewFrame, botError, interpret, reviewResult, fixAction,

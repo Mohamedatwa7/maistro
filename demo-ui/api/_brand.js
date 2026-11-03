@@ -15,6 +15,7 @@ const PRODUCT_CATALOG = [
   { name: 'Galaxy Tab S12', look: '2026 flagship tablet, large edge-to-edge display, S Pen included, 23h battery' },
   { name: 'Galaxy Watch9', look: '2026 smartwatch, cushion-round case, bright AMOLED face' },
   { name: 'Galaxy Ring', look: 'slim titanium smart ring for sleep and health tracking' },
+  { name: 'Galaxy Buds4', look: 'wireless earbuds with a compact charging case' },
   { name: 'Galaxy Buds4 Pro', look: 'blade-stem wireless earbuds with LED blade lights, pebble case, studio-grade ANC' },
   // TV / AV
   { name: 'Neo QLED 8K', look: 'near-bezel-less flagship 8K TV, Infinity Air design' },

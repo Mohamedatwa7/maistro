@@ -2075,6 +2075,7 @@ function applyServerPieces(pieces){
     th:(plan&&plan.th)||['#0a0a0b','#1f2937'],trend:sp.trend||sp.title,trendId:sp.trendId||null,map:{product:sp.product,msg:sp.msg||'',angle:sp.angle||''}};
    PROJECTS.push(p);changed++;
   }
+  {const sup=Array.isArray(sp.supportingProducts)&&sp.supportingProducts.length?sp.supportingProducts:null;if(JSON.stringify(p.supporting||null)!==JSON.stringify(sup)){p.supporting=sup;changed++}}
   for(const k of kinds){
    const st=sp.stages[k];
    p.stale=p.stale||{};if(st.stale&&st.stale.length)p.stale[k]=st.stale;else delete p.stale[k];
@@ -2755,14 +2756,49 @@ function qaBadges(x){
  return (q?`<span title="${esc(tip)}">${badge(v==='pass'?'go':v==='fail'?'alert':'gold','BOT QA'+(v?' · '+esc(v.toUpperCase()):''))}</span>`:'')
   +(x.storyFlag?`<span title="${esc(x.storyFlag)}">${badge('alert','STORY FLAG')}</span>`:'')
   +(x.budgetBlockedRetry?`<span title="The bot delivered, but max_credits did not allow a QA re-render — look at this one closely.">${badge('gold','QA RE-RENDER BLOCKED BY BUDGET')}</span>`:'')
-  +(x.errorCode==='higgsfield_credits_exhausted'?badge('alert','CREDITS EXHAUSTED — PIPELINE STOPPED'):'');
+  +(x.errorCode==='higgsfield_credits_exhausted'?badge('alert','CREDITS EXHAUSTED — PIPELINE STOPPED'):'')
+  +complianceBadges(x);
+}
+/* agent ingest: meta.compliance (Samsung content guidelines 2026-11-02) and meta.audio, as Hermes declared them */
+const CHAR_LABEL={stylised_3d:'STYLISED 3D CHARACTERS',stylized_3d:'STYLISED 3D CHARACTERS','2d_illustrated':'2D ILLUSTRATED CHARACTERS',none:'NO CHARACTERS'};
+const AUDIO_LABEL={original_ai_generated:'ORIGINAL AI MUSIC',licensed:'LICENSED MUSIC',none:'NO AUDIO'};
+function complianceBadges(x){
+ const c=x&&x.compliance,a=x&&x.audio;let out='';
+ if(c){
+  const flags=[c.third_party_logos?'THIRD-PARTY LOGOS':'',c.alcohol?'ALCOHOL':''].filter(Boolean);
+  const tip=['Compliance as declared by Hermes'+(c.guidelines_version?' · guidelines '+c.guidelines_version:''),'Realistic humans: '+(c.realistic_humans?'yes':'no'),'AI-generated Samsung device: '+(c.ai_generated_samsung_device?'yes':'no'),...(c.product_sources||[]).map(s=>s.product+' — '+String(s.source).replace(/_/g,' '))].join('\n');
+  out+=`<span title="${esc(tip)}">${badge(flags.length?'alert':'go','COMPLIANCE · '+(CHAR_LABEL[c.characters]||'DECLARED')+(flags.length?' · '+flags.join(' · '):''))}</span>`;
+ }
+ if(a)out+=`<span title="${esc('Audio: '+String(a.source).replace(/_/g,' ')+(a.model?' · model '+a.model:'')+' · licensing '+a.licensing)}">${badge(a.licensing==='cleared'||a.source==='none'?'go':'gold',(AUDIO_LABEL[a.source]||'AUDIO')+(a.source==='none'?'':' · '+esc(String(a.licensing).toUpperCase())))}</span>`;
+ return out;
 }
 function qaNotes(x){
  const q=x&&x.qa;
- const t=[q&&q.notes?'QA: '+q.notes:'',q&&q.spec_card?'Spec card: '+q.spec_card:'',x&&x.storyFlag?'Story flag: '+x.storyFlag:''].filter(Boolean);
+ const ps=x&&x.compliance&&x.compliance.product_sources;
+ const t=[q&&q.notes?'QA: '+q.notes:'',q&&q.spec_card?'Spec card: '+q.spec_card:'',x&&x.storyFlag?'Story flag: '+x.storyFlag:'',ps&&ps.length?'Product sources: '+ps.map(s=>s.product+' ('+String(s.source).replace(/_/g,' ')+')').join('; '):''].filter(Boolean);
  return t.length?`<div class="dim" style="font-size:10.5px;margin-top:4px;line-height:1.5">${t.map(esc).join('<br>')}</div>`:'';
 }
 function qaRow(x){const b=qaBadges(x);return b?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${b}</div>${qaNotes(x)}`:''}
+/* agent ingest extras on a Hermes draft: sound versions of the cut side by side, the photo carousel in slide
+   order, standalone music tracks. Each carries its QA, compliance and audio declaration. */
+function agentExtras(b){
+ if(!b)return '';
+ const cuts=b.cuts?Object.entries(b.cuts):[];
+ const lone=b.assembled&&!b.assembled.variant&&(b.assembled.compliance||b.assembled.audio)?qaRow(b.assembled):'';
+ const vid=(c)=>`<video controls playsinline ${mediaAttrs(c,'url')} style="width:100%;border-radius:12px;border:1px solid var(--hairline);background:#000;display:block;aspect-ratio:${c.width&&c.height?c.width+'/'+c.height:'9/16'}"></video>`;
+ const cutHtml=cuts.length?`<span class="kick" style="display:block;margin:14px 0 8px">Sound versions · ${cuts.length}</span>
+  <div class="frames" style="grid-template-columns:repeat(auto-fill,minmax(200px,260px))">${cuts.map(([k,c])=>`<div class="frame card" style="overflow:hidden"><div style="padding:8px">${vid(c)}</div><div class="p3" style="font-size:11.5px">
+   <div style="display:flex;gap:6px;flex-wrap:wrap">${badge('c',esc(k.toUpperCase()))}${b.assembled&&b.assembled.agentAssetId===c.agentAssetId?badge('muted','REVIEWED CUT'):''}${c.durationS?badge('muted',esc(String(c.durationS))+' s'):''}${c.history&&c.history.length?badge('muted','v'+(c.history.length+1)):''}</div>${qaRow(c)}</div></div>`).join('')}</div>`:'';
+ const car=b.carousel&&b.carousel.slides&&b.carousel.slides.length?b.carousel:null;
+ const carHtml=car?`<span class="kick" style="display:block;margin:14px 0 8px">Photo carousel · ${car.slides.length}${car.slideCount?' of '+car.slideCount:''} slides, in order</span>
+  <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory">${car.slides.map(s=>`<div class="card" style="flex:0 0 200px;scroll-snap-align:start;overflow:hidden">
+   <img ${mediaAttrs(s,'url')} alt="Carousel slide ${s.n}" style="width:100%;aspect-ratio:9/16;object-fit:cover;display:block;background:#000">
+   <div class="p3" style="font-size:11px"><div style="display:flex;gap:6px;flex-wrap:wrap">${badge('muted','SLIDE '+s.n+(car.slideCount?' / '+car.slideCount:''))}${s.history&&s.history.length?badge('muted','v'+(s.history.length+1)):''}</div>${qaRow(s)}</div></div>`).join('')}</div>
+  ${car.slideCount&&car.slides.length<car.slideCount?`<div class="dim" style="font-size:11px;margin-top:4px">Waiting for slide${car.slideCount-car.slides.length>1?'s':''} ${Array.from({length:car.slideCount},(_,i)=>i+1).filter(n=>!car.slides.some(s=>s.n===n)).join(', ')}.</div>`:''}`:'';
+ const tracks=Array.isArray(b.audioTracks)?b.audioTracks:[];
+ const trackHtml=tracks.length?`<span class="kick" style="display:block;margin:14px 0 8px">Music tracks · ${tracks.length}</span>${tracks.map(t=>`<div class="card p3" style="margin-bottom:8px"><div style="font-size:12px;margin-bottom:6px">${esc(t.title||'Track')}</div><audio controls ${mediaAttrs(t,'url')} style="width:100%;max-width:420px"></audio>${qaRow(t)}</div>`).join('')}`:'';
+ return lone+cutHtml+carHtml+trackHtml;
+}
 /* the Higgsfield credits ran out: the pipeline stopped; an admin resumes it after the top-up */
 async function hermesResume(){
  try{
@@ -3136,7 +3172,7 @@ function rMoodPick(p,locked){
    <div style="display:grid;grid-template-columns:repeat(${Math.max(1,imgs.length)},1fr);gap:2px;background:#000">${pics}</div>
    <div style="padding:10px 12px;display:flex;flex-direction:column;gap:6px;flex:1">
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="mono dim" style="font-size:10px">MOOD ${md.n}</span>${on?badge('gold','✓ THE VIDEO FOLLOWS THIS MOOD'):''}${md.state==='failed'?badge('alert','FAILED'):''}</div>
-    <b style="font-size:14px;color:#fff">${esc(md.name)}</b>${md.qa||md.budgetBlockedRetry?`<div style="display:flex;gap:6px;flex-wrap:wrap">${qaBadges(md)}</div>`:''}
+    <b style="font-size:14px;color:#fff">${esc(md.name)}</b>${md.qa||md.budgetBlockedRetry||md.compliance?`<div style="display:flex;gap:6px;flex-wrap:wrap">${qaBadges(md)}</div>`:''}
     <div class="dim" style="font-size:12px;line-height:1.5">${esc(md.pitch||'')}</div>
     ${(d.palette||[]).length?`<div style="display:flex;gap:4px;flex-wrap:wrap">${d.palette.map(c=>`<span title="${esc(c.name)} ${esc(c.hex)} · ${esc(c.role)}" style="display:inline-block;width:16px;height:16px;border-radius:50%;border:1px solid var(--hairline);background:${esc(c.hex)}"></span>`).join('')}</div>`:''}
     <div class="dim" style="font-size:11.5px;line-height:1.55">${[['Setting',d.setting],['Light',d.lighting],['Feel',d.mood]].filter(([,v])=>v).map(([k,v])=>`<div><b style="color:#bae6fd">${k}:</b> <span dir="auto">${esc(v)}</span></div>`).join('')}</div>
@@ -5177,7 +5213,8 @@ function stageArtifact(p,n){
 function stageArtifactInner(p,n){
  const s=STAGES[n-1];
  /* agent ingest (docs/agent-ingest.md): what Hermes pushed through /api/agent says so, and waits for review */
- const src=p[s.id]&&p[s.id].source==='hermes'?`<span title="Pushed by Hermes through the agent API — a draft for review">${badge('c','SOURCE: HERMES')}</span>`:'';
+ const src=(p[s.id]&&p[s.id].source==='hermes'?`<span title="Pushed by Hermes through the agent API — a draft for review">${badge('c','SOURCE: HERMES')}</span>`:'')
+  +(p.supporting&&p.supporting.length?`<span title="Supporting products: the only products besides ${esc(p.product||'the hero')} allowed in this campaign's assets">${badge('muted','ALSO: '+p.supporting.map(x=>esc([x.family,x.colour].filter(Boolean).join(' ').toUpperCase())).join(' + '))}</span>`:'');
  const head=(extra='')=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
    <div style="display:flex;align-items:center;gap:10px">${agentChip(s.agent,n===p.stage)}<div><h3 style="font-size:15.5px">0${n} · ${s.l}</h3><span class="dim" style="font-size:11px">${s.d}</span></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${src}${extra}</div></div>`;
  if(p.studio&&s.id==='qc'&&p.qc&&p.qc.report)return head(badge('go','QC REPORT · '+esc(p.qc.version||'')))+rQcPlan(p,n<p.stage);
@@ -5203,7 +5240,7 @@ function stageArtifactInner(p,n){
   case 'board':return head(done)+(p.board?(p.board.shots?rBoard(p,n<p.stage):Array.isArray(p.board)?`
    <div class="frames">${p.board.map(f=>`<div class="frame card" style="overflow:hidden"><div class="art" style="background:linear-gradient(135deg,${f.g[0]},${f.g[1]})"><span class="tc">${f.tc}</span></div><div class="p3" style="font-size:11.5px;line-height:1.55;color:var(--muted)">${f.d}</div></div>`).join('')}</div>`:`
    <img class="gen-media" ${mediaAttrs(p.board,'imageUrl')} alt="Generated storyboard sheet">${dirNote(p.board)}${p.studio?regenBox(p,'board'):''}`):'');
-  case 'draft':return head(done)+(p.draft?p.draft.shots?rDraft(p,n<p.stage):`
+  case 'draft':return head(done)+(p.draft?p.draft.shots?((p.draft.shots.length||p.draft.assembled||!(p.draft.carousel||p.draft.audioTracks)?rDraft(p,n<p.stage):'')+agentExtras(p.draft)):`
    ${p.draft.videoUrl||p.draft.assetPath?`<video controls playsinline ${mediaAttrs(p.draft,'videoUrl')} style="width:100%;max-width:640px;border-radius:14px;border:1px solid var(--hairline);background:#000;display:block;margin-bottom:14px"></video>`:''}${qaRow(p.draft)}
    <div class="pipe-item" style="margin-bottom:14px"><span class="thumb" style="background:linear-gradient(120deg,${p.th[0]},${p.th[1]})"></span>
     <div><b style="color:#fff">${esc(p.title)} · first draft ${esc(p.draft.version)}</b> <span class="dim mono" style="font-size:10.5px">· ${p.draft.dur}</span>

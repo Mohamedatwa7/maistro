@@ -193,7 +193,9 @@ async function listPieces(limit = 100) {
   for (const a of approvals) if (!latestDecision.has(a.artifact_version_id)) latestDecision.set(a.artifact_version_id, a);
   const docsByVersion = new Map();
   for (const d of docs) { if (!docsByVersion.has(d.artifact_version_id)) docsByVersion.set(d.artifact_version_id, {}); docsByVersion.get(d.artifact_version_id)[d.kind] = { path: d.storage_path, sha256: d.sha256, size: d.size_bytes, contentType: d.content_type, at: d.uploaded_at }; }
-  return pieces.map((p) => {
+  // agent-ingest test campaigns (and deleted ones) never reach the reviewer queue
+  const planOf = (p) => { const s = stages.find((x) => x.piece_id === p.id && x.kind === 'plan'); const v = s && s.current_version_id ? vById.get(s.current_version_id) : null; return (v && v.payload) || {}; };
+  return pieces.filter((p) => { const pl = planOf(p); return !(pl.source === 'hermes' && (pl.test || pl.deletedAt)); }).map((p) => {
     const mine = stages.filter((s) => s.piece_id === p.id).sort((a, b) => a.position - b.position);
     const out = {};
     for (const s of mine) {
@@ -225,6 +227,7 @@ async function listPieces(limit = 100) {
       id: p.legacy_id || p.id, pieceId: p.id, title: p.title, product: p.product, msg: p.key_message, angle: p.angle,
       markets: p.markets, platforms: p.platforms, trendId: p.trend_id, trend: p.trend_name, origin: p.origin,
       source: out.plan && out.plan.version && out.plan.version.payload && out.plan.version.payload.source === 'hermes' ? 'hermes' : null,
+      supportingProducts: out.plan && out.plan.version && out.plan.version.payload && Array.isArray(out.plan.version.payload.supportingProducts) ? out.plan.version.payload.supportingProducts : [],
       status: pieceStatus(mine.map((s) => ({ kind: s.kind, state: s.state }))), createdAt: p.created_at, updatedAt: p.updated_at, stages: out,
     };
   });

@@ -13,6 +13,7 @@
 // { action: "reopen", pieceId, stage, role } reopens an approved stage (admin).
 const { requireSession, refreshMember, memberOnly, claimActor, PASSWORD_CLAIM } = require('../_auth.js');
 const { decide, reopen, StoreError } = require('../_store.js');
+const { notifyHermes } = require('../_agent-hooks.js');
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
@@ -38,11 +39,14 @@ module.exports = async (req, res) => {
     const name = req.member && req.member.name && !b.name ? req.member.name : b.name;
     if (b.action === 'reopen') {
       const out = await reopen(String(b.pieceId || ''), String(b.stage || ''), role);
+      await notifyHermes({ type: 'stage.reopened', campaignId: out.legacyId, stage: out.stage });
       return res.status(200).json({ ok: true, ...out });
     }
     // signedAs is set here, never from the body: a password session is recorded as a claim, not as a role
     const out = await decide(String(b.pieceId || ''), String(b.stage || ''), { ...b, name, role, actorId, signedAs: req.member ? null : PASSWORD_CLAIM });
     try { const { syncSpec } = require('../_spec.js'); out.spec = await syncSpec(out.legacyId, { memberId: actorId, note: `${b.stage} ${b.decision}` }); } catch (e) { console.warn('[decisions] spec sync failed:', e.message); }
+    // a campaign Hermes pushed through /api/agent: tell it (signed webhook, off without HERMES_WEBHOOK_SECRET)
+    await notifyHermes({ type: 'stage.decision', campaignId: out.legacyId, stage: out.stage, versionId: out.versionId, version: out.version, assetId: null, decision: b.decision, comment: { author: name || null, text: String(b.reason || ''), reasonCode: b.reasonCode || null, createdAt: out.decidedAt } });
     return res.status(200).json({ ok: true, ...out });
   } catch (e) {
     if (e instanceof StoreError) return res.status(e.status).json({ error: e.message, code: e.code });

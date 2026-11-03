@@ -33,7 +33,7 @@ function fakePostgrest(base = 'https://sb.test') {
       else {
         if (v === 'not.is.null') { filters.push({ col: k, op: 'notnull' }); continue; }
         if (v === 'is.null') { filters.push({ col: k, op: 'isnull' }); continue; }
-        const m = v.match(/^(eq|in|lte|gte|lt|gt)\.(.*)$/s);
+        const m = v.match(/^(eq|in|like|lte|gte|lt|gt)\.(.*)$/s);
         if (!m) throw new Error(`fake-postgrest: unsupported filter ${k}=${v}`);
         filters.push({ col: k, op: m[1], val: m[1] === 'in' ? m[2].replace(/^\(|\)$/g, '').split(',').map(decodeURIComponent) : m[2] });
       }
@@ -48,6 +48,7 @@ function fakePostgrest(base = 'https://sb.test') {
     if (op === 'isnull') return c == null;
     if (op === 'eq') return String(c) === String(val);
     if (op === 'in') return val.includes(String(c));
+    if (op === 'like') return c != null && String(c).startsWith(String(val).replace(/\*$/, '')) && (String(val).endsWith('*') || String(c) === String(val)); // prefix patterns (abc*) only
     if (c == null) return false;
     const a = c, b = (typeof a === 'number' ? Number(val) : String(val)), x = (typeof a === 'number' ? a : String(a));
     return op === 'lte' ? x <= b : op === 'gte' ? x >= b : op === 'lt' ? x < b : x > b;
