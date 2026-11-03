@@ -506,6 +506,15 @@ moodboard is a collage board, a storyboard is a 6-panel sheet, etc.) and
 mandatory visual continuity with everything already generated. Uses the
 server-side `ANTHROPIC_API_KEY` (Claude Opus).
 
+**Content policy (company guideline, since 2026-11-03; prompt `director-v2-2026-11-03`):**
+no human and no product may be AI-generated, the same rule the Hermes bots follow.
+- **People:** every prompt shows people only as clearly animated, non-photoreal characters.
+- **Product:** the device is never rendered or described. The prompt leaves a clean space
+  (thumbnail) or an empty end plate (storyboard) where the real product footage or pack shot
+  is cut in during the edit.
+- **Reference photo:** the Studio no longer sends the product photo as a render reference,
+  and `referenceImageAttached` is ignored.
+
 ```jsonc
 // request
 {

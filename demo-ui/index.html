@@ -2233,8 +2233,7 @@ async function stageGen(pid,sid,changes){
   :(inp?inp.value.trim():'');
  delete GEN.err[key];
  const campaign={title:p.title,product:p.product,msg:p.map.msg,angle:p.map.angle,
-  markets:p.markets,platforms:p.platforms,trend:p.trend,
-  ...(p.refImage&&sid==='thumb'?{referenceImageAttached:true}:{})};
+  markets:p.markets,platforms:p.platforms,trend:p.trend};
  try{
   /* 6.8: the final applies ONLY the approved QC plan, at each fix's unit */
   if(sid==='final'&&useJobs()&&!changes&&((p.qc&&p.qc.report&&!skipOf(p,'qc'))||(p.draft&&p.draft.assembled))){
@@ -2377,11 +2376,10 @@ async function stageGen(pid,sid,changes){
   const ar=isVideo?(prev&&prev.variants?prev.variants[0].a:(document.getElementById('gen-ar-'+sid)||{}).value||'16:9'):GEN_ASPECT[sid];
   const dur=isVideo?(prev?parseInt(prev.dur,10)||5:parseInt((document.getElementById('gen-dur-'+sid)||{}).value,10)||5):undefined;
   const res=isVideo?(prev&&prev.variants?prev.variants[0].l:(document.getElementById('gen-res-'+sid)||{}).value||'720p'):'1080p';
-  /* the product photo is a SUBJECT reference — it reliably overrides any
-     multi-panel layout (collapsed both the moodboard collage AND the 6-panel
-     storyboard into single product shots), so it is used ONLY for the
-     thumbnail, which is a single hero visual by design */
-  const useRef=!isVideo&&p.refImage&&sid==='thumb';
+  /* company content policy (2026-11-03): no product may be AI-generated, so the
+     product photo is never sent as a render reference; the real product is cut
+     in during the edit */
+  const useRef=false;
   GEN.busy[key]=(isVideo?'The Hermes video bot is rendering the '+(sid==='final'?'revised cut':'first cut'):'Your Hermes bot is making the image'+(useRef?' from your product photo':''))+'…';studioRefresh();
   if(useJobs()){
    const prevArt=p[sid];

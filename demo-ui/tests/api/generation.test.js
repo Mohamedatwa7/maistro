@@ -79,6 +79,11 @@ test('director: validation, prior context assembly, response shape', async () =>
     assert.match(user, /- #1 fix/);
     assert.match(user, /"tighter"/);
     assert.equal(sent.output_config.format.type, 'json_schema');
+    // company content policy: animated people only, the product is never generated
+    assert.match(sent.system, /CONTENT POLICY/);
+    assert.match(sent.system, /only clearly animated, non-photorealistic characters/);
+    assert.match(sent.system, /never depict the Samsung device/);
+    assert.doesNotMatch(sent.system, /the exact product from the reference image/);
   } finally { f.restore(); h.restore(); }
 });
 

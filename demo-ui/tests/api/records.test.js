@@ -22,7 +22,7 @@ test('hermes and director write a generation record (prompt name/version, resolv
     assert.match(hr.params.promptSha256, /^[0-9a-f]{64}$/); assert.ok(hr.params.promptChars > hr.resolved_prompt.length); assert.match(hr.params.kbFingerprint, /^[0-9a-f]{16}$/);
     assert.equal(dr.params.referenceImageAttached, false); assert.match(dr.resolved_prompt, /ARTIFACT TO CREATE: /);
     const prompts = pg.tables.prompt_registry;
-    assert.deepEqual(prompts.map((p) => [p.name, p.version]).sort(), [['director.mood', 'director-v1-2026-10-21'], ['hermes.plan', 'hermes-v1-2026-10-21']]);
+    assert.deepEqual(prompts.map((p) => [p.name, p.version]).sort(), [['director.mood', 'director-v2-2026-11-03'], ['hermes.plan', 'hermes-v1-2026-10-21']]);
     assert.match(prompts.find((p) => p.name === 'hermes.plan').template, /\{\{PRODUCTS_PROMPT\}\}/, 'the template keeps variables, the record keeps the resolved text');
     // a failure is recorded too
     f.restore();
