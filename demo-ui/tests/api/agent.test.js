@@ -77,6 +77,8 @@ test('agent ingest: a campaign is created, briefed, given assets and a storyboar
     const c = r.body;
     assert.deepEqual(c.product, { family: 'Galaxy Z Fold8', colour: 'Cream', model_code: 'SM-F971BZWIMEA' });
     assert.equal(c.source, 'hermes'); assert.equal(c.assets.length, 4);
+    // the Studio's board view reads these as objects/strings; null broke it (2026-11-04)
+    assert.ok(c.stages.board.version.payload.shots.every((sh) => sh.onScreenText && sh.line && typeof sh.audioCue === 'string' && sh.product && typeof sh.transition === 'string'));
     assert.ok(c.assets.every((a) => /^as_[0-9a-f]{24}$/.test(a.assetId) && a.assetPath && a.sha256 && a.sourceUrl));
     for (const k of ['plan', 'brief', 'mood', 'thumb', 'board', 'draft']) {
       assert.equal(c.stages[k].state, 'generated', `${k} is a draft`); assert.equal(c.stages[k].version.producedBy, 'external_hermes'); assert.equal(c.stages[k].decision, null);
@@ -171,4 +173,11 @@ test('agent ingest: a whole video reads its size and length from the mp4 and lan
     assert.deepEqual([d.assembled.width, d.assembled.height, d.assembled.durationS], [720, 1280, 4]);
     assert.equal(d.shots.length, 1); assert.equal(d.shots[0].clip.state, 'rendered'); assert.equal(d.qa.verdict, 'pass');
   } finally { f.restore(); W.restore(); }
+});
+
+test('board code checks take Hermes shots with no on-screen text or line (2026-11-04)', () => {
+  const { codeChecks } = require('../../api/_studio/board.js');
+  const shots = [1, 2].map((n) => ({ n, durationS: 3, type: 'medium', action: 'a', beat: n === 1 ? 'opening' : 'closing', onScreenText: null, line: null, product: null }));
+  const out = codeChecks({ shots, hookShot: 1 }, null);
+  assert.ok(Array.isArray(out) && out.length > 0);
 });

@@ -3220,18 +3220,18 @@ function rBoard(p,locked){
   ${b.hook&&b.hook.summary?`<div class="dim" style="font-size:11.5px;margin-bottom:10px">F1X8 on the hook keyframe: ${esc(b.hook.summary)}${b.hook.risks&&b.hook.risks.length?' · '+b.hook.risks.map(r=>esc(r.issue||r)).join(' · '):''}</div>`:''}
   <div class="frames" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr))">${(b.shots||[]).map(sh=>{
    const kf=sh.keyframe,v=vis(sh.n),rv=sh.review,fr=(kf&&kf.frame)||{};
-   const act=sh.act||fr.act,beatL=sh.beatLabel||fr.beat,pose=sh.devicePose||fr.device_pose,trans=fr.transition;
+   const act=sh.act||fr.act,beatL=sh.beatLabel||fr.beat,pose=sh.devicePose||fr.device_pose,trans=fr.transition,ost=sh.onScreenText||{},ln=sh.line||{},prod=sh.product||{};
    const art=kf&&kf.state==='rendered'?`<img ${mediaAttrs(kf,'url')} alt="Shot ${sh.n} keyframe" style="width:100%;height:100%;object-fit:cover">`:kf&&kf.state==='failed'?`<div class="dim" style="font-size:11px;padding:10px">Render failed — ${esc(kf.error||'')}${kf.botNote?`<br><b style="color:#fbbf24">Bot:</b> ${esc(kf.botNote)}`:''}</div>`:`<div style="display:flex;align-items:center;gap:8px;padding:10px"><span class="gen-spin"></span><span class="dim" style="font-size:11px">Rendering keyframe…</span></div>`;
    return `<div class="frame card" style="overflow:hidden;border-color:${rv?(rv.decision==='approved'?'rgba(110,231,185,.5)':'rgba(248,113,113,0.5)'):'var(--hairline)'}">
     <div class="art" style="height:auto;aspect-ratio:${(b.aspect||'9:16')==='9:16'?'9/12':'16/9'};background:#000;padding:0;position:relative;display:block">${art}<span class="tc" style="position:absolute;left:8px;bottom:8px">SHOT ${sh.n} · ${sh.durationS} s</span></div>
     <div class="p3" style="font-size:11.5px;line-height:1.55;color:var(--muted)">
-     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${sh.beat==='opening'?badge('go','OPENING SCENE'):sh.beat==='closing'?badge('gold','CLOSING SCENE'):''}${badge('muted',esc(sh.type.replace('_',' ').toUpperCase()))}${sh.product.visible?badge('c','PRODUCT'+(sh.product.feature?' · '+esc(sh.product.feature):'')):''}${b.hookShot===sh.n?badge('gold','HOOK'):''}
+     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">${sh.beat==='opening'?badge('go','OPENING SCENE'):sh.beat==='closing'?badge('gold','CLOSING SCENE'):''}${badge('muted',esc(String(sh.type||'shot').replace('_',' ').toUpperCase()))}${prod.visible?badge('c','PRODUCT'+(prod.feature?' · '+esc(prod.feature):'')):''}${b.hookShot===sh.n?badge('gold','HOOK'):''}
       ${v?(v.pass?badge('go','CHECK OK'):v.needsReview?badge('gold','NEEDS A LOOK'):badge('alert','FLAGGED')):kf&&kf.state==='rendered'?badge('muted','CHECKING…'):''}${rv?badge(rv.decision==='approved'?'go':'alert',rv.decision==='approved'?'APPROVED':'REJECTED'):''}${qaBadges(kf||sh)}${kf&&kf.fixRequest?`<span title="${esc(kf.fixRequest)}">${badge('c','RE-RENDERED FOR THE VIDEO BOT')}</span>`:''}</div>
      ${act||beatL||pose||trans?`<div class="shot-frame" style="margin-bottom:4px">${act?`<b style="color:#bae6fd">${esc(act)}</b>`:''}${beatL&&beatL!==sh.beat?`${act?' · ':''}${esc(beatL)}`:''}${pose?`<div>Device: ${esc(pose)}</div>`:''}${trans?`<div>→ ${esc(trans)}</div>`:''}</div>`:''}
      <div><b style="color:#fff">${esc(sh.camera)}</b> — ${esc(sh.action)}</div>
-     ${sh.onScreenText.en||sh.onScreenText.ar?`<div style="margin-top:4px">Text: <b>${esc(sh.onScreenText.en)}</b>${sh.onScreenText.ar?` <span dir="rtl">${esc(sh.onScreenText.ar)}</span>`:''}</div>`:''}
-     ${sh.line.en||sh.line.ar?`<div style="margin-top:2px">Line: “${esc(sh.line.en)}”${sh.line.ar?` <span dir="rtl">${esc(sh.line.ar)}</span>`:''}</div>`:''}
-     <div class="dim" style="margin-top:2px">Audio: ${esc(sh.audioCue)} · → ${esc(sh.transition.replace('_',' '))}</div>
+     ${ost.en||ost.ar?`<div style="margin-top:4px">Text: <b>${esc(ost.en||'')}</b>${ost.ar?` <span dir="rtl">${esc(ost.ar)}</span>`:''}</div>`:''}
+     ${ln.en||ln.ar?`<div style="margin-top:2px">Line: “${esc(ln.en||'')}”${ln.ar?` <span dir="rtl">${esc(ln.ar)}</span>`:''}</div>`:''}
+     <div class="dim" style="margin-top:2px">${sh.audioCue?`Audio: ${esc(sh.audioCue)} · `:''}→ ${esc(String(sh.transition||'cut').replace('_',' '))}</div>
      ${v&&v.flags&&v.flags.length?`<div style="margin-top:4px;color:#fca5a5">${v.flags.map(f=>esc(f)).join(' · ')}</div>`:''}
      ${qaNotes(kf||sh)}
      ${rv&&rv.decision==='rejected'?`<div style="margin-top:4px;color:#fca5a5">Rejected${rv.reasonCode?' · '+esc(rv.reasonCode.replace(/_/g,' ')):''}: ${esc(rv.reason||'')}</div>`:''}

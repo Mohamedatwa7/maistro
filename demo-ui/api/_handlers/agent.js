@@ -349,7 +349,7 @@ async function download(url, kind, campaign) {
   return { buf, type };
 }
 
-const blankShot = (n) => ({ n, beat: '', act: '', durationS: 3, type: 'medium', camera: '', angle: '', lens: '', move: '', action: '', devicePose: '', product: { visible: true, feature: '' }, onScreenText: null, line: null, audioCue: null, transition: 'cut', keyframe: null, review: null });
+const blankShot = (n) => ({ n, beat: '', act: '', durationS: 3, type: 'medium', camera: '', angle: '', lens: '', move: '', action: '', devicePose: '', product: { visible: true, feature: '' }, onScreenText: { en: '', ar: '' }, line: { en: '', ar: '' }, audioCue: '', transition: 'cut', keyframe: null, review: null });
 function shotsFromList(list, count) {
   const shots = (Array.isArray(list) ? list : []).slice(0, 12).map((s, i) => {
     const x = s && typeof s === 'object' ? s : {};
