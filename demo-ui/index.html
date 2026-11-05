@@ -2572,7 +2572,7 @@ async function qcRunAll(pid){
 function qcJobPoll(pid,sid,jobId,tries){
  const key=pid+':'+sid;
  clearTimeout(QCRUN.timer[key]);
- if(tries>270){QCRUN.state[key]='error';QCRUN.err[key]='F1X8 still running after 45 minutes — the job continues on the server; reopen the piece later.';studioRefresh();return}
+ if(tries>720){QCRUN.state[key]='error';QCRUN.err[key]='F1X8 still running after 1 hour — the job continues on the server; reopen the piece later.';studioRefresh();return}
  QCRUN.timer[key]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/jobs?id='+encodeURIComponent(jobId));
@@ -2607,7 +2607,7 @@ function qcJobPoll(pid,sid,jobId,tries){
 function qcPoll(pid,sid,jobId,tries){
  const key=pid+':'+sid;
  clearTimeout(QCRUN.timer[key]);
- if(tries>180){QCRUN.state[key]='error';QCRUN.err[key]='F1X8 timed out after 30 minutes — resubmit.';studioRefresh();return}
+ if(tries>360){QCRUN.state[key]='error';QCRUN.err[key]='F1X8 timed out after 1 hour — resubmit.';studioRefresh();return}
  QCRUN.timer[key]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/qc-f1x8?job='+encodeURIComponent(jobId));
@@ -3312,7 +3312,7 @@ const QC_EDIT={};
 /* the stills of a QC batch land after the report: refresh the runs until none is queued or running */
 function qcPartsPoll(pid,tries){
  const key=pid+':qcparts';clearTimeout(BOARD_POLL[key]);
- if(tries>120)return;
+ if(tries>240)return;
  BOARD_POLL[key]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/studio?qc='+encodeURIComponent(pid));const d=await r.json().catch(()=>({}));
@@ -3326,7 +3326,7 @@ function qcPartsPoll(pid,tries){
 }
 function qcReportPoll(pid,tries){
  const key=pid+':qc';clearTimeout(BOARD_POLL[key]);
- if(tries>160){delete GEN.busy[key];GEN.err[key]='QC still running after 20 minutes — it keeps running on the server; reopen the piece later.';studioRefresh();return}
+ if(tries>480){delete GEN.busy[key];GEN.err[key]='QC still running after 1 hour — it keeps running on the server; reopen the piece later.';studioRefresh();return}
  BOARD_POLL[key]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/studio?qc='+encodeURIComponent(pid));const d=await r.json().catch(()=>({}));

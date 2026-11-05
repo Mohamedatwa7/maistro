@@ -38,8 +38,8 @@ const POLL_S = { hermes_image: 8, hermes_video: 15, hermes_brief: 10, higgsfield
 // context): far longer than one image, so it gets its own limit
 const PLAN_TIMEOUT_S = 75 * 60; // already over an hour
 const timeoutOf = (job) => (job.payload && job.payload.planMode ? PLAN_TIMEOUT_S : TIMEOUT_S[job.kind] || 1800);
-// owner 2026-11-05: content creation gets up to one hour before a render is called timed out
-const TIMEOUT_S = { hermes_image: 60 * 60, hermes_video: 60 * 60, hermes_brief: 60 * 60, higgsfield_image: 60 * 60, higgsfield_video: 60 * 60, f1x8_image: 30 * 60, f1x8_video: 45 * 60, vision_check: 10 * 60, assemble: 15 * 60, clip_check: 10 * 60 };
+// owner 2026-11-05: content creation and F1X8 QC get up to one hour before a render is called timed out
+const TIMEOUT_S = { hermes_image: 60 * 60, hermes_video: 60 * 60, hermes_brief: 60 * 60, higgsfield_image: 60 * 60, higgsfield_video: 60 * 60, f1x8_image: 60 * 60, f1x8_video: 60 * 60, vision_check: 10 * 60, assemble: 15 * 60, clip_check: 10 * 60 };
 const MAX_SUBMIT_ATTEMPTS = 3;
 // A job about to be submitted is leased for longer than the submit itself can take (the 30 s Hermes POST timeout,
 // plus pricing and signing), so no second tick can re-claim and submit it while the first is still waiting.
