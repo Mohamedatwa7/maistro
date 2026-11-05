@@ -2260,11 +2260,12 @@ async function stageGen(pid,sid,changes){
    return;
   }
   /* 6.6: the first draft is one clip per storyboard shot — it needs the keyframes, not the storyboard's approval */
-  if(sid==='draft'&&useJobs()&&!changes&&!skipOf(p,'board')&&!(p.board&&p.board.shots))throw new Error('Make the storyboard first — every clip starts on a storyboard keyframe (or skip the storyboard step to make one clip from the brief).');
-  if(sid==='draft'&&useJobs()&&!changes&&skipOf(p,'board')){
+  if(sid==='draft'&&useJobs()&&!skipOf(p,'board')&&!(p.board&&p.board.shots))throw new Error('Make the storyboard first — every clip starts on a storyboard keyframe (or skip the storyboard step to make one clip from the brief).');
+  /* owner 2026-11-05: change notes go to the same storyboard / one-take render, never around it */
+  if(sid==='draft'&&useJobs()&&skipOf(p,'board')){
    /* no storyboard (skipped or not made): one text-to-video clip for the whole video */
    GEN.busy[key]='The Hermes video bot is making the first draft as one video'+(p.brief&&!skipOf(p,'brief')?' from the brief':' from the campaign plan')+'…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',noBoard:true,pieceId:p.id,styleRefs:styleRefsOf(p),...campCtx(p),resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',noBoard:true,pieceId:p.id,changes:changes||'',styleRefs:styleRefsOf(p),...campCtx(p),resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));orderWarn(sd);
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
    attachTo(p,'draft',sd.artifact,'Hermes video bot',{recorded:{version:sd.version}});
@@ -2272,7 +2273,7 @@ async function stageGen(pid,sid,changes){
    studioRefresh();shotsPoll(p.id,'draft',0);
    return;
   }
-  if(sid==='draft'&&useJobs()&&p.board&&p.board.shots&&!changes){
+  if(sid==='draft'&&useJobs()&&p.board&&p.board.shots){
    const kst=s=>s.keyframe&&s.keyframe.state;
    const pendingShots=p.board.shots.filter(s=>kst(s)!=='rendered'&&kst(s)!=='failed').map(s=>s.n);
    if(pendingShots.length)throw new Error('The storyboard keyframes are still rendering — shot '+pendingShots.join(', ')+' pending.');
@@ -2280,7 +2281,7 @@ async function stageGen(pid,sid,changes){
    const okShots=p.board.shots.filter(s=>kst(s)==='rendered'&&!(s.review&&s.review.decision==='rejected')),failedShots=p.board.shots.filter(s=>kst(s)==='failed'||(s.review&&s.review.decision==='rejected')).map(s=>s.n);
    if(!okShots.length)throw new Error('No usable storyboard keyframe — every shot failed or was rejected; regenerate at least one.');
    GEN.busy[key]='The Hermes video bot is rendering the storyboard as one continuous video through its '+okShots.length+' scene keyframes'+(failedShots.length?' (shot '+failedShots.join(', ')+' left out: failed or rejected)':'')+'…';studioRefresh();
-   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',pieceId:p.id,styleRefs:styleRefsOf(p),...campCtx(p),resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
+   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',pieceId:p.id,changes:changes||'',styleRefs:styleRefsOf(p),...campCtx(p),resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));orderWarn(sd);
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
    attachTo(p,'draft',sd.artifact,'Hermes video bot',{recorded:{version:sd.version}});

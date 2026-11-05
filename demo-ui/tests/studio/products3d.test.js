@@ -84,13 +84,14 @@ test('products3d: the draft sends the 3D views with clips that show the device (
       { n: 1, durationS: 3, camera: 'push-in', action: 'the phone opens', product: { visible: true }, keyframe: { state: 'rendered', assetPath: 'pieces/gen-p3/board/k1.png' }, review: { decision: 'approved' } },
       { n: 2, durationS: 3, camera: 'pan', action: 'a street', product: { visible: false }, keyframe: { state: 'rendered', assetPath: 'pieces/gen-p3/board/k2.png' }, review: { decision: 'approved' } },
     ], rev: 0 }, { producedBy: 'hermes', kind: 'image' });
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft', pieceId: 'gen-p3' } }), r);
+    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft', pieceId: 'gen-p3', changes: 'warmer light' } }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     const clips = pg.tables.jobs.filter((j) => j.kind === 'hermes_video').sort((a, b) => a.payload.attachTo.shot - b.payload.attachTo.shot);
     // owner 2026-11-05: both scenes render as one continuous take; it shows the device, so it carries the 3D views
     assert.equal(clips.length, 1);
     assert.deepEqual(clips[0].payload.refs, [VIEW(1), VIEW(2)]); assert.equal(clips[0].payload.productModel, 'galaxy-z-flip8'); assert.equal(clips[0].payload.imageAssetPath, 'pieces/gen-p3/board/k1.png');
     assert.deepEqual(clips[0].payload.sceneKeyframes.map((k) => k.assetPath), ['pieces/gen-p3/board/k1.png', 'pieces/gen-p3/board/k2.png']);
+    assert.match(clips[0].payload.prompt, /Changes requested by the reviewer .*warmer light/, 'regenerate notes reach the one-take render');
   } finally { f.restore(); studio.restore(); pieces.restore(); delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; }
 });
 
