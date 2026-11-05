@@ -9,7 +9,7 @@ const ENV = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', A
 const MP4 = new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112, 105, 115, 111, 109]);
 const shot = (n, durationS, visible, type = 'medium') => ({ n, durationS, type, camera: `camera ${n}`, action: `action ${n}`, product: { visible, feature: visible ? 'FlexWindow' : '' }, onScreenText: { en: n === 1 ? 'Hook' : '', ar: n === 1 ? 'هوك' : '' }, line: { en: '', ar: '' }, audioCue: 'ambient', transition: n === 4 ? 'none' : 'cut', keyframe: { state: 'rendered', url: `https://cdn/k${n}.png`, assetPath: `pieces/gen-dr1/board/k${n}.png`, sha256: 'a'.repeat(64), jobId: `kj${n}` }, review: { decision: 'approved', by: 'N' } });
 
-test('POST /api/studio action draft: refused while a keyframe is missing or a rendered shot is not yet reviewed (owner 2026-11-02: every clip starts on an APPROVED keyframe); then one image-to-video job per shot (keyframe signed once and kept on the job, duration clamped to 4–30 s, the keyframe URL as the first frame); clips attach to the draft version; per-clip review; one clip re-renders alone', async () => {
+test('POST /api/studio action draft: refused while a keyframe is missing; an unreviewed shot does not hold it (owner 2026-11-05: no storyboard approval needed); then one image-to-video job per shot (keyframe signed once and kept on the job, duration clamped to 4–30 s, the keyframe URL as the first frame); clips attach to the draft version; per-clip review; one clip re-renders alone', async () => {
   const pg = fakePostgrest();
   const H = hermesFake(); const hf = H.state;
   const f = mockFetch([
@@ -29,13 +29,9 @@ test('POST /api/studio action draft: refused while a keyframe is missing or a re
     await store.recordVersion('gen-dr1', 'board', { shots, hookShot: 1, totalS: 15, aspect: '9:16', prompt: 'storyboard of 4 shots', note: 'n', rev: 0 }, { producedBy: 'claude', kind: 'text' });
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft', pieceId: 'gen-dr1' } }), r);
     assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'prerequisites'); assert.deepEqual(r.body.pending, [3], 'a clip needs its keyframe');
-    // every keyframe rendered, shot 3 NOT approved: the first draft still starts (owner 2026-10-28: no storyboard approval needed)
+    // every keyframe rendered, shot 3 NOT reviewed: the first draft starts anyway (owner 2026-11-05: no storyboard approval needed)
     shots[2].keyframe = k3; shots[2].review = null;
-    await store.recordVersion('gen-dr1', 'board', { shots, hookShot: 1, totalS: 15, aspect: '9:16', prompt: 'storyboard of 4 shots', note: 'n', rev: 1 }, { producedBy: 'claude', kind: 'text' });
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft', pieceId: 'gen-dr1' } }), r);
-    assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'prerequisites'); assert.deepEqual(r.body.pending, [3]); assert.match(r.body.error, /approve or reject storyboard shot 3 first/);
-    shots[2].review = { decision: 'approved', by: 'N' };
-    const bv = await store.recordVersion('gen-dr1', 'board', { shots, hookShot: 1, totalS: 15, aspect: '9:16', prompt: 'storyboard of 4 shots', note: 'n', rev: 2 }, { producedBy: 'claude', kind: 'text' });
+    const bv = await store.recordVersion('gen-dr1', 'board', { shots, hookShot: 1, totalS: 15, aspect: '9:16', prompt: 'storyboard of 4 shots', note: 'n', rev: 1 }, { producedBy: 'claude', kind: 'text' });
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft', pieceId: 'gen-dr1', resolution: '1080p' } }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     assert.equal(r.body.version, 1); assert.equal(r.body.artifact.version, 'v1'); assert.equal(r.body.artifact.totalS, 15); assert.equal(r.body.artifact.resolution, '1080p'); assert.equal(r.body.artifact.boardVersionId, bv.versionId); assert.equal(r.body.artifact.videoUrl, null); assert.equal(r.body.artifact.shots[0].clip, null); assert.equal(r.body.artifact.shots[0].keyframe.assetPath, 'pieces/gen-dr1/board/k1.png');
@@ -132,6 +128,6 @@ test('POST /api/studio action draft: a FAILED storyboard keyframe does not stop 
     for (const x of shots) x.keyframe = { state: 'failed' };
     await store.recordVersion('gen-dr1', 'board', { shots, hookShot: 1, totalS: 15, aspect: '9:16', prompt: 'p', note: 'n', rev: 1 }, { producedBy: 'claude', kind: 'text' });
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft', pieceId: 'gen-dr1' } }), r);
-    assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'prerequisites'); assert.match(r.body.error, /no approved storyboard keyframe/);
+    assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'prerequisites'); assert.match(r.body.error, /no usable storyboard keyframe/);
   } finally { f.restore(); studio.restore(); jobs.restore(); pieces.restore(); delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; }
 });

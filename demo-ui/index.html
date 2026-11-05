@@ -2212,7 +2212,7 @@ function genBox(p,sid){
   ${sid==='thumb'?`<div class="grid-2f" style="margin-top:8px"><div class="f-field"><label>Headline (English, overlaid in code — never inside the image)</label><input class="inp-l" id="gen-head-en" maxlength="120" placeholder="e.g. Slimness check: passed."></div>
    <div class="f-field"><label>Headline (Arabic, optional)</label><input class="inp-l" id="gen-head-ar" dir="rtl" maxlength="120" placeholder="عنوان بالعربية"></div></div>
   <p class="hint" style="margin-top:6px">Cover aspect follows the platforms (${thumbAspectFor(p)}); the text sits inside the platform safe zone. The moodboard must exist first.</p>`:''}
-  ${sid==='draft'&&p.board&&p.board.shots?`<p class="hint" style="margin-top:6px">The first draft is rendered shot by shot from the approved storyboard keyframes (${p.board.shots.length} clips, ${esc(String(p.board.totalS||''))} s, ${esc(p.board.aspect||'9:16')}). Only the resolution applies here.</p>`:''}
+  ${sid==='draft'&&p.board&&p.board.shots?`<p class="hint" style="margin-top:6px">The first draft is rendered shot by shot from the storyboard keyframes (${p.board.shots.length} clips, ${esc(String(p.board.totalS||''))} s, ${esc(p.board.aspect||'9:16')}). Only the resolution applies here.</p>`:''}
   ${sid==='draft'?`
   <div class="row"><span class="kick" style="font-size:9px">Format</span>
    <select id="gen-ar-draft"><option>16:9</option><option>9:16</option><option>1:1</option></select>
@@ -2260,7 +2260,7 @@ async function stageGen(pid,sid,changes){
    return;
   }
   /* 6.6: the first draft is one clip per storyboard shot — it needs the keyframes, not the storyboard's approval */
-  if(sid==='draft'&&useJobs()&&!changes&&!skipOf(p,'board')&&!(p.board&&p.board.shots))throw new Error('Make the storyboard first — every clip starts on an approved keyframe (or skip the storyboard step to make one clip from the brief).');
+  if(sid==='draft'&&useJobs()&&!changes&&!skipOf(p,'board')&&!(p.board&&p.board.shots))throw new Error('Make the storyboard first — every clip starts on a storyboard keyframe (or skip the storyboard step to make one clip from the brief).');
   if(sid==='draft'&&useJobs()&&!changes&&skipOf(p,'board')){
    /* no storyboard (skipped or not made): one text-to-video clip for the whole video */
    GEN.busy[key]='The Hermes video bot is making the first draft as one video'+(p.brief&&!skipOf(p,'brief')?' from the brief':' from the campaign plan')+'…';studioRefresh();
@@ -2276,11 +2276,10 @@ async function stageGen(pid,sid,changes){
    const kst=s=>s.keyframe&&s.keyframe.state;
    const pendingShots=p.board.shots.filter(s=>kst(s)!=='rendered'&&kst(s)!=='failed').map(s=>s.n);
    if(pendingShots.length)throw new Error('The storyboard keyframes are still rendering — shot '+pendingShots.join(', ')+' pending.');
-   const unrev=p.board.shots.filter(s=>kst(s)==='rendered'&&!s.review).map(s=>s.n);
-   if(unrev.length)throw new Error('Approve or reject storyboard shot'+(unrev.length>1?'s ':' ')+unrev.join(', ')+' first — every clip starts on an approved keyframe.');
-   const okShots=p.board.shots.filter(s=>kst(s)==='rendered'&&s.review&&s.review.decision==='approved'),failedShots=p.board.shots.filter(s=>kst(s)==='failed'||(s.review&&s.review.decision==='rejected')).map(s=>s.n);
-   if(!okShots.length)throw new Error('No approved storyboard keyframe — approve at least one shot first.');
-   GEN.busy[key]='The Hermes video bot is rendering '+okShots.length+' clips from the approved storyboard keyframes'+(failedShots.length?' (shot '+failedShots.join(', ')+' left out: failed or rejected)':'')+' — they join into one video by themselves…';studioRefresh();
+   /* owner 2026-11-05: no storyboard approval needed — every rendered keyframe that was not rejected makes a clip */
+   const okShots=p.board.shots.filter(s=>kst(s)==='rendered'&&!(s.review&&s.review.decision==='rejected')),failedShots=p.board.shots.filter(s=>kst(s)==='failed'||(s.review&&s.review.decision==='rejected')).map(s=>s.n);
+   if(!okShots.length)throw new Error('No usable storyboard keyframe — every shot failed or was rejected; regenerate at least one.');
+   GEN.busy[key]='The Hermes video bot is rendering '+okShots.length+' clips from the storyboard keyframes'+(failedShots.length?' (shot '+failedShots.join(', ')+' left out: failed or rejected)':'')+' — they join into one video by themselves…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'draft',pieceId:p.id,styleRefs:styleRefsOf(p),...campCtx(p),resolution:(document.getElementById('gen-res-draft')||{}).value||'720p',piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));orderWarn(sd);
    if(!sr.ok||!sd.artifact)throw new Error(sd.error||('studio responded '+sr.status));
@@ -2410,10 +2409,12 @@ async function stageGen(pid,sid,changes){
 }
 /* The page only READS job state; completion was recorded server-side. */
 const POLL_MS={job:5000,shots:4000};
+/* owner 2026-11-05: the page waits up to one hour for content to render (tries × interval) */
+const GEN_POLL_MAX=450,MOOD_POLL_MAX=900;
 function jobPoll(pid,sid,jobId,tries){
  const key=pid+':'+sid;
  clearTimeout(GEN.timer[key]);
- if(tries>240){delete GEN.busy[key];GEN.err[key]='Still rendering after 40 minutes — the job keeps running on the server; reopen the piece later.';studioRefresh();return}
+ if(tries>720){delete GEN.busy[key];GEN.err[key]='Still rendering after 1 hour — the job keeps running on the server; reopen the piece later.';studioRefresh();return}
  GEN.timer[key]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/jobs?id='+encodeURIComponent(jobId));
@@ -2446,7 +2447,7 @@ function jobPoll(pid,sid,jobId,tries){
 function genPoll(pid,sid,reqId,meta,tries){
  const key=pid+':'+sid;
  clearTimeout(GEN.timer[key]);
- if(tries>60){delete GEN.busy[key];GEN.err[key]='Generation timed out after 8 minutes — try again.';studioRefresh();return}
+ if(tries>GEN_POLL_MAX){delete GEN.busy[key];GEN.err[key]='Generation timed out after 1 hour — try again.';studioRefresh();return}
  GEN.timer[key]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/higgsfield?id='+encodeURIComponent(reqId)+(meta.v===1?'&v=1':''));
@@ -3101,7 +3102,7 @@ function shotsPoll(pid,stage,tries){
  if(stage==='mood')return moodsPoll(pid,tries);
  const slot=stage==='draft'?'clip':'keyframe',pk=pid+':'+stage;
  clearTimeout(BOARD_POLL[pk]);
- if(tries>240){const p=PROJECTS.find(x=>x.id===pid);if(p){delete GEN.busy[pk];GEN.err[pk]=(slot==='clip'?'Clips':'Keyframes')+' still rendering after 20 minutes — the jobs keep running on the server; reopen the piece later.'}studioRefresh();return}
+ if(tries>900){const p=PROJECTS.find(x=>x.id===pid);if(p){delete GEN.busy[pk];GEN.err[pk]=(slot==='clip'?'Clips':'Keyframes')+' still rendering after 1 hour — the jobs keep running on the server; reopen the piece later.'}studioRefresh();return}
  BOARD_POLL[pk]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/studio?shots='+encodeURIComponent(pid)+'&stage='+stage);const d=await r.json().catch(()=>({}));
@@ -3121,7 +3122,7 @@ function shotsPoll(pid,stage,tries){
 /* the three moods fill in one by one; each poll also moves the renders along on the server */
 function moodsPoll(pid,tries){
  const pk=pid+':mood';clearTimeout(BOARD_POLL[pk]);
- if(tries>300){delete GEN.busy[pk];GEN.err[pk]='Moods still rendering after 20 minutes — the jobs keep running on the server; reopen the piece later.';studioRefresh();return}
+ if(tries>MOOD_POLL_MAX){delete GEN.busy[pk];GEN.err[pk]='Moods still rendering after 1 hour — the jobs keep running on the server; reopen the piece later.';studioRefresh();return}
  BOARD_POLL[pk]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/studio?shots='+encodeURIComponent(pid)+'&stage=mood');const d=await r.json().catch(()=>({}));

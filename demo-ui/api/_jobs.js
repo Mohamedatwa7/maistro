@@ -36,9 +36,10 @@ const KIND_STAGE = { hermes_image: ['mood', 'thumb', 'board'], hermes_video: ['d
 const POLL_S = { hermes_image: 8, hermes_video: 15, hermes_brief: 10, higgsfield_image: 20, higgsfield_video: 45, f1x8_image: 60, f1x8_video: 90, vision_check: 150, assemble: 290, clip_check: 200 };
 // PLAN mode is one run that writes the story and makes every keyframe (up to 8, each with its QA, on a ~1M-token
 // context): far longer than one image, so it gets its own limit
-const PLAN_TIMEOUT_S = 75 * 60;
+const PLAN_TIMEOUT_S = 75 * 60; // already over an hour
 const timeoutOf = (job) => (job.payload && job.payload.planMode ? PLAN_TIMEOUT_S : TIMEOUT_S[job.kind] || 1800);
-const TIMEOUT_S = { hermes_image: 20 * 60, hermes_video: 45 * 60, hermes_brief: 15 * 60, higgsfield_image: 15 * 60, higgsfield_video: 20 * 60, f1x8_image: 30 * 60, f1x8_video: 45 * 60, vision_check: 10 * 60, assemble: 15 * 60, clip_check: 10 * 60 };
+// owner 2026-11-05: content creation gets up to one hour before a render is called timed out
+const TIMEOUT_S = { hermes_image: 60 * 60, hermes_video: 60 * 60, hermes_brief: 60 * 60, higgsfield_image: 60 * 60, higgsfield_video: 60 * 60, f1x8_image: 30 * 60, f1x8_video: 45 * 60, vision_check: 10 * 60, assemble: 15 * 60, clip_check: 10 * 60 };
 const MAX_SUBMIT_ATTEMPTS = 3;
 // A job about to be submitted is leased for longer than the submit itself can take (the 30 s Hermes POST timeout,
 // plus pricing and signing), so no second tick can re-claim and submit it while the first is still waiting.
