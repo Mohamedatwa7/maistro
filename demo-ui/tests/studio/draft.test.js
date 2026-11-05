@@ -9,7 +9,7 @@ const ENV = { SUPABASE_URL: 'https://sb.test', SUPABASE_SERVICE_ROLE_KEY: 'k', A
 const MP4 = new Uint8Array([0, 0, 0, 24, 102, 116, 121, 112, 105, 115, 111, 109]);
 const shot = (n, durationS, visible, type = 'medium') => ({ n, durationS, type, camera: `camera ${n}`, action: `action ${n}`, product: { visible, feature: visible ? 'FlexWindow' : '' }, onScreenText: { en: n === 1 ? 'Hook' : '', ar: n === 1 ? 'هوك' : '' }, line: { en: '', ar: '' }, audioCue: 'ambient', transition: n === 4 ? 'none' : 'cut', keyframe: { state: 'rendered', url: `https://cdn/k${n}.png`, assetPath: `pieces/gen-dr1/board/k${n}.png`, sha256: 'a'.repeat(64), jobId: `kj${n}` }, review: { decision: 'approved', by: 'N' } });
 
-test('POST /api/studio action draft: refused while a keyframe is missing; an unreviewed shot does not hold it (owner 2026-11-05: no storyboard approval needed); then one image-to-video job per shot (keyframe signed once and kept on the job, duration clamped to 4–30 s, the keyframe URL as the first frame); clips attach to the draft version; per-clip review; one clip re-renders alone', async () => {
+test('POST /api/studio action draft: refused while a keyframe is missing; an unreviewed shot does not hold it (owner 2026-11-05: no storyboard approval needed); then ONE continuous take through every scene keyframe (owner 2026-11-05: one flowing video, not clips joined together; keyframes signed once and kept on the job, the first scene as the first frame); the take lands on every scene as its slice; re-rendering a scene renders the whole take', async () => {
   const pg = fakePostgrest();
   const H = hermesFake(); const hf = H.state;
   const f = mockFetch([
@@ -35,34 +35,44 @@ test('POST /api/studio action draft: refused while a keyframe is missing; an unr
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft', pieceId: 'gen-dr1', resolution: '1080p' } }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     assert.equal(r.body.version, 1); assert.equal(r.body.artifact.version, 'v1'); assert.equal(r.body.artifact.totalS, 15); assert.equal(r.body.artifact.resolution, '1080p'); assert.equal(r.body.artifact.boardVersionId, bv.versionId); assert.equal(r.body.artifact.videoUrl, null); assert.equal(r.body.artifact.shots[0].clip, null); assert.equal(r.body.artifact.shots[0].keyframe.assetPath, 'pieces/gen-dr1/board/k1.png');
-    assert.equal(r.body.jobs.length, 4); assert.ok(r.body.jobs.every((j) => j.state === 'running'), JSON.stringify(r.body.jobs.map((j) => [j.state, j.error])));
+    // owner 2026-11-05: the 4 scenes (15 s) render as ONE continuous take, not 4 clips joined together
+    assert.equal(r.body.artifact.oneTake, true); assert.deepEqual(r.body.artifact.takes, [{ lead: 1, shots: [1, 2, 3, 4], durationS: 15 }]);
+    assert.ok(r.body.artifact.shots.every((s) => s.take === 1 && s.transition === 'cut')); assert.equal(r.body.artifact.shots[3].boardTransition, 'none');
+    assert.equal(r.body.jobs.length, 1); assert.equal(r.body.jobs[0].state, 'running', JSON.stringify(r.body.jobs));
     const cj = pg.tables.jobs.filter((j) => j.kind === 'hermes_video');
-    assert.equal(cj.length, 4); assert.deepEqual(cj.map((j) => j.payload.duration), [4, 4, 5, 4], '4 s minimum clip; the assembly trims to the shot');
-    assert.deepEqual(cj.map((j) => j.payload.imageAssetPath), [1, 2, 3, 4].map((n) => `pieces/gen-dr1/board/k${n}.png`));
-    assert.ok(cj.every((j) => /^https:\/\/sb\.test\/storage\/v1\/object\/sign\/assets\/pieces\/gen-dr1\/board\/k\d\.png\?token=/.test(j.payload.imageUrl)), 'the keyframe was signed once and kept on the job: ' + cj[0].payload.imageUrl);
-    assert.equal(hf.runs.length, 4); assert.ok(hf.runs.every((x) => x.profile === 'video')); assert.equal(JSON.parse(hf.runs[0].body.input).first_frame_url, cj[0].payload.imageUrl, 'the keyframe is the first frame'); assert.deepEqual((({ aspect, resolution, duration, audio }) => ({ aspect, resolution, duration, audio }))(JSON.parse(hf.runs[0].body.input)), { aspect: '9:16', resolution: '1080p', duration: 4, audio: true }); assert.equal(hf.runs[0].headers['Idempotency-Key'], cj[0].id);
-    assert.match(cj[0].payload.prompt, /^camera 1\. action 1 The device stays exactly as in the first frame/); assert.match(cj[3].payload.prompt, /^camera 4\. action 4 Present tense/);
+    assert.equal(cj.length, 1); assert.equal(cj[0].payload.duration, 15); assert.equal(cj[0].payload.imageAssetPath, 'pieces/gen-dr1/board/k1.png');
+    assert.deepEqual(cj[0].payload.sceneKeyframes.map((k) => k.assetPath), [1, 2, 3, 4].map((n) => `pieces/gen-dr1/board/k${n}.png`));
+    assert.ok(/sign\/assets\/pieces\/gen-dr1\/board\/k1\.png\?token=/.test(cj[0].payload.imageUrl), 'the first keyframe was signed once and kept on the job');
+    assert.equal(cj[0].payload.sceneKeyframeUrls.length, 4); cj[0].payload.sceneKeyframeUrls.forEach((u, i) => assert.match(u, new RegExp(`sign/assets/pieces/gen-dr1/board/k${i + 1}\\.png\\?token=`)));
+    assert.equal(cj[0].payload.endImageUrl, undefined, 'one take: no end frame');
+    assert.equal(hf.runs.length, 1); assert.equal(hf.runs[0].profile, 'video');
+    const input = JSON.parse(hf.runs[0].body.input);
+    assert.equal(input.first_frame_url, cj[0].payload.imageUrl, 'the first scene is the first frame'); assert.deepEqual(input.scene_keyframe_urls, cj[0].payload.sceneKeyframeUrls); assert.equal(input.single_take, true); assert.equal(input.end_frame_url, undefined);
+    assert.deepEqual((({ aspect, resolution, duration, audio }) => ({ aspect, resolution, duration, audio }))(input), { aspect: '9:16', resolution: '1080p', duration: 15, audio: true }); assert.equal(hf.runs[0].headers['Idempotency-Key'], cj[0].id);
+    assert.match(input.task, /ONE continuous single-take video that flows through the 4 storyboard scenes in order/);
+    assert.match(cj[0].payload.prompt, /^ONE continuous single-take video of about 15 seconds/); assert.match(cj[0].payload.prompt, /scene 1 \(0–2 s\): camera 1\. action 1; scene 2 \(2–6 s\): camera 2\. action 2/);
+    assert.match(cj[0].payload.prompt, /One continuous soundtrack/); assert.match(cj[0].payload.prompt, /The device stays exactly as in the keyframes/);
     assert.equal(pg.tables.stages.find((s) => s.kind === 'draft').state, 'generating');
-    // the clips land one by one on the SAME version; no vision check for clips (frame checks come with assembly)
-    hf.status = 'completed'; for (const j of cj) j.next_poll_at = new Date(Date.now() - 1000).toISOString();
-    for (const j of cj) { r = res(); await jobs.handler(req({ method: 'GET', query: { id: j.id } }), r); assert.equal(r.body.job.state, 'succeeded', JSON.stringify(r.body.job)); assert.equal(r.body.job.result.artifact, undefined); assert.equal(r.body.job.result.attached.slot, 'clip'); }
+    // the take lands on every scene, each with its slice of the take (the assembly cuts them out of the one file)
+    hf.status = 'completed'; cj[0].next_poll_at = new Date(Date.now() - 1000).toISOString();
+    r = res(); await jobs.handler(req({ method: 'GET', query: { id: cj[0].id } }), r); assert.equal(r.body.job.state, 'succeeded', JSON.stringify(r.body.job)); assert.equal(r.body.job.result.attached.slot, 'clip');
     const dv = pg.tables.artifact_versions.find((v) => v.id === r.body.job.result.attached.versionId);
-    assert.ok(dv.payload.shots.every((s) => s.clip && s.clip.state === 'rendered' && s.clip.assetPath && s.clip.sha256)); assert.equal(dv.payload.shots[0].clip.durationS, 4); assert.equal(dv.payload.shots[0].clip.fromKeyframe, 'pieces/gen-dr1/board/k1.png'); assert.equal(dv.payload.rev, 5, '4 clips + the auto-assembly key');
-    // owner 2026-10-29: the last clip settling queues the assembly by itself, once — the draft is ONE video
+    assert.ok(dv.payload.shots.every((s) => s.clip && s.clip.state === 'rendered' && s.clip.assetPath && s.clip.assetPath === dv.payload.shots[0].clip.assetPath), 'one file for every scene');
+    assert.deepEqual(dv.payload.shots.map((s) => [s.clip.take.from, s.clip.take.to]), [[0, 0.1333], [0.1333, 0.4], [0.4, 0.7333], [0.7333, 1]]);
+    assert.deepEqual(dv.payload.shots.map((s) => s.clip.fromKeyframe), [1, 2, 3, 4].map((n) => `pieces/gen-dr1/board/k${n}.png`), 'each scene names its own keyframe (staleness per scene)');
     const auto = pg.tables.jobs.filter((j) => j.kind === 'assemble'); assert.equal(auto.length, 1); assert.equal(auto[0].payload.auto, true); assert.equal(auto[0].payload.versionId, dv.id); auto[0].state = 'succeeded';
-    assert.equal(pg.tables.jobs.filter((j) => j.kind === 'vision_check').length, 0); assert.equal(pg.tables.artifact_versions.filter((v) => v.stage_id === pg.tables.stages.find((s) => s.kind === 'draft').id).length, 1);
     assert.equal(pg.tables.stages.find((s) => s.kind === 'draft').state, 'generated');
-    r = res(); await studio.handler(req({ method: 'GET', query: { shots: 'gen-dr1', stage: 'draft' } }), r); assert.equal(r.statusCode, 200); assert.equal(r.body.stage, 'draft'); assert.equal(r.body.live, 0); assert.equal(r.body.payload.shots.length, 4);
-    // review a clip; re-render one clip with changes (only that one), its approval cleared, history kept
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'shot-decide', stage: 'draft', pieceId: 'gen-dr1', shot: 1, decision: 'approved', name: 'N' } }), r); assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+    r = res(); await studio.handler(req({ method: 'GET', query: { shots: 'gen-dr1', stage: 'draft' } }), r); assert.equal(r.statusCode, 200); assert.equal(r.body.live, 0); assert.equal(r.body.payload.shots.length, 4);
+    // re-rendering a scene renders its whole take again (one continuous shot), with the reviewer's changes
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft-shot', pieceId: 'gen-dr1', shot: 2, changes: 'slower push-in' } }), r);
-    assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(hf.runs.length, 5); assert.match(hf.runs[4].body.input, /Changes requested by the reviewer .*slower push-in/);
-    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft-shot', pieceId: 'gen-dr1', shot: 2 } }), r); assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'busy');
+    assert.equal(r.statusCode, 200, JSON.stringify(r.body)); assert.equal(r.body.shot, 1); assert.deepEqual(r.body.take, [1, 2, 3, 4]);
+    assert.equal(hf.runs.length, 2); assert.match(hf.runs[1].body.input, /Changes requested by the reviewer .*slower push-in/); assert.match(hf.runs[1].body.input, /scene_keyframe_urls/);
+    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft-shot', pieceId: 'gen-dr1', shot: 3 } }), r); assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'busy');
     const rj = pg.tables.jobs.filter((j) => j.kind === 'hermes_video').at(-1); rj.next_poll_at = new Date(Date.now() - 1000).toISOString();
     r = res(); await jobs.handler(req({ method: 'GET', query: { id: rj.id } }), r); assert.equal(r.body.job.state, 'succeeded');
     const dv2 = pg.tables.artifact_versions.find((v) => v.id === dv.id);
-    assert.equal(dv2.payload.shots[1].clip.jobId, rj.id); assert.equal(dv2.payload.shots[1].clipHistory.length, 1); assert.equal(dv2.payload.shots[1].review, null); assert.equal(dv2.payload.shots[0].review.decision, 'approved');
-    assert.ok(pg.tables.generation_records.filter((g) => g.kind === 'hermes_video' && g.status === 'succeeded').length >= 5);
+    assert.ok(dv2.payload.shots.every((s) => s.clip.jobId === rj.id && s.clipHistory.length === 1 && s.review === null));
+    assert.ok(pg.tables.generation_records.filter((g) => g.kind === 'hermes_video' && g.status === 'succeeded').length >= 2);
     assert.equal(pg.tables.stages.find((s) => s.kind === 'draft').state, 'generated');
   } finally { f.restore(); studio.restore(); jobs.restore(); pieces.restore(); delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; }
 });
@@ -123,11 +133,27 @@ test('POST /api/studio action draft: a FAILED storyboard keyframe does not stop 
     assert.deepEqual(r.body.artifact.shots.map((x) => [x.n, x.boardShot]), [[1, 1], [2, 3], [3, 4]]); assert.deepEqual(r.body.artifact.skippedShots, [2]);
     assert.equal(r.body.artifact.totalS, 11); assert.match(r.body.artifact.note, /shot 2 left out: the keyframe failed/);
     const cj = pg.tables.jobs.filter((j) => j.kind === 'hermes_video');
-    assert.deepEqual(cj.map((j) => [j.payload.attachTo.shot, j.payload.imageAssetPath]), [[1, 'pieces/gen-dr1/board/k1.png'], [2, 'pieces/gen-dr1/board/k3.png'], [3, 'pieces/gen-dr1/board/k4.png']]);
+    // one continuous take through the scenes that are left (owner 2026-11-05)
+    assert.deepEqual(cj.map((j) => [j.payload.attachTo.shot, j.payload.imageAssetPath]), [[1, 'pieces/gen-dr1/board/k1.png']]);
+    assert.deepEqual(cj[0].payload.sceneKeyframes.map((k) => [k.n, k.assetPath]), [[1, 'pieces/gen-dr1/board/k1.png'], [2, 'pieces/gen-dr1/board/k3.png'], [3, 'pieces/gen-dr1/board/k4.png']]);
+    assert.equal(cj[0].payload.duration, 11);
     // every keyframe failed: nothing to animate
     for (const x of shots) x.keyframe = { state: 'failed' };
     await store.recordVersion('gen-dr1', 'board', { shots, hookShot: 1, totalS: 15, aspect: '9:16', prompt: 'p', note: 'n', rev: 1 }, { producedBy: 'claude', kind: 'text' });
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft', pieceId: 'gen-dr1' } }), r);
     assert.equal(r.statusCode, 409); assert.equal(r.body.code, 'prerequisites'); assert.match(r.body.error, /no usable storyboard keyframe/);
   } finally { f.restore(); studio.restore(); jobs.restore(); pieces.restore(); delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; }
+});
+
+test('page (owner 2026-11-05): a one-take first draft says it renders one continuous take through its scenes, counted by take, not by scene', async () => {
+  const X = loadPage({ fetchImpl: async () => new Promise(() => {}) });
+  try {
+    const shots = [1, 2, 3].map((n) => ({ n, durationS: 4, type: 'medium', camera: `cam ${n}`, action: `act ${n}`, product: { visible: false }, onScreenText: { en: '', ar: '' }, line: { en: '', ar: '' }, audioCue: '', transition: 'cut', take: 1, keyframe: {}, clip: null, review: null }));
+    const p = { id: 'gen-ot', generated: true, studio: true, stage: 5, title: 'T', platforms: ['tiktok'], markets: ['UAE'], th: ['#000000', '#111111'], map: { product: 'Galaxy Z Flip8', msg: 'm', angle: 'a' }, mood: {}, brief: { objective: 'o', msg: 'k', markets: ['UAE'], platforms: ['tiktok'], mandatories: [] }, board: { shots: shots.map((s) => ({ ...s, keyframe: { state: 'rendered' } })), totalS: 12, aspect: '9:16' },
+      draft: { shots, totalS: 12, aspect: '9:16', resolution: '720p', version: 'v1', oneTake: true, takes: [{ lead: 1, shots: [1, 2, 3], durationS: 12 }], variants: [{ a: '9:16', l: '720p', k: 'o', st: 'rendering' }], dur: '12s', audio: 'x' } };
+    X.PROJECTS.unshift(p);
+    const html = X.stageArtifact(p, 5);
+    assert.match(html, /ONE CONTINUOUS TAKE/); assert.match(html, /Rendering one continuous take through 3 scenes…/); assert.match(html, /one soundtrack/); assert.ok(!/Rendering 0\/3 parts/.test(html));
+    clearTimeout(X.BOARD_POLL['gen-ot:draft']);
+  } finally { X.restore(); }
 });

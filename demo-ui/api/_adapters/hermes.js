@@ -109,7 +109,9 @@ function renderRun(payload, role) {
   const n = role === 'mood' && Number(payload.batch) > 1 ? Math.min(8, Number(payload.batch)) : 1;
   const plan = role === 'board' && Boolean(payload.planMode);
   const sc = role === 'board' && !plan && payload.shotContext ? payload.shotContext : null;
-  const task = role === 'video' ? 'Make one video clip (image-to-video when first_frame_url is given: the clip starts exactly on that keyframe, keeping its product, character, setting and lighting).'
+  const scenes = role === 'video' && Array.isArray(payload.sceneKeyframeUrls) ? payload.sceneKeyframeUrls.filter(isHttps).slice(0, 12) : [];
+  const task = role === 'video' && scenes.length > 1 ? `Make ONE continuous single-take video that flows through the ${scenes.length} storyboard scenes in order (scene_keyframe_urls; the first is first_frame_url${isHttps(payload.endImageUrl) ? ', and it ends on end_frame_url' : ''}). Use a model that takes several reference images or a first and last frame (for example Seedance 2.5 reference-to-video, or image-to-video with an end image) — never render the scenes as separate clips and join them.`
+    : role === 'video' ? `Make one video clip (image-to-video when first_frame_url is given: the clip starts exactly on that keyframe, keeping its product, character, setting and lighting${isHttps(payload.endImageUrl) ? '; it ends exactly on end_frame_url' : ''}).`
     : role === 'mood' ? `Make the moodboard: ${n} cohesive image variations of one art direction.`
     : role === 'thumb' ? 'Make the thumbnail / cover key visual, with no headline text (Maistro sets the type itself).'
     : plan ? 'Write the story and shot list, then make all keyframes'
@@ -128,6 +130,8 @@ function renderRun(payload, role) {
     product_image_urls: productImagesOf(payload),
     ...(role === 'video' ? { duration: clipSeconds(payload.duration), audio: payload.generateAudio !== false } : {}),
     ...(role === 'video' && isHttps(payload.imageUrl) ? { first_frame_url: payload.imageUrl } : {}),
+    ...(scenes.length > 1 ? { scene_keyframe_urls: scenes, single_take: true } : {}),
+    ...(role === 'video' && isHttps(payload.endImageUrl) ? { end_frame_url: payload.endImageUrl } : {}),
     ...(anchors.length ? { moodboard_image_urls: anchors, moodboard_images: anchors.map((url) => ({ url, look_reference: true })) } : {}),
     ...(sc ? { shot_index: sc.shot_index, shot_count: sc.shot_count, story: sc.story || null, shot_list: sc.shot_list || [], previous_keyframe_urls: (payload.previousKeyframeUrls || []).filter(isHttps) } : {}),
     ...(plan && payload.planContext ? { brief: payload.planContext.brief || null, story: payload.planContext.story || null, shot_count_range: [4, 8], target_duration_s: payload.planContext.targetDurationS || null } : {}),

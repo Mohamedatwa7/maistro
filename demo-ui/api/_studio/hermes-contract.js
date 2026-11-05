@@ -266,6 +266,49 @@ function approvedKeyframe(boardShot) {
   return kf && boardShot.review && boardShot.review.decision === 'approved' ? kf : null;
 }
 const kfId = (kf) => (kf ? kf.assetPath || kf.url || kf.jobId || null : null); // clip.fromKeyframe is the keyframe's asset path
+
+// ---------- one continuous take (owner 2026-11-05) ----------
+// "the video should have a flow so it feels like one long clip rather than separate clips joined together":
+// the storyboard keyframes are the SCENES of the video. Consecutive scenes render together as ONE take of at most
+// TAKE_MAX_S (the video bot's longest clip); a longer storyboard becomes several takes, each ending on the next
+// take's first keyframe so they join on the same frame.
+const TAKE_MAX_S = 15;
+const sceneS = (s) => Math.max(0.5, Number(s && s.durationS) || 4);
+/** shots (in order, each with n and durationS) → [{ lead, shots: [n], durationS, slices: [{ n, from, to }] }];
+ *  a slice is the scene's share of its take as fractions, so the rendered take's real length decides the seconds. */
+function takesFrom(shots = [], maxS = TAKE_MAX_S) {
+  const takes = [];
+  for (const s of shots) {
+    const d = sceneS(s);
+    let t = takes[takes.length - 1];
+    if (!t || t.durationS + d > maxS + 1e-9) { t = { lead: s.n, shots: [], durationS: 0 }; takes.push(t); }
+    t.shots.push(s.n); t.durationS = Math.round((t.durationS + d) * 100) / 100;
+  }
+  const r4 = (x) => Math.round(x * 10000) / 10000;
+  for (const t of takes) {
+    let acc = 0;
+    t.slices = t.shots.map((n) => { const d = sceneS(shots.find((x) => x.n === n)); const from = acc; acc += d; return { n, from: r4(from / t.durationS), to: r4(acc / t.durationS) }; });
+  }
+  return takes;
+}
+/** The video bot's prompt for one take: the scenes in order with their timing, continuous camera motion between
+ *  them, one soundtrack, and the end frame when the next take starts there. */
+function takePrompt(scenes = [], { endFrame = false, changes = '' } = {}) {
+  const total = scenes.reduce((a, s) => a + sceneS(s), 0);
+  let at = 0;
+  const parts = scenes.map((s, i) => { const a = at; at += sceneS(s); return `scene ${i + 1} (${Math.round(a * 10) / 10}–${Math.round(at * 10) / 10} s): ${String(s.camera || '').trim()}. ${String(s.action || '').trim()}`.replace(/\s+/g, ' ').replace(/\.\s*\./g, '.').replace(/[.\s]+$/, ''); });
+  const product = scenes.some((s) => s.product && s.product.visible) ? ' The device stays exactly as in the keyframes — no morphing, no extra buttons, no logos.' : '';
+  return [
+    scenes.length > 1
+      ? `ONE continuous single-take video of about ${Math.round(total)} seconds — no cuts, no fades, never separate clips joined together. It flows through ${scenes.length} scenes in order, each one matching its keyframe (scene_keyframe_urls, in the same order; the first is first_frame_url): ${parts.join('; ')}.`
+      : `One continuous shot of about ${Math.round(total)} seconds: ${parts[0] || ''}.`,
+    scenes.length > 1 ? 'Carry the camera from each scene into the next with one continuous motion (a push-in, pan, orbit, follow or match-move through the action) so the whole video plays as one flowing shot, with the same character, wardrobe, product, setting and lighting throughout.' : 'One continuous motion, no cuts.',
+    'One continuous soundtrack and ambience for the whole video — the sound never restarts.',
+    endFrame ? 'End exactly on end_frame_url: the next part of the video starts on that frame.' : '',
+    `${product.trim()} Present tense, no on-screen text, no captions.`,
+    changes ? `Changes requested by the reviewer (apply only these, keep everything else): ${changes}.` : '',
+  ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+}
 /** Draft shots whose clip was made from a keyframe that is no longer the storyboard shot's current one.
  *  → [{ n, boardShot, from, current }] */
 function staleClips(boardShots = [], draftShots = []) {
@@ -354,5 +397,5 @@ module.exports = {
   BUDGET_DEFAULTS, BUDGET_FLOORS, budgets, budgetFor, FOCUS_PRODUCTS, focusWeight, FOCUS_INSTRUCTION, namesProduct, focusPick,
   TEST_MODE_INSTRUCTION, TEST_MODE_MAX_CREDITS, testMode, TEXT_RULE, END_CARD_RULE, LOOK_REF_RULE,
   SCHEMAS, validate, normQa, normFrame, normStory, wantsNewFrame, botError, interpret, reviewResult, fixAction,
-  ORDER, orderCheck, orderMode, currentKeyframe, approvedKeyframe, staleClips, botShot, storyFrom, shotsFromFrames, redact,
+  ORDER, orderCheck, orderMode, currentKeyframe, approvedKeyframe, staleClips, TAKE_MAX_S, takesFrom, takePrompt, botShot, storyFrom, shotsFromFrames, redact,
 };

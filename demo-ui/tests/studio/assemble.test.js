@@ -41,3 +41,18 @@ test('assemble: three synthetic clips trimmed to 2 / 1.5 / 2 s with one dissolve
     assert.equal(A.frameFor('16:9', '1080p')[0], 1920); assert.equal(A.frameFor('1:1', '720p')[1], 720);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('assemble: the scenes of one continuous take (owner 2026-11-05) are slices of ONE file — cut back to back, they rebuild the take with no jump; an overlay stays on its scene', { skip: !have && 'ffmpeg binary not available' }, async () => {
+  const dir = A.tmpDir('maistro-test-');
+  try {
+    const take = await synth(dir, 'take.mp4', 6);
+    const ov = path.join(dir, 'ov.png');
+    await A.run(['-f', 'lavfi', '-i', 'color=c=red@0.6:s=200x100:d=1,format=rgba', '-frames:v', '1', ov]);
+    const out = path.join(dir, 'cut.mp4');
+    const r = await A.assemble({ shots: [{ n: 1, file: take, slice: { from: 0, to: 0.25 }, transition: 'cut', overlayFile: ov }, { n: 2, file: take, slice: { from: 0.25, to: 0.75 }, transition: 'cut', overlayFile: null }, { n: 3, file: take, slice: { from: 0.75, to: 1 }, transition: 'cut', overlayFile: null }], aspect: '9:16', resolution: '720p', out });
+    assert.deepEqual(r.shots.map((s) => [s.startS, s.trimS]), [[0, 1.5], [1.5, 3], [4.5, 1.5]], 'each scene is its share of the take\'s real length');
+    assert.ok(Math.abs(r.durationS - 6) < 0.35, `the cut is the whole take: ${r.durationS}`); assert.equal(r.hasAudio, true);
+    assert.ok(/trim=1\.5:4\.5,setpts/.test(r.filterGraph) && /atrim=4\.5:6,asetpts/.test(r.filterGraph), r.filterGraph.slice(0, 400));
+    assert.ok(!/xfade/.test(r.filterGraph), 'no dissolve inside a take');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});

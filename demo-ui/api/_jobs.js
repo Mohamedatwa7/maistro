@@ -169,6 +169,15 @@ async function advance(job) {
           job = { ...job, payload: { ...job.payload, imageUrl } };
           await patchRows('jobs', `id=eq.${q(job.id)}`, { payload: job.payload });
         }
+        // owner 2026-11-05: a continuous take sees every scene keyframe in order (and the next take's first frame)
+        if (isVideoKind(job.kind) && Array.isArray(job.payload.sceneKeyframes) && !job.payload.sceneKeyframeUrls) {
+          const sign = async (k) => { if (!k) return null; try { return k.assetPath ? await storage.signedUrl(k.assetPath, 24 * 3600) : k.url || null; } catch (e) { return k.url || null; } };
+          const sceneKeyframeUrls = [];
+          for (const k of job.payload.sceneKeyframes.slice(0, 12)) sceneKeyframeUrls.push(await sign(k));
+          const endImageUrl = job.payload.endKeyframe ? await sign(job.payload.endKeyframe) : null;
+          job = { ...job, payload: { ...job.payload, sceneKeyframeUrls: sceneKeyframeUrls.filter(Boolean), ...(endImageUrl ? { endImageUrl } : {}) } };
+          await patchRows('jobs', `id=eq.${q(job.id)}`, { payload: job.payload });
+        }
         // the bots see the approved mood tiles as style anchors: signed once (24 h) and kept on the job
         if (job.kind === 'hermes_image' && !job.payload.anchorUrls && job.payload.meta && Array.isArray(job.payload.meta.anchors) && job.payload.meta.anchors.length) {
           const anchorUrls = [];
@@ -263,8 +272,12 @@ async function fail(job, state, error, botError = null) {
       await updateShots(versionId, (payload) => {
         if (!Array.isArray(payload.shots) || !payload.shots[shot - 1]) return null;
         const shots = payload.shots.map((s) => ({ ...s }));
-        const prev = shots[shot - 1][slot];
-        shots[shot - 1] = { ...shots[shot - 1], [slot]: prev && prev.state === 'rendered' ? { ...prev, lastError: String(error || '').slice(0, 200), ...said } : { state: 'failed', error: String(error || '').slice(0, 200), jobId: job.id, at: nowIso(), ...said } };
+        // a continuous take failing marks every scene of the take
+        for (const m of slot === 'clip' ? takeShotsOf(job, shot) : [shot]) {
+          if (!shots[m - 1]) continue;
+          const prev = shots[m - 1][slot];
+          shots[m - 1] = { ...shots[m - 1], [slot]: prev && prev.state === 'rendered' ? { ...prev, lastError: String(error || '').slice(0, 200), ...said } : { state: 'failed', error: String(error || '').slice(0, 200), jobId: job.id, at: nowIso(), ...said } };
+        }
         return { ...payload, shots };
       });
     } catch (e) { console.warn('[jobs] shot failure could not be recorded:', e.message); }
@@ -568,6 +581,8 @@ async function settleBoardStage(job) {
   return true;
 }
 
+/** The draft shots a clip job covers: every scene of its continuous take, else its one shot. */
+const takeShotsOf = (job, shot) => (job.payload && job.payload.take && Array.isArray(job.payload.take.shots) && job.payload.take.shots.length ? job.payload.take.shots.map(Number) : [Number(shot)]);
 /** The 3D model's views on a render job (public URLs): the vision check holds the product to them. */
 const productViewsOf = (payload) => (payload && payload.productModel && Array.isArray(payload.productViews) ? payload.productViews.slice(0, 3) : []);
 
@@ -618,8 +633,15 @@ async function attachKeyframe(job, { artifact, sourceUrl, copy, meta, stage, slo
     const r = await updateShots(versionId, (payload) => {
       if (!Array.isArray(payload.shots) || !payload.shots[shot - 1]) return null;
       const next = payload.shots.map((s) => ({ ...s }));
-      const prev = next[shot - 1][slot];
-      next[shot - 1] = { ...next[shot - 1], [slot]: keyframe, [history]: [...(next[shot - 1][history] || []), ...(prev && prev.state === 'rendered' ? [prev] : [])], review: null };
+      // owner 2026-11-05: one continuous take lands on every scene it covers; each scene is its slice of the take
+      const take = slot === 'clip' && job.payload.take && Array.isArray(job.payload.take.slices) ? job.payload.take : null;
+      for (const sl of take ? take.slices : [{ n: shot }]) {
+        const m = Number(sl.n); if (!next[m - 1]) continue;
+        const kfOf = take ? (job.payload.sceneKeyframes || []).find((k) => Number(k.n) === m) : null;
+        const value = take ? { ...keyframe, fromKeyframe: kfOf ? kfOf.assetPath || kfOf.url || null : keyframe.fromKeyframe, take: { lead: take.lead, shots: take.shots, from: sl.from, to: sl.to } } : keyframe;
+        const prev = next[m - 1][slot];
+        next[m - 1] = { ...next[m - 1], [slot]: value, [history]: [...(next[m - 1][history] || []), ...(prev && prev.state === 'rendered' ? [prev] : [])], review: null };
+      }
       return { ...payload, shots: next };
     });
     if (r.unchanged) { await fail(job, 'failed', `storyboard version or shot ${shot} not found`); return 'failed'; }
@@ -727,12 +749,16 @@ async function frameFix({ clipJob, note, generatedBy = null }) {
 /** The fixed keyframe landed: render the clip again from it (the draft shot now names the new keyframe). */
 async function queueRetryClip(kfJob, keyframe) {
   const rc = kfJob.payload.retryClip;
-  const { imageAssetPath, imageUrl, ...rest } = rc.clipPayload || {};
+  const { imageAssetPath, imageUrl, sceneKeyframeUrls, endImageUrl, ...rest } = rc.clipPayload || {};
+  const newRef = keyframe.assetPath ? { assetPath: keyframe.assetPath } : { url: keyframe.url };
+  // a continuous take: the new frame replaces its scene's keyframe (the URLs are signed again on submit)
+  if (Array.isArray(rest.sceneKeyframes)) rest.sceneKeyframes = rest.sceneKeyframes.map((k) => (Number(k.n) === Number(rc.draftShot) ? { n: k.n, ...newRef } : k));
   const payload = { ...rest, ...(keyframe.assetPath ? { imageAssetPath: keyframe.assetPath } : { imageUrl: keyframe.url }), meta: { ...(rest.meta || {}), fromKeyframeJob: kfJob.id }, retriedFrom: rc.failedJobId };
   await updateShots(rc.draftVersionId, (pl) => {
     if (!Array.isArray(pl.shots) || !pl.shots[rc.draftShot - 1]) return null;
     const shots = pl.shots.map((x) => ({ ...x }));
-    shots[rc.draftShot - 1] = { ...shots[rc.draftShot - 1], keyframe: { url: keyframe.url, assetPath: keyframe.assetPath, sha256: keyframe.sha256, jobId: kfJob.id }, clip: { state: 'pending', retriedFrom: rc.failedJobId } };
+    shots[rc.draftShot - 1] = { ...shots[rc.draftShot - 1], keyframe: { url: keyframe.url, assetPath: keyframe.assetPath, sha256: keyframe.sha256, jobId: kfJob.id } };
+    for (const m of takeShotsOf({ payload: rest }, rc.draftShot)) if (shots[m - 1]) shots[m - 1] = { ...shots[m - 1], clip: { state: 'pending', retriedFrom: rc.failedJobId } };
     return { ...pl, shots };
   });
   const [row] = await insertRows('jobs', [{ piece_id: kfJob.piece_id, stage_id: rc.draftStageId, kind: 'hermes_video', state: 'queued', attempts: 0, next_poll_at: nowIso(), payload }], { returning: true });
@@ -820,12 +846,15 @@ async function runAssemble(job) {
   if (!shots.length) { await fail(job, 'failed', 'no rendered clip to assemble'); return 'failed'; }
   const dir = A.tmpDir('maistro-cut-');
   try {
-    const inputs = [];
+    const inputs = []; const fetched = new Map();
     for (const s of shots) {
-      const file = path.join(dir, `clip-${s.n}.mp4`); await fetchToFile(s.clip.assetPath, file);
+      // owner 2026-11-05: the scenes of one continuous take share one file; each is its slice, joined by a plain cut
+      let file = fetched.get(s.clip.assetPath);
+      if (!file) { file = path.join(dir, `clip-${s.n}.mp4`); await fetchToFile(s.clip.assetPath, file); fetched.set(s.clip.assetPath, file); }
       let overlayFile = null;
       if (s.overlay && s.overlay.assetPath) { overlayFile = path.join(dir, `ov-${s.n}.png`); await fetchToFile(s.overlay.assetPath, overlayFile); }
-      inputs.push({ n: s.n, file, trimS: Number(s.durationS) || undefined, transition: s.transition || 'cut', overlayFile });
+      const take = s.clip.take && Number.isFinite(Number(s.clip.take.from)) && Number.isFinite(Number(s.clip.take.to)) ? s.clip.take : null;
+      inputs.push({ n: s.n, file, trimS: Number(s.durationS) || undefined, transition: take ? 'cut' : s.transition || 'cut', overlayFile, ...(take ? { slice: { from: Number(take.from), to: Number(take.to) } } : {}) });
     }
     const out = path.join(dir, 'cut.mp4');
     const r = await A.assemble({ shots: inputs, aspect: v.payload.aspect || '9:16', resolution: v.payload.resolution || '720p', out });

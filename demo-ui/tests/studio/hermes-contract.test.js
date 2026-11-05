@@ -181,3 +181,17 @@ test('page: the storyboard shows act, device pose, transition and the bot\'s QA;
     assert.match(rv, /🔍 Review campaign/); assert.match(rv, /Titanium Black/); assert.match(rv, /Miscommunications/); assert.match(rv, /reviewFix\('gen-hc1',0\)">Run this fix →/); assert.match(rv, /no bot for this/);
   } finally { X.restore(); }
 });
+
+test('takes (owner 2026-11-05): consecutive storyboard scenes group into continuous takes of at most 15 s, each scene a fraction of its take; the prompt walks the scenes in order with one camera move and one soundtrack', () => {
+  const C = require('../../api/_studio/hermes-contract.js');
+  const sh = (n, d, visible = false) => ({ n, durationS: d, camera: `cam ${n}`, action: `act ${n}.`, product: { visible } });
+  assert.deepEqual(C.takesFrom([sh(1, 2), sh(2, 4), sh(3, 5), sh(4, 4)]).map((t) => [t.lead, t.shots, t.durationS]), [[1, [1, 2, 3, 4], 15]]);
+  const two = C.takesFrom([sh(1, 6), sh(2, 6), sh(3, 6)]);
+  assert.deepEqual(two.map((t) => [t.lead, t.shots, t.durationS]), [[1, [1, 2], 12], [3, [3], 6]]);
+  assert.deepEqual(two[0].slices, [{ n: 1, from: 0, to: 0.5 }, { n: 2, from: 0.5, to: 1 }]);
+  assert.deepEqual(C.takesFrom([sh(1, 10), sh(2, 10)], Infinity).map((t) => t.shots), [[1, 2]], 'a re-render keeps its take together');
+  const p = C.takePrompt([sh(1, 2, true), sh(2, 4)], { endFrame: true, changes: 'warmer light' });
+  assert.match(p, /^ONE continuous single-take video of about 6 seconds — no cuts/); assert.match(p, /scene 1 \(0–2 s\): cam 1\. act 1; scene 2 \(2–6 s\): cam 2\. act 2\./);
+  assert.match(p, /one continuous motion/); assert.match(p, /One continuous soundtrack/); assert.match(p, /End exactly on end_frame_url/); assert.match(p, /The device stays exactly as in the keyframes/); assert.match(p, /Changes requested by the reviewer .*warmer light/);
+  assert.match(C.takePrompt([sh(1, 5)]), /^One continuous shot of about 5 seconds: scene 1 \(0–5 s\): cam 1\. act 1\. One continuous motion, no cuts\./);
+});

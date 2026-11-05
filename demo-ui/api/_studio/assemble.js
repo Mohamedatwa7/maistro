@@ -78,18 +78,22 @@ async function assemble({ shots, aspect = '9:16', resolution = '720p', out, loud
   for (const s of shots) {
     const p = await probe(s.file);
     if (!p.hasVideo) throw new Error(`shot ${s.n}: clip has no video stream`);
-    const trim = Math.min(Number(s.trimS) || p.durationS, p.durationS);
-    info.push({ n: s.n, source: p, trimS: Math.round(trim * 1000) / 1000, transition: s.transition || 'cut', overlay: Boolean(s.overlayFile) });
+    // a scene of a continuous take (owner 2026-11-05) is its slice of the shared file, as fractions of its real length
+    const sl = s.slice && Number(s.slice.to) > Number(s.slice.from) ? s.slice : null;
+    const start = sl ? Math.max(0, Math.min(p.durationS - 0.1, Number(sl.from) * p.durationS)) : 0;
+    const trim = sl ? Math.max(0.1, Math.min(p.durationS, Number(sl.to) * p.durationS) - start) : Math.min(Number(s.trimS) || p.durationS, p.durationS);
+    const end = start + trim;
+    info.push({ n: s.n, source: p, trimS: Math.round(trim * 1000) / 1000, ...(sl ? { startS: Math.round(start * 1000) / 1000 } : {}), transition: s.transition || 'cut', overlay: Boolean(s.overlayFile) });
     const vi = ii; inputs.push('-i', s.file); ii++;
     let oi = null; if (s.overlayFile) { oi = ii; inputs.push('-i', s.overlayFile); ii++; }
     // video: trim, conform to the platform frame (scale to cover, crop), fps, overlay
-    let v = `[${vi}:v]trim=0:${trim},setpts=PTS-STARTPTS,scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},fps=${FPS},format=yuv420p,setsar=1`;
+    let v = `[${vi}:v]trim=${start}:${end},setpts=PTS-STARTPTS,scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},fps=${FPS},format=yuv420p,setsar=1`;
     if (oi != null) { filters.push(`[${oi}:v]scale=${W}:${H}:flags=lanczos,format=rgba[ov${s.n}]`); v += `[vb${s.n}];[vb${s.n}][ov${s.n}]overlay=0:0:format=auto`; }
     // fps LAST: setpts (ffmpeg 6.x, the Linux ffmpeg-static build) and a single-frame PNG overlay both leave the
     // output at an unknown rate, which xfade rejects ("current rate of 1/0"); fps restores a constant rate
     v += `,settb=AVTB,setpts=PTS-STARTPTS,fps=${FPS}[v${s.n}]`; filters.push(v); // one rate and timebase for every segment: xfade and concat need it
     // audio: the clip's own track trimmed, or silence when the clip has none
-    if (p.hasAudio) filters.push(`[${vi}:a]atrim=0:${trim},asetpts=PTS-STARTPTS,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[a${s.n}]`);
+    if (p.hasAudio) filters.push(`[${vi}:a]atrim=${start}:${end},asetpts=PTS-STARTPTS,aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo[a${s.n}]`);
     else filters.push(`anullsrc=r=48000:cl=stereo,atrim=0:${trim},asetpts=PTS-STARTPTS[a${s.n}]`);
   }
   // chain: cut = concat; dissolve = xfade + acrossfade (offset = accumulated length − fade)

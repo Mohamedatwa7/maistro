@@ -65,7 +65,8 @@ The ledger regex on the Hermes side is `^maistro-gen-([A-Za-z0-9]+)-([a-z]+)`.
 | `shot_index`, `shot_count`, `story`, `shot_list`, `previous_keyframe_urls` | board (one keyframe) | see A below |
 | `brief`, `story`, `shot_count_range`, `target_duration_s` | board (PLAN mode) | see A below |
 | `fix_request` | board | the video bot's note (D) or a review fix |
-| `first_frame_url`, `duration`, `audio` | video | the first frame is the storyboard shot's **approved** keyframe (C) |
+| `first_frame_url`, `duration`, `audio` | video | the first frame is the first scene's storyboard keyframe (C) |
+| `scene_keyframe_urls`, `single_take`, `end_frame_url` | video | owner 2026-11-05: every scene keyframe of the take in order — make ONE continuous take through them (multi-reference or first/last-frame model), never separate clips; `end_frame_url` = the next take's first keyframe, when there is one |
 | `style_reference_urls` | render bots | the user's own reference images |
 | `reviewer_changes` | render bots | a re-render's requested changes |
 | `max_credits` | render bots | from the budgets below (E); 1 in TEST MODE |
@@ -142,18 +143,21 @@ The product spec:
     keyframe with its QA on a ~1M-token context. On a timeout the error says to untick PLAN mode and render shot by
     shot. Every Hermes job gets one last status check at its limit, so a run that just finished is still taken.
     Maistro does not cancel the bot's run on a timeout; it may still finish and spend on the Hermes side.
-  - The reply `{ story, frames[], note, qa }` becomes the storyboard version's shots, each with its keyframe and
-    the per-frame `act`, `beat`, `device_pose`, `transition`, `qa` and `story_flag`.
+  - The reply `{ story, frames[], note, qa }` be**The first draft is one continuous video (owner 2026-11-05; replaces the 2026-11-02 approval rule):**
 
-The storyboard page shows the story, each shot's act, device pose and transition, the bot's QA verdict, notes and
-spec card, and any story flag.
+- **No approval needed:** the first draft waits only while a keyframe is still rendering. Every rendered keyframe
+  that was not rejected is used; failed and rejected shots are left out.
+- **Scenes, not clips:** the storyboard keyframes are the scenes. Consecutive scenes render together as ONE
+  continuous take of at most 15 s: `first_frame_url` is the first scene, `scene_keyframe_urls` lists every scene
+  in order, and the prompt gives each scene's timing, one continuous camera move between them and one soundtrack.
+  A storyboard longer than 15 s becomes several takes; each ends on `end_frame_url` (the next take's first frame).
+- **Assembly:** each scene is its slice of its take (same file, joined by plain cuts), so its captions and overlay
+  stay on its own seconds.
+- **Re-renders:** re-rendering any scene renders its whole take again from the current keyframes.
+- **Skipping the storyboard:** one text-to-video clip from the brief is made only when the storyboard step is
+  explicitly **skipped**. Without a storyboard and without the skip, the draft is refused.
 
-**The video waits for the storyboard (owner 2026-11-02; this replaces the 2026-10-28/29 "no step waits" rule):**
-
-- **Approved keyframes only:** the first draft is refused (409 `prerequisites`) while a keyframe is rendering or
-  a rendered shot is not yet approved or rejected.
-- **What becomes a clip:** each approved shot becomes one clip, and its `first_frame_url` is that approved
-  keyframe. Failed and rejected shots are left out. At least one shot must be approved.
+ approved.
 - **Re-renders:** a clip re-render needs the shot's keyframe approved, and uses it.
 - **Skipping the storyboard:** one text-to-video clip from the brief is made only when the storyboard step is
   explicitly **skipped**. Without a storyboard and without the skip, the draft is refused.

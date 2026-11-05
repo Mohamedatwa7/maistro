@@ -87,9 +87,10 @@ test('products3d: the draft sends the 3D views with clips that show the device (
     r = res(); await studio.handler(req({ method: 'POST', body: { action: 'draft', pieceId: 'gen-p3' } }), r);
     assert.equal(r.statusCode, 200, JSON.stringify(r.body));
     const clips = pg.tables.jobs.filter((j) => j.kind === 'hermes_video').sort((a, b) => a.payload.attachTo.shot - b.payload.attachTo.shot);
-    assert.equal(clips.length, 2);
+    // owner 2026-11-05: both scenes render as one continuous take; it shows the device, so it carries the 3D views
+    assert.equal(clips.length, 1);
     assert.deepEqual(clips[0].payload.refs, [VIEW(1), VIEW(2)]); assert.equal(clips[0].payload.productModel, 'galaxy-z-flip8'); assert.equal(clips[0].payload.imageAssetPath, 'pieces/gen-p3/board/k1.png');
-    assert.equal(clips[1].payload.refs, undefined, 'a shot without the device gets no product reference');
+    assert.deepEqual(clips[0].payload.sceneKeyframes.map((k) => k.assetPath), ['pieces/gen-p3/board/k1.png', 'pieces/gen-p3/board/k2.png']);
   } finally { f.restore(); studio.restore(); pieces.restore(); delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; }
 });
 

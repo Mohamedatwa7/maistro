@@ -57,17 +57,23 @@ test('first draft with the storyboard SKIPPED: ONE text-to-video clip from the p
   } finally { done(); }
 });
 
-test('auto-assembly: a failed clip is left out — the other clips still join into one video, assembled once', async () => {
+test('auto-assembly: a failed take is left out — the other takes still join into one video, assembled once; a storyboard over 15 s becomes several continuous takes, each ending on the next one\'s first keyframe (owner 2026-11-05)', async () => {
   const { pg, hf, h, call, done } = setup();
   try {
     await call(h.pieces, PLAN('gen-fx2'));
     const store = require('../../api/_store.js');
     const kf = (n) => ({ state: 'rendered', url: `https://cdn/k${n}.png`, assetPath: `pieces/gen-fx2/board/k${n}.png`, sha256: 'f'.repeat(64) });
-    const shot = (n) => ({ n, durationS: 3, type: 'medium', camera: `camera ${n}`, action: `action ${n}`, product: { visible: false }, onScreenText: { en: '', ar: '' }, line: { en: '', ar: '' }, audioCue: '', transition: 'cut', keyframe: kf(n), review: { decision: 'approved', by: 'N' } });
-    await store.recordVersion('gen-fx2', 'board', { shots: [shot(1), shot(2), shot(3)], totalS: 9, aspect: '9:16', prompt: 'p', note: 'n', rev: 0 }, { producedBy: 'claude', kind: 'text' });
+    const shot = (n) => ({ n, durationS: 8, type: 'medium', camera: `camera ${n}`, action: `action ${n}`, product: { visible: false }, onScreenText: { en: '', ar: '' }, line: { en: '', ar: '' }, audioCue: '', transition: 'cut', keyframe: kf(n), review: { decision: 'approved', by: 'N' } });
+    await store.recordVersion('gen-fx2', 'board', { shots: [shot(1), shot(2), shot(3)], totalS: 24, aspect: '9:16', prompt: 'p', note: 'n', rev: 0 }, { producedBy: 'claude', kind: 'text' });
     let r = await call(h.studio, { action: 'draft', pieceId: 'gen-fx2' }); assert.equal(r.statusCode, 200, JSON.stringify(r.body));
-    const cj = pg.tables.jobs.filter((j) => j.kind === 'hermes_video'); assert.equal(cj.length, 3);
-    hf.status = (run) => (run === hf.runs[1] ? 'failed' : 'completed');
+    const cj = pg.tables.jobs.filter((j) => j.kind === 'hermes_video'); assert.equal(cj.length, 3, '8 + 8 s is over 15 s: one take per scene');
+    assert.deepEqual(r.body.artifact.takes.map((t) => t.shots), [[1], [2], [3]]);
+    assert.deepEqual(cj.map((j) => j.payload.endKeyframe && j.payload.endKeyframe.assetPath), ['pieces/gen-fx2/board/k2.png', 'pieces/gen-fx2/board/k3.png', undefined]);
+    const inputs = hf.runs.map((x) => JSON.parse(x.body.input)); const runOf = (n) => inputs.findIndex((i) => new RegExp(`board/k${n}\\.png`).test(i.first_frame_url)); // takes submit concurrently
+    assert.match(inputs[runOf(1)].end_frame_url, /sign\/assets\/pieces\/gen-fx2\/board\/k2\.png/); assert.match(inputs[runOf(2)].end_frame_url, /board\/k3\.png/); assert.equal(inputs[runOf(3)].end_frame_url, undefined);
+    assert.match(cj[0].payload.prompt, /End exactly on end_frame_url/); assert.ok(!/End exactly/.test(cj[2].payload.prompt));
+    const failRun = hf.runs[runOf(2)];
+    hf.status = (run) => (run === failRun ? 'failed' : 'completed');
     for (const j of cj) { j.next_poll_at = new Date(Date.now() - 1000).toISOString(); await call(h.jobs, { id: j.id }, 'GET'); }
     const aj = pg.tables.jobs.filter((j) => j.kind === 'assemble'); assert.equal(aj.length, 1, 'queued once, when the last clip settled');
     const dv = pg.tables.artifact_versions.find((v) => v.id === aj[0].payload.versionId);

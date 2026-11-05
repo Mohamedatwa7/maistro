@@ -673,14 +673,49 @@ module.exports = async (req, res) => {
       const pr = await products3d.renderRefs(piece.product, b.refImage);
       const clipRefs = (x) => (pr.refs.length && (!x.keyframe || (x.product && x.product.visible)) ? { ref: pr.ref, refs: pr.refs, ...(pr.model ? { productModel: pr.model, productViews: pr.views } : {}) } : {});
       const clipJob = (versionId, x, extra, sv) => ({ piece_id: piece.id, stage_id: ds.id, kind: 'hermes_video', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'draft', sessionVersion: sv || null, prompt: `${x.textPrompt || motion(x)}${extra ? ` Changes requested by the reviewer (apply only these, keep everything else): ${extra}.` : ''}`, ...(!x.keyframe ? {} : x.keyframe.assetPath ? { imageAssetPath: x.keyframe.assetPath } : { imageUrl: x.keyframe.url }), duration: clipDuration(x), resolution, aspect_ratio: draftAspect, generateAudio: true, ...clipRefs(x), attachTo: { versionId, shot: x.n }, generatedBy: req.member ? req.member.id : null, meta: { shot: x.n, prompt: x.textPrompt || motion(x), title: piece.title, shotDurationS: x.durationS, expectProduct: Boolean(x.product && x.product.visible), fromKeyframeJob: (x.keyframe && x.keyframe.jobId) || null } } });
+      // owner 2026-11-05: "the video should have a flow so it feels like one long clip rather than separate clips joined
+      // together". The storyboard keyframes are the SCENES; consecutive scenes render as ONE continuous take (C.takesFrom,
+      // ≤ 15 s): it starts on the first scene's keyframe, passes through the others in order (scene_keyframe_urls) with
+      // one soundtrack, and ends on the next take's first keyframe when there is one. Every scene keeps its draft row
+      // (captions, overlay, review); the assembly cuts each scene's slice out of its take, so the joins are invisible.
+      const kfRef = (k) => (k ? (k.assetPath ? { assetPath: k.assetPath } : { url: k.url || null }) : null);
+      const takeJob = (versionId, dshots, take, nextLead, extra, sv) => {
+        const scenes = take.shots.map((n) => dshots[n - 1]);
+        const endKf = nextLead && nextLead.keyframe ? kfRef(nextLead.keyframe) : null;
+        const x = { ...scenes[0], durationS: take.durationS, product: { visible: scenes.some((s) => s.product && s.product.visible) }, textPrompt: C.takePrompt(scenes, { endFrame: Boolean(endKf), changes: extra }) };
+        const row = clipJob(versionId, x, '', sv);
+        row.payload = { ...row.payload, duration: Math.min(C.TAKE_MAX_S, Math.max(4, Math.ceil(take.durationS))), take: { lead: take.lead, shots: take.shots, slices: take.slices }, sceneKeyframes: scenes.map((s) => ({ n: s.n, ...kfRef(s.keyframe) })), ...(endKf ? { endKeyframe: endKf } : {}), meta: { ...row.payload.meta, takeShots: take.shots, shotDurationS: take.durationS } };
+        return row;
+      };
       const { patchRows } = require('../_supabase.js');
       if (b.action === 'draft-shot') {
-        const n = Number(b.shot);
+        let n = Number(b.shot);
         if (!ds || !ds.current_version_id) return res.status(409).json({ error: 'no first draft version', code: 'no_version' });
         if (ds.state === 'approved') return res.status(409).json({ error: 'the draft is approved; reopen it first', code: 'approved_immutable' });
         const [dv] = await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(ds.current_version_id)}&limit=1`);
         if (!dv || !Array.isArray(dv.payload.shots) || !dv.payload.shots[n - 1]) return res.status(404).json({ error: `shot ${n} not found` });
         const liveRows = await queryRows('jobs', `select=id,kind,payload&stage_id=eq.${encodeURIComponent(ds.id)}&state=in.(queued,running)&limit=50`);
+        if (dv.payload.shots[n - 1].take) {
+          // a scene of a take: the whole take renders again (one continuous shot), each scene from its CURRENT keyframe
+          const lead = Number(dv.payload.shots[n - 1].take); n = lead;
+          const fresh = dv.payload.shots.map((y) => ({ ...y }));
+          const inTake = fresh.filter((y) => Number(y.take) === lead);
+          if (liveRows.some((j) => j.kind === 'hermes_video' && j.payload && j.payload.attachTo && inTake.some((y) => y.n === Number(j.payload.attachTo.shot)))) return res.status(409).json({ error: `this part of the video (shots ${inTake.map((y) => y.n).join(', ')}) is already rendering`, code: 'busy' });
+          for (const y of inTake) {
+            const cur = y.boardShot && bshots[y.boardShot - 1] ? C.currentKeyframe(bshots[y.boardShot - 1]) : null;
+            if (!cur) return res.status(409).json({ error: `storyboard shot ${y.boardShot} has no usable keyframe (still rendering, failed or rejected) — its scene starts on it`, code: 'prerequisites' });
+            fresh[y.n - 1].keyframe = { url: cur.url || null, assetPath: cur.assetPath || null, sha256: cur.sha256 || null, jobId: cur.jobId || null };
+          }
+          const take = C.takesFrom(inTake, Infinity)[0];
+          const leads = [...new Set(fresh.map((y) => Number(y.take)).filter(Boolean))];
+          const nextLead = leads[leads.indexOf(lead) + 1];
+          await jobsSvc.updateShots(dv.id, (pl) => { if (!Array.isArray(pl.shots)) return null; const shots = pl.shots.map((y) => ({ ...y })); for (const y of inTake) if (shots[y.n - 1]) shots[y.n - 1] = { ...shots[y.n - 1], keyframe: fresh[y.n - 1].keyframe }; return { ...pl, shots }; }).catch(() => null);
+          const [job] = await insertRows('jobs', styled([takeJob(dv.id, fresh, take, nextLead ? fresh[nextLead - 1] : null, String(b.changes || '').trim(), dv.version)]), { returning: true });
+          if (ds.state !== 'generating') await patchRows('stages', `id=eq.${encodeURIComponent(ds.id)}`, { state: 'generating' });
+          await jobsSvc.advance(job).catch(() => null);
+          const fj = await jobsSvc.getJob(job.id);
+          return res.status(200).json({ ok: true, shot: lead, take: take.shots, job: jobsSvc.publicJob(fj || job, legacyId) });
+        }
         if (liveRows.some((j) => j.kind === 'hermes_video' && j.payload && j.payload.attachTo && Number(j.payload.attachTo.shot) === n)) return res.status(409).json({ error: `shot ${n} is already rendering`, code: 'busy' });
         const bn = dv.payload.shots[n - 1].boardShot || n;
         // C: a clip always starts on the storyboard shot's CURRENT keyframe (a re-rendered frame replaces the old one)
@@ -713,10 +748,14 @@ module.exports = async (req, res) => {
         ].filter(Boolean).join(' ');
         shots = [{ n: 1, boardShot: null, durationS: targetS, type: 'full', camera: '', action: '', product: { visible: true }, onScreenText: null, line: null, audioCue: null, transition: 'none', keyframe: null, textPrompt, clipDurationS: targetS, clip: null, review: null }];
       }
+      const takes = shots[0] && shots[0].keyframe ? C.takesFrom(shots) : null;
+      if (takes) for (const t of takes) for (const n of t.shots) shots[n - 1] = { ...shots[n - 1], take: t.lead, boardTransition: shots[n - 1].transition, transition: 'cut' };
       const totalS = Math.round(shots.reduce((a, x) => a + (Number(x.durationS) || 0), 0) * 10) / 10;
-      const artifact = { shots, totalS, aspect, resolution, fromStoryboard: bshots.length > 0, boardVersionId: bshots.length ? bv.id : null, boardVersion: bshots.length ? bv.version : null, boardApproved: bshots.length ? bs.state === 'approved' : null, skippedShots, dur: `${totalS}s`, audio: 'Native audio per clip (Hermes video bot); loudness normalised at assembly', variants: [{ a: aspect, l: resolution, k: 'original', st: 'rendering' }], videoUrl: null, assembled: null, prompt: bshots.length ? `first draft from storyboard v${bv.version}: ${shots.length} clips` : shots[0].textPrompt, note: `${bshots.length ? 'One clip per storyboard shot from the Hermes video bot, starting on its keyframe; the clips join into one video by themselves.' : 'One clip for the whole video from the Hermes video bot (the storyboard step is skipped).'}${skippedShots.length ? ` Storyboard shot${skippedShots.length > 1 ? 's' : ''} ${skippedShots.join(', ')} left out: the keyframe failed or was rejected.` : ''}`, draftVersion: 'draft-v1-2026-10-21', rev: 0 };
+      const takeNote = takes ? (takes.length === 1 ? `The ${shots.length} storyboard scenes render as ONE continuous take from the Hermes video bot (it moves through every keyframe in order, one soundtrack).` : `The ${shots.length} storyboard scenes render as ${takes.length} continuous takes from the Hermes video bot (each ends on the next one's first keyframe, so they join on the same frame).`) : 'One clip for the whole video from the Hermes video bot (the storyboard step is skipped).';
+      const artifact = { shots, totalS, aspect, resolution, fromStoryboard: bshots.length > 0, boardVersionId: bshots.length ? bv.id : null, boardVersion: bshots.length ? bv.version : null, boardApproved: bshots.length ? bs.state === 'approved' : null, skippedShots, oneTake: Boolean(takes), takes: takes ? takes.map((t) => ({ lead: t.lead, shots: t.shots, durationS: t.durationS })) : null, dur: `${totalS}s`, audio: takes ? 'One continuous soundtrack per take (Hermes video bot); loudness normalised at assembly' : 'Native audio (Hermes video bot); loudness normalised at assembly', variants: [{ a: aspect, l: resolution, k: 'original', st: 'rendering' }], videoUrl: null, assembled: null, prompt: bshots.length ? `first draft from storyboard v${bv.version}: ${takes ? `${takes.length} continuous take${takes.length > 1 ? 's' : ''} through ${shots.length} scenes` : `${shots.length} clips`}` : shots[0].textPrompt, note: `${takeNote}${skippedShots.length ? ` Storyboard shot${skippedShots.length > 1 ? 's' : ''} ${skippedShots.join(', ')} left out: the keyframe failed or was rejected.` : ''}`, draftVersion: 'draft-v2-2026-11-05', rev: 0 };
       const out = await recordVersion(legacyId, 'draft', artifact, { piece: b.piece || {}, producedBy: 'hermes', kind: 'video', generatedBy: req.member ? req.member.id : null });
-      const jobs = await submitAll(await insertRows('jobs', styled(shots.map((x) => clipJob(out.versionId, x, '', out.version))), { returning: true }), ds.id, legacyId);
+      const rows = takes ? takes.map((t, i) => takeJob(out.versionId, shots, t, takes[i + 1] ? shots[takes[i + 1].lead - 1] : null, '', out.version)) : shots.map((x) => clipJob(out.versionId, x, '', out.version));
+      const jobs = await submitAll(await insertRows('jobs', styled(rows), { returning: true }), ds.id, legacyId);
       try { const { syncSpec } = require('../_spec.js'); await syncSpec(legacyId, { memberId: req.member ? req.member.id : null, note: 'first draft clips queued' }); } catch (e) { /* best effort */ }
       return res.status(200).json({ ok: true, artifact: { ...artifact, version: `v${out.version}` }, version: out.version, versionId: out.versionId, jobs, orderWarnings: og.warnings });
     }
