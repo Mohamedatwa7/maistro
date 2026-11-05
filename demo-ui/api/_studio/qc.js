@@ -189,4 +189,46 @@ async function editPlan(report, edits, { estimate }) {
   return { ...report, fixes, coverage: { ...report.coverage, uncovered, complete: uncovered.length === 0, accepted: uncovered.length ? 'risks left unaddressed by the human edit' : null }, cost, editedAt: new Date().toISOString() };
 }
 
-module.exports = { VERSION, PLAN_VERSION, SYSTEM, SCHEMA, ELEMENTS, FIX_TYPES, ALLOWED, timeline, shotAt, checklist, normalisePlan, estimatePlan, planFixes, reportContext, buildReport, editPlan };
+
+// ---- the pipeline pass (2026-11-05): F1X8 also scores every still the piece is made of ----
+// The fix plan above is about the cut; these runs score the thumbnail, the moodboard direction(s), each
+// storyboard keyframe and each carousel slide, so the QC covers the whole pipeline, not just the video.
+const MAX_PARTS = 36;
+/** The stills to score, from the current versions: [{part, stage, label, assetPath, sha256, versionId}]. */
+function pipelineParts({ thumb, mood, board, draft } = {}) {
+  const out = [];
+  const add = (part, stage, label, m, v) => { if (m && m.assetPath && out.length < MAX_PARTS) out.push({ part, stage, label, assetPath: m.assetPath, sha256: m.sha256 || null, versionId: v.id }); };
+  if (thumb && thumb.payload) add('thumb', 'thumb', 'Thumbnail', thumb.payload, thumb);
+  if (mood && mood.payload) {
+    const P = mood.payload, imgs = Array.isArray(P.images) ? P.images.filter((x) => x && x.state === 'rendered' && x.assetPath) : [];
+    if (Array.isArray(P.moods) && imgs.length) {
+      const dirs = P.chosen ? [P.chosen] : P.moods.map((m) => m.n);
+      for (const n of dirs) add(`mood:${n}`, 'mood', `Moodboard · direction ${n}${P.chosen ? ' (chosen)' : ''}`, imgs.find((x) => x.mood === n), mood);
+    } else add('mood', 'mood', 'Moodboard', P, mood);
+  }
+  if (board && board.payload && Array.isArray(board.payload.shots)) {
+    for (const sh of board.payload.shots) if (sh && sh.keyframe && sh.keyframe.state === 'rendered') add(`board:${sh.n}`, 'board', `Storyboard · shot ${sh.n} keyframe`, sh.keyframe, board);
+  }
+  if (draft && draft.payload && draft.payload.carousel && Array.isArray(draft.payload.carousel.slides)) {
+    for (const sl of draft.payload.carousel.slides) if (sl && sl.state === 'rendered') add(`slide:${sl.n}`, 'draft', `Carousel · slide ${sl.n}`, sl, draft);
+  }
+  return out;
+}
+/** What a pipeline run keeps of an F1X8 analysis: enough for the per-asset card, not the raw payload. */
+function slimRun(R, { label, heatmapPath } = {}) {
+  const v = (R && R.verdict) || {};
+  return {
+    label: label || null, score: typeof (R && R.score) === 'number' ? R.score : null,
+    funnel_stage: R && R.funnel_stage || null, product_tier: R && R.product_tier || null,
+    context_score: R && typeof R.context_score === 'number' ? R.context_score : null, kpis: (R && R.kpis) || {},
+    verdict: { summary: v.summary || '', strengths: (v.strengths || []).slice(0, 8), risks: (v.risks || []).slice(0, 8), revision_brief: v.revision_brief || null },
+    heatmapPath: heatmapPath || null,
+  };
+}
+/** The mean F1X8 score over every scored run (the cut and the stills). */
+function pipelineAvg(runs) {
+  const xs = Object.values(runs || {}).map((r) => r && r.score).filter((x) => typeof x === 'number');
+  return xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : null;
+}
+
+module.exports = { VERSION, PLAN_VERSION, SYSTEM, SCHEMA, ELEMENTS, FIX_TYPES, ALLOWED, timeline, shotAt, checklist, normalisePlan, estimatePlan, planFixes, reportContext, buildReport, editPlan, pipelineParts, slimRun, pipelineAvg, MAX_PARTS };

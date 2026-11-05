@@ -126,3 +126,72 @@ test('page: rQcPlan shows the score, checks, the located fix table with costs, c
     assert.match(html, /class="qc-inc" data-id="fx1" checked/); assert.match(html, /class="inp-l qc-ins" data-id="fx2"/); assert.match(html, /Save plan as new version/);
   } finally { X.restore(); }
 });
+
+test('QC covers the whole pipeline (2026-11-05): F1X8 also scores the thumbnail, each moodboard direction, every storyboard keyframe and every carousel slide; stills done before the report join it, later ones are merged in', async () => {
+  const pg = fakePostgrest();
+  let img = 0;
+  const f = mockFetch([
+    [(u, init) => /\/storage\/v1\/object\/sign\/assets\//.test(u) && (init.method || 'GET') === 'POST', (u) => json({ signedURL: `/object/sign/assets/${String(u).split('/object/sign/assets/')[1]}?token=t` })],
+    [(u, init) => /\/object\/sign\/assets\/.*cut\.mp4/.test(u) && (init.method || 'GET') === 'GET', () => new Response(CUT, { status: 200, headers: { 'content-type': 'video/mp4' } })],
+    [(u, init) => /\/object\/sign\/assets\/.*\.png/.test(u) && (init.method || 'GET') === 'GET', () => new Response(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2]), { status: 200, headers: { 'content-type': 'image/png' } })],
+    ['/api/analyze/video/submit', () => json({ job_id: 'fx-cut' })],
+    ['/api/analyze/image/submit', () => json({ job_id: `fx-img-${++img}` })],
+    ['/api/job/fx-cut', () => json({ status: 'done', result: F1X8 })],
+    [(u) => /\/api\/job\/fx-img-\d+/.test(u), (u) => json({ status: 'done', result: { score: 7 + Number(String(u).split('fx-img-')[1]) / 10, verdict: { summary: 'still ok', risks: [] }, kpis: {} } })],
+    ['api.anthropic.com', () => json({ content: [{ type: 'text', text: JSON.stringify(PLAN) }], stop_reason: 'end_turn', usage: { input_tokens: 1, output_tokens: 1 } })],
+    pg.route,
+  ]);
+  const studio = api('studio.js', ENV); const jobs = api('jobs.js', ENV); const pieces = api('pieces.js', ENV);
+  process.env.SUPABASE_URL = ENV.SUPABASE_URL; process.env.SUPABASE_SERVICE_ROLE_KEY = ENV.SUPABASE_SERVICE_ROLE_KEY;
+  const tick = async () => { const r = res(); await jobs.handler(req({ headers: { authorization: 'Bearer cron' }, session: false }), r); };
+  const due = (pred) => { for (const j of pg.tables.jobs.filter(pred)) j.next_poll_at = new Date(Date.now() - 1000).toISOString(); };
+  const later = (pred) => { for (const j of pg.tables.jobs.filter(pred)) j.next_poll_at = new Date(Date.now() + 3600e3).toISOString(); };
+  try {
+    let r = res(); await pieces.handler(req({ method: 'POST', body: { pieceId: 'gen-qc3', stage: 'plan', artifact: { title: 'QC', product: 'Galaxy Z Flip8', msg: 'm', markets: ['UAE'], platforms: ['tiktok'], th: ['#0c1418', '#1d5a63'] }, piece: { title: 'QC', product: 'Galaxy Z Flip8', msg: 'm', platforms: ['tiktok'], markets: ['UAE'] } } }), r);
+    const store = require('../../api/_store.js');
+    await store.recordVersion('gen-qc3', 'thumb', { assetPath: 'pieces/gen-qc3/thumb/t.png' }, { producedBy: 'external_hermes', kind: 'image' });
+    await store.recordVersion('gen-qc3', 'mood', { moods: [{ n: 1 }, { n: 2 }, { n: 3 }], images: [{ mood: 1, state: 'rendered', assetPath: 'pieces/gen-qc3/mood/1.png' }, { mood: 2, state: 'rendered', assetPath: 'pieces/gen-qc3/mood/2.png' }, { mood: 3, state: 'pending', assetPath: null }] }, { producedBy: 'external_hermes', kind: 'image' });
+    await store.recordVersion('gen-qc3', 'board', { shots: [1, 2, 3].map((n) => ({ n, keyframe: n === 3 ? null : { state: 'rendered', assetPath: `pieces/gen-qc3/board/k${n}.png` } })) }, { producedBy: 'external_hermes', kind: 'image' });
+    await store.recordVersion('gen-qc3', 'draft', { shots: SHOTS, assembled: { assetPath: 'pieces/gen-qc3/draft/cut.mp4', sha256: SHA, durationS: 9.75 }, carousel: { slides: [{ n: 1, state: 'rendered', assetPath: 'pieces/gen-qc3/draft/s1.png' }, { n: 2, state: 'rendered', assetPath: 'pieces/gen-qc3/draft/s2.png' }] }, rev: 0 }, { producedBy: 'external_hermes', kind: 'video' });
+    r = res(); await studio.handler(req({ method: 'POST', body: { action: 'qc', pieceId: 'gen-qc3' } }), r);
+    assert.equal(r.statusCode, 200, JSON.stringify(r.body));
+    assert.deepEqual(r.body.parts.map((x) => x.part), ['thumb', 'mood:1', 'mood:2', 'board:1', 'board:2', 'slide:1', 'slide:2']);
+    const imgs = pg.tables.jobs.filter((j) => j.kind === 'f1x8_image');
+    assert.equal(imgs.length, 7); assert.ok(imgs.every((j) => j.payload.qcBatch === r.body.qcBatch && j.state === 'queued'));
+    assert.equal(imgs.find((j) => j.payload.qcPart === 'slide:2').stage_id, pg.tables.stages.find((s) => s.kind === 'draft' && s.piece_id === imgs[0].piece_id).id);
+    // the stills are submitted by the tick; the cut waits
+    later((j) => j.kind === 'f1x8_video'); due((j) => j.kind === 'f1x8_image'); await tick();
+    assert.ok(pg.tables.jobs.filter((j) => j.kind === 'f1x8_image').every((j) => j.state === 'running'), JSON.stringify(pg.tables.jobs.filter((j) => j.kind === 'f1x8_image').map((j) => [j.state, j.error])));
+    // three stills finish before the report …
+    later(() => true); due((j) => j.kind === 'f1x8_image' && ['thumb', 'mood:1', 'board:1'].includes(j.payload.qcPart)); await tick();
+    // … the report collects them …
+    later(() => true); due((j) => j.kind === 'f1x8_video'); await tick();
+    r = res(); await studio.handler(req({ method: 'GET', query: { qc: 'gen-qc3' } }), r);
+    assert.ok(r.body.report, JSON.stringify(r.body)); assert.deepEqual(Object.keys(r.body.runs).sort(), ['board:1', 'draft', 'mood:1', 'thumb']);
+    assert.equal(r.body.runs['mood:1'].label, 'Moodboard · direction 1'); assert.equal(r.body.parts.filter((x) => x.state === 'running').length, 4);
+    // … and the rest are merged into it as they finish
+    later(() => true); due((j) => j.kind === 'f1x8_image' && j.state === 'running'); await tick();
+    r = res(); await studio.handler(req({ method: 'GET', query: { qc: 'gen-qc3' } }), r);
+    assert.deepEqual(Object.keys(r.body.runs).sort(), ['board:1', 'board:2', 'draft', 'mood:1', 'mood:2', 'slide:1', 'slide:2', 'thumb']);
+    const scores = Object.values(r.body.runs).map((x) => x.score);
+    assert.equal(r.body.avg, Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10);
+    assert.equal(r.body.report.score, 5.8, 'the fix plan stays on the cut');
+    assert.ok(r.body.parts.every((x) => x.state === 'succeeded'));
+  } finally { f.restore(); studio.restore(); jobs.restore(); pieces.restore(); delete process.env.SUPABASE_URL; delete process.env.SUPABASE_SERVICE_ROLE_KEY; }
+});
+
+test('page: the QC report lists every still F1X8 scored, the pipeline average and the stills still running', () => {
+  const X = loadPage({ fetchImpl: async () => new Promise(() => {}) });
+  try {
+    const report = { score: 5.8, summary: 's', checklist: [], passedChecks: 0, fixes: [], timeline: [], cost: { totalUsd: 0, items: [], unknownIds: [] }, coverage: { complete: true, uncovered: [] }, draftVersion: 1, draftSha256: SHA, f1x8: { risks: [] } };
+    const runs = { draft: { score: 5.8, verdict: {} }, 'board:2': { label: 'Storyboard · shot 2 keyframe', score: 4.2, verdict: { summary: 'the hook frame is busy', risks: [] }, kpis: {} }, thumb: { label: 'Thumbnail', score: 8.1, verdict: {}, kpis: {}, heatmapPath: 'pieces/x/thumb/heatmap.png' } };
+    const p = { id: 'gen-qp', generated: true, studio: true, stage: 6, title: 'T', platforms: ['tiktok'], markets: ['UAE'], th: ['#000000', '#111111'], map: { product: 'Galaxy Z Flip8', msg: 'm', angle: 'a' }, qc: { real: true, report, version: 'v1', runs, avg: 6 } };
+    X.PROJECTS.unshift(p);
+    X.QC_PARTS['gen-qp'] = [{ part: 'slide:1', label: 'Carousel · slide 1', state: 'running' }, { part: 'mood:1', label: 'Moodboard · direction 1', state: 'failed', error: 'F1X8 reported error' }];
+    const html = X.stageArtifact(p, 6);
+    assert.match(html, /F1X8 across the pipeline/); assert.match(html, /PIPELINE AVG 6\.0\/10/); assert.match(html, /3 ASSET\(S\) SCORED/);
+    assert.match(html, /THUMBNAIL · 8\.1/); assert.match(html, /STORYBOARD · SHOT 2 KEYFRAME · 4\.2/); assert.ok(html.indexOf('THUMBNAIL · 8.1') < html.indexOf('STORYBOARD · SHOT 2'), 'pipeline order');
+    assert.match(html, /the hook frame is busy/); assert.match(html, /data-asset="pieces\/x\/thumb\/heatmap\.png"/);
+    assert.match(html, /1 STILL ANALYSING/); assert.match(html, /Analysing: Carousel · slide 1/); assert.match(html, /Moodboard · direction 1: F1X8 reported error/);
+  } finally { X.restore(); }
+});

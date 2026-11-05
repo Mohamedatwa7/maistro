@@ -25,7 +25,7 @@ const q = (v) => encodeURIComponent(String(v));
 // ones can be created.
 const KINDS = ['hermes_image', 'hermes_video', 'hermes_brief', 'f1x8_image', 'f1x8_video', 'vision_check', 'assemble', 'clip_check'];
 const RENDER_KINDS = ['hermes_image', 'hermes_video', 'hermes_brief', 'higgsfield_image', 'higgsfield_video'];
-const KIND_STAGE = { hermes_image: ['mood', 'thumb', 'board'], hermes_video: ['draft', 'final'], hermes_brief: ['brief'], higgsfield_image: ['mood', 'thumb', 'board'], higgsfield_video: ['draft', 'final'], f1x8_image: ['mood', 'thumb', 'board'], f1x8_video: ['draft', 'final'], vision_check: ['mood', 'thumb', 'board', 'draft', 'final'], assemble: ['draft', 'final'], clip_check: ['draft', 'final'] };
+const KIND_STAGE = { hermes_image: ['mood', 'thumb', 'board'], hermes_video: ['draft', 'final'], hermes_brief: ['brief'], higgsfield_image: ['mood', 'thumb', 'board'], higgsfield_video: ['draft', 'final'], f1x8_image: ['mood', 'thumb', 'board', 'draft'], f1x8_video: ['draft', 'final'], vision_check: ['mood', 'thumb', 'board', 'draft', 'final'], assemble: ['draft', 'final'], clip_check: ['draft', 'final'] };
 // How long to wait before asking again, and when to give up (seconds).
 // the vision_check claim window must exceed the bounded model call (90 s) so a
 // second tick cannot re-claim a check that is still running
@@ -870,6 +870,25 @@ async function runVisionCheck(job) {
   return 'succeeded';
 }
 
+/** The finished stills of a QC batch, as runs keyed by part. */
+async function qcBatchRuns(job) {
+  const { slimRun } = require('./_studio/qc.js');
+  const rows = await queryRows('jobs', `select=state,result,payload&piece_id=eq.${q(job.piece_id)}&kind=eq.f1x8_image&state=eq.succeeded&order=created_at.desc&limit=80`);
+  const out = {};
+  for (const r of rows) if (r.payload && r.payload.qcBatch === job.payload.qcBatch && r.payload.qcPart && r.result && r.result.analysis) out[r.payload.qcPart] = slimRun(r.result.analysis, { label: r.payload.qcLabel, heatmapPath: r.result.heatmapPath });
+  return out;
+}
+/** Add runs to a QC version (keeping the ones it has) and recompute the pipeline average. */
+async function qcMergeRuns(versionId, add) {
+  const { pipelineAvg } = require('./_studio/qc.js');
+  return updateShots(versionId, (payload) => {
+    const runs = { ...(payload.runs || {}) };
+    let changed = false;
+    for (const [k, v] of Object.entries(add)) if (!runs[k]) { runs[k] = v; changed = true; }
+    return changed ? { ...payload, runs, avg: pipelineAvg(runs) } : null;
+  });
+}
+
 async function pollQc(job) {
   const st = await f1x8.status(job.provider_ref);
   if (st.status === 'done' && st.result) {
@@ -895,6 +914,14 @@ async function pollQc(job) {
     // row can never be re-claimed by an overlapping tick
     await finish(job, { state: 'succeeded', error: null, result: { analysis: R, heatmapPath, score: typeof R.score === 'number' ? R.score : null } });
     await jobRecord(job, { status: 'succeeded', outputAssets: [{ score: typeof R.score === 'number' ? R.score : null, heatmapPath }] });
+    if (job.payload.qcBatch && job.payload.qcPart) {
+      // one still of a QC batch: join the batch's report if it exists already (else the report collects this run)
+      try {
+        const [qs] = await queryRows('stages', `select=current_version_id&piece_id=eq.${q(job.piece_id)}&kind=eq.qc&limit=1`);
+        const [qv] = qs && qs.current_version_id ? await queryRows('artifact_versions', `select=id,payload&id=eq.${q(qs.current_version_id)}&limit=1`) : [];
+        if (qv && qv.payload && qv.payload.qcBatch === job.payload.qcBatch) await qcMergeRuns(qv.id, { [job.payload.qcPart]: require('./_studio/qc.js').slimRun(R, { label: job.payload.qcLabel, heatmapPath }) });
+      } catch (e) { console.warn('[jobs] QC part merge failed:', e.message); }
+    }
     if (job.payload.verifyFinal) {
       try {
         const finalMod = require('./_studio/final.js');
@@ -913,7 +940,12 @@ async function pollQc(job) {
         const qc = require('./_studio/qc.js');
         const { recordVersion } = require('./_store.js');
         const report = await qc.buildReport({ analysis: R, heatmapPath, pieceId: job.piece_id, legacyId: job.payload.pieceId, draftVersionId: job.payload.versionId, draftSha256: job.payload.expectSha256, memberId: job.payload.generatedBy || null, estimate: hermes.estimate });
-        const rec = await recordVersion(job.payload.pieceId, 'qc', { real: true, report, runs: { draft: { score: report.score, verdict: { summary: report.summary, risks: report.f1x8.risks, revision_brief: report.f1x8.revisionBrief } } }, avg: report.score }, { producedBy: 'f1x8', kind: 'qc_report', jobId: job.id, generatedBy: job.payload.generatedBy || null });
+        const runs = { draft: { score: report.score, verdict: { summary: report.summary, risks: report.f1x8.risks, revision_brief: report.f1x8.revisionBrief } } };
+        // the stills of the same batch that already finished; the rest add themselves when they do (qcPartDone)
+        if (job.payload.qcBatch) Object.assign(runs, await qcBatchRuns(job));
+        const rec = await recordVersion(job.payload.pieceId, 'qc', { real: true, report, runs, avg: qc.pipelineAvg(runs), qcBatch: job.payload.qcBatch || null }, { producedBy: 'f1x8', kind: 'qc_report', jobId: job.id, generatedBy: job.payload.generatedBy || null });
+        // a still that finished while the report was being built found no report to join: add it now
+        if (job.payload.qcBatch) { const late = await qcBatchRuns(job); if (Object.keys(late).some((k) => !runs[k])) await qcMergeRuns(rec.versionId, late); }
         await patchRows('jobs', `id=eq.${q(job.id)}`, { result: { analysis: R, heatmapPath, score: report.score, report: { versionId: rec.versionId, version: rec.version } } });
         try { const { syncSpec } = require('./_spec.js'); await syncSpec(job.payload.pieceId, { memberId: job.payload.generatedBy || null, note: 'QC report' }); } catch (e) { /* best effort */ }
       } catch (e) {

@@ -3290,6 +3290,21 @@ async function setBudget(pid){
 }
 /* 6.7 — the QC report: score, checklist, located fixes with cost; approve, edit the plan, or send back */
 const QC_EDIT={};
+/* the stills of a QC batch land after the report: refresh the runs until none is queued or running */
+function qcPartsPoll(pid,tries){
+ const key=pid+':qcparts';clearTimeout(BOARD_POLL[key]);
+ if(tries>120)return;
+ BOARD_POLL[key]=setTimeout(async()=>{
+  try{
+   const r=await authFetch('/api/studio?qc='+encodeURIComponent(pid));const d=await r.json().catch(()=>({}));
+   const p=PROJECTS.find(x=>x.id===pid);if(!p||!p.qc||!r.ok)return qcPartsPoll(pid,tries+1);
+   QC_PARTS[pid]=d.parts||[];
+   if(d.runs&&p.qc.version==='v'+d.version){p.qc.runs=d.runs;p.qc.avg=d.avg!=null?d.avg:p.qc.avg;saveGenerated()}
+   studioRefresh();
+   if((d.parts||[]).some(x=>x.state==='queued'||x.state==='running'))qcPartsPoll(pid,tries+1);
+  }catch(e){qcPartsPoll(pid,tries+1)}
+ },tries?15000:300);
+}
 function qcReportPoll(pid,tries){
  const key=pid+':qc';clearTimeout(BOARD_POLL[key]);
  if(tries>160){delete GEN.busy[key];GEN.err[key]='QC still running after 20 minutes — it keeps running on the server; reopen the piece later.';studioRefresh();return}
@@ -3300,8 +3315,10 @@ function qcReportPoll(pid,tries){
    if(r.ok&&d.job&&d.job.state==='failed'){delete GEN.busy[key];GEN.err[key]='QC failed — '+(d.job.error||'F1X8 error');studioRefresh();return}
    if(r.ok&&d.report&&(!d.job||d.job.state==='succeeded')&&(!p.qc||!p.qc.report||p.qc.report.draftSha256!==d.report.draftSha256||('v'+d.version)!==p.qc.version)){
     delete GEN.busy[key];
-    attachTo(p,'qc',{real:true,report:d.report,version:'v'+d.version,avg:d.report.score,runs:{draft:{score:d.report.score,verdict:{summary:d.report.summary,risks:d.report.f1x8.risks,revision_brief:d.report.f1x8.revisionBrief}}}},'Sentinel',{recorded:{version:d.version}});
+    QC_PARTS[pid]=d.parts||[];
+    attachTo(p,'qc',{real:true,report:d.report,version:'v'+d.version,avg:d.avg!=null?d.avg:d.report.score,runs:d.runs||{draft:{score:d.report.score,verdict:{summary:d.report.summary,risks:d.report.f1x8.risks,revision_brief:d.report.f1x8.revisionBrief}}}},'Sentinel',{recorded:{version:d.version}});
     studioRefresh();
+    if((d.parts||[]).some(x=>x.state==='queued'||x.state==='running'))qcPartsPoll(pid,0);
     toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Sentinel',1)}<div style="font-size:12.5px"><b>QC report ready</b> — F1X8 ${d.report.score!=null?d.report.score.toFixed(1)+'/10':'…'}, ${d.report.fixes.length} fix(es), est. $${d.report.cost.totalUsd.toFixed(2)}.</div></div>`);
     return;
    }
@@ -3341,8 +3358,28 @@ function rQcPlan(p,locked){
    <input class="inp-l" id="qc-back-reason" placeholder="Why it goes back" style="flex:1;min-width:180px"><button class="btn btn-sm" style="background:rgba(248,113,113,0.2)" onclick="qcSendBack('${p.id}')">Send back</button>
   </div><div class="dim" style="font-size:11px;margin-top:6px">To approve the plan as is, record the QC approval in the Production Center — it is refused if the draft changed after this report.</div>`:''}
   ${GEN.err[key]?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[key])}</div>`:''}
+  ${rQcPipeline(p)}
   ${p.studio?regenBox(p,'qc'):''}`;
 }
+/* 2026-11-05: the QC scores the whole pipeline — the cut (above) plus every still: thumbnail, moodboard,
+   storyboard keyframes, carousel slides. Each still has its own F1X8 card; parts still running are listed. */
+function rQcPipeline(p){
+ if(p.studio&&p.qc&&p.qc.qcBatch&&QC_PARTS[p.id]===undefined){QC_PARTS[p.id]=[];qcPartsPoll(p.id,0)} /* after a reload: pick up stills still running */
+ const runs=(p.qc&&p.qc.runs)||{},parts=QC_PARTS[p.id]||[];
+ const keys=Object.keys(runs).filter(k=>k!=='draft').sort(qcPartOrder);
+ const waiting=parts.filter(x=>!runs[x.part]&&(x.state==='queued'||x.state==='running'));
+ const failed=parts.filter(x=>!runs[x.part]&&(x.state==='failed'||x.state==='timed_out'));
+ if(!keys.length&&!waiting.length&&!failed.length)return '';
+ return `<div style="margin-top:16px"><span class="kick">F1X8 across the pipeline</span>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px">${p.qc.avg!=null?badge(p.qc.avg>=7?'go':p.qc.avg>=5?'gold':'alert','PIPELINE AVG '+p.qc.avg.toFixed(1)+'/10'):''}${badge('muted',(keys.length+(runs.draft?1:0))+' ASSET(S) SCORED')}${waiting.length?badge('gold',waiting.length+' STILL ANALYSING'):''}${failed.length?badge('alert',failed.length+' FAILED'):''}</div>
+  ${keys.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${keys.map(k=>{const s=runs[k].score;return badge(s==null?'muted':s>=7?'go':s>=5?'gold':'alert',esc(qcLabel(k,runs[k]).toUpperCase())+' · '+(s!=null?s.toFixed(1):'—'))}).join('')}</div>`:''}
+  ${waiting.length?`<div class="dim" style="font-size:11px;margin-bottom:6px"><span class="gen-spin" style="vertical-align:middle"></span> Analysing: ${waiting.map(x=>esc(x.label)).join(' · ')}</div>`:''}
+  ${failed.length?`<div style="font-size:11px;color:#fca5a5;margin-bottom:6px">${failed.map(x=>esc(x.label)+(x.error?': '+esc(x.error):'')).join(' · ')}</div>`:''}
+  ${keys.map(k=>rQcReport(p,k)).join('')}</div>`;
+}
+const QC_PARTS={};
+function qcPartOrder(a,b){const o=k=>{const [s,n]=k.split(':');return (({thumb:0,mood:1,board:2,slide:3})[s]??9)*100+(Number(n)||0)};return o(a)-o(b)}
+function qcLabel(sid,R){if(R&&R.label)return R.label;if(QC_ASSET_LABELS[sid])return QC_ASSET_LABELS[sid];const [s,n]=String(sid).split(':');return ({mood:'Moodboard · direction ',board:'Storyboard · shot ',slide:'Carousel · slide '})[s]?({mood:'Moodboard · direction ',board:'Storyboard · shot ',slide:'Carousel · slide '})[s]+n:sid}
 async function saveQcEdit(pid){
  const p=PROJECTS.find(x=>x.id===pid);if(!p||!p.qc||!p.qc.report)return;
  const edits=p.qc.report.fixes.map(f=>{const inc=[...document.querySelectorAll('.qc-inc')].find(e=>e.dataset.id===f.id);const ins=[...document.querySelectorAll('.qc-ins')].find(e=>e.dataset.id===f.id);return {id:f.id,include:inc?inc.checked:f.include,instruction:ins?ins.value:f.instruction}});
@@ -3760,7 +3797,7 @@ function stageRegen(pid,sid){
 function qcKpiName(k){return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
 function rQcReport(p,sid){
  const R=p.qc.runs[sid];if(!R)return '';
- const heat=QCHEAT[p.id+':'+sid];
+ const heat=QCHEAT[p.id+':'+sid]||(R.heatmapPath?{path:R.heatmapPath}:null);
  const v=R.verdict||{};
  const rb=v.revision_brief||{};
  const rbKeys=[['objective','Objective'],['focal_hierarchy','Focal hierarchy'],['headline_copy','Headline & copy'],['color_type','Color & type'],['offer_cta','Offer / CTA'],['imagery','Imagery'],['measurement','Measurement']].filter(([k])=>rb[k]);
@@ -3769,7 +3806,7 @@ function rQcReport(p,sid){
   <div class="qhead">
    <div style="display:flex;align-items:center;gap:14px">
     <span class="qc-score">${(R.score??0).toFixed(1)}<small> / 10</small></span>
-    <div><b style="color:#fff;font-size:13.5px">${QC_ASSET_LABELS[sid]}</b>
+    <div><b style="color:#fff;font-size:13.5px">${esc(qcLabel(sid,R))}</b>
      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:5px">
       ${badge('ai',(R.funnel_stage||'?').toUpperCase()+' FUNNEL')}
       ${R.product_tier?badge('gold',R.product_tier.toUpperCase()+' TIER'):''}

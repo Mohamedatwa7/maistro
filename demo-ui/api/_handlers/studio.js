@@ -240,7 +240,10 @@ module.exports = async (req, res) => {
         const [qv] = qs && qs.current_version_id ? await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(qs.current_version_id)}&limit=1`) : [];
         const live = ds ? await queryRows('jobs', `select=id,kind,state,error,payload&stage_id=eq.${encodeURIComponent(ds.id)}&kind=eq.f1x8_video&order=created_at.desc&limit=5`) : [];
         const run = live.find((j) => j.payload && j.payload.qcReport) || null;
-        return res.status(200).json({ state: qs ? qs.state : null, version: qv ? qv.version : null, versionId: qv ? qv.id : null, report: qv && qv.payload ? qv.payload.report || null : null, job: run ? { id: run.id, state: run.state, error: run.error } : null, draftVersionId: ds ? ds.current_version_id : null });
+        const batch = run && run.payload.qcBatch;
+        const pj = batch ? (await queryRows('jobs', `select=state,error,payload&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.f1x8_image&order=created_at.desc&limit=80`)).filter((j) => j.payload && j.payload.qcBatch === batch) : [];
+        const parts = pj.map((j) => ({ part: j.payload.qcPart, label: j.payload.qcLabel || j.payload.qcPart, state: j.state, error: j.error || null }));
+        return res.status(200).json({ state: qs ? qs.state : null, version: qv ? qv.version : null, versionId: qv ? qv.id : null, report: qv && qv.payload ? qv.payload.report || null : null, runs: qv && qv.payload ? qv.payload.runs || null : null, avg: qv && qv.payload && qv.payload.avg != null ? qv.payload.avg : null, job: run ? { id: run.id, state: run.state, error: run.error } : null, parts, draftVersionId: ds ? ds.current_version_id : null });
       }
       if (q.board || q.shots) {
         // ?board=<id> (storyboard) or ?shots=<id>&stage=board|draft — the version whose shots are filling in
@@ -557,8 +560,23 @@ module.exports = async (req, res) => {
         const brief = await boardMod.briefFor(piece.id);
         const sp = brief && brief.payload && brief.payload.spec;
         const description = `Samsung Gulf social video for ${piece.product}. Key message: ${(sp && sp.keyMessage) || piece.key_message || ''}. Trend hook: ${sp ? sp.trendHook.mechanic : piece.trend_name || ''}. Platforms: ${(piece.platforms || []).join(', ')}. Markets: ${(piece.markets || []).join(', ')}. CTA: ${(sp && sp.cta) || ''}.`;
-        const job = await createJob({ legacyId, stage: 'draft', kind: 'f1x8_video', payload: { assetPath: asm.assetPath, expectSha256: asm.sha256, versionId: dv.id, title: piece.title, description, qcReport: true }, piece: b.piece || {}, member: req.member });
-        return res.status(200).json({ ok: true, job, draftVersionId: dv.id, draftSha256: asm.sha256 });
+        const qcBatch = require('crypto').randomUUID();
+        const job = await createJob({ legacyId, stage: 'draft', kind: 'f1x8_video', payload: { assetPath: asm.assetPath, expectSha256: asm.sha256, versionId: dv.id, title: piece.title, description, qcReport: true, qcBatch }, piece: b.piece || {}, member: req.member });
+        // the rest of the pipeline: every still the piece is made of gets its own F1X8 run in the same batch
+        const ps = await queryRows('stages', `select=id,kind,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=in.(thumb,mood,board)`);
+        const vids = ps.map((x) => x.current_version_id).filter(Boolean);
+        const pv = vids.length ? await queryRows('artifact_versions', `select=id,payload&id=in.(${vids.map((x) => encodeURIComponent(x)).join(',')})`) : [];
+        const curOf = (k) => { const st = ps.find((x) => x.kind === k); return st ? pv.find((v) => v.id === st.current_version_id) || null : null; };
+        const parts = qcMod.pipelineParts({ thumb: curOf('thumb'), mood: curOf('mood'), board: curOf('board'), draft: dv });
+        const stageId = (k) => (k === 'draft' ? ds.id : (ps.find((x) => x.kind === k) || {}).id);
+        // queued rows, submitted by the job tick: dozens of inline submits would outrun the request
+        let queued = parts.map((pt) => ({ part: pt.part, label: pt.label, state: 'queued' }));
+        if (parts.length) {
+          try {
+            await insertRows('jobs', parts.map((pt) => ({ piece_id: piece.id, stage_id: stageId(pt.stage), kind: 'f1x8_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: pt.stage, assetPath: pt.assetPath, ...(pt.sha256 ? { expectSha256: pt.sha256 } : {}), versionId: pt.versionId, title: `${piece.title} — ${pt.label}`, description: `${description} This asset: ${pt.label}.`, qcBatch, qcPart: pt.part, qcLabel: pt.label, generatedBy: req.member ? req.member.id : null } })));
+          } catch (e) { queued = queued.map((x) => ({ ...x, state: 'failed', error: String(e.message || e).slice(0, 200) })); }
+        }
+        return res.status(200).json({ ok: true, job, draftVersionId: dv.id, draftSha256: asm.sha256, qcBatch, parts: queued });
       }
       const [qs] = await queryRows('stages', `select=id,state,current_version_id&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.qc&limit=1`);
       const [qv] = qs && qs.current_version_id ? await queryRows('artifact_versions', `select=id,version,payload&id=eq.${encodeURIComponent(qs.current_version_id)}&limit=1`) : [];
