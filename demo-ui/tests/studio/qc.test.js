@@ -195,3 +195,19 @@ test('page: the QC report lists every still F1X8 scored, the pipeline average an
     assert.match(html, /1 STILL ANALYSING/); assert.match(html, /Analysing: Carousel · slide 1/); assert.match(html, /Moodboard · direction 1: F1X8 reported error/);
   } finally { X.restore(); }
 });
+
+test('page: the QC console lists the whole pipeline of a Hermes campaign (storyboard keyframes, the assembled cut, carousel slides), not just the thumbnail and moodboard (2026-11-05)', () => {
+  const X = loadPage({ fetchImpl: async () => new Promise(() => {}) });
+  try {
+    const p = { id: 'gen-qa', generated: true, studio: true, stage: 6, title: 'T', platforms: ['tiktok'], markets: ['UAE'], th: ['#000000', '#111111'], map: { product: 'Galaxy Z Flip8', msg: 'm', angle: 'a' },
+      thumb: { imageUrl: 'https://h/t.png', assetPath: 'pieces/x/thumb/t.png' },
+      mood: { moods: [{ n: 1 }, { n: 2 }], images: [{ mood: 1, state: 'rendered', url: 'https://h/m1.png', assetPath: 'pieces/x/mood/1.png' }, { mood: 2, state: 'rendered', url: 'https://h/m2.png', assetPath: 'pieces/x/mood/2.png' }] },
+      board: { shots: [{ n: 1, keyframe: { state: 'rendered', url: 'https://h/k1.png', assetPath: 'pieces/x/board/k1.png' } }, { n: 2, keyframe: null }] },
+      draft: { shots: [], assembled: { url: 'https://h/cut.mp4', assetPath: 'pieces/x/draft/cut.mp4', sha256: 'a'.repeat(64) }, carousel: { slides: [{ n: 1, state: 'rendered', url: 'https://h/s1.png', assetPath: 'pieces/x/draft/s1.png' }] } } };
+    assert.deepEqual(X.qcAssets(p).map((a) => [a.sid, a.stage, a.kind]), [['thumb', 'thumb', 'image'], ['mood:1', 'mood', 'image'], ['mood:2', 'mood', 'image'], ['board:1', 'board', 'image'], ['draft', 'draft', 'video'], ['slide:1', 'draft', 'image']]);
+    X.PROJECTS.unshift(p);
+    const html = X.stageArtifact(p, 6);
+    for (const l of ['Thumbnail', 'Moodboard · direction 2', 'Storyboard · shot 1 keyframe', 'First draft (video)', 'Carousel · slide 1']) assert.ok(html.includes(l), l);
+    assert.doesNotMatch(html, /no assembled video yet/);
+  } finally { X.restore(); }
+});

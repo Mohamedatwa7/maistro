@@ -2251,7 +2251,7 @@ async function stageGen(pid,sid,changes){
   }
   /* 6.7: QC = F1X8 on the stored assembled cut + the automated checklist + a located, priced fix plan */
   if(sid==='qc'&&useJobs()&&p.draft&&p.draft.assembled&&!changes){
-   GEN.busy[key]='F1X8 is analysing the assembled cut; the fix plan follows…';studioRefresh();
+   GEN.busy[key]='F1X8 is analysing the assembled cut and every still of the pipeline; the fix plan follows…';studioRefresh();
    const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'qc',pieceId:p.id,piece:storeMeta(p)})});
    const sd=await sr.json().catch(()=>({}));orderWarn(sd);
    if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
@@ -2497,13 +2497,30 @@ function genPoll(pid,sid,reqId,meta,tries){
 const QCRUN={state:{},err:{},timer:{}};
 const QCHEAT={};
 const QC_ASSET_LABELS={thumb:'Thumbnail',mood:'Moodboard',board:'Storyboard',draft:'First draft (video)',final:'Final content (video)'};
+/* 2026-11-05: every visual of the pipeline, as the server QC sees it — the moodboard per direction, each
+   storyboard keyframe, the assembled cut (where the Studio and Hermes keep the video) and each carousel slide.
+   Before, only top-level imageUrl/videoUrl counted, so a storyboard (keyframes per shot) and an assembled draft
+   never showed: the check listed the thumbnail and the moodboard only. */
 function qcAssets(p){
  const a=[];
- const add=(sid,kind,art,key)=>{if(art&&(art[key]||art.assetPath))a.push({sid,kind,url:art[key]||null,assetPath:art.assetPath||null})};
- add('thumb','image',p.thumb,'imageUrl');add('mood','image',p.mood,'imageUrl');add('board','image',p.board,'imageUrl');
- add('draft','video',p.draft,'videoUrl');add('final','video',p.final,'videoUrl');
+ const add=(sid,stage,kind,art,key,label)=>{if(art&&(art[key]||art.assetPath))a.push({sid,stage,kind,url:art[key]||null,assetPath:art.assetPath||null,label:label||QC_ASSET_LABELS[sid]||sid})};
+ add('thumb','thumb','image',p.thumb,'imageUrl');
+ const M=p.mood;
+ if(M&&Array.isArray(M.moods)&&Array.isArray(M.images)){
+  const imgs=M.images.filter(x=>x&&x.state==='rendered'&&(x.url||x.assetPath));
+  for(const n of (M.chosen?[M.chosen]:M.moods.map(m=>m.n)))add('mood:'+n,'mood','image',imgs.find(x=>x.mood===n),'url',`Moodboard · direction ${n}${M.chosen?' (chosen)':''}`);
+ }else add('mood','mood','image',M,'imageUrl');
+ if(p.board&&Array.isArray(p.board.shots))for(const sh of p.board.shots){const k=sh&&sh.keyframe;if(k&&k.state==='rendered')add('board:'+sh.n,'board','image',k,'url',`Storyboard · shot ${sh.n} keyframe`)}
+ else add('board','board','image',p.board,'imageUrl');
+ const D=p.draft;
+ if(D&&D.assembled&&D.assembled.assetPath)add('draft','draft','video',D.assembled,'url');else add('draft','draft','video',D,'videoUrl');
+ if(D&&D.carousel&&Array.isArray(D.carousel.slides))for(const sl of D.carousel.slides)if(sl&&sl.state==='rendered')add('slide:'+sl.n,'draft','image',sl,'url',`Carousel · slide ${sl.n}`);
+ const F=p.final;
+ if(F&&F.assembled&&F.assembled.assetPath)add('final','final','video',F.assembled,'url');else add('final','final','video',F,'videoUrl');
  return a;
 }
+/* with the job service and an assembled cut, the check is the server QC: F1X8 on the cut + every still, one report */
+function qcServerRun(p){return useJobs()&&p.draft&&p.draft.assembled&&p.draft.assembled.assetPath}
 function qcBrief(p,extra){
  let d=`Campaign: ${p.title} for ${p.product}. Key message: ${p.map.msg}. Angle: ${p.map.angle}. Markets: ${p.markets.join(', ')}. Platforms: ${p.platforms.join(', ')}.`;
  if(p.brief&&p.brief.objective)d+=` Brief objective: ${p.brief.objective}`;
@@ -2512,6 +2529,7 @@ function qcBrief(p,extra){
 }
 async function qcRunAll(pid){
  const p=PROJECTS.find(x=>x.id===pid);if(!p)return;
+ if(qcServerRun(p))return stageGen(pid,'qc');
  const assets=qcAssets(p);if(!assets.length)return;
  const note=(document.getElementById('qc-note')||{}).value||'';
  if(!p.qc||!p.qc.real)p.qc={real:true,runs:{},at:'Just now'};
@@ -2522,8 +2540,8 @@ async function qcRunAll(pid){
   QCRUN.state[key]='submitting';delete QCRUN.err[key];
   if(useJobs()){
    authFetch('/api/jobs',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({pieceId:p.id,stage:a.sid,kind:a.kind==='video'?'f1x8_video':'f1x8_image',piece:storeMeta(p),
-     payload:{assetUrl:a.url,assetPath:a.assetPath,title:`${p.title} — ${QC_ASSET_LABELS[a.sid]}`,description:desc}})})
+    body:JSON.stringify({pieceId:p.id,stage:a.stage,kind:a.kind==='video'?'f1x8_video':'f1x8_image',piece:storeMeta(p),
+     payload:{assetUrl:a.url,assetPath:a.assetPath,title:`${p.title} — ${a.label}`,description:desc}})})
    .then(r=>r.json().then(d=>({ok:r.ok,d})))
    .then(({ok,d})=>{
     if(!ok||!d.job)throw new Error(d.error||'submit failed');
@@ -2537,7 +2555,7 @@ async function qcRunAll(pid){
    continue;
   }
   authFetch('/api/qc-f1x8',{method:'POST',headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({kind:a.kind,assetUrl:a.url,title:`${p.title} — ${QC_ASSET_LABELS[a.sid]}`,description:desc})})
+   body:JSON.stringify({kind:a.kind,assetUrl:a.url,title:`${p.title} — ${a.label}`,description:desc})})
   .then(r=>r.json().then(d=>({ok:r.ok,d})))
   .then(({ok,d})=>{
    if(!ok||!d.job_id)throw new Error(d.error||'submit failed');
@@ -2570,7 +2588,7 @@ function qcJobPoll(pid,sid,jobId,tries){
     QCRUN.state[key]='done';
     qcFinishIfSettled(p);
     studioRefresh();
-    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Sentinel',1)}<div style="font-size:12.5px"><b>F1X8</b> scored the ${QC_ASSET_LABELS[sid].toLowerCase()} <b>${(R.score??0).toFixed(1)}/10</b> for <b>${esc(p.title)}</b>.</div></div>`);
+    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Sentinel',1)}<div style="font-size:12.5px"><b>F1X8</b> scored the ${qcLabel(sid).toLowerCase()} <b>${(R.score??0).toFixed(1)}/10</b> for <b>${esc(p.title)}</b>.</div></div>`);
     return;
    }
    if(j.state==='failed'||j.state==='timed_out'){
@@ -2603,7 +2621,7 @@ function qcPoll(pid,sid,jobId,tries){
     QCRUN.state[key]='done';
     qcFinishIfSettled(p);
     studioRefresh();
-    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Sentinel',1)}<div style="font-size:12.5px"><b>F1X8</b> scored the ${QC_ASSET_LABELS[sid].toLowerCase()} <b>${(R.score??0).toFixed(1)}/10</b> for <b>${esc(p.title)}</b>.</div></div>`);
+    toast(`<div style="display:flex;gap:10px;align-items:center">${agentChip('Sentinel',1)}<div style="font-size:12.5px"><b>F1X8</b> scored the ${qcLabel(sid).toLowerCase()} <b>${(R.score??0).toFixed(1)}/10</b> for <b>${esc(p.title)}</b>.</div></div>`);
     return;
    }
    if(d.status==='error'||d.status==='not_found'){
@@ -3378,7 +3396,7 @@ function rQcPipeline(p){
   ${keys.map(k=>rQcReport(p,k)).join('')}</div>`;
 }
 const QC_PARTS={};
-function qcPartOrder(a,b){const o=k=>{const [s,n]=k.split(':');return (({thumb:0,mood:1,board:2,slide:3})[s]??9)*100+(Number(n)||0)};return o(a)-o(b)}
+function qcPartOrder(a,b){const o=k=>{const [s,n]=k.split(':');return (({draft:0,final:1,thumb:2,mood:3,board:4,slide:5})[s]??9)*100+(Number(n)||0)};return o(a)-o(b)}
 function qcLabel(sid,R){if(R&&R.label)return R.label;if(QC_ASSET_LABELS[sid])return QC_ASSET_LABELS[sid];const [s,n]=String(sid).split(':');return ({mood:'Moodboard · direction ',board:'Storyboard · shot ',slide:'Carousel · slide '})[s]?({mood:'Moodboard · direction ',board:'Storyboard · shot ',slide:'Carousel · slide '})[s]+n:sid}
 async function saveQcEdit(pid){
  const p=PROJECTS.find(x=>x.id===pid);if(!p||!p.qc||!p.qc.report)return;
@@ -3851,7 +3869,8 @@ function rQcReport(p,sid){
 function rQcConsole(p){
  const assets=qcAssets(p);
  const anyRun=p.qc&&p.qc.real&&Object.keys(p.qc.runs||{}).length;
- const running=assets.some(a=>{const s=QCRUN.state[p.id+':'+a.sid];return s&&s!=='done'&&s!=='error'});
+ const busy=GEN.busy[p.id+':qc'];
+ const running=Boolean(busy)||assets.some(a=>{const s=QCRUN.state[p.id+':'+a.sid];return s&&s!=='done'&&s!=='error'});
  const statusLabel={submitting:'Uploading to F1X8…',fetching:'Queued on the GPU…',analyzing:'F1X8 is analyzing…'};
  return `
  ${anyRun&&p.qc.avg!=null?`<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:4px">
@@ -3865,10 +3884,13 @@ function rQcConsole(p){
    ${assets.map(a=>{const key=p.id+':'+a.sid,s=QCRUN.state[key];
     return `<div class="qc-run-row">
      ${s==='done'?'<span style="color:var(--go)">✓</span>':s==='error'?'<span style="color:var(--alert)">✕</span>':s?'<span class="gen-spin"></span>':'<span class="dim">○</span>'}
-     <b style="color:#fff">${QC_ASSET_LABELS[a.sid]}</b>
+     <b style="color:#fff">${esc(a.label)}</b>
      <span class="dim" style="font-size:11px">${s==='done'?('scored '+((p.qc&&p.qc.runs[a.sid]&&p.qc.runs[a.sid].score)??0).toFixed(1)+'/10'):s==='error'?esc(QCRUN.err[key]||'failed'):s?(statusLabel[s]||s):'ready'}</span>
     </div>`}).join('')}
   </div>
+  ${busy?`<div class="gen-busy" style="margin-top:8px"><span class="gen-spin"></span><div style="font-size:12.5px">${esc(busy)}<div class="dim" style="font-size:11px;margin-top:2px">Every asset above is analysed in one batch; the report opens here when the cut is scored, and the stills fill in as they finish.</div></div></div>`:''}
+  ${GEN.err[p.id+':qc']?`<div class="pc-note" style="margin-top:8px">${esc(GEN.err[p.id+':qc'])}</div>`:''}
+  ${!qcServerRun(p)&&useJobs()&&p.draft?`<div class="dim" style="font-size:11px;margin-top:8px">The first draft has no assembled video yet — assemble it to get the full QC report with the fix plan; until then F1X8 scores the assets listed here one by one.</div>`:''}
   <textarea id="qc-note" placeholder="optional — anything F1X8 should focus on, e.g. “is the punchline readable in the first 2 seconds?”"></textarea>
   <div class="row">
    <button class="btn btn-ai btn-sm" onclick="qcRunAll('${p.id}')" ${running?'disabled':''}>${running?'F1X8 is running…':anyRun?'↻ Re-run the full F1X8 check':'▶ Run the full F1X8 check'}</button>
@@ -3879,7 +3901,7 @@ function rQcConsole(p){
   <span class="kick accent">Nothing to check yet</span>
   <p class="hint">F1X8 analyzes the real generated visuals — create the thumbnail, moodboard, storyboard or final video first, then run the full check here.</p>
  </div>`}
- ${['draft','final','thumb','mood','board'].filter(s=>p.qc&&p.qc.real&&p.qc.runs[s]).map(s=>rQcReport(p,s)).join('')}
+ ${p.qc&&p.qc.real?Object.keys(p.qc.runs||{}).sort(qcPartOrder).map(s=>rQcReport(p,s)).join(''):''}
  ${anyRun?`<p class="src" style="margin-top:12px">Human sign-off happens in the Production Center below — F1X8's revision brief is the remake plan if you reject.</p>`:''}`;
 }
 function cpKey(e){if(e.key==='Enter'){e.preventDefault();cpSend()}}
