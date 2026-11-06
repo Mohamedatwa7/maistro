@@ -466,7 +466,7 @@ Studio's renders go to the Hermes bots above.
 
 ### Studio Create video generation (Seedance 2.5)
 
-Backs the Studio Copilot (Content Studio → Pathway 02). Proxies Higgsfield
+Backs AmadeusAI (the studio assistant) (Content Studio → Pathway 02). Proxies Higgsfield
 with the server-side `HF_CREDENTIALS` (`key-id:key-secret`); the key never
 reaches the browser. Model: `bytedance/seedance-2.5/text-to-video`.
 
@@ -492,7 +492,7 @@ reaches the browser. Model: `bytedance/seedance-2.5/text-to-video`.
 // terminal failures: status "failed" | "nsfw" — no video, surface honestly
 ```
 
-Each POST is a billable Higgsfield generation. The copilot polls GET every
+Each POST is a billable Higgsfield generation. AmadeusAI polls GET every
 8 s client-side and attaches the finished cut as the campaign's Final
 Content deliverable (with an inline player) once completed.
 

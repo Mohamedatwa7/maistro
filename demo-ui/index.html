@@ -730,7 +730,7 @@ select.inp option{background:var(--panel-solid);color:var(--text)}
 .cc-plat:hover{color:#fff;border-color:var(--line-2)}
 .cc-plat i{width:7px;height:7px;border-radius:50%;display:inline-block}
 .cc-plat.on{border-color:rgba(214,216,221,0.6);background:rgba(214,216,221,0.105);color:#fff}
-/* copilot */
+/* AmadeusAI (the studio assistant; ids stay #copilot) */
 #copilot{position:fixed;top:70px;right:16px;bottom:16px;z-index:120;width:min(410px,92vw);display:none;flex-direction:column;border:1px solid var(--line-2);border-radius:18px;
   background:linear-gradient(180deg,rgba(214,216,221,0.07),transparent 30%),var(--surface-2);box-shadow:0 50px 120px -30px rgba(0,0,0,.95);overflow:hidden}
 #copilot.open{display:flex;animation:chatin .25s var(--ease)}
@@ -1859,7 +1859,7 @@ async function dispatchTrend(id){
  }finally{HERMES_BUSY=false}
 }
 
-/* ---------- Studio Copilot — pathway 02: build each piece step by step.
+/* ---------- AmadeusAI — pathway 02: build each piece step by step.
    Text artifacts come from the agent chain (/api/hermes, Claude); the final
    cut is rendered by Higgsfield Seedance 2.5 via /api/higgsfield (submit,
    then poll — generation takes 1–3 min). State lives in BOT; the panel is
@@ -1883,7 +1883,7 @@ function cpClose(){STATE.copilot=false;studioRefresh()}
 function cpGreet(){
  BOT.step='concept';
  BOT.pendingRefs=BOT.pendingRefs||[];
- cpSay(`I'm the <b>Studio Copilot</b>. Tell me what to build — a product, an idea, a market — and I'll set up the campaign pipeline: moodboard → thumbnail → brief → storyboard → final video → QC. Then you create each piece right inside its stage, in plain words — the <b style="color:#e8e9ec">AI Creative Director</b> turns them into professional prompts and keeps everything visually consistent. You can also start from any trend card in <a href="#/trends" style="color:#7dd3fc">Trend Analysis</a>. Got a look in mind? Tap <b>📎 Attach a reference</b> below and every prompt and render will follow it.`);
+ cpSay(`I'm <b>AmadeusAI</b>. Tell me what to build — a product, an idea, a market — and I'll set up the campaign pipeline: moodboard → thumbnail → brief → storyboard → final video → QC. Then you create each piece right inside its stage, in plain words — the <b style="color:#e8e9ec">AI Creative Director</b> turns them into professional prompts and keeps everything visually consistent. You can also start from any trend card in <a href="#/trends" style="color:#7dd3fc">Trend Analysis</a>. Got a look in mind? Tap <b>📎 Attach a reference</b> below and every prompt and render will follow it.`);
  const chips=TRENDS.slice(0,3).map(t=>({t:'📈 '+t.name.slice(0,30),a:'trend',v:t.id}));
  BOT.chips=chips.length?chips:[];
 }
@@ -1908,7 +1908,7 @@ function cpDraft(name,payload){
  PROJECTS.unshift(p);STATE.proj=p.id;STATE.stageSel=null;BOT.proj=p.id;
  return p;
 }
-/* Trend card → studio with the copilot seeded on that trend. The pipeline is
+/* Trend card → studio with AmadeusAI seeded on that trend. The pipeline is
    visible at once; the bot asks for direction before locking the plan. */
 function cpFromTrend(id){
  const t=TRENDS.find(x=>x.id===id);if(!t)return;
@@ -3798,7 +3798,7 @@ function regenBox(p,sid){
     <div class="dim" style="font-size:11px;margin-top:2px">The new version will replace this one and go back for approval.</div></div></div>`;
  return `
  <div style="margin-top:14px;border-top:1px dashed var(--hairline);padding-top:12px">
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">${agentChip('Copilot',0)}
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">${agentChip('AmadeusAI',0)}
    <span class="dim" style="font-size:11.5px">Want it different? Tell me what to change and I'll regenerate the ${sg.l.toLowerCase()}${p.refImage&&sid==='thumb'?' (your product photo stays attached)':''}.</span></div>
   <div style="display:flex;gap:8px">
    <input id="regen-in-${sid}" style="flex:1;background:rgba(255,255,255,.04);border:1px solid var(--hairline);border-radius:10px;color:var(--text);font-size:12.5px;padding:9px 12px;font-family:var(--font-d)"
@@ -3813,7 +3813,7 @@ function regenBox(p,sid){
 function stageRegen(pid,sid){
  const i=document.getElementById('regen-in-'+sid);
  const changes=i?i.value.trim():'';
- if(!changes){toast('<span style="font-size:12.5px">Tell the copilot what to change first — then hit Regenerate.</span>');return}
+ if(!changes){toast('<span style="font-size:12.5px">Tell AmadeusAI what to change first — then hit Regenerate.</span>');return}
  stageGen(pid,sid,changes);
 }
 function qcKpiName(k){return k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}
@@ -3913,8 +3913,8 @@ function rCopilot(){
  return `
  <div id="copilot" class="${STATE.copilot?'open':''}">
   <div class="cp-head">
-   <div style="display:flex;align-items:center;gap:10px">${agentChip('Copilot',STATE.copilot?1:0)}
-    <div><b style="font-size:13.5px;color:#fff">Studio Copilot</b>
+   <div style="display:flex;align-items:center;gap:10px">${agentChip('AmadeusAI',STATE.copilot?1:0)}
+    <div><b style="font-size:13.5px;color:#fff">AmadeusAI</b>
      <div class="dim mono" style="font-size:9.5px;letter-spacing:.08em">AGENT CHAIN + SEEDANCE 2.5</div></div></div>
    <button class="icon-btn" onclick="cpClose()" title="Close">✕</button>
   </div>
@@ -5230,7 +5230,7 @@ function rTrends(){
         <div style="margin-top:11px"><a class="btn btn-ai btn-sm" href="#/studio" onclick="event.stopPropagation()">Open in Content Studio →</a></div></div>`:''}
       <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
        <button class="btn btn-ai btn-sm" onclick="event.stopPropagation();dispatchTrend('${t.id}')">${HERMES_BUSY?'Hermes is working…':'Dispatch to Hermes — build the campaign →'}</button>
-       <button class="btn btn-gold btn-sm" onclick="event.stopPropagation();cpFromTrend('${t.id}')">Build in Studio — Copilot →</button>
+       <button class="btn btn-gold btn-sm" onclick="event.stopPropagation();cpFromTrend('${t.id}')">Build in Studio — AmadeusAI →</button>
       </div>
      </div>`:''}
    </div>`}).join('')}
@@ -5383,14 +5383,14 @@ function rPathways(){
    </div>
    <div class="card p5" style="border-color:rgba(214,216,221,0.3)">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
-     <div style="display:flex;align-items:center;gap:12px">${agentChip('Copilot',1)}
+     <div style="display:flex;align-items:center;gap:12px">${agentChip('AmadeusAI',1)}
       <div><span class="kick accent">Pathway 02 · Build in the studio</span>
-       <h3 style="font-size:15.5px;margin-top:7px">Studio Copilot — create each piece yourself</h3></div></div>
+       <h3 style="font-size:15.5px;margin-top:7px">AmadeusAI — create each piece yourself</h3></div></div>
      ${badge('gold','SEEDANCE 2.5')}
     </div>
     <p class="dim" style="font-size:12px;line-height:1.65;margin-top:10px"><b style="color:#e8e9ec">Create your own — no trend needed.</b> Describe the idea, pick the platforms and the steps you want, and Maistro plans the campaign. Then generate each step in place; every piece queues in the Production Center.</p>
     ${rOwnForm()}
-    <div style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="cpOpen()">Or talk it through with the Studio Copilot →</button></div>
+    <div style="margin-top:10px"><button class="btn btn-ghost btn-sm" onclick="cpOpen()">Or talk it through with AmadeusAI →</button></div>
    </div>
   </div>
   ${rP3d()}`;
@@ -5406,7 +5406,7 @@ function rStudio(){
   ${rPathways()}
   <div class="card p5" style="text-align:center;padding:56px 24px">
    <span class="kick accent">No campaigns yet</span>
-   <p class="dim" style="font-size:13px;line-height:1.7;margin-top:12px;max-width:560px;margin-inline:auto">Pick a pathway above — dispatch a trend to Hermes, push artifacts over <span class="mono">/api/ingest</span>, or open the <b style="color:#e8e9ec">Studio Copilot</b> and build the campaign piece by piece with Seedance&nbsp;2.5.</p>
+   <p class="dim" style="font-size:13px;line-height:1.7;margin-top:12px;max-width:560px;margin-inline:auto">Pick a pathway above — dispatch a trend to Hermes, push artifacts over <span class="mono">/api/ingest</span>, or open <b style="color:#e8e9ec">AmadeusAI</b> and build the campaign piece by piece with Seedance&nbsp;2.5.</p>
   </div>
   ${rCopilot()}
  </section>`;

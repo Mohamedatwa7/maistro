@@ -1,5 +1,5 @@
-// Preview: what the user sees the instant they click "Build in Studio — Copilot"
-// on a trend card (draft pipeline + copilot asking for direction).
+// Preview: what the user sees the instant they click "Build in Studio — AmadeusAI"
+// on a trend card (draft pipeline + AmadeusAI asking for direction).
 const fs = require('fs');
 let h = fs.readFileSync('index.html', 'utf8');
 h = h.replace('<body class="locked">', '<body>');

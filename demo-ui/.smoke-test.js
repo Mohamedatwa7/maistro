@@ -95,9 +95,9 @@ X.SENTI.posts.length = 0;
 // Studio — two pathways + copilot
 const st = X.rStudio();
 check('studio pathway 01 (Hermes)', st.includes('Pathway 01') && st.includes('/api/ingest'));
-check('studio pathway 02 (Studio Copilot)', st.includes('Pathway 02') && st.includes('cpOpen()'));
+check('studio pathway 02 (AmadeusAI)', st.includes('Pathway 02') && st.includes('cpOpen()'));
 check('studio mentions Seedance', st.includes('Seedance'));
-check('copilot panel rendered', st.includes('id="copilot"') && st.includes('cp-in-field'));
+check('AmadeusAI panel rendered', st.includes('id="copilot"') && st.includes('cp-in-field'));
 check('no old placeholder campaigns', X.PROJECTS.length === 0 && X.DELIVS.length === 0);
 
 // Copilot flow (greet + custom payload shape)
@@ -107,12 +107,12 @@ check('custom payload has name/desc', payload.name.includes('Watch8') && payload
 check('BOT starts at concept step', X.BOT.step === 'concept');
 
 // Trend card → copilot: ask-first flow
-check('trend card has copilot button', html.includes("cpFromTrend('${t.id}')"));
+check('trend card has AmadeusAI button', html.includes("cpFromTrend('${t.id}')"));
 X.TRENDS.push({ id: 't-test', name: 'Test Trend', type: 'format', markets: ['UAE'], platform: 'tiktok', vel: 12, status: 'rising', desc: 'a test', clips: [] });
 X.cpFromTrend('t-test');
 check('cpFromTrend seeds direction step', X.BOT.step === 'direction');
 check('cpFromTrend stores trend payload', X.BOT.pendingPayload && X.BOT.pendingPayload.name === 'Test Trend');
-check('cpFromTrend opens copilot', X.STATE.copilot === true);
+check('cpFromTrend opens AmadeusAI', X.STATE.copilot === true);
 check('direction offers plan-for-me chip', X.BOT.chips.some(c => c.a === 'plango'));
 check('draft campaign appears instantly', X.PROJECTS[0] && X.PROJECTS[0].planning === true);
 const draftStudio = X.rStudio();

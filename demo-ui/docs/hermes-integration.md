@@ -115,7 +115,7 @@ The product spec:
 ### Product focus: the Galaxy Z Fold8 family
 
 - **How it works:** `MAISTRO_FOCUS_WEIGHT` (default 0.5) is the share of new campaign plans (`/api/hermes`
-  stage `plan`, which the copilot and the trend → campaign flow use) told to feature the Galaxy Z Fold8 or Fold8
+  stage `plan`, which AmadeusAI and the trend → campaign flow use) told to feature the Galaxy Z Fold8 or Fold8
   Ultra. The angle makes **the unfold the story's product moment**.
 - **When it doesn't apply:** never when the user picked a product (`userProduct`) or named one in their direction,
   and never on any stage after the plan.
