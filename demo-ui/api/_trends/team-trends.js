@@ -29,7 +29,7 @@ const RAW = [
     addedAt: '2026-11-02',
     mechanic: 'Creative photography trend shot from inside the fridge: the camera sits on the shelf and captures the person opening the door.',
     tags: ['fridgepov', 'pov', 'creativephotography'],
-    clips: [ig('De8uVfKMKp7', 'reel'), ig('DefGM8KRUb3', 'reel'), ig('Dez_9UQS9wl', 'post')],
+    clips: [ig('De8uVfKMKp7', 'reel'), ig('DefGM8KRUb3', 'reel'), ig('Dez_9UQS9wl', 'post'), ig('DYv8cCYAkMe', 'reel'), ig('Dci6YMcTCWp', 'reel')],
   },
   {
     name: 'Things We Are Ghosting This October',

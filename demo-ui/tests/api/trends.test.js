@@ -301,6 +301,6 @@ test('teamTrends: the team-added Instagram trends ride alongside the board, outs
       assert.ok(t.clips.length >= 3);
       for (const c of t.clips) assert.match(c.url, /^https:\/\/www\.instagram\.com\/(reel|p)\/[A-Za-z0-9_-]+\/$/);
     }
-    assert.equal(team.reduce((n, t) => n + t.clips.length, 0), 14);
+    assert.equal(team.reduce((n, t) => n + t.clips.length, 0), 16);
   } finally { f.restore(); restore(); }
 });
