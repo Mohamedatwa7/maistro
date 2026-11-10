@@ -3652,6 +3652,7 @@ function rBrief(p){
   <div class="pc-note" style="margin-bottom:10px">Editing the brief — your changes are saved as a new version (v${(parseInt(String(b.version||'v1').replace('v',''),10)||1)+1}) and re-checked; nothing is overwritten.</div>
   ${f('objective','Objective',e.objective)}${f('successMetric','Success metric',e.successMetric,1)}${f('keyMessage','Key message',e.keyMessage,1)}${f('cta','Call to action',e.cta,1)}
   ${f('hook','How Samsung adapts the trend',e.trendHook.samsungAdaptation)}
+  ${f('hfFeature','Hero feature the video proves (e.g. pocketable)',(e.heroFeature||{}).feature,1)}${f('hfBenefit','What it changes for the person',(e.heroFeature||{}).benefit,1)}${f('hfDemo','The on-screen moment that proves it',(e.heroFeature||{}).demonstration,2)}
   ${f('stLogline','Storyline — the whole story in one sentence',(e.storyline||{}).logline,2)}${f('stOpening','Opening scene',(e.storyline||{}).openingScene,2)}${f('stBeats','Story beats (one per line)',((e.storyline||{}).beats||[]).join('\n'),3)}${f('stClosing','Closing scene',(e.storyline||{}).closingScene,2)}${f('stProtagonist','Protagonist',(e.storyline||{}).protagonist,1)}
   <div class="grid-2f"><div class="f-field" style="margin-top:8px"><label>Target duration (s)</label><input class="inp-l" id="be-dur" type="number" min="1" value="${e.format.targetDurationS}"></div><div class="f-field" style="margin-top:8px"><label>Deadline</label><input class="inp-l" id="be-deadline" value="${esc(e.deadline)}"></div></div>
   ${f('captionEn','Caption (English)',e.caption.en,3)}${f('captionAr','Caption (Arabic)',e.caption.ar,3,'rtl')}
@@ -3673,6 +3674,7 @@ function rBrief(p){
   ${row('Objective',`${esc(sp.objective)}<div class="dim" style="margin-top:3px">Success metric: ${esc(sp.successMetric)}</div>`)}
   ${row('Audience',`${esc(sp.audience.description)}<div style="margin-top:4px">${sp.audience.markets.map(m=>badge('muted',esc(m))).join(' ')}</div>`)}
   ${row('Trend hook',`<b>${esc(sp.trendHook.mechanic)}</b><div style="margin-top:3px">${esc(sp.trendHook.samsungAdaptation)}</div>`)}
+  ${row('Hero feature',sp.heroFeature&&sp.heroFeature.feature?`<b style="color:#fff">${esc(sp.heroFeature.feature)}</b>${sp.heroFeature.benefit?` — ${esc(sp.heroFeature.benefit)}`:''}<div class="dim" style="margin-top:3px">Shown by: ${esc(sp.heroFeature.demonstration)}</div>`:'<span class="dim">none — this brief was written before every video had to prove a hero feature; regenerate or edit it</span>')}
   ${sp.storyline?row('Storyline',`<b style="color:#fff">${esc(sp.storyline.logline)}</b>${sp.storyline.protagonist?`<div class="dim" style="margin-top:3px">Protagonist: ${esc(sp.storyline.protagonist)}</div>`:''}
    <ol style="margin:8px 0 0 18px;line-height:1.75">
     <li><b style="color:#86efac">Opening scene</b> — ${esc(sp.storyline.openingScene)}</li>
@@ -3697,6 +3699,7 @@ async function saveBriefEdit(pid){
  const e=JSON.parse(JSON.stringify(BRIEF_EDIT[pid]));const v=(id)=>(($('#be-'+id)||{}).value||'');
  const lines=(t)=>t.split(/\n/).map(x=>x.trim()).filter(Boolean),tags=(t)=>t.split(/[,،]/).map(x=>x.trim().replace(/^#/,'')).filter(Boolean);
  e.objective=v('objective').trim();e.successMetric=v('successMetric').trim();e.keyMessage=v('keyMessage').trim();e.cta=v('cta').trim();e.trendHook.samsungAdaptation=v('hook').trim();
+ if(v('hfFeature').trim()||v('hfDemo').trim()||e.heroFeature)e.heroFeature={feature:v('hfFeature').trim(),benefit:v('hfBenefit').trim(),demonstration:v('hfDemo').trim()};
  if(v('stLogline').trim()||v('stOpening').trim()||v('stClosing').trim()||e.storyline)e.storyline={logline:v('stLogline').trim(),protagonist:v('stProtagonist').trim(),openingScene:v('stOpening').trim(),beats:lines(v('stBeats')),closingScene:v('stClosing').trim()};
  e.format.targetDurationS=parseInt(v('dur'),10)||e.format.targetDurationS;e.deadline=v('deadline').trim();
  e.caption.en=v('captionEn').trim();e.caption.ar=v('captionAr').trim();e.hashtags.en=tags(v('hashEn'));e.hashtags.ar=tags(v('hashAr'));e.mandatories=lines(v('mandatories'));e.doNots=lines(v('doNots'));

@@ -742,6 +742,7 @@ module.exports = async (req, res) => {
         const textPrompt = [
           `A ${targetS}-second ${aspect === '9:16' ? 'vertical ' : ''}social video for Samsung ${piece.product || ''}.`,
           sp && sp.storyline && sp.storyline.openingScene ? `Story: open on ${sp.storyline.openingScene}; then ${(sp.storyline.beats || []).join('; ')}; close on ${sp.storyline.closingScene}.` : '',
+          sp && sp.heroFeature && sp.heroFeature.feature ? `Hero feature the video proves: ${sp.heroFeature.feature} — show it: ${sp.heroFeature.demonstration || ''}.` : '',
           sp ? `Key message: ${sp.keyMessage || ''}.${hook ? ` Hook: ${hook}.` : ''}${sp.cta ? ` End on: ${sp.cta}.` : ''}` : `Key message: ${piece.key_message || piece.title || ''}.${piece.angle ? ` Angle: ${piece.angle}.` : ''}`,
           piece.trend_name ? `Inspired by the trend "${piece.trend_name}".` : '',
           pr.model ? 'The device is the exact product from the reference renders of its 3D model — identical shape, size, colour, cameras and buttons, never morphing. No on-screen text, no captions.' : 'The device looks exactly like the real product: no morphing, no extra buttons, no invented logos. No on-screen text, no captions.',
@@ -769,14 +770,14 @@ module.exports = async (req, res) => {
         // A (PLAN mode): the storyboard bot writes the story and the shot list and makes every keyframe in one run
         const aspect = thumb.aspectFor(piece.platforms);
         const storyline = bsp ? bsp.storyline || null : null;
-        const story = C.storyFrom(null, storyline, bsp ? bsp.keyMessage : piece.key_message);
+        const story = C.storyFrom(null, storyline, bsp && bsp.heroFeature && bsp.heroFeature.feature ? `${bsp.heroFeature.feature}: ${bsp.heroFeature.demonstration || bsp.keyMessage || ''}` : bsp ? bsp.keyMessage : piece.key_message);
         const artifact = { ...boardMod.artifactFrom({ shots: [], hookShot: 1, notes: 'The storyboard bot is writing the story and the shot list and making every keyframe.' }, { briefVersionId: brief.versionId, briefApproved: brief.approved, moodApproved: bctx.mood.approved, aspect, storyline, story }), planMode: true, planState: 'rendering' };
         const out = await recordVersion(legacyId, 'board', artifact, { piece: b.piece || {}, producedBy: 'hermes', kind: 'image', generatedBy: req.member ? req.member.id : null });
         const pr = await products3d.renderRefs(piece.product, b.refImage);
         const anchors = bctx.mood.tiles.filter((t) => t.assetPath || t.url).slice(0, 4).map((t) => ({ index: t.index, url: t.url || null, assetPath: t.assetPath || null }));
         const [stageRow] = await queryRows('stages', `select=id,state&piece_id=eq.${encodeURIComponent(piece.id)}&kind=eq.board&limit=1`);
         const prompt = boardMod.planPrompt({ piece, brief, direction: bctx.mood.direction, productLine: bits.productLook, userInput: b.userInput });
-        const planContext = { brief: bsp ? { objective: bsp.objective, keyMessage: bsp.keyMessage, cta: bsp.cta, trendHook: bsp.trendHook, storyline: bsp.storyline, mandatories: bsp.mandatories } : { objective: piece.title, keyMessage: piece.key_message || '' }, story, targetDurationS: bsp && bsp.format ? bsp.format.targetDurationS : null };
+        const planContext = { brief: bsp ? { objective: bsp.objective, keyMessage: bsp.keyMessage, cta: bsp.cta, trendHook: bsp.trendHook, heroFeature: bsp.heroFeature || null, storyline: bsp.storyline, mandatories: bsp.mandatories } : { objective: piece.title, keyMessage: piece.key_message || '' }, story, targetDurationS: bsp && bsp.format ? bsp.format.targetDurationS : null };
         const row = { piece_id: piece.id, stage_id: stageRow.id, kind: 'hermes_image', state: 'queued', attempts: 0, next_poll_at: new Date().toISOString(), payload: { pieceId: legacyId, stage: 'board', planMode: true, prompt, aspect_ratio: aspect, resolution: '1080p', ...refsOf(pr), planContext, sessionVersion: out.version, attachTo: { versionId: out.versionId }, generatedBy: req.member ? req.member.id : null, meta: { prompt, anchors, direction: bctx.mood.direction || null, product: piece.product, productLook: bits.productLook, rules: bits.rules, title: piece.title } } };
         const jobs = await submitAll(await insertRows('jobs', styled([row]), { returning: true }), stageRow.id, legacyId);
         return res.status(200).json({ ok: true, plan: true, artifact, version: out.version, versionId: out.versionId, checks: null, jobs, briefApproved: brief.approved, moodApproved: bctx.mood.approved, orderWarnings: og.warnings });

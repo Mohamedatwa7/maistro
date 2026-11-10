@@ -13,6 +13,7 @@ const BRIEF = {
   objective: 'Own the deadpan-reveal beat for Flip8 in the UAE this week.', successMetric: '≥ 8 % engagement rate and 30 % 3-second hold',
   audience: { description: 'Gulf 18–30 TikTok natives who share dry humour', markets: ['UAE'] },
   trendHook: { mechanic: 'setup line, pause, deadpan caption reveal', samsungAdaptation: 'the reveal lands on the FlexWindow cover screen' },
+  heroFeature: { feature: 'FlexWindow', benefit: 'answer without opening the phone', demonstration: 'she reads and answers the message on the closed FlexWindow' },
   storyline: { logline: 'A deadpan friend keeps her cool while the group panics over a missed message — until the FlexWindow saves the day.', protagonist: 'a woman in her twenties, modest neutral linen abaya, calm expression', openingScene: 'The group chat explodes; everyone panics except her.', beats: ['She flips the phone closed and reads the reply on the cover screen.', 'A deadpan pause.'], closingScene: 'She shows the FlexWindow to the group; they burst out laughing.' },
   keyMessage: 'Small enough to disappear, bold enough to turn heads.',
   products: [{ name: 'Galaxy Z Flip8', features: ['FlexWindow'] }], claims: [],
@@ -40,6 +41,13 @@ test('validateShape and codeChecks: every field required; unmapped claims, durat
   const bad = B.codeChecks({ ...BRIEF, claims: [{ claim: 'fastest chip', approvedWording: 'fastest chip', disclaimer: '' }], format: { ...BRIEF.format, targetDurationS: 45 }, hashtags: { en: ['a', 'b', 'c', 'd', 'e', 'f'], ar: [] }, audio: { direction: 'x', musicReference: 'Trend Sound', licensing: 'unknown' }, caption: { en: 'x', ar: '' }, mandatories: ['be nice', 'be bold', 'be brief'], products: [{ name: 'Galaxy Z Fold9', features: [] }] }, ctx);
   const failed = bad.filter((c) => !c.passed).map((c) => c.code);
   assert.deepEqual(failed, ['product_in_catalog', 'claims_approved', 'duration_sweet_spot', 'hashtag_limit', 'audio_licensed', 'arabic_copy_present', 'mandatories_complete']);
+  // owner 2026-11-10: every video proves ONE hero feature; asked of the bot, optional for older briefs, whole when given
+  assert.match(B.SYSTEM, /HERO FEATURE/); assert.match(B.SYSTEM, /pocketable/); assert.ok(B.SCHEMA.required.includes('heroFeature'));
+  assert.deepEqual(B.validateShape({ ...BRIEF, heroFeature: undefined }), []);
+  assert.deepEqual(B.validateShape({ ...BRIEF, heroFeature: { ...BRIEF.heroFeature, demonstration: '' } }), ['heroFeature.demonstration: required']);
+  const noHero = B.codeChecks({ ...BRIEF, heroFeature: undefined }, ctx).find((c) => c.code === 'hero_feature');
+  assert.equal(noHero.passed, false); assert.match(noHero.detail, /not just show the phone/);
+  assert.match(ok.find((c) => c.code === 'hero_feature').detail, /^FlexWindow — shown by/);
   const noStory = B.codeChecks({ ...BRIEF, storyline: undefined }, ctx).find((c) => c.code === 'storyline_complete');
   assert.equal(noStory.passed, false); assert.match(noStory.detail, /no storyline/);
   assert.match(ok.find((c) => c.code === 'storyline_complete').detail, /opening, 2 beat\(s\), closing/);
