@@ -955,8 +955,8 @@ h1,h2{letter-spacing:-.04em}
     <p class="sub">Trends, agents, approvals and results in one console.</p>
     <form id="login-form" style="display:flex;flex-direction:column;gap:16px">
       <div class="f-field">
-        <label for="l-email">Work email</label>
-        <input class="inp-l" id="l-email" type="email" placeholder="name@samsung.com" autocomplete="off">
+        <label for="l-email">Work email or username</label>
+        <input class="inp-l" id="l-email" type="text" placeholder="name@samsung.com" autocomplete="username" autocapitalize="off" spellcheck="false">
       </div>
       <div class="f-field">
         <div class="row"><label for="l-pass">Password</label><a href="#" onclick="return false">Forgot password?</a></div>
@@ -1136,6 +1136,12 @@ const spark=(pts,w=90,h=26,stroke='#7dd3fc')=>{const mn=Math.min(...pts),rng=(Ma
 let toastTimer=null;
 function toast(html){const t=$('#toast');t.innerHTML=`<div class="card p4" style="border-color:rgba(224,226,230,0.3)">${html}</div>`;
  t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),4600)}
+/* view-only accounts (api/_accounts.js): the API answers 403 not_permitted to any generate/change call —
+   say so plainly, after the caller's own error message so it is the one left on screen */
+const _fetch0=window.fetch.bind(window);
+window.fetch=async(...a)=>{const r=await _fetch0(...a);
+ if(r.status===403){r.clone().json().then(d=>{if(d&&d.code==='not_permitted')setTimeout(()=>toast('<span style="font-size:12.5px"><b style="color:#fca5a5">Not permitted</b> — this account is view-only and cannot generate or change content.</span>'),60)}).catch(()=>{})}
+ return r};
 function reveal(){const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.08});
  document.querySelectorAll('.rv:not(.in)').forEach(el=>io.observe(el));
  document.querySelectorAll('.bar-row .fill[data-w]').forEach(f=>requestAnimationFrame(()=>f.style.width=f.dataset.w));
@@ -1269,8 +1275,10 @@ async function submitLogin(){
  const pw=($('#l-pass')||{}).value||'';
  if(!pw){loginError(AUTH.magicLink?'Enter the workspace password, or request a sign-in link.':'Enter the workspace password.');const i=$('#l-pass');if(i&&i.focus)i.focus();return}
  try{
-  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+  const user=(($('#l-email')||{}).value||'').trim();
+  const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(user&&!/@/.test(user)?{username:user,password:pw}:{password:pw})});
   if(r.status===204){doLogin();return}
+  if(r.status===200){const d=await r.json().catch(()=>({}));AUTH.member=d.member||null;doLogin();return}
   const d=await r.json().catch(()=>({}));
   loginError(r.status===401?'Wrong password.':r.status===503?'Login is not configured on the server yet.':(d.error||('Login failed ('+r.status+')')));
  }catch(e){loginError('Could not reach the server.')}

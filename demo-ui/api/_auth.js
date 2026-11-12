@@ -120,6 +120,13 @@ function requireSession(req, res) {
 // written. On a storage error the request fails closed (503).
 async function refreshMember(req, res) {
   if (!req.member) return true;
+  const accounts = require('./_accounts.js');
+  if (accounts.isAccountId(req.member.id)) {
+    const a = accounts.accountMemberById(req.member.id);
+    if (!a) { res.status(403).json({ error: 'this account no longer exists — sign in again', code: 'member_inactive' }); return false; }
+    req.member = { id: a.id, email: a.email, role: a.role, name: a.name };
+    return true;
+  }
   let row;
   try {
     const { getMemberById } = require('./_members.js');

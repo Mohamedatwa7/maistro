@@ -42,8 +42,25 @@ module.exports = async (req, res) => {
   }
   // The handlers read query params by name; `route` is ours, not theirs.
   if (req.query) delete req.query.route;
+  if (viewOnlyRefusal(req, name)) {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(403).json({ error: 'This account is view-only — it is not permitted to generate or change content.', code: 'not_permitted' });
+  }
   const handler = require(`./_handlers/${file}.js`);
   return handler(req, res);
 };
+
+// A view-only account (api/_accounts.js, role viewer) may read everything but never write:
+// any non-GET call except signing in/out is refused before it reaches a handler.
+function viewOnlyRefusal(req, name) {
+  const method = String(req.method || 'GET').toUpperCase();
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS' || name === 'login') return false;
+  const secret = process.env.MAISTRO_SESSION_SECRET;
+  if (!secret) return false;
+  const { readSession } = require('./_auth.js');
+  const s = readSession((req.headers || {}).cookie, secret);
+  const { VIEW_ONLY_ROLES } = require('./_accounts.js');
+  return Boolean(s && s.member && VIEW_ONLY_ROLES.includes(s.member.role));
+}
 
 module.exports.ROUTES = ROUTES;

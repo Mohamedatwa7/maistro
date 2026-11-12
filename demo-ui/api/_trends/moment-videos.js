@@ -40,12 +40,12 @@ function clipsOf(data, now = Date.now()) {
   })).filter((c) => /^\d{8,25}$/.test(c.vid) && c.postedAt && now - new Date(c.postedAt).getTime() <= MAX_AGE_DAYS * 864e5 && c.views >= MIN_PLAYS && !BLOCK.test(c.caption) && !BLOCK.test(c.handle || ''));
 }
 
-async function search(keyword) {
+async function search(keyword, now = Date.now()) {
   const key = process.env.TIKHUB_API_KEY;
   const qs = new URLSearchParams({ keyword, count: '20', offset: '0', sort_type: '1', publish_time: '7' });
   const r = await fetchT(`${BASE}${SEARCH}?${qs}`, { headers: { Authorization: `Bearer ${key}`, accept: 'application/json' } }, { timeoutMs: 20000, retries: 1 });
   if (!r.ok) throw new Error(`TikHub search "${keyword}": ${r.status}`);
-  return clipsOf(await r.json());
+  return clipsOf(await r.json(), now);
 }
 
 /** Gulf creators first, then views; one clip per creator. */
@@ -101,7 +101,7 @@ async function refresh(moments, stored = {}, { now = Date.now(), client } = {}) 
     const clips = [];
     for (const q of qs) {
       calls++;
-      try { clips.push(...await search(q)); } catch (e) { errors.push(String(e.message || e)); }
+      try { clips.push(...await search(q, now)); } catch (e) { errors.push(String(e.message || e)); }
     }
     found[m.id] = { queries: qs, clips: rank(clips).slice(0, PER_MOMENT * 2) };
   }

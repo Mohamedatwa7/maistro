@@ -1,4 +1,4 @@
-// The "coming soon" gate (src/gate.mjs, middleware.ts): which paths stay open, the password check, the cookie token.
+// The retired "coming soon" gate (src/gate.mjs; its middleware.ts was removed 2026-11-12 when the site opened): which paths stay open, the password check, the cookie token.
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 
