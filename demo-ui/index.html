@@ -2418,12 +2418,12 @@ async function stageGen(pid,sid,changes){
 }
 /* The page only READS job state; completion was recorded server-side. */
 const POLL_MS={job:5000,shots:4000};
-/* owner 2026-11-05: the page waits up to one hour for content to render (tries × interval) */
-const GEN_POLL_MAX=450,MOOD_POLL_MAX=900;
+/* owner 2026-11-23: the page waits up to two hours for content to render (tries × interval) */
+const GEN_POLL_MAX=900,MOOD_POLL_MAX=1800;
 function jobPoll(pid,sid,jobId,tries){
  const key=pid+':'+sid;
  clearTimeout(GEN.timer[key]);
- if(tries>720){delete GEN.busy[key];GEN.err[key]='Still rendering after 1 hour — the job keeps running on the server; reopen the piece later.';studioRefresh();return}
+ if(tries>1440){delete GEN.busy[key];GEN.err[key]='Still rendering after 2 hours — the job keeps running on the server; reopen the piece later.';studioRefresh();return}
  GEN.timer[key]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/jobs?id='+encodeURIComponent(jobId));
@@ -2456,7 +2456,7 @@ function jobPoll(pid,sid,jobId,tries){
 function genPoll(pid,sid,reqId,meta,tries){
  const key=pid+':'+sid;
  clearTimeout(GEN.timer[key]);
- if(tries>GEN_POLL_MAX){delete GEN.busy[key];GEN.err[key]='Generation timed out after 1 hour — try again.';studioRefresh();return}
+ if(tries>GEN_POLL_MAX){delete GEN.busy[key];GEN.err[key]='Generation timed out after 2 hours — try again.';studioRefresh();return}
  GEN.timer[key]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/higgsfield?id='+encodeURIComponent(reqId)+(meta.v===1?'&v=1':''));
@@ -2581,7 +2581,7 @@ async function qcRunAll(pid){
 function qcJobPoll(pid,sid,jobId,tries){
  const key=pid+':'+sid;
  clearTimeout(QCRUN.timer[key]);
- if(tries>720){QCRUN.state[key]='error';QCRUN.err[key]='F1X8 still running after 1 hour — the job continues on the server; reopen the piece later.';studioRefresh();return}
+ if(tries>1440){QCRUN.state[key]='error';QCRUN.err[key]='F1X8 still running after 2 hours — the job continues on the server; reopen the piece later.';studioRefresh();return}
  QCRUN.timer[key]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/jobs?id='+encodeURIComponent(jobId));
@@ -2616,7 +2616,7 @@ function qcJobPoll(pid,sid,jobId,tries){
 function qcPoll(pid,sid,jobId,tries){
  const key=pid+':'+sid;
  clearTimeout(QCRUN.timer[key]);
- if(tries>360){QCRUN.state[key]='error';QCRUN.err[key]='F1X8 timed out after 1 hour — resubmit.';studioRefresh();return}
+ if(tries>720){QCRUN.state[key]='error';QCRUN.err[key]='F1X8 timed out after 2 hours — resubmit.';studioRefresh();return}
  QCRUN.timer[key]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/qc-f1x8?job='+encodeURIComponent(jobId));
@@ -3111,7 +3111,7 @@ function shotsPoll(pid,stage,tries){
  if(stage==='mood')return moodsPoll(pid,tries);
  const slot=stage==='draft'?'clip':'keyframe',pk=pid+':'+stage;
  clearTimeout(BOARD_POLL[pk]);
- if(tries>900){const p=PROJECTS.find(x=>x.id===pid);if(p){delete GEN.busy[pk];GEN.err[pk]=(slot==='clip'?'Clips':'Keyframes')+' still rendering after 1 hour — the jobs keep running on the server; reopen the piece later.'}studioRefresh();return}
+ if(tries>1800){const p=PROJECTS.find(x=>x.id===pid);if(p){delete GEN.busy[pk];GEN.err[pk]=(slot==='clip'?'Clips':'Keyframes')+' still rendering after 2 hours — the jobs keep running on the server; reopen the piece later.'}studioRefresh();return}
  BOARD_POLL[pk]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/studio?shots='+encodeURIComponent(pid)+'&stage='+stage);const d=await r.json().catch(()=>({}));
@@ -3131,7 +3131,7 @@ function shotsPoll(pid,stage,tries){
 /* the three moods fill in one by one; each poll also moves the renders along on the server */
 function moodsPoll(pid,tries){
  const pk=pid+':mood';clearTimeout(BOARD_POLL[pk]);
- if(tries>MOOD_POLL_MAX){delete GEN.busy[pk];GEN.err[pk]='Moods still rendering after 1 hour — the jobs keep running on the server; reopen the piece later.';studioRefresh();return}
+ if(tries>MOOD_POLL_MAX){delete GEN.busy[pk];GEN.err[pk]='Moods still rendering after 2 hours — the jobs keep running on the server; reopen the piece later.';studioRefresh();return}
  BOARD_POLL[pk]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/studio?shots='+encodeURIComponent(pid)+'&stage=mood');const d=await r.json().catch(()=>({}));
@@ -3321,7 +3321,7 @@ const QC_EDIT={};
 /* the stills of a QC batch land after the report: refresh the runs until none is queued or running */
 function qcPartsPoll(pid,tries){
  const key=pid+':qcparts';clearTimeout(BOARD_POLL[key]);
- if(tries>240)return;
+ if(tries>480)return;
  BOARD_POLL[key]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/studio?qc='+encodeURIComponent(pid));const d=await r.json().catch(()=>({}));
@@ -3335,7 +3335,7 @@ function qcPartsPoll(pid,tries){
 }
 function qcReportPoll(pid,tries){
  const key=pid+':qc';clearTimeout(BOARD_POLL[key]);
- if(tries>480){delete GEN.busy[key];GEN.err[key]='QC still running after 1 hour — it keeps running on the server; reopen the piece later.';studioRefresh();return}
+ if(tries>960){delete GEN.busy[key];GEN.err[key]='QC still running after 2 hours — it keeps running on the server; reopen the piece later.';studioRefresh();return}
  BOARD_POLL[key]=setTimeout(async()=>{
   try{
    const r=await authFetch('/api/studio?qc='+encodeURIComponent(pid));const d=await r.json().catch(()=>({}));
@@ -3535,7 +3535,7 @@ async function finalVerify(pid){
  try{GEN.busy[key]='F1X8 is analysing the final cut; each original risk is verified afterwards…';studioRefresh();
   const sr=await authFetch('/api/studio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'final-verify',pieceId:pid,piece:storeMeta(p)})});
   const sd=await sr.json().catch(()=>({}));orderWarn(sd);if(!sr.ok||!sd.job)throw new Error(sd.error||('studio responded '+sr.status));
-  const poll=async(t)=>{if(t>160){delete GEN.busy[key];studioRefresh();return}const r=await authFetch('/api/studio?shots='+encodeURIComponent(pid)+'&stage=final').catch(()=>null);const d=r?await r.json().catch(()=>({})):{};if(d.payload&&d.payload.verification){delete GEN.busy[key];p.final={...p.final,...d.payload};FINAL_DIFF[pid]=d.diff||FINAL_DIFF[pid];saveGenerated();studioRefresh();return}setTimeout(()=>poll(t+1),7500)};
+  const poll=async(t)=>{if(t>960){delete GEN.busy[key];studioRefresh();return}const r=await authFetch('/api/studio?shots='+encodeURIComponent(pid)+'&stage=final').catch(()=>null);const d=r?await r.json().catch(()=>({})):{};if(d.payload&&d.payload.verification){delete GEN.busy[key];p.final={...p.final,...d.payload};FINAL_DIFF[pid]=d.diff||FINAL_DIFF[pid];saveGenerated();studioRefresh();return}setTimeout(()=>poll(t+1),7500)};
   poll(0);
  }catch(e){delete GEN.busy[key];GEN.err[key]=e.message;studioRefresh()}
 }

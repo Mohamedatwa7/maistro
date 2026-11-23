@@ -150,7 +150,7 @@ test('failures: a failed Hermes run fails the job with its reason and returns th
     assert.equal(W.pg.tables.stages.find((s) => s.kind === 'thumb').state, 'ready');
     // timeout: a running job older than its limit
     W.H.reject = null;
-    W.pg.tables.jobs.push({ id: '00000000-0000-4000-8000-000000000001', piece_id: W.pg.tables.content_pieces[0].id, stage_id: W.pg.tables.stages.find((s) => s.kind === 'thumb').id, kind: 'hermes_image', state: 'running', attempts: 1, provider_ref: 'thumb:run_0001', payload: { pieceId: 'gen-j1', stage: 'thumb' }, created_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString(), started_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString(), next_poll_at: new Date(Date.now() - 1000).toISOString() });
+    W.pg.tables.jobs.push({ id: '00000000-0000-4000-8000-000000000001', piece_id: W.pg.tables.content_pieces[0].id, stage_id: W.pg.tables.stages.find((s) => s.kind === 'thumb').id, kind: 'hermes_image', state: 'running', attempts: 1, provider_ref: 'thumb:run_0001', payload: { pieceId: 'gen-j1', stage: 'thumb' }, created_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString(), started_at: new Date(Date.now() - 3 * 3600 * 1000).toISOString(), next_poll_at: new Date(Date.now() - 1000).toISOString() });
     r = await W.get({}, { headers: { authorization: 'Bearer cron' }, session: false });
     assert.equal(r.body.states.timed_out, 1);
   } finally { W.restore(); }
@@ -326,7 +326,7 @@ test('an F1X8 job may name the stored copy (assetPath): it is signed at submit t
   } finally { W.restore(); }
 });
 
-test('a PLAN-mode storyboard run gets its own limit (75 min, not one image\'s 20), and a run that finished past its limit is still taken (2026-11-02)', async () => {
+test('a PLAN-mode storyboard run gets its own limit (2 hours since 2026-11-23, not one image\'s 20), and a run that finished past its limit is still taken (2026-11-02)', async () => {
   const W = world();
   try {
     await seedPlan(W);
@@ -335,14 +335,14 @@ test('a PLAN-mode storyboard run gets its own limit (75 min, not one image\'s 20
     const row = (id, min, payload) => ({ id, piece_id: W.pg.tables.content_pieces[0].id, stage_id: stage.id, kind: 'hermes_image', state: 'running', attempts: 1, provider_ref: 'board:run_0001', payload: { pieceId: 'gen-j1', stage: 'board', ...payload }, created_at: ago(min), started_at: ago(min), next_poll_at: ago(0.1) });
     W.H.status = 'running'; W.H.runs.push({ id: 'run_0001', profile: 'storyboard', body: {}, headers: {} });
     const plan = row('00000000-0000-4000-8000-000000000011', 30, { planMode: true });
-    const one = row('00000000-0000-4000-8000-000000000012', 65, {});
+    const one = row('00000000-0000-4000-8000-000000000012', 125, {});
     (W.pg.tables.jobs = W.pg.tables.jobs || []).push(plan, one);
     await W.get({}, { headers: { authorization: 'Bearer cron' }, session: false });
     assert.equal(plan.state, 'running', 'a 30-minute PLAN run keeps going');
-    assert.equal(one.state, 'timed_out', 'one image still stops at its limit (1 hour since 2026-11-05)');
-    plan.started_at = ago(80); due(plan);
+    assert.equal(one.state, 'timed_out', 'one image still stops at its limit (2 hours since 2026-11-23)');
+    plan.started_at = ago(125); due(plan);
     await W.get({}, { headers: { authorization: 'Bearer cron' }, session: false });
-    assert.equal(plan.state, 'timed_out'); assert.match(plan.error, /no result after 75 minutes.*shot by shot/);
+    assert.equal(plan.state, 'timed_out'); assert.match(plan.error, /no result after 120 minutes.*shot by shot/);
     // past its limit, but the bot finished since the previous poll: one last look takes the result
     const late = row('00000000-0000-4000-8000-000000000013', 25, { meta: { prompt: 'p' } });
     W.pg.tables.jobs.push(late); W.H.status = 'completed';
